@@ -1,0 +1,26 @@
+{
+  "request_id": "api-alignment-open-platform",
+  "stage": "complete",
+  "created_at": "2026-06-11T03:27:00.000Z",
+  "updated_at": "2026-06-11T05:18:00.000Z",
+  "source": {
+    "type": "local-prd",
+    "path": "description-doc/",
+    "description": "Bilibili 直播开放平台官方文档 (23个 .md 文件)"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "artifacts": {
+    "request.md": "docs/requests/api-alignment-open-platform/request.md",
+    "prd-snapshot.md": "docs/requests/api-alignment-open-platform/artifacts/prd-snapshot.md",
+    "state.json": "docs/requests/api-alignment-open-platform/state.json",
+    "spec.md": "docs/requests/api-alignment-open-platform/spec/spec.md",
+    "clarifications.md": "docs/requests/api-alignment-open-platform/spec/clarifications.md",
+    "plan.md": "docs/requests/api-alignment-open-platform/plan/plan.md",
+    "task-board.md": "docs/requests/api-alignment-open-platform/plan/task-board.md",
+    "verification.md": "docs/requests/api-alignment-open-platform/verification/verification.md",
+    "review.md": "docs/requests/api-alignment-open-platform/review/review.md"
+  }
+}

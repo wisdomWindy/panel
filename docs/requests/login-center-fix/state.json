@@ -1,0 +1,20 @@
+{
+  "request_id": "login-center-fix",
+  "source": "user-direct-request",
+  "stage": "spec",
+  "status": "completed",
+  "artifacts": {
+    "request.md": "created",
+    "artifacts/prd-snapshot.md": "created",
+    "spec/spec.md": "created",
+    "spec/clarifications.md": "created",
+    "plan/plan.md": "created",
+    "plan/task-board.md": "created",
+    "verification/verification.md": "created",
+    "review/review.md": "created"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  }
+}

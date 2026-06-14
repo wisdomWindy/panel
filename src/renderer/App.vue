@@ -1,0 +1,120 @@
+<script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue';
+import { useRoomStore } from '@/stores/room';
+import { getDanmakuService } from '@/services/danmaku-service';
+import {
+  House,
+  Connection,
+  ChatDotRound,
+  Document,
+  Present,
+  Setting,
+  DocumentCopy,
+  CircleClose,
+  MagicStick
+} from '@element-plus/icons-vue';
+import LoginPage from '@/views/Login.vue';
+
+const roomStore = useRoomStore();
+const danmakuService = getDanmakuService();
+
+function handleBeforeUnload() {
+  if (roomStore.isConnected) {
+    danmakuService.disconnect();
+  }
+}
+
+async function handleDisconnect() {
+  try {
+    await danmakuService.disconnect();
+    ElMessage.info('已断开连接');
+  } catch (error) {
+    ElMessage.error(`断开连接失败: ${error}`);
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', handleBeforeUnload);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload);
+});
+</script>
+
+<template>
+  <div class="min-h-screen flex flex-col bg-[#F5F6FA]">
+    <!-- 未连接：全屏显示身份码输入页 -->
+    <LoginPage v-if="!roomStore.isConnected" />
+
+    <!-- 已连接：显示完整布局 -->
+    <el-container v-else class="flex flex-col h-full">
+      <el-header class="flex items-center justify-between shrink-0 h-14 bg-gradient-to-r from-[#1D3557] to-[#457B9D] shadow-lg">
+        <h1 class="m-0 text-lg font-semibold tracking-wider text-white">
+          Bilibili 直播助手
+        </h1>
+        <el-button
+          type="danger"
+          size="small"
+          @click="handleDisconnect"
+        >
+          断开连接
+        </el-button>
+      </el-header>
+
+      <el-container class="flex flex-1 min-h-0">
+        <el-aside width="220px" class="shrink-0 bg-[#304156]">
+          <el-menu
+            :default-active="$route.path"
+            router
+            background-color="#304156"
+            text-color="#bfcbd9"
+            active-text-color="#409EFF"
+            class="border-r-0"
+          >
+            <el-menu-item index="/dashboard">
+              <el-icon><House /></el-icon>
+              <span>仪表盘</span>
+            </el-menu-item>
+            <el-menu-item index="/connection">
+              <el-icon><Connection /></el-icon>
+              <span>连接配置</span>
+            </el-menu-item>
+            <el-menu-item index="/danmaku-pool">
+              <el-icon><ChatDotRound /></el-icon>
+              <span>弹幕池管理</span>
+            </el-menu-item>
+            <el-menu-item index="/danmaku-list">
+              <el-icon><Document /></el-icon>
+              <span>弹幕列表</span>
+            </el-menu-item>
+            <el-menu-item index="/gift-list">
+              <el-icon><Present /></el-icon>
+              <span>礼物列表</span>
+            </el-menu-item>
+            <el-menu-item index="/settings">
+              <el-icon><Setting /></el-icon>
+              <span>设置</span>
+            </el-menu-item>
+            <el-menu-item index="/logs">
+              <el-icon><DocumentCopy /></el-icon>
+              <span>日志监控</span>
+            </el-menu-item>
+            <el-menu-item index="/blacklist">
+              <el-icon><CircleClose /></el-icon>
+              <span>黑名单管理</span>
+            </el-menu-item>
+            <el-menu-item index="/effect-preview">
+              <el-icon><MagicStick /></el-icon>
+              <span>特效预览</span>
+            </el-menu-item>
+          </el-menu>
+        </el-aside>
+
+        <el-main class="p-8 overflow-y-auto flex-1 bg-[#F5F6FA]">
+          <router-view />
+        </el-main>
+      </el-container>
+    </el-container>
+  </div>
+</template>

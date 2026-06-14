@@ -1,0 +1,25 @@
+{
+  "request_id": "ui-layout-improvement",
+  "stage": "complete",
+  "created_at": "2026-06-12T03:29:00.000Z",
+  "updated_at": "2026-06-12T03:38:00.000Z",
+  "source": {
+    "type": "user-direct",
+    "description": "用户直接提出的 UI 样式与布局优化需求"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "artifacts": {
+    "request.md": "docs/requests/ui-layout-improvement/request.md",
+    "prd-snapshot.md": "docs/requests/ui-layout-improvement/artifacts/prd-snapshot.md",
+    "state.json": "docs/requests/ui-layout-improvement/state.json",
+    "spec.md": "docs/requests/ui-layout-improvement/spec/spec.md",
+    "clarifications.md": "docs/requests/ui-layout-improvement/spec/clarifications.md",
+    "plan.md": "docs/requests/ui-layout-improvement/plan/plan.md",
+    "task-board.md": "docs/requests/ui-layout-improvement/plan/task-board.md",
+    "verification.md": "docs/requests/ui-layout-improvement/verification/verification.md",
+    "review.md": "docs/requests/ui-layout-improvement/review/review.md"
+  }
+}

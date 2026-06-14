@@ -1,0 +1,8 @@
+interface:
+  display_name: "AI Workflow Implementation"
+  short_description: "Subagent for spec-driven planning, implementation, review, and verification"
+  brand_color: "#1F6FEB"
+  default_prompt: "Use $ai-workflow-implementation to convert an approved spec into a concrete implementation plan and verified execution."
+
+policy:
+  allow_implicit_invocation: true

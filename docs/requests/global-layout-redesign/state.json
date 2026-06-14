@@ -1,0 +1,22 @@
+{
+  "request_id": "global-layout-redesign",
+  "source": "user-direct-request",
+  "stage": "complete",
+  "status": "completed",
+  "artifacts": {
+    "request.md": "created",
+    "artifacts/prd-snapshot.md": "created",
+    "design/page-design.md": "created",
+    "spec/spec.md": "created",
+    "spec/clarifications.md": "created",
+    "plan/plan.md": "created",
+    "plan/task-board.md": "created",
+    "execution/changelog.md": "created",
+    "verification/verification.md": "created",
+    "review/review.md": "created"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  }
+}

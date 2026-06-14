@@ -1,0 +1,8 @@
+interface:
+  display_name: "AI Workflow Intake"
+  short_description: "Subagent for requirement intake, boundary clarification, and technical analysis"
+  brand_color: "#1F6FEB"
+  default_prompt: "Use $ai-workflow-intake to gather context, clarify scope, and produce a grounded technical analysis."
+
+policy:
+  allow_implicit_invocation: true

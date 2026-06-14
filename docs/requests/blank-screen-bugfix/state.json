@@ -1,0 +1,19 @@
+{
+  "request_id": "blank-screen-bugfix",
+  "stage": "complete",
+  "created_at": "2026-06-12T01:38:00.000Z",
+  "updated_at": "2026-06-12T01:40:00.000Z",
+  "source": {
+    "type": "bug-report",
+    "description": "应用启动后界面空白，Vue 应用未能挂载"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "artifacts": {
+    "request.md": "docs/requests/blank-screen-bugfix/request.md",
+    "bugfix-source.md": "docs/requests/blank-screen-bugfix/artifacts/bugfix-source.md",
+    "state.json": "docs/requests/blank-screen-bugfix/state.json"
+  }
+}

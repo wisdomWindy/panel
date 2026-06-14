@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+release/
+build-output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+app.log
+app.log.out
+error.log
+output.log
+
+# Electron
+app.asar
+
+# Auto-generated files
+auto-imports.d.ts
+components.d.ts
+
+# Temporary files
+*.tmp

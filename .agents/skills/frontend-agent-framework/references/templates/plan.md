@@ -1,0 +1,27 @@
+# 计划模板
+
+## 必需工件路径
+
+- `docs/requests/<request-id>/plan/plan.md`
+- `docs/requests/<request-id>/plan/task-board.md`
+
+## `plan/plan.md`
+
+必需章节：
+
+- 任务拆解
+- 依赖关系
+- 并行执行建议
+- 受影响文件或模块
+- 测试策略
+- 回滚说明
+
+## `plan/task-board.md`
+
+每个任务必需字段：
+
+- 任务 ID
+- 任务名称
+- 状态
+- 执行人或执行说明
+- 关联规格区域

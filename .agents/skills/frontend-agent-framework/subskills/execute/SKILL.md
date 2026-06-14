@@ -1,0 +1,72 @@
+---
+name: frontend-agent-framework-execute
+description: Stage subskill for execution. Implement only approved tasks and keep execution records aligned with the plan.
+---
+
+# Execute Subskill
+
+## Purpose
+
+Implement the approved request while keeping execution records aligned with the spec and plan.
+
+## Use With
+
+Invoke from the main `frontend-agent-framework` skill after routing a request with `stage=execute`.
+
+## Read First
+
+- `docs/requests/<request-id>/state.json`
+- `docs/requests/<request-id>/spec/spec.md`
+- `docs/requests/<request-id>/plan/plan.md`
+- `docs/requests/<request-id>/plan/task-board.md`
+- `../../references/state-machine.md`
+- `../../references/policies/api-contracts.md`
+- `../../references/policies/frontend-architecture.md`
+- `../../references/policies/frontend-components.md`
+- `../../references/policies/testing.md`
+
+## Hard Rules
+
+- Require `approvals.plan_approved=true` before writing code.
+- Update `execution/changelog.md` and `plan/task-board.md` as work progresses.
+- Implement only approved tasks.
+- Treat the approved spec and plan as the authoritative implementation contract.
+- For testable behavior changes, execute in red -> green -> refactor order.
+- Write or update the failing test first, then implement the minimal passing change, then refactor while keeping tests green.
+- If requirements shift or a plan gap appears, stop and move the request back to `spec` or `plan`.
+- Do not claim completion in this stage.
+
+## Required Inputs
+
+- `docs/requests/<request-id>/spec/spec.md`
+- `docs/requests/<request-id>/plan/plan.md`
+- `docs/requests/<request-id>/plan/task-board.md`
+- `docs/requests/<request-id>/state.json`
+
+## Required Artifacts
+
+- `docs/requests/<request-id>/execution/changelog.md`
+- Code changes that map to planned tasks
+
+## Allowed Outputs
+
+- Planned implementation changes
+- Execution notes
+- Task status updates
+- Test-first implementation progress and deviations that are explicitly recorded
+
+## Forbidden Actions
+
+- Inventing new requirements during coding
+- Skipping task tracking
+- Declaring the request done
+- Writing behavior-first implementation for a testable change without recording why TDD was not applicable
+- Treating the spec or plan as optional guidance instead of the implementation contract
+
+## Exit Criteria
+
+- Planned implementation work is complete.
+- Major execution decisions and deviations are recorded in `execution/changelog.md`.
+- Test-first execution steps or justified exceptions are recorded for behavior changes.
+- `plan/task-board.md` reflects the completed execution state.
+- `state.json` is updated with `stage` set to `verify`.

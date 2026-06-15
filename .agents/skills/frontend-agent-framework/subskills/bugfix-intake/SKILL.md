@@ -33,6 +33,8 @@ Load repository- or tool-specific bug retrieval instructions only when they exis
 - If the defect content cannot be retrieved automatically, record that limitation and request the missing bug details instead of guessing.
 - Create `docs/requests/<request-id>/` as the canonical request workspace.
 - Write only bugfix intake artifacts in this stage.
+- Capture the bugfix goal and initial done signal in `request.md`.
+- Initialize `state.json.loop` using the framework's required loop shape.
 - Do not write implementation code.
 - Do not write `spec/spec.md` in this stage.
 
@@ -98,6 +100,8 @@ Load repository- or tool-specific bug retrieval instructions only when they exis
 
 - The request workspace exists.
 - The bug source is captured in `request.md` and `state.json`.
+- `request.md` captures an explicit bugfix goal plus an initial done signal for the repaired behavior.
 - The defect context is summarized into `artifacts/bugfix-source.md`.
 - A normalized downstream summary is written to `artifacts/prd-snapshot.md`.
 - `state.json` is initialized with `stage` set to `spec`.
+- `state.json.loop` is initialized with `iteration=1`, `state=running`, `last_completed_stage=null`, `pending_gate=null`, and `reentry_reason=new_request`.

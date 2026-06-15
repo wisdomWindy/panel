@@ -32,6 +32,9 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Map every task back to the approved spec.
 - Decompose testable behavior changes into TDD-oriented execution units.
 - For each behavior change, define the intended verification path before implementation begins.
+- Distinguish serial work from independently parallelizable work.
+- Recommend workflow-style parallel execution only when the task set is large enough, independent enough, and valuable enough to justify the extra coordination and token cost.
+- Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
 - Do not write implementation code.
 - Require user approval before setting `approvals.plan_approved` to `true`.
 - When the environment supports structured approval UI, present plan approval through explicit options such as approve / reject / revise instead of asking the user to type approval text manually.
@@ -71,6 +74,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Entering execution without user approval
 - Reusing the sample plan as a shortcut instead of planning from the current approved spec
 - Deferring test design until after implementation for behavior that is reasonably testable
+- Recommending workflow-style parallel execution for trivial, tightly coupled, or single-thread work
 
 ## Exit Criteria
 
@@ -78,5 +82,6 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - `plan/task-board.md` exists and reflects the planned execution units.
 - The plan artifacts are written in Chinese unless the user explicitly requested another language.
 - The plan maps acceptance criteria to concrete execution and verification tasks, including test-first steps where behavior is testable.
+- The plan states which tasks stay serial and which tasks are safe candidates for workflow-style parallel execution.
 - The user approves the plan, preferably through structured approval options when available.
-- `state.json` is updated with `approvals.plan_approved=true` and `stage` set to `execute`.
+- `state.json` is updated with `approvals.plan_approved=true` and `stage` set to `execute` while preserving the existing `loop` object.

@@ -30,7 +30,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Map each acceptance criterion to verification method, result, and evidence.
 - Verify that implemented behavior matches the approved spec rather than undocumented intent.
 - Confirm that testable behavior changes were covered by tests or explicitly justified exceptions.
-- If verification fails, move the request back to `execute`.
+- Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
+- If verification fails, record the failure clearly and hand control back to the main skill so it can route the request back to `execute` with the correct loop re-entry metadata.
 - Do not claim completion without verification artifacts.
 
 ## Required Inputs
@@ -64,4 +65,4 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Evidence is attached or referenced for each verified item.
 - Any TDD exception for testable behavior is explicitly justified and backed by alternative evidence.
 - Any failures are fixed or explicitly routed back to execution.
-- `state.json` is updated with `stage` set to `review`.
+- `state.json` is updated with `stage` set to `review` while preserving the existing `loop` object when verification passes.

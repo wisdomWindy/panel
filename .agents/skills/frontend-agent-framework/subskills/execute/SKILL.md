@@ -33,6 +33,9 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Treat the approved spec and plan as the authoritative implementation contract.
 - For testable behavior changes, execute in red -> green -> refactor order.
 - Write or update the failing test first, then implement the minimal passing change, then refactor while keeping tests green.
+- Default to serial execution unless the approved plan explicitly marks independent work units as parallel-safe.
+- If workflow-style parallel execution is used, keep every parallel unit mapped back to the same request artifacts, approvals, and task board.
+- Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
 - If requirements shift or a plan gap appears, stop and move the request back to `spec` or `plan`.
 - Do not claim completion in this stage.
 
@@ -54,6 +57,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Execution notes
 - Task status updates
 - Test-first implementation progress and deviations that are explicitly recorded
+- Workflow-style parallel execution records when the approved plan explicitly calls for them
 
 ## Forbidden Actions
 
@@ -62,6 +66,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Declaring the request done
 - Writing behavior-first implementation for a testable change without recording why TDD was not applicable
 - Treating the spec or plan as optional guidance instead of the implementation contract
+- Spawning workflow-style parallel execution for trivial or unplanned work
 
 ## Exit Criteria
 
@@ -69,4 +74,4 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Major execution decisions and deviations are recorded in `execution/changelog.md`.
 - Test-first execution steps or justified exceptions are recorded for behavior changes.
 - `plan/task-board.md` reflects the completed execution state.
-- `state.json` is updated with `stage` set to `verify`.
+- `state.json` is updated with `stage` set to `verify` while preserving the existing `loop` object.

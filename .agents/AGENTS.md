@@ -17,7 +17,8 @@ This repository uses a strict request workflow for frontend delivery in Codex/Co
 
 ## Skill Architecture
 
-- The main skill owns lifecycle decomposition, progression control, gate checks, and stage routing.
+- The main skill owns lifecycle decomposition, loop control, progression control, gate checks, and stage routing.
+- The main skill also owns the goal contract and decides whether workflow-style parallel scale is justified.
 - Stage subskills own stage-local execution rules only.
 - Policy and template material lives under `frontend-agent-framework/references/` and is loaded on demand.
 - Legacy top-level `workflow-*`, `policy-*`, and `templates-*` skills are removed and should not be reintroduced.
@@ -31,3 +32,13 @@ The canonical request lifecycle is:
 For page-oriented requests, insert the design stage before spec:
 
 `intake -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
+
+The main skill advances this lifecycle through a control loop:
+
+`observe state -> decide next action -> dispatch one stage or gate recovery action -> observe result -> iterate`
+
+Within this repository:
+
+- goal decides what counts as done
+- loop decides how the orchestrator keeps re-evaluating
+- workflow decides whether execution should stay serial or fan out in parallel

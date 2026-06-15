@@ -31,6 +31,7 @@ Invoke from the main `frontend-agent-framework` skill after `intake` when the re
 - Write `design/page-design.md`.
 - Define the page structure clearly enough that `spec` can treat it as upstream input instead of recreating layout decisions from scratch.
 - Keep design decisions durable and explicit in repository artifacts.
+- Preserve the existing `state.json.loop` object; do not reset or reinterpret it in this stage.
 - Do not write implementation code.
 - Do not skip this stage for page requests that introduce or materially change layout, visual hierarchy, styling direction, or interaction organization.
 
@@ -65,4 +66,4 @@ Invoke from the main `frontend-agent-framework` skill after `intake` when the re
 - `design/page-design.md` exists.
 - The page design artifact defines layout, hierarchy, style direction, interaction structure, and responsive considerations.
 - Any unresolved UI questions are recorded.
-- `state.json` is updated with `stage` set to `spec`.
+- `state.json` is updated with `stage` set to `spec` while preserving the existing `loop` object.

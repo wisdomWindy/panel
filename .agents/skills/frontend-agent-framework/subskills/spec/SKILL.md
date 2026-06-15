@@ -35,6 +35,8 @@ Load other policy references only when they materially affect the spec.
 - Keep requirement changes explicit in artifacts.
 - Define behavior in a way that is implementable, reviewable, and verifiable by downstream stages.
 - Make acceptance criteria concrete enough to drive planning, testing, and verification.
+- Treat the acceptance criteria as the formal goal contract for downstream stages.
+- Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
 - Do not write implementation code.
 - Require user approval before setting `approvals.spec_approved` to `true`.
 - When the environment supports structured approval UI, present spec approval through explicit options such as approve / reject / revise instead of asking the user to type approval text manually.
@@ -75,6 +77,7 @@ Load other policy references only when they materially affect the spec.
 - Moving to plan without user approval
 - Copying sample conclusions into a new spec without re-deriving them from the current requirement
 - Leaving behavior ambiguous enough that implementation must guess intent
+- Leaving the goal subjective enough that verification cannot determine whether the request is done
 
 ## Exit Criteria
 
@@ -82,4 +85,4 @@ Load other policy references only when they materially affect the spec.
 - `spec/clarifications.md` records open questions and resolved decisions.
 - The spec defines observable behavior clearly enough for plan tasks, tests, and verification evidence to map back to it.
 - The user approves the spec, preferably through structured approval options when available.
-- `state.json` is updated with `approvals.spec_approved=true` and `stage` set to `plan`.
+- `state.json` is updated with `approvals.spec_approved=true` and `stage` set to `plan` while preserving the existing `loop` object.

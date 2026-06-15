@@ -11,13 +11,17 @@ This main skill is the lifecycle orchestrator. It owns preflight checks, stage p
 
 ## Goal
 
-Keep the repository-local workflow in control through one default entry skill that decomposes the request into lifecycle stages, advances the request through each stage in order, and uses focused stage subskills for the stage-local work.
+Keep the repository-local workflow in control through one default entry skill that decomposes the request into lifecycle stages, advances the request through each stage in order, and runs an explicit loop orchestrator that uses focused stage subskills for the stage-local work.
 
 ## What This Skill Owns
 
+- Establish and preserve the request goal contract so "done" is explicit and checkable.
 - Enforce the canonical lifecycle:
   `intake -> spec -> plan -> execute -> verify -> review -> complete`
 - Build or recover the active request's lifecycle execution path.
+- Run the loop orchestrator:
+  `observe state -> decide next action -> dispatch one stage or gate recovery action -> observe result -> iterate`
+- Decide whether workflow-style parallel execution is justified, while keeping it separate from the lifecycle and loop.
 - Block stage skipping when required approvals or artifacts are missing.
 - Keep request decisions, transitions, and evidence in repository artifacts instead of chat-only state.
 - Enforce specification-driven development so implementation follows approved repository artifacts instead of ad hoc coding decisions.
@@ -32,14 +36,19 @@ This skill carries its own workflow constitution and does not require `.agents/A
 - Page-oriented requirement: after `intake`, insert `page-design` before `spec` when layout, styling, or interaction structure is a material part of the request.
 - Defect input: normalize the bug through `bugfix-intake` before entering the standard lifecycle.
 - Existing request: resume from `docs/requests/<request-id>/state.json`, recover the current stage, and continue orchestrating from there.
+- Existing request: preserve or repair `state.json.loop`, resume the active loop, and continue orchestrating from there.
 - Never start coding before a request workspace exists under `docs/requests/<request-id>/`.
 - Never implement before approved `spec/spec.md` and `plan/plan.md` exist.
 - Never declare work complete before `verification/verification.md` and `review/review.md` both exist and pass.
+- Never treat loop progress as proof of completion; only the goal contract and verification evidence can prove the request is done.
 - When requirements change, update request artifacts first and roll the request back to `spec` or `plan`.
 - The main skill owns lifecycle decomposition, progression control, gate checks, and stage routing.
+- The main skill owns the goal contract and decides whether workflow-style parallel scale is justified.
 - Stage subskills own stage-local execution rules only.
 - Policy and template material lives under `references/` and is loaded on demand.
 - Bugfix defect retrieval should use source-system tools when available and fall back to manual bug context capture when unavailable.
+- Loop state is controlled by the main skill only; stage subskills must not reset or reinterpret it.
+- Goal, loop, and workflow are separate dimensions: goal decides when work is done, loop decides how the orchestrator keeps re-evaluating, and workflow decides whether parallel scale is warranted.
 
 If a repository also provides `.agents/AGENTS.md`, treat it as an optional local override only when it does not weaken these built-in rules.
 
@@ -48,6 +57,8 @@ If a repository also provides `.agents/AGENTS.md`, treat it as an optional local
 - Read `references/framework-overview.md` and `references/state-machine.md` before dispatching.
 - If `.agents/AGENTS.md` exists, read it as a repository-local override layer after reading this skill.
 - For existing work, read `docs/requests/<request-id>/state.json` before choosing a stage.
+- For existing work, require `state.json.loop` to exist; if it is missing or malformed, repair it before continuing.
+- For existing work, recover the current goal contract from `request.md`, `spec/spec.md`, and verification expectations before resuming execution.
 - For new work, require a readable PRD document or a stable PRD reference before intake begins.
 - Acceptable new-request inputs include a Feishu/Lark PRD link, a document ID, or a local PRD file path.
 - For bugfix work, accept a readable bug report or a stable bug reference before bugfix intake begins.
@@ -73,16 +84,64 @@ Do not skip, merge, reorder, or bypass stages unless the rollback rules explicit
 If a required gate is not satisfied, stop and do not continue to the next stage.
 When a gate is not satisfied, identify the blocking reason and obtain the information, approval, artifact, evidence, or other required resource needed to satisfy that gate before attempting the stage transition again.
 
+## Goal Contract
+
+Every request must have an explicit goal contract. The goal contract defines what "done" means for this request and must be concrete enough that downstream verification can confirm it without relying on taste or intuition alone.
+
+Goal rules:
+
+- Capture the initial goal in `request.md` during intake.
+- Refine the goal into observable acceptance criteria in `spec/spec.md`.
+- Translate that goal into execution and verification work in `plan/plan.md` and `verification/verification.md`.
+- If the request only describes a subjective improvement such as "better", "cleaner", or "more elegant", obtain or derive a more checkable completion condition before heavy execution begins.
+- The loop exists to drive work toward the goal contract; the loop itself is not the goal.
+
+## Loop Orchestration Model
+
+The main skill runs a single explicit control loop for the request. The lifecycle stages stay the same; the loop is the control mechanism that advances or re-enters those stages.
+
+1. Observe: read `state.json`, inspect artifacts, approvals, and lifecycle gates.
+2. Decide: choose exactly one next action from `dispatch_stage`, `recover_gate`, `request_approval`, `wait_external`, or `complete`.
+3. Dispatch: load only the one subskill that matches the current lifecycle stage when the action is `dispatch_stage`.
+4. Observe result: verify the stage exit criteria or the recovered gate result, then re-check the lifecycle gates.
+5. Iterate: update `state.json.loop` and begin the next decision cycle.
+
+Loop rules:
+
+- Process only one current action per loop iteration.
+- After each completed stage or recovered gate, re-enter the loop and decide again.
+- The loop stops only when `stage=complete` with `loop.state=complete`, or when a real external blocking gate requires waiting.
+- If a gate can be satisfied by gathering repository context, repairing missing artifacts, or repairing missing state, do that recovery work inside the loop before stopping.
+- Rollback is a valid loop re-entry path, not an exception outside the workflow.
+- The loop never authorizes stage skipping, stage merging, or bypassing approval gates.
+- This framework's loop is state- and gate-driven orchestration, not a wall-clock polling timer.
+
+## Workflow Scale Model
+
+Workflow-style parallelization is optional horizontal scale. It is not the lifecycle, not the loop, and not the completion condition.
+
+Workflow rules:
+
+- Default to one active main-skill path through the lifecycle.
+- Use workflow-style parallel execution only when the approved plan identifies multiple independent work units whose cost and context split justify parallelism.
+- Do not use workflow-style parallel execution for trivial edits, tightly coupled changes, or single-thread tasks that fit comfortably in one context.
+- If parallel execution is used, it must still report back into the same request artifacts, gates, and loop state.
+- Workflow selection changes execution scale only; it does not waive approvals, verification, review, or state-discipline rules.
+
 ## Orchestration Rules
 
 - Decompose every request into the full lifecycle stage sequence, even when only one immediate stage is active.
 - Normalize bugfix inputs into the same request workspace structure used by PRD-driven requests.
 - For page-oriented requests, treat page design as a required upstream input to `spec`, not as an implementation detail.
+- Treat lifecycle stages as delivery stages and the loop as control flow; do not invent a second lifecycle.
+- Treat the goal contract as the source of truth for "done"; do not substitute chat satisfaction or elapsed loop count.
 - Execute the current stage completely through its designated subskill before attempting the next stage.
 - After each stage, re-read the request state and evaluate whether the next gate is satisfied.
 - If the next gate is already satisfied, continue automatically to the next stage.
 - If the next gate depends on user approval or an unavailable external resource, stop at that gate and report exactly what is required to continue.
 - If the next gate can be satisfied by gathering repository-local context, artifacts, or evidence, obtain that prerequisite first and then continue the lifecycle.
+- When a gate fails, first attempt loop-local recovery for missing state, missing artifacts, or missing repository evidence before declaring the request blocked.
+- Use workflow-style parallelization only as an execution-scale choice after planning, never as a replacement for lifecycle control.
 - For `spec` and `plan` approval gates, prefer structured approval UI over free-text confirmation when the environment supports it.
 - In Codex environments where `request_user_input` is available, use it to present explicit approval options such as approve / reject / revise.
 - Only fall back to plain-text approval requests when structured approval UI is unavailable in the current environment.
@@ -91,15 +150,44 @@ When a gate is not satisfied, identify the blocking reason and obtain the inform
 - Do not let execution, verification, or review invent behavior that is not justified by the approved spec and plan.
 - For behavior that can be covered by tests, plan and execute the work using a red -> green -> refactor loop.
 
+## Loop State Contract
+
+`docs/requests/<request-id>/state.json` must include a top-level `loop` object with this shape:
+
+```json
+{
+  "iteration": 1,
+  "state": "running",
+  "last_completed_stage": null,
+  "pending_gate": null,
+  "reentry_reason": "new_request"
+}
+```
+
+Field rules:
+
+- `iteration`: increment once each time the main skill re-enters the top-level decision loop.
+- `state`: only `running`, `blocked`, or `complete`.
+- `last_completed_stage`: the most recent stage whose exit criteria were fully satisfied.
+- `pending_gate`: the currently blocking gate name, or `null` when no blocking gate is active.
+- `reentry_reason`: only `new_request`, `resume_request`, `gate_recovery`, `requirement_changed`, `verification_failed`, `review_blocked`, or `manual_reopen`.
+
+State rules:
+
+- Do not redefine the top-level `status` field in this skill.
+- `loop.state=blocked` is only for real external blocking gates after internal recovery was attempted.
+- `loop.state=complete` is only valid when `stage=complete`.
+- Only the main skill may create, reset, or reinterpret `loop`; stage subskills may preserve it but must not redefine it.
+
 ## Sequential Stage Execution
 
 Execute every stage in full, in order, one at a time.
-At each stage boundary, update `docs/requests/<request-id>/state.json` before entering the next stage.
+At each stage boundary, update `docs/requests/<request-id>/state.json` before entering the next stage, then return to the loop controller.
 
 1. When a stage starts, complete all required work for that stage through its subskill.
 2. Before advancing, verify that the current stage's exit criteria are fully satisfied.
-3. Update `state.json` to reflect the stage transition.
-4. Re-read `state.json` and continue to the next stage only if its gate is satisfied.
+3. Update `state.json` to reflect the stage transition while preserving the current `loop` object.
+4. Re-read `state.json`, update loop metadata in the main skill, and continue only if the next gate is satisfied.
 5. Never leave a stage partially done and then proceed to a later stage.
 
 Forbidden examples:
@@ -107,6 +195,7 @@ Forbidden examples:
 - Doing verify or review work while `state.json` still says `execute`
 - Writing implementation code while `state.json` still says `spec` or `plan`
 - Skipping the `state.json` update at a stage boundary
+- Resetting or deleting `state.json.loop` inside a stage subskill
 
 ## Stage Routing
 
@@ -143,6 +232,8 @@ Load only what is needed:
 - When requirements change, update request artifacts first and roll the stage back to `spec` or `plan`.
 - Do not bypass the local workflow by jumping straight to code.
 - When a gate fails, resolve the missing prerequisite first instead of forcing stage progression.
+- Mark the request `blocked` only when the gate depends on user approval or an unavailable external system, credential, or resource after internal recovery was attempted.
+- When marking the request `blocked`, `loop.pending_gate` must name the blocking gate and `loop.state` must be `blocked`.
 - Stop only at real blocking gates such as required approval, missing upstream requirement information, or unavailable external dependency needed for the next stage.
 - Never implement behavior that is not defined, clarified, or accepted in the repository spec artifacts.
 - Never skip test-first execution for testable behavior changes unless the reason is explicitly recorded in repository artifacts.
@@ -150,8 +241,9 @@ Load only what is needed:
 ## Required State Discipline
 
 - Read `docs/requests/<request-id>/state.json` before acting on any existing request.
-- Treat `state.json` as the source of truth for `stage`, approvals, and artifact status.
+- Treat `state.json` as the source of truth for `stage`, approvals, artifact status, and loop metadata.
 - If `state.json` and filesystem artifacts disagree, repair the state or missing artifacts before continuing.
+- If `loop` is missing on a legacy request, backfill it before continuing the workflow.
 
 ## Sample Request Baseline
 
@@ -166,6 +258,9 @@ The main skill owns:
 
 - request classification
 - lifecycle decomposition
+- goal preservation
+- loop control
+- workflow scale decisions
 - stage-to-stage progression control
 - gate checking
 - stage dispatch
@@ -175,9 +270,9 @@ Stage actions belong only to subskills.
 ## Escalation Rules
 
 - If a stage uncovers missing product decisions, record them in repository artifacts instead of silently filling the gap.
-- If a requirement changes during execution, stop coding and route back to `spec` or `plan`.
-- If verification fails, route back to `execute`.
-- If review finds blockers, route back to `execute`.
+- If a requirement changes during execution, stop coding, set loop re-entry reason to `requirement_changed`, and route back to `spec` or `plan`.
+- If verification fails, set loop re-entry reason to `verification_failed` and route back to `execute`.
+- If review finds blockers, set loop re-entry reason to `review_blocked` and route back to `execute`.
 - If execution discovers the spec is incomplete, ambiguous, or contradicted by reality, stop and route back to `spec` or `plan` before continuing implementation.
 - If TDD cannot be applied to a behavior change, record the reason and the fallback verification method in repository artifacts before continuing.
 
@@ -185,10 +280,12 @@ Stage actions belong only to subskills.
 
 Treat a request as complete only after all of the following are true:
 
+- the goal contract is satisfied by observable results
 - implementation matches the approved plan
 - verification evidence exists for acceptance criteria
 - review records no unresolved blocking issues
 - `state.json` is updated to `stage="complete"`
+- `state.json.loop.state` is updated to `complete`
 
 ## Non-Goals
 

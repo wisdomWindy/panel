@@ -4,9 +4,11 @@ import { Connection, ChatDotRound, Timer, Filter, Document, UserFilled, Bell, Se
 import { useConfigStore } from '../stores/config';
 import { getDanmakuService } from '../services/danmaku-service';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 
 const danmakuService = getDanmakuService();
 const router = useRouter();
+const { locale } = useI18n();
 
 const configStore = useConfigStore();
 
@@ -24,7 +26,8 @@ const tabTitle = computed(() => {
     roles: '角色回复设置',
     update: '更新设置',
     plugins: '插件管理',
-    recording: '录制设置'
+    recording: '录制设置',
+    language: '语言设置'
   };
   return titles[activeTab.value] || '设置';
 });
@@ -85,6 +88,9 @@ const form = reactive({
     giftValueThreshold: 100,
     captainTrigger: true,
     clipDuration: 30
+  },
+  language: {
+    locale: configStore.config.language || 'zh-CN'
   }
 });
 
@@ -109,12 +115,19 @@ function handleSave() {
     enableLog: form.log.enableLog,
     logLevel: form.log.logLevel,
     maxLogLines: form.log.maxLogLines,
-    checkUpdates: form.update.checkUpdates
+    checkUpdates: form.update.checkUpdates,
+    language: form.language.locale as 'zh-CN' | 'en-US'
   });
 
   danmakuService.updateMinInterval(form.danmaku.minSendInterval);
 
   ElMessage.success('设置已保存');
+}
+
+function handleLanguageChange(lang: string) {
+  locale.value = lang;
+  localStorage.setItem('locale', lang);
+  configStore.updateConfig({ language: lang as 'zh-CN' | 'en-US' });
 }
 
 function handleReset() {
@@ -211,6 +224,10 @@ function confirmImport() {
             <el-menu-item index="recording">
               <el-icon><VideoCamera /></el-icon>
               <span>录制设置</span>
+            </el-menu-item>
+            <el-menu-item index="language">
+              <el-icon><Setting /></el-icon>
+              <span>语言设置</span>
             </el-menu-item>
           </el-menu>
         </el-card>
@@ -529,6 +546,26 @@ function confirmImport() {
                   :step="5"
                 />
                 <span class="ml-2">秒</span>
+              </el-form-item>
+            </el-form>
+          </div>
+
+          <!-- 语言设置 -->
+          <div v-show="activeTab === 'language'">
+            <el-form :model="form.language" label-width="150px">
+              <el-form-item label="界面语言">
+                <el-select v-model="form.language.locale" @change="handleLanguageChange">
+                  <el-option label="中文" value="zh-CN" />
+                  <el-option label="English" value="en-US" />
+                </el-select>
+              </el-form-item>
+              <el-form-item>
+                <el-alert
+                  title="切换语言后界面将立即更新"
+                  type="info"
+                  show-icon
+                  :closable="false"
+                />
               </el-form-item>
             </el-form>
           </div>

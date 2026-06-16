@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoomStore } from '@/stores/room';
 import { useUpdateStore } from '@/stores/update';
 import { getDanmakuService } from '@/services/danmaku-service';
@@ -21,6 +22,7 @@ import LoginPage from '@/views/Login.vue';
 import WhatsNewModal from '@/components/WhatsNewModal.vue';
 import RecordingStatusBar from '@/components/RecordingStatusBar.vue';
 
+const { t } = useI18n();
 const roomStore = useRoomStore();
 const updateStore = useUpdateStore();
 const danmakuService = getDanmakuService();
@@ -37,9 +39,9 @@ function handleBeforeUnload() {
 async function handleDisconnect() {
   try {
     await danmakuService.disconnect();
-    ElMessage.info('已断开连接');
+    ElMessage.info(t('connection.disconnected'));
   } catch (error) {
-    ElMessage.error(`断开连接失败: ${error}`);
+    ElMessage.error(`${t('connection.disconnect')}: ${error}`);
   }
 }
 
@@ -92,7 +94,7 @@ onUnmounted(() => {
     <el-container v-else class="flex flex-col h-full">
       <el-header class="flex items-center justify-between shrink-0 h-14 bg-gradient-to-r from-[#1D3557] to-[#457B9D] shadow-lg">
         <h1 class="m-0 text-lg font-semibold tracking-wider text-white">
-          Bilibili 直播助手
+          {{ t('app.title') }}
         </h1>
         <div class="flex items-center">
           <el-badge :is-dot="updateStore.hasUpdate" class="mr-4">
@@ -109,7 +111,7 @@ onUnmounted(() => {
             size="small"
             @click="handleDisconnect"
           >
-            断开连接
+            {{ t('connection.disconnect') }}
           </el-button>
         </div>
       </el-header>
@@ -126,35 +128,35 @@ onUnmounted(() => {
           >
             <el-menu-item index="/dashboard">
               <el-icon><House /></el-icon>
-              <span>仪表盘</span>
+              <span>{{ t('nav.dashboard') }}</span>
             </el-menu-item>
             <el-menu-item index="/connection">
               <el-icon><Connection /></el-icon>
-              <span>连接配置</span>
+              <span>{{ t('nav.connection') }}</span>
             </el-menu-item>
             <el-menu-item index="/danmaku-pool">
               <el-icon><ChatDotRound /></el-icon>
-              <span>弹幕池管理</span>
+              <span>{{ t('nav.danmakuPool') }}</span>
             </el-menu-item>
             <el-menu-item index="/danmaku-list">
               <el-icon><Document /></el-icon>
-              <span>弹幕列表</span>
+              <span>{{ t('nav.danmakuList') }}</span>
             </el-menu-item>
             <el-menu-item index="/gift-list">
               <el-icon><Present /></el-icon>
-              <span>礼物列表</span>
+              <span>{{ t('nav.giftList') }}</span>
             </el-menu-item>
             <el-menu-item index="/settings">
               <el-icon><Setting /></el-icon>
-              <span>设置</span>
+              <span>{{ t('nav.settings') }}</span>
             </el-menu-item>
             <el-menu-item index="/logs">
               <el-icon><DocumentCopy /></el-icon>
-              <span>日志监控</span>
+              <span>{{ t('nav.logs') }}</span>
             </el-menu-item>
             <el-menu-item index="/blacklist">
               <el-icon><CircleClose /></el-icon>
-              <span>黑名单管理</span>
+              <span>{{ t('nav.blacklist') }}</span>
             </el-menu-item>
             <el-menu-item index="/effect-preview">
               <el-icon><MagicStick /></el-icon>
@@ -162,15 +164,15 @@ onUnmounted(() => {
             </el-menu-item>
             <el-menu-item index="/update-log">
               <el-icon><Bell /></el-icon>
-              <span>更新日志</span>
+              <span>{{ t('update.title') }}</span>
             </el-menu-item>
             <el-menu-item index="/plugins">
               <el-icon><Box /></el-icon>
-              <span>插件管理</span>
+              <span>{{ t('plugins.title') }}</span>
             </el-menu-item>
             <el-menu-item index="/recording">
               <el-icon><VideoCamera /></el-icon>
-              <span>录制管理</span>
+              <span>{{ t('recording.title') }}</span>
             </el-menu-item>
           </el-menu>
         </el-aside>

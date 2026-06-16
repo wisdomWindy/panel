@@ -2,6 +2,7 @@ import { app, BrowserWindow, Tray, Menu, globalShortcut, nativeImage } from 'ele
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { registerIpcHandlers } from './ipc-handlers.js';
+import { initRecordingModule, cleanupRecordingModule } from './modules/recording/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,6 +66,13 @@ function registerGlobalShortcuts() {
       }
     }
   });
+
+  // F9: 标记高光时刻
+  globalShortcut.register('F9', () => {
+    if (mainWindow) {
+      mainWindow.webContents.send('recording:markHighlightHotkey');
+    }
+  });
 }
 
 function createWindow() {
@@ -102,6 +110,11 @@ app.whenReady().then(async () => {
   createTray();
   registerGlobalShortcuts();
 
+  // 初始化录制模块
+  if (mainWindow) {
+    initRecordingModule(mainWindow);
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
@@ -115,6 +128,8 @@ app.whenReady().then(async () => {
 let isQuitting = false;
 app.on('before-quit', () => {
   isQuitting = true;
+  // 清理录制模块
+  cleanupRecordingModule();
 });
 
 app.on('window-all-closed', () => {

@@ -14,10 +14,12 @@ import {
   CircleClose,
   MagicStick,
   Bell,
-  Box
+  Box,
+  VideoCamera
 } from '@element-plus/icons-vue';
 import LoginPage from '@/views/Login.vue';
 import WhatsNewModal from '@/components/WhatsNewModal.vue';
+import RecordingStatusBar from '@/components/RecordingStatusBar.vue';
 
 const roomStore = useRoomStore();
 const updateStore = useUpdateStore();
@@ -166,6 +168,10 @@ onUnmounted(() => {
               <el-icon><Box /></el-icon>
               <span>插件管理</span>
             </el-menu-item>
+            <el-menu-item index="/recording">
+              <el-icon><VideoCamera /></el-icon>
+              <span>录制管理</span>
+            </el-menu-item>
           </el-menu>
         </el-aside>
 
@@ -173,6 +179,9 @@ onUnmounted(() => {
           <router-view />
         </el-main>
       </el-container>
+
+      <!-- 录制状态栏 -->
+      <RecordingStatusBar class="shrink-0" />
     </el-container>
 
     <!-- 新版本特性弹窗 -->

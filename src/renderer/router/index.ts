@@ -74,6 +74,12 @@ const routes: RouteRecordRaw[] = [
     name: 'PluginManager',
     component: () => import('@/views/PluginManager.vue'),
     meta: { title: '插件管理' }
+  },
+  {
+    path: '/recording',
+    name: 'Recording',
+    component: () => import('@/views/Recording.vue'),
+    meta: { title: '录制管理' }
   }
 ];
 

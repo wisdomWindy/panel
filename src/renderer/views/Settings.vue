@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
-import { Connection, ChatDotRound, Timer, Filter, Document, UserFilled, Bell, Setting } from '@element-plus/icons-vue';
+import { Connection, ChatDotRound, Timer, Filter, Document, UserFilled, Bell, Setting, VideoCamera } from '@element-plus/icons-vue';
 import { useConfigStore } from '../stores/config';
 import { getDanmakuService } from '../services/danmaku-service';
 import { useRouter } from 'vue-router';
@@ -23,7 +23,8 @@ const tabTitle = computed(() => {
     log: '日志设置',
     roles: '角色回复设置',
     update: '更新设置',
-    plugins: '插件管理'
+    plugins: '插件管理',
+    recording: '录制设置'
   };
   return titles[activeTab.value] || '设置';
 });
@@ -68,6 +69,22 @@ const form = reactive({
   },
   update: {
     checkUpdates: configStore.config.checkUpdates
+  },
+  recording: {
+    enabled: false,
+    autoStart: false,
+    format: 'mp4',
+    quality: 'original',
+    outputPath: '',
+    segmentEnabled: false,
+    segmentSize: 2048,
+    autoCleanup: false,
+    cleanupDays: 30,
+    highlightEnabled: true,
+    danmakuThreshold: 30,
+    giftValueThreshold: 100,
+    captainTrigger: true,
+    clipDuration: 30
   }
 });
 
@@ -190,6 +207,10 @@ function confirmImport() {
             <el-menu-item index="plugins">
               <el-icon><Setting /></el-icon>
               <span>插件管理</span>
+            </el-menu-item>
+            <el-menu-item index="recording">
+              <el-icon><VideoCamera /></el-icon>
+              <span>录制设置</span>
             </el-menu-item>
           </el-menu>
         </el-card>
@@ -419,6 +440,97 @@ function confirmImport() {
                 打开插件管理
               </el-button>
             </div>
+          </div>
+
+          <!-- 录制设置 -->
+          <div v-show="activeTab === 'recording'">
+            <el-form :model="form.recording" label-width="150px">
+              <el-form-item label="启用录制功能">
+                <el-switch v-model="form.recording.enabled" />
+              </el-form-item>
+              <el-form-item label="自动开始录制">
+                <el-switch v-model="form.recording.autoStart" />
+                <span class="ml-2 text-gray-500">连接直播间后自动开始录制</span>
+              </el-form-item>
+              <el-form-item label="录制格式">
+                <el-select v-model="form.recording.format">
+                  <el-option label="MP4" value="mp4" />
+                  <el-option label="FLV" value="flv" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="录制质量">
+                <el-select v-model="form.recording.quality">
+                  <el-option label="原始质量" value="original" />
+                  <el-option label="720p" value="720p" />
+                  <el-option label="1080p" value="1080p" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="存储路径">
+                <el-input v-model="form.recording.outputPath" placeholder="留空使用默认路径" />
+              </el-form-item>
+              <el-form-item label="自动分段">
+                <el-switch v-model="form.recording.segmentEnabled" />
+                <span class="ml-2 text-gray-500">按文件大小自动分段</span>
+              </el-form-item>
+              <el-form-item v-if="form.recording.segmentEnabled" label="分段大小">
+                <el-input-number
+                  v-model="form.recording.segmentSize"
+                  :min="100"
+                  :max="4096"
+                  :step="100"
+                />
+                <span class="ml-2">MB</span>
+              </el-form-item>
+              <el-form-item label="自动清理">
+                <el-switch v-model="form.recording.autoCleanup" />
+                <span class="ml-2 text-gray-500">自动删除旧录制文件</span>
+              </el-form-item>
+              <el-form-item v-if="form.recording.autoCleanup" label="保留天数">
+                <el-input-number
+                  v-model="form.recording.cleanupDays"
+                  :min="1"
+                  :max="365"
+                  :step="1"
+                />
+                <span class="ml-2">天</span>
+              </el-form-item>
+
+              <el-divider content-position="left">高光配置</el-divider>
+
+              <el-form-item label="启用高光标记">
+                <el-switch v-model="form.recording.highlightEnabled" />
+              </el-form-item>
+              <el-form-item v-if="form.recording.highlightEnabled" label="弹幕激增阈值">
+                <el-input-number
+                  v-model="form.recording.danmakuThreshold"
+                  :min="10"
+                  :max="100"
+                  :step="5"
+                />
+                <span class="ml-2">条/10秒</span>
+              </el-form-item>
+              <el-form-item v-if="form.recording.highlightEnabled" label="礼物价值阈值">
+                <el-input-number
+                  v-model="form.recording.giftValueThreshold"
+                  :min="10"
+                  :max="10000"
+                  :step="100"
+                />
+                <span class="ml-2">舰长数</span>
+              </el-form-item>
+              <el-form-item v-if="form.recording.highlightEnabled" label="舰长触发">
+                <el-switch v-model="form.recording.captainTrigger" />
+              </el-form-item>
+              <el-form-item v-if="form.recording.highlightEnabled" label="高光片段时长">
+                <el-input-number
+                  v-model="form.recording.clipDuration"
+                  :min="10"
+                  :max="120"
+                  :step="5"
+                />
+                <span class="ml-2">秒</span>
+              </el-form-item>
+            </el-form>
           </div>
 
           <div class="mt-5 flex justify-end gap-2">

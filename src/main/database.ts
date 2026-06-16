@@ -4,6 +4,11 @@
  */
 
 import type { LogEntry } from '../renderer/modules/danmaku/types.js';
+import type {
+  Recording,
+  Highlight,
+  RecordingConfig
+} from '../renderer/modules/recording/types.js';
 
 interface DanmakuPoolItem {
   id: number;
@@ -42,6 +47,8 @@ interface AppData {
   gifts: Gift[];
   captains: CaptainInfo[];
   logs: LogEntry[];
+  recordings: Recording[];
+  highlights: Highlight[];
   config: {
     roomId: number;
     csrfToken: string;
@@ -60,6 +67,7 @@ interface AppData {
     aiApiKey: string;
     aiContextWindow: number;
     aiMinInterval: number;
+    recording: RecordingConfig;
   };
 }
 
@@ -81,6 +89,8 @@ export class MainDatabaseService {
         gifts: [],
         captains: [],
         logs: [],
+        recordings: [],
+        highlights: [],
         config: {
           roomId: 0,
           csrfToken: '',
@@ -98,7 +108,30 @@ export class MainDatabaseService {
           aiModel: 'gpt-3.5-turbo',
           aiApiKey: '',
           aiContextWindow: 10,
-          aiMinInterval: 30
+          aiMinInterval: 30,
+          recording: {
+            enabled: false,
+            autoStart: false,
+            format: 'mp4',
+            quality: 'original',
+            segmentSize: 0,
+            segmentDuration: 0,
+            outputPath: '',
+            maxStorageSize: 0,
+            autoCleanup: false,
+            cleanupDays: 30,
+            highlightEnabled: true,
+            highlightConfig: {
+              danmakuThreshold: 30,
+              danmakuWindow: 10,
+              giftValueThreshold: 100,
+              captainTrigger: true,
+              clipDuration: 30,
+              beforeSeconds: 15,
+              afterSeconds: 15,
+              cooldownSeconds: 10
+            }
+          }
         }
       }
     });
@@ -201,6 +234,88 @@ export class MainDatabaseService {
     this.ensureInitialized();
     const currentConfig = this.getConfig();
     this.store.set('config', { ...currentConfig, ...config });
+  }
+
+  // ===== 录制配置 =====
+  getRecordingConfig(): RecordingConfig {
+    this.ensureInitialized();
+    return this.store.get('config.recording') as RecordingConfig;
+  }
+
+  setRecordingConfig(config: Partial<RecordingConfig>): void {
+    this.ensureInitialized();
+    const currentConfig = this.getRecordingConfig();
+    this.store.set('config.recording', { ...currentConfig, ...config });
+  }
+
+  // ===== 录制记录 =====
+  getRecordings(): Recording[] {
+    this.ensureInitialized();
+    return this.store.get('recordings', []) as Recording[];
+  }
+
+  getRecordingById(id: string): Recording | undefined {
+    this.ensureInitialized();
+    const recordings = this.getRecordings();
+    return recordings.find(r => r.id === id);
+  }
+
+  addRecording(recording: Recording): void {
+    this.ensureInitialized();
+    const recordings = this.getRecordings();
+    recordings.unshift(recording);
+    this.store.set('recordings', recordings);
+  }
+
+  updateRecording(id: string, updates: Partial<Recording>): void {
+    this.ensureInitialized();
+    const recordings = this.getRecordings();
+    const index = recordings.findIndex(r => r.id === id);
+    if (index !== -1) {
+      recordings[index] = { ...recordings[index], ...updates };
+      this.store.set('recordings', recordings);
+    }
+  }
+
+  deleteRecording(id: string): void {
+    this.ensureInitialized();
+    const recordings = this.getRecordings().filter(r => r.id !== id);
+    this.store.set('recordings', recordings);
+  }
+
+  // ===== 高光时刻 =====
+  getHighlights(recordingId?: string): Highlight[] {
+    this.ensureInitialized();
+    const highlights = this.store.get('highlights', []) as Highlight[];
+    if (recordingId) {
+      return highlights.filter(h => h.recordingId === recordingId);
+    }
+    return highlights;
+  }
+
+  getHighlightById(id: string): Highlight | undefined {
+    this.ensureInitialized();
+    const highlights = this.getHighlights();
+    return highlights.find(h => h.id === id);
+  }
+
+  addHighlight(highlight: Highlight): void {
+    this.ensureInitialized();
+    const highlights = this.getHighlights();
+    highlights.unshift(highlight);
+    this.store.set('highlights', highlights);
+  }
+
+  deleteHighlight(id: string): void {
+    this.ensureInitialized();
+    const highlights = this.getHighlights().filter(h => h.id !== id);
+    this.store.set('highlights', highlights);
+  }
+
+  deleteHighlightsByRecordingId(recordingId: string): void {
+    this.ensureInitialized();
+    const highlights = this.getHighlights().filter(h => h.recordingId !== recordingId);
+    this.store.set('highlights', highlights);
   }
 
   // ===== 工具 =====

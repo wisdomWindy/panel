@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useRoomStore } from '@/stores/room';
+import { useUpdateStore } from '@/stores/update';
 import { getDanmakuService } from '@/services/danmaku-service';
 import {
   House,
@@ -11,12 +12,18 @@ import {
   Setting,
   DocumentCopy,
   CircleClose,
-  MagicStick
+  MagicStick,
+  Bell
 } from '@element-plus/icons-vue';
 import LoginPage from '@/views/Login.vue';
+import WhatsNewModal from '@/components/WhatsNewModal.vue';
 
 const roomStore = useRoomStore();
+const updateStore = useUpdateStore();
 const danmakuService = getDanmakuService();
+
+const showWhatsNew = ref(false);
+const whatsNewVersion = ref('');
 
 function handleBeforeUnload() {
   if (roomStore.isConnected) {
@@ -33,8 +40,39 @@ async function handleDisconnect() {
   }
 }
 
-onMounted(() => {
+function checkWhatsNew() {
+  const currentVersion = updateStore.currentVersion;
+  const lastWhatsNewVersion = localStorage.getItem('lastWhatsNewVersion');
+  const dontRemindList = JSON.parse(localStorage.getItem('whatsNewDontRemind') || '[]');
+
+  if (lastWhatsNewVersion !== currentVersion && !dontRemindList.includes(currentVersion)) {
+    whatsNewVersion.value = currentVersion;
+    showWhatsNew.value = true;
+  }
+}
+
+function handleWhatsNewClose() {
+  showWhatsNew.value = false;
+  localStorage.setItem('lastWhatsNewVersion', whatsNewVersion.value);
+}
+
+function handleDontRemind() {
+  const dontRemindList = JSON.parse(localStorage.getItem('whatsNewDontRemind') || '[]');
+  if (!dontRemindList.includes(whatsNewVersion.value)) {
+    dontRemindList.push(whatsNewVersion.value);
+    localStorage.setItem('whatsNewDontRemind', JSON.stringify(dontRemindList));
+  }
+}
+
+onMounted(async () => {
   window.addEventListener('beforeunload', handleBeforeUnload);
+
+  // 异步检查更新（不阻塞主界面）
+  await updateStore.checkForUpdates();
+
+  // 检查是否需要显示新版本弹窗
+  await updateStore.parseChangelog();
+  checkWhatsNew();
 });
 
 onUnmounted(() => {
@@ -53,13 +91,24 @@ onUnmounted(() => {
         <h1 class="m-0 text-lg font-semibold tracking-wider text-white">
           Bilibili 直播助手
         </h1>
-        <el-button
-          type="danger"
-          size="small"
-          @click="handleDisconnect"
-        >
-          断开连接
-        </el-button>
+        <div class="flex items-center">
+          <el-badge :is-dot="updateStore.hasUpdate" class="mr-4">
+            <el-button
+              type="info"
+              size="small"
+              :icon="Bell"
+              circle
+              @click="$router.push('/update-log')"
+            />
+          </el-badge>
+          <el-button
+            type="danger"
+            size="small"
+            @click="handleDisconnect"
+          >
+            断开连接
+          </el-button>
+        </div>
       </el-header>
 
       <el-container class="flex flex-1 min-h-0">
@@ -108,6 +157,10 @@ onUnmounted(() => {
               <el-icon><MagicStick /></el-icon>
               <span>特效预览</span>
             </el-menu-item>
+            <el-menu-item index="/update-log">
+              <el-icon><Bell /></el-icon>
+              <span>更新日志</span>
+            </el-menu-item>
           </el-menu>
         </el-aside>
 
@@ -116,5 +169,14 @@ onUnmounted(() => {
         </el-main>
       </el-container>
     </el-container>
+
+    <!-- 新版本特性弹窗 -->
+    <WhatsNewModal
+      :visible="showWhatsNew"
+      :version="whatsNewVersion"
+      :changelog="updateStore.latestChangelogEntry"
+      @close="handleWhatsNewClose"
+      @dont-remind="handleDontRemind"
+    />
   </div>
 </template>

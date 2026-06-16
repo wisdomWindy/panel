@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
-import { Connection, ChatDotRound, Timer, Filter, Document, UserFilled } from '@element-plus/icons-vue';
+import { Connection, ChatDotRound, Timer, Filter, Document, UserFilled, Bell } from '@element-plus/icons-vue';
 import { useConfigStore } from '../stores/config';
 import { getDanmakuService } from '../services/danmaku-service';
+import { useRouter } from 'vue-router';
 
 const danmakuService = getDanmakuService();
+const router = useRouter();
 
 const configStore = useConfigStore();
 
@@ -19,7 +21,8 @@ const tabTitle = computed(() => {
     auto: '自动发送',
     filter: '过滤设置',
     log: '日志设置',
-    roles: '角色回复设置'
+    roles: '角色回复设置',
+    update: '更新设置'
   };
   return titles[activeTab.value] || '设置';
 });
@@ -60,6 +63,9 @@ const form = reactive({
     captainEnabled: true,
     captainTemplate: '感谢舰长 {username} 的支持！',
     captainCooldown: 60
+  },
+  update: {
+    checkUpdates: configStore.config.checkUpdates
   }
 });
 
@@ -82,7 +88,8 @@ function handleSave() {
     sensitiveWords: form.filter.sensitiveWords.split('\n').filter((word: string) => word.trim()),
     enableLog: form.log.enableLog,
     logLevel: form.log.logLevel,
-    maxLogLines: form.log.maxLogLines
+    maxLogLines: form.log.maxLogLines,
+    checkUpdates: form.update.checkUpdates
   });
 
   danmakuService.updateMinInterval(form.danmaku.minSendInterval);
@@ -172,6 +179,10 @@ function confirmImport() {
             <el-menu-item index="log">
               <el-icon><Document /></el-icon>
               <span>日志设置</span>
+            </el-menu-item>
+            <el-menu-item index="update">
+              <el-icon><Bell /></el-icon>
+              <span>更新设置</span>
             </el-menu-item>
           </el-menu>
         </el-card>
@@ -357,6 +368,20 @@ function confirmImport() {
                   :max="10000"
                   :step="100"
                 />
+              </el-form-item>
+            </el-form>
+          </div>
+
+          <!-- 更新设置 -->
+          <div v-show="activeTab === 'update'">
+            <el-form :model="form.update" label-width="150px">
+              <el-form-item label="自动检查更新">
+                <el-switch v-model="form.update.checkUpdates" />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="router.push('/update-log')">
+                  查看更新日志
+                </el-button>
               </el-form-item>
             </el-form>
           </div>

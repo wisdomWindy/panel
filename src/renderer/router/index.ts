@@ -62,6 +62,12 @@ const routes: RouteRecordRaw[] = [
     name: 'EffectPreview',
     component: () => import('@/views/EffectPreview.vue'),
     meta: { title: '特效预览' }
+  },
+  {
+    path: '/update-log',
+    name: 'UpdateLog',
+    component: () => import('@/views/UpdateLog.vue'),
+    meta: { title: '更新日志' }
   }
 ];
 

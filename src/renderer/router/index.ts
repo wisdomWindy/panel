@@ -68,6 +68,12 @@ const routes: RouteRecordRaw[] = [
     name: 'UpdateLog',
     component: () => import('@/views/UpdateLog.vue'),
     meta: { title: '更新日志' }
+  },
+  {
+    path: '/plugins',
+    name: 'PluginManager',
+    component: () => import('@/views/PluginManager.vue'),
+    meta: { title: '插件管理' }
   }
 ];
 

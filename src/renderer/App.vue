@@ -13,7 +13,8 @@ import {
   DocumentCopy,
   CircleClose,
   MagicStick,
-  Bell
+  Bell,
+  Box
 } from '@element-plus/icons-vue';
 import LoginPage from '@/views/Login.vue';
 import WhatsNewModal from '@/components/WhatsNewModal.vue';
@@ -160,6 +161,10 @@ onUnmounted(() => {
             <el-menu-item index="/update-log">
               <el-icon><Bell /></el-icon>
               <span>更新日志</span>
+            </el-menu-item>
+            <el-menu-item index="/plugins">
+              <el-icon><Box /></el-icon>
+              <span>插件管理</span>
             </el-menu-item>
           </el-menu>
         </el-aside>

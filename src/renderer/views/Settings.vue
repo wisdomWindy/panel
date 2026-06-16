@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
-import { Connection, ChatDotRound, Timer, Filter, Document, UserFilled, Bell } from '@element-plus/icons-vue';
+import { Connection, ChatDotRound, Timer, Filter, Document, UserFilled, Bell, Setting } from '@element-plus/icons-vue';
 import { useConfigStore } from '../stores/config';
 import { getDanmakuService } from '../services/danmaku-service';
 import { useRouter } from 'vue-router';
@@ -22,7 +22,8 @@ const tabTitle = computed(() => {
     filter: '过滤设置',
     log: '日志设置',
     roles: '角色回复设置',
-    update: '更新设置'
+    update: '更新设置',
+    plugins: '插件管理'
   };
   return titles[activeTab.value] || '设置';
 });
@@ -185,6 +186,10 @@ function confirmImport() {
             <el-menu-item index="update">
               <el-icon><Bell /></el-icon>
               <span>更新设置</span>
+            </el-menu-item>
+            <el-menu-item index="plugins">
+              <el-icon><Setting /></el-icon>
+              <span>插件管理</span>
             </el-menu-item>
           </el-menu>
         </el-card>
@@ -397,6 +402,23 @@ function confirmImport() {
                 </el-button>
               </el-form-item>
             </el-form>
+          </div>
+
+          <!-- 插件管理 -->
+          <div v-show="activeTab === 'plugins'">
+            <div class="plugin-management">
+              <el-alert
+                title="插件管理"
+                description="安装和管理第三方插件，扩展应用功能"
+                type="info"
+                show-icon
+                :closable="false"
+                class="mb-4"
+              />
+              <el-button type="primary" @click="router.push('/plugins')">
+                打开插件管理
+              </el-button>
+            </div>
           </div>
 
           <div class="mt-5 flex justify-end gap-2">

@@ -3,7 +3,7 @@
 **版本号**: v1.0
 **创建日期**: 2026-06-03
 **文档状态**: 初稿
-**最后更新**: 2026-06-16
+**最后更新**: 2026-06-16（添加直播录制功能）
 
 ---
 
@@ -13,9 +13,9 @@
 |--------|------|--------|--------|
 | Must Have (v1.0) | 6 | 6 | 100% |
 | Should Have (v1.5) | 6 | 5 | 83% |
-| Could Have (v2.0) | 5 | 1 | 20% |
+| Could Have (v2.0) | 6 | 1 | 17% |
 | Won't Have (v3.0+) | 4 | 0 | 0% |
-| **总计** | **21** | **12** | **57%** |
+| **总计** | **22** | **12** | **55%** |
 
 **已完成的核心功能**:
 - ✅ Bilibili 直播间连接与弹幕接收
@@ -35,6 +35,7 @@
 - ❌ 语音识别接入（Whisper）
 - ❌ AI 对话生成（LLM）
 - ❌ 高光录制（自动/手动）
+- ❌ 直播录制（全程/高光）
 - ❌ 自动禁言与刷屏防护
 - ❌ 插件系统
 - ❌ 多语言支持
@@ -44,7 +45,7 @@
 ## 1. 产品概述
 
 ### 1.1 产品愿景
-打造一款集自动化互动、智能回复、特效展示于一体的 Bilibili 直播辅助工具，帮助主播降低直播运营成本，提升直播间活跃度与观众体验。
+打造一款集自动化互动、智能回复、特效展示、直播录制于一体的 Bilibili 直播辅助工具，帮助主播降低直播运营成本，提升直播间活跃度与观众体验，同时满足内容存档和二次创作需求。
 
 ### 1.2 目标用户
 - Bilibili 全职/兼职主播
@@ -74,9 +75,11 @@
   - 需要同时回复弹幕和管理直播
   - 语音识别不准确，AI 回复不够自然
   - 缺少高光时刻记录工具
+  - 直播内容无法存档，错过精彩瞬间无法回放
 - **期望**:
   - AI 智能回复观众问题
   - 自动录制高光片段
+  - 全程录制直播内容，便于后期剪辑
   - 智能数据分析辅助运营决策
 
 #### 用户画像 C：兼职主播小李
@@ -123,6 +126,18 @@
 5. 弹幕显示"感谢 粉丝A 首次开通舰长！🎉"
 6. 特效在屏幕上停留 5 秒后淡出
 
+#### 场景 4：直播录制与高光剪辑
+**背景**: 主播正在进行一场重要的游戏直播，需要录制全程内容并标记精彩瞬间
+**流程**:
+1. 主播连接直播间后，点击「开始录制」按钮
+2. 系统开始录制直播流，状态栏显示录制状态和时长
+3. 游戏进行中，弹幕数量激增（观众刷屏"666"）
+4. 系统自动检测到热度上升，自动标记高光时刻
+5. 主播按下快捷键 F9，手动标记另一个高光时刻
+6. 直播结束后，点击「停止录制」
+7. 系统生成完整的 MP4 录制文件和独立的高光片段
+8. 主播在录制列表中查看文件，选择高光片段上传到 B 站动态
+
 ### 1.3.3 用户故事
 
 | ID | 用户故事 | 优先级 | 验收标准 | 状态 |
@@ -133,6 +148,8 @@
 | US-004 | 作为运营者，我想要查看直播数据，以便优化直播策略 | Should | 数据看板实时更新，延迟 < 5 秒 | ✅ |
 | US-005 | 作为主播，我想要自定义上舰特效，以便突出个人风格 | Could | 支持 10+ 预设模板和自定义颜色 | ✅ |
 | US-006 | 作为主播，我想要自动禁言刷屏用户，以便维护直播间秩序 | Must | 检测到刷屏后 2 秒内自动禁言 | ❌ |
+| US-007 | 作为主播，我想要录制直播内容，以便后期剪辑和存档 | Could | 录制文件可正常播放，CPU 占用增加 < 15% | ❌ |
+| US-008 | 作为主播，我想要自动标记高光时刻，以便快速找到精彩片段 | Could | 高光触发响应时间 < 5 秒 | ❌ |
 
 ---
 
@@ -158,6 +175,7 @@
 - ❌ 语音识别接入（Whisper）
 - ❌ AI 对话生成（LLM）
 - ❌ 高光自动录制
+- ❌ 直播录制（全程/高光）
 - ✅ 插件系统
 - ❌ 多语言支持
 
@@ -423,13 +441,190 @@
 - "新版本特性"弹窗在版本变更后首次启动时必定展示（除非用户勾选不再提醒）
 - 离线状态下无任何错误提示或弹窗
 
+### 3.5 直播录制 ❌
+
+**功能描述**: 提供直播流录制能力，支持全程录制和高光片段录制，满足主播内容存档、二次剪辑和内容复用需求。
+
+#### 3.5.1 全程录制
+- **自动开始**: 连接直播间后自动开始录制直播流（可在设置中关闭）。
+- **格式支持**: 支持 MP4（H.264+AAC）和 FLV 格式输出。
+- **质量配置**: 支持选择录制质量（原始流质量 / 720p / 1080p），默认使用原始流质量。
+- **分段录制**: 支持按文件大小（如 2GB）或时长（如 1 小时）自动分段，避免单文件过大。
+- **存储管理**: 支持自定义存储路径，可设置最大存储空间和自动清理策略。
+
+#### 3.5.2 高光录制
+- **自动触发**: 当直播间热度激增（弹幕刷屏、高价值礼物、舰长赠送）时，自动标记高光时刻。
+- **手动打点**: 支持主播按下快捷键（默认 F9）手动标记高光时刻。
+- **片段提取**: 自动提取高光时刻前后 N 秒（默认 30 秒）的录制片段。
+- **独立保存**: 高光片段单独保存为 MP4 文件，便于后续剪辑和分享。
+
+#### 3.5.3 录制管理
+- **录制列表**: 展示所有录制文件，按时间倒序排列，显示文件名、时长、大小、录制时间。
+- **播放预览**: 支持在应用内预览录制文件（使用系统默认播放器或内嵌播放器）。
+- **文件操作**: 支持重命名、删除、打开文件所在目录。
+- **导出功能**: 支持导出为 MP4 格式，可直接上传到 B 站动态或其他平台。
+
+#### 3.5.4 录制状态显示
+- **状态栏指示**: 在主界面状态栏显示录制状态（录制中 / 已暂停 / 已停止）。
+- **录制时长**: 实时显示当前录制时长。
+- **文件大小**: 实时显示当前录制文件大小。
+- **快捷操作**: 支持一键开始/暂停/停止录制。
+
+#### 3.5.5 功能规格
+
+**输入**:
+- 直播流 URL（从 Bilibili 直播间获取）
+- 录制配置（格式、质量、分段大小、存储路径）
+- 高光触发规则（热度阈值、礼物价值、舰长事件）
+- 快捷键配置
+
+**输出**:
+- 录制文件（MP4/FLV）
+- 高光片段（MP4）
+- 录制元数据（JSON 格式，包含录制时间、直播间信息、时长等）
+
+**前置条件**:
+- 已连接 Bilibili 直播间
+- 已配置存储路径（有足够磁盘空间）
+- 直播流可访问
+
+**后置条件**:
+- 录制文件已保存到指定路径
+- 录制元数据已记录
+- 高光片段已独立保存（如有）
+
+**异常处理**:
+- 直播流中断：自动重连，录制暂停，重连成功后继续录制
+- 磁盘空间不足：停止录制，提示用户清理空间
+- 录制文件损坏：记录错误日志，尝试修复或重新录制
+- 网络波动：使用缓冲机制，避免录制卡顿
+
+**验收标准**:
+- 录制启动延迟 < 3 秒
+- 录制文件与直播流同步误差 < 1 秒
+- 录制过程中 CPU 占用增加 < 15%
+- 录制过程中内存占用增加 < 200MB
+- 高光触发响应时间 < 5 秒
+- 录制文件可正常使用主流播放器播放
+- 分段录制无丢帧或卡顿
+
+#### 3.5.6 数据模型
+
+```sql
+-- 录制记录表
+CREATE TABLE recordings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    room_id TEXT NOT NULL,
+    room_name TEXT,
+    file_path TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    file_size INTEGER DEFAULT 0,
+    duration INTEGER DEFAULT 0,  -- 秒
+    format TEXT DEFAULT 'mp4',   -- 'mp4', 'flv'
+    quality TEXT DEFAULT 'original',  -- 'original', '720p', '1080p'
+    status TEXT DEFAULT 'recording',  -- 'recording', 'paused', 'completed', 'failed'
+    is_highlight BOOLEAN DEFAULT FALSE,
+    highlight_reason TEXT,  -- 'auto', 'manual', 'gift', 'captain'
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 高光时刻表
+CREATE TABLE highlights (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recording_id INTEGER,
+    room_id TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,  -- 相对于录制开始的秒数
+    reason TEXT NOT NULL,  -- 'danmaku_surge', 'high_value_gift', 'captain', 'manual'
+    description TEXT,
+    clip_path TEXT,  -- 高光片段文件路径
+    clip_duration INTEGER DEFAULT 30,  -- 片段时长（秒）
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (recording_id) REFERENCES recordings(id)
+);
+```
+
+#### 3.5.7 API 设计
+
+```typescript
+// 开始录制
+function startRecording(options: RecordingOptions): Promise<RecordingSession>;
+
+// 暂停录制
+function pauseRecording(sessionId: string): Promise<void>;
+
+// 恢复录制
+function resumeRecording(sessionId: string): Promise<void>;
+
+// 停止录制
+function stopRecording(sessionId: string): Promise<RecordingResult>;
+
+// 标记高光时刻
+function markHighlight(sessionId: string, reason: string): Promise<Highlight>;
+
+// 获取录制列表
+function getRecordings(options?: QueryOptions): Promise<Recording[]>;
+
+// 获取高光列表
+function getHighlights(recordingId?: string): Promise<Highlight[]>;
+
+// 删除录制
+function deleteRecording(recordingId: string): Promise<void>;
+
+// 录制配置
+interface RecordingOptions {
+  roomId: string;
+  format: 'mp4' | 'flv';
+  quality: 'original' | '720p' | '1080p';
+  segmentSize?: number;  // MB
+  segmentDuration?: number;  // 秒
+  outputPath: string;
+  autoStart: boolean;
+  highlightEnabled: boolean;
+  highlightConfig?: {
+    danmakuThreshold: number;  // 弹幕数量阈值
+    giftValueThreshold: number;  // 礼物价值阈值
+    clipDuration: number;  // 高光片段时长（秒）
+  };
+}
+
+// 录制会话
+interface RecordingSession {
+  id: string;
+  roomId: string;
+  status: 'recording' | 'paused' | 'stopped';
+  startedAt: Date;
+  filePath: string;
+  currentSize: number;
+  currentDuration: number;
+}
+
+// 录制结果
+interface RecordingResult {
+  sessionId: string;
+  filePath: string;
+  fileSize: number;
+  duration: number;
+  highlightCount: number;
+}
+```
+
+#### 3.5.8 技术实现建议
+
+- **录制引擎**: 使用 FFmpeg 或 fluent-ffmpeg 进行直播流录制和转码。
+- **流媒体协议**: 支持 RTMP、HLS、FLV 协议的直播流录制。
+- **硬件加速**: 支持 NVIDIA NVENC、Intel Quick Sync、AMD VCE 硬件加速编码。
+- **内存缓冲**: 使用环形缓冲区处理网络波动，避免录制卡顿。
+- **文件分段**: 在关键帧处进行分段，确保分段无缝衔接。
+
 ---
 
-## 3.5 非功能性需求 (Non-Functional Requirements)
+## 3.6 非功能性需求 (Non-Functional Requirements)
 
-## 3.5 非功能性需求 (Non-Functional Requirements)
+## 3.6 非功能性需求 (Non-Functional Requirements)
 
-### 3.5.1 性能要求
+### 3.6.1 性能要求
 
 | 指标 | 要求 | 测量方法 |
 |------|------|----------|
@@ -439,11 +634,13 @@
 | AI 语音识别延迟 | < 3s | 从说话结束到转写文本返回的时间 |
 | AI 生成延迟 | < 5s | 从收到弹幕到生成回复的时间 |
 | 内存占用 | < 500MB (空闲) / < 1GB (运行) | 系统资源监控 |
-| CPU 占用 | < 10% (空闲) / < 30% (运行) | 系统资源监控 |
+| CPU 占用 | < 10% (空闲) / < 30% (运行) / < 45% (录制中) | 系统资源监控 |
 | 冷启动时间 | < 5s | 从启动到可用状态的时间 |
 | 连接恢复时间 | < 10s | 网络断开后自动重连的时间 |
+| 录制启动延迟 | < 3s | 从点击录制到开始录制的时间 |
+| 录制同步误差 | < 1s | 录制文件与直播流的时间差 |
 
-### 3.5.2 可靠性要求
+### 3.6.2 可靠性要求
 
 | 指标 | 要求 | 说明 |
 |------|------|------|
@@ -453,7 +650,7 @@
 | 数据丢失率 | 0% | 配置和日志数据不丢失 |
 | 异常处理率 | ≥ 95% | 捕获并处理异常的比例 |
 
-### 3.5.3 安全性要求
+### 3.6.3 安全性要求
 
 | 需求 | 描述 |
 |------|------|
@@ -465,19 +662,20 @@
 | XSS 防护 | 所有用户生成内容进行 HTML 转义 |
 | CSRF 防护 | 跨站请求伪造防护（如涉及 Web 界面） |
 | 隐私保护 | 不保存用户语音数据，不在本地存储观众信息 |
+| 录制内容保护 | 录制文件存储在用户指定目录，不上传到云端 |
 
-### 3.5.4 兼容性要求
+### 3.6.4 兼容性要求
 
 | 类别 | 要求 |
 |------|------|
 | 操作系统 | Windows 10+、macOS 10.15+、Ubuntu 20.04+ |
 | Node.js 版本 | ≥ 18.0.0 |
 | 内存要求 | ≥ 4GB RAM |
-| 磁盘空间 | ≥ 500MB 可用空间 |
+| 磁盘空间 | ≥ 500MB 可用空间（基础）/ ≥ 10GB（录制功能） |
 | 网络要求 | 稳定的互联网连接（≥ 10 Mbps） |
 | Bilibili 账号 | 支持实名认证账号 |
 
-### 3.5.5 可扩展性要求
+### 3.6.5 可扩展性要求
 
 | 需求 | 描述 |
 |------|------|
@@ -486,8 +684,9 @@
 | 配置导入导出 | 支持 JSON/YAML 格式的配置导入导出 |
 | 模块化架构 | 核心功能模块化，便于单独升级 |
 | API 扩展 | 支持自定义 AI 模型接入（自定义 Endpoint） |
+| 录制扩展 | 支持自定义录制格式和编码器 |
 
-### 3.5.6 可维护性要求
+### 3.6.6 可维护性要求
 
 | 需求 | 描述 |
 |------|------|
@@ -496,14 +695,15 @@
 | 诊断模式 | 提供诊断工具帮助排查问题 |
 | 更新机制 | ✅ 支持自动检测和安装更新 |
 | 文档完善 | 提供完整的用户文档和开发者文档 |
+| 录制诊断 | 提供录制状态监控和故障诊断工具 |
 
-### 3.5.7 可用性要求
+### 3.6.7 可用性要求
 
 | 需求 | 描述 |
 |------|------|
 | 学习曲线 | 新用户能在 15 分钟内完成基础配置 |
 | 错误提示 | 错误信息清晰易懂，提供解决方案 |
-| 快捷键支持 | 常用操作支持快捷键 |
+| 快捷键支持 | 常用操作支持快捷键（包括录制控制） |
 | 无障碍访问 | 支持屏幕阅读器和高对比度模式 |
 | 响应式布局 | 适配不同屏幕分辨率（≥ 1280x720） |
 
@@ -531,7 +731,13 @@ INSERT INTO config (key, value, type, description) VALUES
 ('danmaku.enabled', 'true', 'boolean', '自动弹幕功能开关'),
 ('danmaku.interval', '300', 'number', '自动弹幕发送间隔（秒）'),
 ('ai.enabled', 'false', 'boolean', 'AI 智能回复开关'),
-('ai.model', 'gpt-4', 'string', 'AI 模型选择');
+('ai.model', 'gpt-4', 'string', 'AI 模型选择'),
+('recording.enabled', 'false', 'boolean', '录制功能开关'),
+('recording.format', 'mp4', 'string', '录制格式'),
+('recording.quality', 'original', 'string', '录制质量'),
+('recording.outputPath', '', 'string', '录制输出路径'),
+('recording.autoStart', 'false', 'boolean', '自动开始录制'),
+('recording.highlightEnabled', 'true', 'boolean', '高光标记功能开关');
 ```
 
 #### 4.1.2 弹幕池表 (danmaku_pool)
@@ -631,6 +837,55 @@ CREATE INDEX idx_live_stats_room_id ON live_stats(room_id);
 CREATE INDEX idx_live_stats_recorded_at ON live_stats(recorded_at);
 ```
 
+#### 4.1.8 录制记录表 (recordings)
+
+```sql
+CREATE TABLE recordings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    room_id TEXT NOT NULL,
+    room_name TEXT,
+    file_path TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    file_size INTEGER DEFAULT 0,
+    duration INTEGER DEFAULT 0,  -- 秒
+    format TEXT DEFAULT 'mp4',   -- 'mp4', 'flv'
+    quality TEXT DEFAULT 'original',  -- 'original', '720p', '1080p'
+    status TEXT DEFAULT 'recording',  -- 'recording', 'paused', 'completed', 'failed'
+    is_highlight BOOLEAN DEFAULT FALSE,
+    highlight_reason TEXT,  -- 'auto', 'manual', 'gift', 'captain'
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 索引
+CREATE INDEX idx_recordings_room_id ON recordings(room_id);
+CREATE INDEX idx_recordings_started_at ON recordings(started_at);
+CREATE INDEX idx_recordings_status ON recordings(status);
+```
+
+#### 4.1.9 高光时刻表 (highlights)
+
+```sql
+CREATE TABLE highlights (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recording_id INTEGER,
+    room_id TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,  -- 相对于录制开始的秒数
+    reason TEXT NOT NULL,  -- 'danmaku_surge', 'high_value_gift', 'captain', 'manual'
+    description TEXT,
+    clip_path TEXT,  -- 高光片段文件路径
+    clip_duration INTEGER DEFAULT 30,  -- 片段时长（秒）
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (recording_id) REFERENCES recordings(id)
+);
+
+-- 索引
+CREATE INDEX idx_highlights_recording_id ON highlights(recording_id);
+CREATE INDEX idx_highlights_room_id ON highlights(room_id);
+CREATE INDEX idx_highlights_created_at ON highlights(created_at);
+```
+
 ### 4.2 数据结构定义
 
 #### 4.2.1 弹幕对象 (Danmaku)
@@ -708,6 +963,32 @@ interface AIConfig {
 }
 ```
 
+#### 4.2.5 录制配置对象 (RecordingConfig)
+
+```typescript
+interface RecordingConfig {
+  enabled: boolean;
+  autoStart: boolean;
+  format: 'mp4' | 'flv';
+  quality: 'original' | '720p' | '1080p';
+  segmentSize: number;  // MB，0 表示不分段
+  segmentDuration: number;  // 秒，0 表示不分段
+  outputPath: string;
+  maxStorageSize: number;  // GB，0 表示不限制
+  autoCleanup: boolean;
+  cleanupDays: number;  // 自动清理天数
+  highlightEnabled: boolean;
+  highlightConfig: {
+    danmakuThreshold: number;  // 弹幕数量阈值
+    giftValueThreshold: number;  // 礼物价值阈值
+    captainTrigger: boolean;  // 舰长触发
+    clipDuration: number;  // 高光片段时长（秒）
+    beforeSeconds: number;  // 高光前录制秒数
+    afterSeconds: number;  // 高光后录制秒数
+  };
+}
+```
+
 #### 4.2.5 特效对象 (Effect)
 
 ```typescript
@@ -729,6 +1010,68 @@ interface Effect {
     file: string;
     volume: number;  // 0-1
   };
+}
+```
+
+#### 4.2.6 录制配置对象 (RecordingConfig)
+
+```typescript
+interface RecordingConfig {
+  enabled: boolean;
+  autoStart: boolean;
+  format: 'mp4' | 'flv';
+  quality: 'original' | '720p' | '1080p';
+  segmentSize: number;  // MB，0 表示不分段
+  segmentDuration: number;  // 秒，0 表示不分段
+  outputPath: string;
+  maxStorageSize: number;  // GB，0 表示不限制
+  autoCleanup: boolean;
+  cleanupDays: number;  // 自动清理天数
+  highlightEnabled: boolean;
+  highlightConfig: {
+    danmakuThreshold: number;  // 弹幕数量阈值
+    giftValueThreshold: number;  // 礼物价值阈值
+    captainTrigger: boolean;  // 舰长触发
+    clipDuration: number;  // 高光片段时长（秒）
+    beforeSeconds: number;  // 高光前录制秒数
+    afterSeconds: number;  // 高光后录制秒数
+  };
+}
+```
+
+#### 4.2.7 录制会话对象 (RecordingSession)
+
+```typescript
+interface RecordingSession {
+  id: string;
+  roomId: string;
+  roomName: string;
+  status: 'recording' | 'paused' | 'stopped' | 'completed' | 'failed';
+  filePath: string;
+  fileName: string;
+  fileSize: number;
+  duration: number;
+  format: string;
+  quality: string;
+  startedAt: Date;
+  endedAt?: Date;
+  highlightCount: number;
+}
+```
+
+#### 4.2.8 高光时刻对象 (Highlight)
+
+```typescript
+interface Highlight {
+  id: string;
+  recordingId: string;
+  roomId: string;
+  timestamp: number;  // 相对于录制开始的秒数
+  reason: 'danmaku_surge' | 'high_value_gift' | 'captain' | 'manual';
+  description: string;
+  clipPath?: string;
+  clipDuration: number;
+  createdAt: Date;
 }
 ```
 
@@ -923,6 +1266,138 @@ function queryLogs(options: {
 function cleanLogs(beforeDate: Date): Promise<number>;
 ```
 
+### 5.4 录制 API
+
+#### 5.4.1 录制控制
+
+```typescript
+// 开始录制
+function startRecording(options: RecordingOptions): Promise<RecordingSession>;
+
+// 暂停录制
+function pauseRecording(sessionId: string): Promise<void>;
+
+// 恢复录制
+function resumeRecording(sessionId: string): Promise<void>;
+
+// 停止录制
+function stopRecording(sessionId: string): Promise<RecordingResult>;
+
+// 获取当前录制状态
+function getRecordingStatus(sessionId: string): Promise<RecordingStatus>;
+
+// 获取所有录制会话
+function getRecordingSessions(): Promise<RecordingSession[]>;
+```
+
+#### 5.4.2 高光管理
+
+```typescript
+// 标记高光时刻
+function markHighlight(sessionId: string, reason: string, description?: string): Promise<Highlight>;
+
+// 获取高光列表
+function getHighlights(recordingId?: string): Promise<Highlight[]>;
+
+// 生成高光片段
+function generateHighlightClip(highlightId: string): Promise<string>;
+
+// 删除高光
+function deleteHighlight(highlightId: string): Promise<void>;
+```
+
+#### 5.4.3 录制文件管理
+
+```typescript
+// 获取录制列表
+function getRecordings(options?: QueryOptions): Promise<Recording[]>;
+
+// 获取录制详情
+function getRecording(recordingId: string): Promise<Recording>;
+
+// 删除录制
+function deleteRecording(recordingId: string): Promise<void>;
+
+// 打开录制文件所在目录
+function openRecordingFolder(recordingId: string): Promise<void>;
+
+// 获取录制文件路径
+function getRecordingPath(recordingId: string): Promise<string>;
+```
+
+#### 5.4.4 数据结构
+
+```typescript
+// 录制选项
+interface RecordingOptions {
+  roomId: string;
+  format: 'mp4' | 'flv';
+  quality: 'original' | '720p' | '1080p';
+  segmentSize?: number;  // MB
+  segmentDuration?: number;  // 秒
+  outputPath: string;
+  autoStart: boolean;
+  highlightEnabled: boolean;
+  highlightConfig?: {
+    danmakuThreshold: number;
+    giftValueThreshold: number;
+    captainTrigger: boolean;
+    clipDuration: number;
+    beforeSeconds: number;
+    afterSeconds: number;
+  };
+}
+
+// 录制会话
+interface RecordingSession {
+  id: string;
+  roomId: string;
+  roomName: string;
+  status: 'recording' | 'paused' | 'stopped' | 'completed' | 'failed';
+  filePath: string;
+  fileName: string;
+  fileSize: number;
+  duration: number;
+  format: string;
+  quality: string;
+  startedAt: Date;
+  endedAt?: Date;
+  highlightCount: number;
+}
+
+// 录制结果
+interface RecordingResult {
+  sessionId: string;
+  filePath: string;
+  fileSize: number;
+  duration: number;
+  highlightCount: number;
+  highlights: Highlight[];
+}
+
+// 录制状态
+interface RecordingStatus {
+  sessionId: string;
+  status: 'recording' | 'paused' | 'stopped' | 'completed' | 'failed';
+  currentSize: number;
+  currentDuration: number;
+  highlightCount: number;
+  lastHighlightAt?: Date;
+}
+
+// 录制查询选项
+interface QueryOptions {
+  roomId?: string;
+  status?: string;
+  startDate?: Date;
+  endDate?: Date;
+  limit?: number;
+  offset?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+```
+
 ---
 
 ## 6. 测试策略
@@ -955,6 +1430,7 @@ function cleanLogs(beforeDate: Date): Promise<number>;
 | AI 模块 | 上下文构建、敏感词过滤、冷却控制 | ≥ 90% |
 | 配置管理 | 增删改查、验证逻辑、默认值 | ≥ 95% |
 | 数据库 | CRUD 操作、索引查询、事务处理 | ≥ 85% |
+| 录制模块 | 开始/暂停/停止录制、分段、高光标记 | ≥ 85% |
 
 **示例测试用例**:
 
@@ -1003,6 +1479,14 @@ describe('弹幕管理器', () => {
    - 验证音效播放
    - 验证并发处理
 
+4. **录制流程**
+   - 模拟直播流输入
+   - 验证录制开始/暂停/停止
+   - 验证文件生成和格式
+   - 验证分段录制
+   - 验证高光标记和片段生成
+   - 验证录制状态同步
+
 ### 6.4 端到端测试 (E2E)
 
 **测试框架**: Playwright
@@ -1036,6 +1520,16 @@ describe('弹幕管理器', () => {
    - 验证文件生成
    - 验证上传功能
 
+5. **直播录制**
+   - 连接直播间
+   - 开始录制
+   - 验证录制文件生成
+   - 暂停/恢复录制
+   - 停止录制
+   - 验证录制文件完整性
+   - 标记高光时刻
+   - 验证高光片段生成
+
 ### 6.5 性能测试
 
 **测试工具**: k6 + Lighthouse
@@ -1047,10 +1541,15 @@ describe('弹幕管理器', () => {
 | 冷启动时间 | < 5s | 测量从双击图标到可用状态的时间 |
 | 内存占用 (空闲) | < 500MB | 运行 1 小时后测量 |
 | 内存占用 (运行) | < 1GB | 模拟 1000 条弹幕/分钟后测量 |
+| 内存占用 (录制中) | < 1.2GB | 录制直播流时测量 |
 | CPU 占用 (空闲) | < 10% | 系统监控 10 分钟 |
 | CPU 占用 (运行) | < 30% | 模拟 1000 条弹幕/分钟后监控 |
+| CPU 占用 (录制中) | < 45% | 录制直播流时监控 |
 | 弹幕处理吞吐量 | ≥ 500 条/秒 | 压力测试 |
 | 特效渲染帧率 | ≥ 30 FPS | 渲染 10 个并发特效时测量 |
+| 录制启动延迟 | < 3s | 测量从点击录制到开始录制的时间 |
+| 录制文件写入速度 | ≥ 10MB/s | 测量录制文件写入性能 |
+| 高光标记响应时间 | < 5s | 测量从触发到标记完成的时间 |
 
 ### 6.6 安全测试
 
@@ -1089,6 +1588,9 @@ describe('弹幕管理器', () => {
 - [ ] 自动弹幕发送正常
 - [ ] 礼物感谢功能正常
 - [ ] 特效展示流畅
+- [ ] 能够开始/暂停/停止录制
+- [ ] 录制文件可正常播放
+- [ ] 高光标记功能正常
 - [ ] 无致命 Bug
 - [ ] 满意度评分 ≥ 4/5
 
@@ -1114,6 +1616,7 @@ describe('弹幕管理器', () => {
 - ✅ 现代化 UI 设计，用户体验更好
 - ✅ 支持语音识别和语音互动
 - ✅ 完善的数据看板和分析功能
+- ✅ 直播录制和高光剪辑功能
 
 **弹幕姬的优势**:
 - ✅ 完全免费开源
@@ -1140,6 +1643,7 @@ describe('弹幕管理器', () => {
 - ✅ AI 智能互动
 - ✅ 自定义特效
 - ✅ 数据分析功能
+- ✅ 直播录制和高光剪辑
 
 **Bilibili 直播姬的优势**:
 - ✅ 官方支持，不会封号
@@ -1148,9 +1652,9 @@ describe('弹幕管理器', () => {
 
 ### 7.3 竞争策略
 
-1. **差异化定位**: 聚焦 AI 智能互动和自动化，避开与官方工具的直接竞争
+1. **差异化定位**: 聚焦 AI 智能互动、自动化和直播录制，避开与官方工具的直接竞争
 2. **开源策略**: MVP 版本开源免费，积累用户和社区
-3. **增值服务**: 高级功能（如本地 LLM、插件扩展）采用付费模式
+3. **增值服务**: 高级功能（如本地 LLM、插件扩展、高级录制功能）采用付费模式
 4. **生态建设**: 提供插件系统和社区市场，鼓励用户贡献
 
 ---
@@ -1186,6 +1690,7 @@ describe('弹幕管理器', () => {
 | 功能使用率 | ≥ 70% | 功能点击统计 |
 | 自动弹幕使用率 | ≥ 60% | 功能使用统计 |
 | AI 功能使用率 | ≥ 30% | API 调用统计 |
+| 录制功能使用率 | ≥ 40% | 录制会话统计 |
 
 #### 8.2.3 产品质量指标
 
@@ -1226,6 +1731,8 @@ describe('弹幕管理器', () => {
 | 数据库查询时间 | P95 < 100ms | 数据库慢查询日志 |
 | WebSocket 重连成功率 | ≥ 99% | 连接日志统计 |
 | 内存泄漏检测 | 0 个 | Valgrind/Chrome DevTools |
+| 录制文件完整性 | 100% | 录制文件校验 |
+| 录制成功率 | ≥ 99% | 录制会话统计 |
 
 ### 8.5 指标追踪方案
 
@@ -1256,12 +1763,15 @@ describe('弹幕管理器', () => {
 - **语音识别**: Whisper (OpenAI) 或 阿里云/讯飞语音识别 API
 - **AI 模型**: OpenAI API / Anthropic API / 本地 Ollama
 - **特效渲染**: HTML5 Canvas + CSS3 Animations
+- **录制引擎**: FFmpeg (直播流录制和转码)
+- **录制封装**: fluent-ffmpeg (Node.js FFmpeg 封装库)
 
 ### 9.2 系统架构图
 ```
 ┌─────────────────────────────────────────┐
 │           Electron 主进程                  │
 │  - 窗口管理  - 本地存储  - 系统托盘         │
+│  - 录制引擎 (FFmpeg)                      │
 └─────────────┬───────────────────────────┘
               │
 ┌─────────────┼───────────────────────────┐
@@ -1269,6 +1779,9 @@ describe('弹幕管理器', () => {
 │  ┌──────────┐  ┌──────────┐  ┌────────┐│
 │  │ 弹幕管理  │  │ 特效展示  │  │ AI模块  ││
 │  └──────────┘  └──────────┘  └────────┘│
+│  ┌──────────┐  ┌──────────┐           │
+│  │ 录制管理  │  │ 高光标记  │           │
+│  └──────────┘  └──────────┘           │
 └──────┬─────────────────┬───────────────┘
        │                 │
        │ WebSocket       │ HTTP/REST
@@ -1276,6 +1789,7 @@ describe('弹幕管理器', () => {
 ┌──────▼─────────┐  ┌────▼────────────┐
 │ Bilibili 直播间 │  │ 第三方 AI 服务   │
 │  (弹幕/礼物流)   │  │  (ASR/LLM)     │
+│  (直播流录制)    │  │                │
 └─────────────────┘  └─────────────────┘
 ```
 
@@ -1283,6 +1797,8 @@ describe('弹幕管理器', () => {
 1. **弹幕流**: Bilibili WebSocket -> 本地解析 -> 规则匹配 -> 弹幕池/特效触发
 2. **语音流**: 麦克风输入 -> 音频缓冲 -> ASR API -> 文本 -> LLM API -> 弹幕输出
 3. **配置流**: 用户界面操作 -> 本地 JSON/SQLite 存储 -> 运行时加载
+4. **录制流**: 直播流 URL -> FFmpeg 录制 -> 分段/转码 -> 本地存储 -> 高光标记
+5. **高光流**: 弹幕/礼物事件 -> 热度分析 -> 高光标记 -> 片段提取 -> 独立保存
 
 ---
 
@@ -1298,14 +1814,18 @@ describe('弹幕管理器', () => {
 │ │弹幕配置  │ │  │  当前直播间信息             │ │
 │ │上舰特效  │ │  │  房间号: 123456            │ │
 │ │AI机器人  │ │  │  在线: 1,234              │ │
-│ │数据看板  │ │  │  ───────────────────────  │ │
-│ │高光录制  │ │  │  [OBS 源地址预览]          │ │
-│ │设置      │ │  │  (用于特效预览)            │ │
-│ └─────────┘ │  └───────────────────────────┘ │
+│ │数据看板  │ │  │  录制状态: ● 录制中 01:23:45│ │
+│ │直播录制  │ │  │  文件大小: 1.2GB           │ │
+│ │录制管理  │ │  │  高光标记: 3 个            │ │
+│ │插件管理  │ │  │  ───────────────────────  │ │
+│ │设置      │ │  │  [OBS 源地址预览]          │ │
+│ └─────────┘ │  │  (用于特效预览)            │ │
+│             │  └───────────────────────────┘ │
 │             │  ┌───────────────────────────┐ │
 │             │  │  实时日志监控              │ │
 │             │  │  > 收到礼物 x1             │ │
 │             │  │  > AI 回复: 感谢大佬!      │ │
+│             │  │  > 高光时刻已标记 (弹幕刷屏)│ │
 │             │  └───────────────────────────┘ │
 └─────────────┴─────────────────────────────────┘
 ```
@@ -1314,6 +1834,17 @@ describe('弹幕管理器', () => {
 - **弹幕配置**: 采用列表视图，支持拖拽排序弹幕池。
 - **特效配置**: 提供实时预览窗口，边调整参数边看效果。
 - **AI 配置**: 分步引导设置 (API Key -> 人设选择 -> 启动测试)。
+- **录制配置**: 提供录制格式、质量、存储路径选择，支持录制测试和磁盘空间检查。
+  - **基本设置**: 录制格式 (MP4/FLV)、质量 (原始/720p/1080p)、存储路径
+  - **分段设置**: 分段大小 (MB)、分段时长 (秒)、是否启用分段
+  - **存储管理**: 最大存储空间 (GB)、自动清理天数、当前使用空间
+  - **高光设置**: 启用高光标记、弹幕阈值、礼物价值阈值、舰长触发、片段时长
+  - **快捷键**: 开始/暂停/停止录制、标记高光
+- **录制管理**: 展示录制文件列表，支持播放、删除、打开目录、导出操作。
+  - **文件列表**: 按时间倒序展示，显示文件名、时长、大小、录制时间、状态
+  - **操作按钮**: 播放、删除、打开目录、导出为 MP4
+  - **高光列表**: 展示高光时刻，支持生成片段、删除操作
+  - **存储统计**: 显示总存储空间、已使用空间、剩余空间
 
 ---
 
@@ -1322,11 +1853,15 @@ describe('弹幕管理器', () => {
 ### 11.1 技术风险
 - **WebSocket 连接稳定性**: Bilibili 直播协议变更可能导致连接中断，需设计重连机制。
 - **AI 延迟**: 语音识别和 LLM 生成存在延迟，可能导致互动不及时，需优化流式传输。
-- **资源占用**: 特效渲染和语音处理对 CPU/GPU 占用较高，需提供性能优化选项。
+- **资源占用**: 特效渲染、语音处理和直播录制对 CPU/GPU 占用较高，需提供性能优化选项。
+- **录制稳定性**: 直播流中断或网络波动可能导致录制卡顿或文件损坏，需实现缓冲和断点续录机制。
+- **存储空间**: 长时间录制占用大量磁盘空间，需实现自动清理和存储管理策略。
 
 ### 11.2 合规风险
 - **风控触发**: 自动弹幕频率过高可能导致账号被平台限流或封禁，需严格设置发送上限。
 - **隐私保护**: 语音数据传输需加密，且不得私自保存用户语音。
+- **录制合规**: 录制直播内容需遵守平台规定，不得录制他人隐私内容。
+- **版权风险**: 录制内容可能涉及版权问题，需提示用户遵守相关法律法规。
 
 ---
 
@@ -1348,12 +1883,14 @@ describe('弹幕管理器', () => {
 - ❌ 语音识别接入 (Whisper)
 - ❌ AI 对话生成 (LLM)
 - ❌ 高光自动录制
+- ❌ 直播录制（全程/高光）
 - ✅ 直播数据看板
 
 ### 阶段四：优化与生态 - 持续迭代
 - ❌ 性能优化 (降低 CPU 占用)
 - ✅ 插件系统 (允许用户扩展)
 - ❌ 多语言支持
+- ❌ 录制功能优化 (硬件加速、云存储)
 ---
 
 ## 13. 附录
@@ -1364,6 +1901,8 @@ describe('弹幕管理器', () => {
 - [OpenAI Whisper API](https://platform.openai.com/docs/guides/speech-to-text)
 - [Vue 3 文档](https://vuejs.org/)
 - [TypeScript 文档](https://www.typescriptlang.org/)
+- [FFmpeg 官方文档](https://ffmpeg.org/documentation.html)
+- [fluent-ffmpeg 文档](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg)
 
 ### 13.2 术语表
 - **弹幕**: 直播间观众的实时评论。
@@ -1376,3 +1915,6 @@ describe('弹幕管理器', () => {
 - **NPS**: Net Promoter Score (净推荐值)。
 - **MTBF**: Mean Time Between Failures (平均故障间隔时间)。
 - **MTTR**: Mean Time To Repair (平均修复时间)。
+- **FFmpeg**: 开源音视频处理工具，用于直播流录制和转码。
+- **高光时刻**: 直播中特别精彩或值得关注的瞬间。
+- **分段录制**: 将长时间录制分割成多个小文件的功能。

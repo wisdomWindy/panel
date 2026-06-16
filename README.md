@@ -1,6 +1,6 @@
 # Bilibili 直播助手
 
-一款集自动化互动、智能回复、特效展示、直播录制于一体的 Bilibili 直播辅助工具。
+一款集自动化互动、智能回复、特效展示、直播录制、多语言支持于一体的 Bilibili 直播辅助工具。
 
 ## 功能特性
 
@@ -21,6 +21,7 @@
 - ✅ **自动断开** - 关闭应用时自动断开连接
 - ✅ **直播录制** - 全程录制、高光标记、片段提取
 - ✅ **更新日志** - 版本更新检测与更新日志查看
+- ✅ **多语言支持** - 中文/英文界面切换
 
 ### 开发中功能
 
@@ -38,6 +39,7 @@
 - **3D 特效**: Three.js
 - **样式**: Tailwind CSS
 - **录制**: FFmpeg (fluent-ffmpeg)
+- **国际化**: vue-i18n
 
 ## 快速开始
 
@@ -84,6 +86,9 @@ panel/
 │       │   ├── RecordingStatusBar.vue  # 录制状态栏
 │       │   ├── RecordingList.vue       # 录制文件列表
 │       │   └── HighlightList.vue       # 高光列表
+│       ├── locales/             # 国际化语言包
+│       │   ├── zh-CN.json       # 中文语言包
+│       │   └── en-US.json       # 英文语言包
 │       ├── modules/             # 核心模块
 │       │   ├── bilibili/        # Bilibili 客户端
 │       │   ├── danmaku/         # 弹幕管理
@@ -133,6 +138,29 @@ panel/
 - 自动分段
 - 自动清理
 - 高光触发阈值
+
+## 多语言支持
+
+### 支持语言
+
+- **中文** (zh-CN) - 默认语言
+- **English** (en-US)
+
+### 切换语言
+
+1. 打开设置页面
+2. 选择「语言设置」
+3. 从下拉菜单选择语言
+4. 界面将立即切换到所选语言
+
+### 扩展语言
+
+如需添加新语言：
+
+1. 在 `src/renderer/locales/` 目录创建新的语言文件（如 `ja-JP.json`）
+2. 复制 `zh-CN.json` 的结构并翻译所有文本
+3. 在 `src/renderer/main.ts` 中导入新语言包
+4. 在 `src/renderer/views/Settings.vue` 中添加语言选项
 
 ## 配置说明
 

@@ -24,6 +24,9 @@ export interface AppConfig {
   enableTriggerReply: boolean;
   enableGiftThank: boolean;
 
+  // 自动录制配置
+  enableAutoRecord: boolean;
+
   // 敏感词过滤
   enableSensitiveWordFilter: boolean;
   sensitiveWords: string[];
@@ -65,6 +68,9 @@ export const useConfigStore = defineStore('config', () => {
     autoSendInterval: 5000,
     enableTriggerReply: true,
     enableGiftThank: true,
+
+    // 自动录制配置
+    enableAutoRecord: false,
 
     // 敏感词过滤
     enableSensitiveWordFilter: true,
@@ -110,6 +116,7 @@ export const useConfigStore = defineStore('config', () => {
       autoSendInterval: 5000,
       enableTriggerReply: true,
       enableGiftThank: true,
+      enableAutoRecord: false,
       enableSensitiveWordFilter: true,
       sensitiveWords: [],
       replaceChar: '*',

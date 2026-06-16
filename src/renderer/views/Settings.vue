@@ -41,7 +41,8 @@ const form = reactive({
   auto: {
     enableAutoSend: configStore.config.enableAutoSend,
     autoSendInterval: configStore.config.autoSendInterval,
-    enableTriggerReply: configStore.config.enableTriggerReply
+    enableTriggerReply: configStore.config.enableTriggerReply,
+    enableAutoRecord: configStore.config.enableAutoRecord
   },
   filter: {
     enableSensitiveWordFilter: configStore.config.enableSensitiveWordFilter,
@@ -83,6 +84,7 @@ function handleSave() {
     enableAutoSend: form.auto.enableAutoSend,
     autoSendInterval: form.auto.autoSendInterval,
     enableTriggerReply: form.auto.enableTriggerReply,
+    enableAutoRecord: form.auto.enableAutoRecord,
     enableSensitiveWordFilter: form.filter.enableSensitiveWordFilter,
     replaceChar: form.filter.replaceChar,
     sensitiveWords: form.filter.sensitiveWords.split('\n').filter((word: string) => word.trim()),
@@ -261,6 +263,17 @@ function confirmImport() {
               </el-form-item>
               <el-form-item label="触发回复">
                 <el-switch v-model="form.auto.enableTriggerReply" />
+              </el-form-item>
+              <el-divider content-position="left">
+                自动录制
+              </el-divider>
+              <el-form-item label="启用自动录制">
+                <el-switch v-model="form.auto.enableAutoRecord" />
+              </el-form-item>
+              <el-form-item>
+                <el-text type="info" size="small">
+                  连接直播间且开播时自动开始录制，下播时自动停止录制
+                </el-text>
               </el-form-item>
             </el-form>
           </div>

@@ -58,6 +58,9 @@ export interface RoomInfo {
   ownerOpenId: string;
   ownerName: string;
   onlineCount: number;
+  liveStatus: number;
+  openId: string;
+  unionId: string;
 }
 
 // 弹幕消息类型

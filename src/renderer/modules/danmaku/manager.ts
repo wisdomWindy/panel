@@ -94,11 +94,10 @@ export class DanmakuManager extends EventEmitter {
       this.emit('statusChanged', this._status);
       this.emit('roomInfoUpdated', roomInfo);
 
-      if (this.autoSendTimer) {
-        this.startAutoSend(this.autoSendInterval);
+      // 连接成功且直播间开播时才启动自动发送
+      if (roomInfo.liveStatus === 1) {
+        this.startAutoFeatures();
       }
-
-      this.restartTimedSend();
     });
 
     this.client.on(ClientEvent.DISCONNECTED, () => {
@@ -112,6 +111,25 @@ export class DanmakuManager extends EventEmitter {
       this._status = 'error';
       this.emit('statusChanged', this._status);
       this.emit('error', error);
+    });
+
+    // 监听开播事件
+    this.client.on(ClientEvent.LIVE_START, () => {
+      if (this._roomInfo) {
+        this._roomInfo.liveStatus = 1;
+        this.emit('roomInfoUpdated', this._roomInfo);
+        this.startAutoFeatures();
+      }
+    });
+
+    // 监听下播事件
+    this.client.on(ClientEvent.LIVE_END, () => {
+      if (this._roomInfo) {
+        this._roomInfo.liveStatus = 0;
+        this.emit('roomInfoUpdated', this._roomInfo);
+        this.stopAutoSend();
+        this.stopAllTimedSend();
+      }
     });
 
     // 弹幕事件
@@ -488,6 +506,23 @@ export class DanmakuManager extends EventEmitter {
   private stopAllTimedSend(): void {
     this.timedSendTimers.forEach(timer => clearInterval(timer));
     this.timedSendTimers.clear();
+  }
+
+  /**
+   * 启动自动功能（自动发送弹幕和自动录制）
+   * 仅在连接成功且直播间开播时调用
+   */
+  private startAutoFeatures(): void {
+    // 启动自动发送弹幕
+    if (this.autoSendTimer) {
+      this.startAutoSend(this.autoSendInterval);
+    }
+
+    // 启动定时发送
+    this.restartTimedSend();
+
+    // 触发自动录制事件（由上层服务处理）
+    this.emit('autoRecordStart');
   }
 
   private restartTimedSend(): void {

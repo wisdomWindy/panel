@@ -144,6 +144,24 @@ export class DanmakuService {
         this.danmakuStore.incrementThankCount();
       }
     });
+
+    // 自动录制事件处理
+    this.manager.on('autoRecordStart', () => {
+      this.handleAutoRecordStart();
+    });
+  }
+
+  /**
+   * 处理自动录制开始事件
+   * 当连接成功且直播间开播时触发
+   */
+  private handleAutoRecordStart(): void {
+    // 检查是否启用了自动录制功能
+    if (this.configStore.config.enableAutoRecord) {
+      console.log('自动录制功能已触发');
+      // TODO: 实现自动录制逻辑
+      // 这里可以调用录制服务开始录制
+    }
   }
 
   /**

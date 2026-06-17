@@ -4,7 +4,7 @@
  */
 
 // 插件权限类型
-export type PluginPermission = 
+export type PluginPermission =
   | 'danmaku'    // 弹幕读写
   | 'gift'       // 礼物监听
   | 'captain'    // 舰长监听

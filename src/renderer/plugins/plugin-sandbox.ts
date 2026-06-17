@@ -69,7 +69,7 @@ export class PluginSandbox {
       encodeURIComponent: encodeURIComponent,
       decodeURIComponent: decodeURIComponent,
       encodeURI: encodeURI,
-      decodeURI: decodeURI,
+      decodeURI: decodeURI
     };
 
     // 根据权限添加 API
@@ -152,7 +152,7 @@ export class PluginSandbox {
       dirxml: (...args: any[]) => {
         this.api.log('info', args.map(String).join(' '));
       },
-      Console: null as any,
+      Console: null as any
     } as Console;
   }
 
@@ -188,12 +188,12 @@ export class PluginSandbox {
 
       return {
         success: true,
-        result,
+        result
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -218,12 +218,12 @@ export class PluginSandbox {
 
       return {
         success: true,
-        result,
+        result
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -255,18 +255,18 @@ export class PluginSandbox {
       if (!pluginModule || typeof pluginModule !== 'object') {
         return {
           success: false,
-          error: '插件模块必须导出一个对象',
+          error: '插件模块必须导出一个对象'
         };
       }
 
       return {
         success: true,
-        result: pluginModule,
+        result: pluginModule
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -325,6 +325,6 @@ export function validatePluginPermissions(
 
   return {
     valid: missing.length === 0,
-    missing,
+    missing
   };
 }

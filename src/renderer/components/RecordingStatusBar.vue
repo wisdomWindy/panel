@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { VideoCamera, VideoPause, VideoPlay, Square } from '@element-plus/icons-vue';
+import { VideoCamera, VideoPause, VideoPlay, Close } from '@element-plus/icons-vue';
 import { useRecordingStore } from '../stores/recording';
 
 const recordingStore = useRecordingStore();
@@ -123,7 +123,7 @@ async function handleStopRecording() {
         @click="handleStopRecording"
       >
         <el-icon class="mr-1">
-          <Square />
+          <Close />
         </el-icon>
         停止
       </el-button>

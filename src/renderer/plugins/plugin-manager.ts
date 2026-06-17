@@ -12,7 +12,7 @@ import {
   PluginPermission,
   PluginEvent,
   PluginError,
-  PluginLoadError,
+  PluginLoadError
 } from './types';
 import { PluginLoader, createPluginLoader } from './plugin-loader';
 import { PluginSandbox, createPluginSandbox } from './plugin-sandbox';
@@ -56,7 +56,7 @@ export class PluginManager {
     this.dependencies = config.dependencies;
     this.loader = createPluginLoader({
       pluginDir: config.pluginDir,
-      appVersion: config.appVersion,
+      appVersion: config.appVersion
     });
   }
 
@@ -107,13 +107,13 @@ export class PluginManager {
       const sandbox = createPluginSandbox({
         pluginId,
         permissions: loadResult.plugin?.permissions || [],
-        api,
+        api
       });
 
       // 4. 加载插件模块
       const pluginPath = `${this.pluginDir}/${pluginId}`;
       const entryPath = `${pluginPath}/${manifestResult.plugin?.main || 'index.js'}`;
-      
+
       // 读取插件代码
       let pluginCode = '';
       if (typeof window !== 'undefined' && window.electronAPI) {
@@ -133,7 +133,7 @@ export class PluginManager {
         version: loadResult.plugin?.version || '1.0.0',
         description: loadResult.plugin?.description || '',
         author: loadResult.plugin?.author || '',
-        ...moduleResult.result,
+        ...moduleResult.result
       };
 
       // 6. 创建插件状态
@@ -147,7 +147,7 @@ export class PluginManager {
         installedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         config: {},
-        permissions: loadResult.plugin?.permissions || [],
+        permissions: loadResult.plugin?.permissions || []
       };
 
       // 7. 保存插件实例
@@ -156,7 +156,7 @@ export class PluginManager {
         sandbox,
         api,
         plugin,
-        state,
+        state
       });
 
       this.emitEvent('registered', pluginId);

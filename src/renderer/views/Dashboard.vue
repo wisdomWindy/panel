@@ -10,6 +10,7 @@ import { useDanmakuStore } from '../stores/danmaku';
 import { getDanmakuService } from '../services/danmaku-service';
 const danmakuService = getDanmakuService();
 import StatCard from '../components/StatCard.vue';
+import Leaderboard from '../components/Leaderboard.vue';
 
 use([BarChart, LineChart, GridComponent, TitleComponent, TooltipComponent, CanvasRenderer]);
 
@@ -339,6 +340,12 @@ onUnmounted(() => {
         <el-card>
           <div ref="giftChartRef" class="h-[300px]" />
         </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" class="mt-4">
+      <el-col :span="24">
+        <Leaderboard />
       </el-col>
     </el-row>
   </div>

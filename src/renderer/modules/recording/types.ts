@@ -164,3 +164,38 @@ export const DEFAULT_HOTKEYS = {
   toggleRecording: 'CommandOrControl+Shift+R',
   markHighlight: 'F9'
 };
+
+// 排行榜相关类型定义
+
+// 送礼榜项目
+export interface GiftRankItem {
+  rank: number;
+  userId: string;
+  username: string;
+  totalValue: number; // 送礼总价值（电池）
+}
+
+// 弹幕榜项目
+export interface DanmakuRankItem {
+  rank: number;
+  userId: string;
+  username: string;
+  count: number; // 弹幕数量
+}
+
+// 舰长贡献榜项目
+export interface CaptainRankItem {
+  rank: number;
+  userId: string;
+  username: string;
+  level: number; // 1=督察, 2=提督, 3=总督
+  levelName: string; // 舰长等级名称
+  timestamp: number; // 贡献时间
+}
+
+// 舰长等级名称映射
+export const CAPTAIN_LEVEL_NAMES: Record<number, string> = {
+  1: '督察',
+  2: '提督',
+  3: '总督'
+};

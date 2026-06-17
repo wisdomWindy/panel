@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Play, FolderOpened, Delete, Download } from '@element-plus/icons-vue';
+import { VideoPlay, FolderOpened, Delete, Download } from '@element-plus/icons-vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import type { Recording } from '../modules/recording/types.js';
 import { useRecordingStore } from '../stores/recording';
@@ -166,7 +166,7 @@ function handleDownload(recording: Recording) {
         <template #default="{ row }">
           <el-button
             type="primary"
-            :icon="Play"
+            :icon="VideoPlay"
             size="small"
             @click="handlePlay(row)"
           />

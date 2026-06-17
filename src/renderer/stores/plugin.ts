@@ -155,6 +155,6 @@ export const usePluginStore = defineStore('plugin', () => {
     setLoading,
     setError,
     clearPlugins,
-    setPlugins,
+    setPlugins
   };
 });

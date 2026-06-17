@@ -87,8 +87,8 @@ onMounted(async () => {
   await recordingStore.fetchHighlights();
   await recordingStore.fetchConfig();
 
-  // 监听 F9 快捷键
-  window.electron.ipcRenderer.on('recording:markHighlightHotkey', () => {
+    // 监听 F9 快捷键
+    window.electronAPI.on('recording:markHighlightHotkey', () => {
     if (recordingStore.isRecording) {
       handleMarkHighlight();
     }
@@ -101,7 +101,9 @@ onMounted(async () => {
     <!-- 顶部操作区 -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-4">
-        <h2 class="text-2xl font-bold">录制管理</h2>
+        <h2 class="text-2xl font-bold">
+          录制管理
+        </h2>
 
         <!-- 录制控制按钮 -->
         <div class="flex items-center gap-2">
@@ -257,7 +259,9 @@ onMounted(async () => {
           <span class="ml-2">保留 {{ recordingStore.config.cleanupDays }} 天</span>
         </el-form-item>
 
-        <el-divider content-position="left">高光配置</el-divider>
+        <el-divider content-position="left">
+          高光配置
+        </el-divider>
 
         <el-form-item label="启用高光">
           <el-switch v-model="recordingStore.config.highlightEnabled" />
@@ -287,7 +291,9 @@ onMounted(async () => {
       </el-form>
 
       <template #footer>
-        <el-button @click="configDialogVisible = false">取消</el-button>
+        <el-button @click="configDialogVisible = false">
+          取消
+        </el-button>
         <el-button type="primary" @click="recordingStore.updateConfig(recordingStore.config); configDialogVisible = false">
           保存
         </el-button>

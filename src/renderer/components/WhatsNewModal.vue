@@ -29,7 +29,7 @@ const changeTypeColors: Record<string, string> = {
   fixed: '#E6A23C',
   removed: '#909399',
   security: '#F56C6C'
-});
+};
 
 const hasChangelog = computed(() => {
   return props.changelog && props.changelog.changes.length > 0;

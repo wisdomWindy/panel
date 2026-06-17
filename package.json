@@ -29,6 +29,8 @@
     "files": [
       "dist/**/*"
     ],
+    "electronDist": "node_modules/electron/dist",
+    
     "mac": {
       "target": "dmg",
       "icon": "public/icon.icns"

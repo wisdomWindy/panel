@@ -218,7 +218,7 @@ export class LLMService {
    */
   private async callLLM(request: LLMRequest): Promise<LLMResponse> {
     // 通过 IPC 调用主进程的 LLM 服务
-    const result = await window.electron.ipcRenderer.invoke('ai:chat', {
+    const result = await window.electronAPI.invoke('ai:chat', {
       provider: this.config.provider,
       apiKey: this.config.apiKey,
       model: request.model,
@@ -267,7 +267,7 @@ export class LLMService {
    */
   async checkAvailability(): Promise<{ available: boolean; error?: string }> {
     try {
-      const result = await window.electron.ipcRenderer.invoke('ai:checkAvailability', {
+      const result = await window.electronAPI.invoke('ai:checkAvailability', {
         provider: this.config.provider,
         apiKey: this.config.apiKey,
         endpoint: this.config.endpoint

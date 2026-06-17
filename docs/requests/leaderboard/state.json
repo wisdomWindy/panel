@@ -1,0 +1,33 @@
+{
+  "request_id": "leaderboard",
+  "status": "complete",
+  "created_at": "2026-06-17T19:51:00.000Z",
+  "updated_at": "2026-06-17T20:12:00.000Z",
+  "source": {
+    "type": "prd",
+    "path": "docs/requirements/Bilibili_Live_Tool_PRD.md",
+    "section": "3.1 直播数据看板"
+  },
+  "artifacts": {
+    "request": "docs/requests/leaderboard/request.md",
+    "page_design": "docs/requests/leaderboard/design/page-design.md",
+    "spec": "docs/requests/leaderboard/spec/spec.md",
+    "clarifications": "docs/requests/leaderboard/spec/clarifications.md",
+    "plan": "docs/requests/leaderboard/plan/plan.md",
+    "task_board": "docs/requests/leaderboard/plan/task-board.md",
+    "changelog": "docs/requests/leaderboard/execution/changelog.md",
+    "verification": "docs/requests/leaderboard/verification/verification.md",
+    "review": "docs/requests/leaderboard/review/review.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "loop": {
+    "iteration": 9,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "new_request"
+  }
+}

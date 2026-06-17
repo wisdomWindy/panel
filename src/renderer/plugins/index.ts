@@ -34,7 +34,7 @@ export const PLUGIN_PERMISSIONS: Record<string, string> = {
   captain: '舰长监听',
   config: '配置读写',
   effect: '特效注册',
-  ui: 'UI 扩展',
+  ui: 'UI 扩展'
 };
 
 // 插件状态枚举

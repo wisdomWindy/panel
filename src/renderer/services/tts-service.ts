@@ -326,7 +326,7 @@ export class TTSService {
   private async speakWithEdgeTTS(text: string): Promise<void> {
     try {
       // 通过 IPC 调用主进程的 edge-tts 服务
-      const result = await window.electron.ipcRenderer.invoke('tts:speak', {
+      const result = await window.electronAPI.invoke('tts:speak', {
         text,
         voice: this.config.edgeTTSVoice,
         rate: this.config.speed,
@@ -362,7 +362,7 @@ export class TTSService {
 
     // 通知主进程停止 edge-tts
     if (this.config.engine === 'edge-tts') {
-      window.electron.ipcRenderer.invoke('tts:stop').catch(console.error);
+      window.electronAPI.invoke('tts:stop').catch(console.error);
     }
 
     this.queue = [];

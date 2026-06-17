@@ -12,7 +12,7 @@ import {
   EffectDefinition,
   MenuItemDefinition,
   SettingPanelDefinition,
-  PluginPermission,
+  PluginPermission
 } from './types';
 
 // API 事件监听器类型

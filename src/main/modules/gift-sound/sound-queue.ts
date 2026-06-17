@@ -105,7 +105,7 @@ export class SoundQueue {
     length: number;
     items: SoundQueueItem[];
     isProcessing: boolean;
-  } {
+    } {
     return {
       length: this.queue.length,
       items: [...this.queue],

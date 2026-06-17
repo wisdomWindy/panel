@@ -666,7 +666,9 @@ function confirmImport() {
                 <span class="ml-2">天</span>
               </el-form-item>
 
-              <el-divider content-position="left">高光配置</el-divider>
+              <el-divider content-position="left">
+                高光配置
+              </el-divider>
 
               <el-form-item label="启用高光标记">
                 <el-switch v-model="form.recording.highlightEnabled" />
@@ -1015,7 +1017,9 @@ function confirmImport() {
                       placeholder="输入违禁词"
                       @keyup.enter="handleAddProhibitedWord"
                     />
-                    <el-button type="primary" @click="handleAddProhibitedWord">添加</el-button>
+                    <el-button type="primary" @click="handleAddProhibitedWord">
+                      添加
+                    </el-button>
                   </div>
                   <div class="flex flex-wrap gap-2">
                     <el-tag

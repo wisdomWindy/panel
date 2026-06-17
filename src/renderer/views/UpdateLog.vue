@@ -39,7 +39,9 @@ function handleDownload() {
     <el-card>
       <template #header>
         <div class="flex items-center">
-          <el-icon class="mr-2"><Document /></el-icon>
+          <el-icon class="mr-2">
+            <Document />
+          </el-icon>
           <span>更新日志</span>
         </div>
       </template>
@@ -81,7 +83,9 @@ function handleDownload() {
         v-if="updateStore.isChecking"
         class="text-center py-8 text-gray-500"
       >
-        <el-icon class="is-loading mr-2"><Bell /></el-icon>
+        <el-icon class="is-loading mr-2">
+          <Bell />
+        </el-icon>
         正在检查更新...
       </div>
 
@@ -135,7 +139,9 @@ function handleDownload() {
 
       <!-- 空状态 -->
       <div v-else class="text-center py-12 text-gray-500">
-        <el-icon class="text-4xl mb-4"><Document /></el-icon>
+        <el-icon class="text-4xl mb-4">
+          <Document />
+        </el-icon>
         <div>暂无更新日志</div>
       </div>
     </el-card>

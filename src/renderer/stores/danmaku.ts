@@ -5,6 +5,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { Danmaku, Gift, DanmakuPoolItem } from '../modules/danmaku/types';
+import { GiftRankItem, DanmakuRankItem, CaptainRankItem } from '../modules/recording/types';
 
 export const useDanmakuStore = defineStore('danmaku', () => {
   // State
@@ -216,6 +217,104 @@ export const useDanmakuStore = defineStore('danmaku', () => {
     sendSuccessRate.value = state.sendSuccessRate;
   }
 
+  // 排行榜数据聚合函数
+
+  // 获取送礼榜
+  function getGiftRank(limit: number = 20): GiftRankItem[] {
+    const userGifts: Record<string, { userId: string; username: string; totalValue: number }> = {};
+
+    for (const gift of giftList.value) {
+      if (!userGifts[gift.userId]) {
+        userGifts[gift.userId] = {
+          userId: gift.userId,
+          username: gift.username,
+          totalValue: 0
+        };
+      }
+      userGifts[gift.userId].totalValue += gift.price * gift.count;
+    }
+
+    return Object.values(userGifts)
+      .sort((a, b) => b.totalValue - a.totalValue)
+      .slice(0, limit)
+      .map((item, index) => ({
+        rank: index + 1,
+        userId: item.userId,
+        username: item.username,
+        totalValue: item.totalValue
+      }));
+  }
+
+  // 获取弹幕榜
+  function getDanmakuRank(limit: number = 20): DanmakuRankItem[] {
+    const userDanmaku: Record<string, { userId: string; username: string; count: number }> = {};
+
+    for (const danmaku of danmakuList.value) {
+      // 排除系统消息和自动发送的弹幕
+      if (danmaku.type === 'sent') continue;
+
+      if (!userDanmaku[danmaku.userId]) {
+        userDanmaku[danmaku.userId] = {
+          userId: danmaku.userId,
+          username: danmaku.username,
+          count: 0
+        };
+      }
+      userDanmaku[danmaku.userId].count++;
+    }
+
+    return Object.values(userDanmaku)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit)
+      .map((item, index) => ({
+        rank: index + 1,
+        userId: item.userId,
+        username: item.username,
+        count: item.count
+      }));
+  }
+
+  // 获取舰长贡献榜
+  function getCaptainRank(): CaptainRankItem[] {
+    const captainList = giftList.value.filter(gift => gift.giftName.includes('舰长') || gift.giftId === 'captain');
+
+    return captainList
+      .sort((a, b) => {
+        // 按舰长等级降序，同等级按时间升序
+        const levelA = getCaptainLevel(a.giftName);
+        const levelB = getCaptainLevel(b.giftName);
+        if (levelA !== levelB) {
+          return levelB - levelA;
+        }
+        return a.timestamp - b.timestamp;
+      })
+      .map((item, index) => ({
+        rank: index + 1,
+        userId: item.userId,
+        username: item.username,
+        level: getCaptainLevel(item.giftName),
+        levelName: getCaptainLevelName(getCaptainLevel(item.giftName)),
+        timestamp: item.timestamp
+      }));
+  }
+
+  // 辅助函数：获取舰长等级
+  function getCaptainLevel(giftName: string): number {
+    if (giftName.includes('总督')) return 3;
+    if (giftName.includes('提督')) return 2;
+    return 1; // 默认为督察
+  }
+
+  // 辅助函数：获取舰长等级名称
+  function getCaptainLevelName(level: number): string {
+    const levelNames: Record<number, string> = {
+      1: '督察',
+      2: '提督',
+      3: '总督'
+    };
+    return levelNames[level] || '督察';
+  }
+
   return {
     // State
     danmakuList,
@@ -259,6 +358,9 @@ export const useDanmakuStore = defineStore('danmaku', () => {
     filterDanmaku,
     getStatistics,
     exportState,
-    importState
+    importState,
+    getGiftRank,
+    getDanmakuRank,
+    getCaptainRank
   };
 });

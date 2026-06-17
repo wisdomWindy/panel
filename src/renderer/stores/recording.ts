@@ -62,7 +62,7 @@ export const useRecordingStore = defineStore('recording', () => {
       isLoading.value = true;
       error.value = null;
 
-      const result = await window.electron.ipcRenderer.invoke('recording:start', options);
+      const result = await window.electronAPI.invoke('recording:start', options);
 
       if (result.success) {
         currentSession.value = result.session;
@@ -86,7 +86,7 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       if (!currentSession.value) return;
 
-      const result = await window.electron.ipcRenderer.invoke('recording:pause', currentSession.value.id);
+      const result = await window.electronAPI.invoke('recording:pause', currentSession.value.id);
 
       if (result.success) {
         status.value = 'paused';
@@ -104,7 +104,7 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       if (!currentSession.value) return;
 
-      const result = await window.electron.ipcRenderer.invoke('recording:resume', currentSession.value.id);
+      const result = await window.electronAPI.invoke('recording:resume', currentSession.value.id);
 
       if (result.success) {
         status.value = 'recording';
@@ -122,7 +122,7 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       if (!currentSession.value) return;
 
-      const result = await window.electron.ipcRenderer.invoke('recording:stop', currentSession.value.id);
+      const result = await window.electronAPI.invoke('recording:stop', currentSession.value.id);
 
       if (result.success) {
         currentSession.value = null;
@@ -147,7 +147,7 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       if (!currentSession.value) return;
 
-      const result = await window.electron.ipcRenderer.invoke(
+      const result = await window.electronAPI.invoke(
         'recording:markHighlight',
         currentSession.value.id,
         reason,
@@ -170,7 +170,7 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       isLoading.value = true;
 
-      const result = await window.electron.ipcRenderer.invoke('recording:getRecordings');
+        const result = await window.electronAPI.invoke('recording:getRecordings');
 
       if (result.success) {
         recordings.value = result.recordings;
@@ -188,7 +188,7 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       isLoading.value = true;
 
-      const result = await window.electron.ipcRenderer.invoke('recording:getHighlights', recordingId);
+        const result = await window.electronAPI.invoke('recording:getHighlights', recordingId);
 
       if (result.success) {
         highlights.value = result.highlights;
@@ -204,7 +204,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function deleteRecording(id: string): Promise<void> {
     try {
-      const result = await window.electron.ipcRenderer.invoke('recording:deleteRecording', id);
+      const result = await window.electronAPI.invoke('recording:deleteRecording', id);
 
       if (result.success) {
         // 从列表中移除
@@ -221,7 +221,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function deleteHighlight(id: string): Promise<void> {
     try {
-      const result = await window.electron.ipcRenderer.invoke('recording:deleteHighlight', id);
+      const result = await window.electronAPI.invoke('recording:deleteHighlight', id);
 
       if (result.success) {
         // 从列表中移除
@@ -238,7 +238,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function openRecordingFolder(id: string): Promise<void> {
     try {
-      await window.electron.ipcRenderer.invoke('recording:openFolder', id);
+      await window.electronAPI.invoke('recording:openFolder', id);
     } catch (err) {
       error.value = (err as Error).message;
     }
@@ -246,7 +246,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function updateConfig(newConfig: Partial<RecordingConfig>): Promise<void> {
     try {
-      const result = await window.electron.ipcRenderer.invoke('recording:setConfig', newConfig);
+      const result = await window.electronAPI.invoke('recording:setConfig', newConfig);
 
       if (result.success) {
         config.value = { ...config.value, ...newConfig };
@@ -262,7 +262,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function fetchConfig(): Promise<void> {
     try {
-      const result = await window.electron.ipcRenderer.invoke('recording:getConfig');
+      const result = await window.electronAPI.invoke('recording:getConfig');
 
       if (result.success) {
         config.value = result.config;
@@ -276,7 +276,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function checkFFmpeg(): Promise<{ available: boolean; version: string }> {
     try {
-      const result = await window.electron.ipcRenderer.invoke('recording:checkFFmpeg');
+      const result = await window.electronAPI.invoke('recording:checkFFmpeg');
 
       if (result.success) {
         return result.info;
@@ -293,7 +293,7 @@ export const useRecordingStore = defineStore('recording', () => {
   // IPC 事件监听
   function setupIpcListeners(): void {
     // 监听状态更新
-    window.electron.ipcRenderer.on('recording:statusChanged', (_event, data: RecordingStatus) => {
+    window.electronAPI.on('recording:statusChanged', (data: { sessionId: string; status: string; currentDuration: number; currentSize: number; highlightCount: number }) => {
       if (currentSession.value && currentSession.value.id === data.sessionId) {
         status.value = data.status as any;
         duration.value = data.currentDuration;
@@ -303,13 +303,13 @@ export const useRecordingStore = defineStore('recording', () => {
     });
 
     // 监听高光标记
-    window.electron.ipcRenderer.on('recording:highlightMarked', (_event, highlight: Highlight) => {
+    window.electronAPI.on('recording:highlightMarked', (highlight: Highlight) => {
       highlights.value.unshift(highlight);
       highlightCount.value++;
     });
 
     // 监听错误
-    window.electron.ipcRenderer.on('recording:error', (_event, errorMessage: string) => {
+    window.electronAPI.on('recording:error', (errorMessage: string) => {
       error.value = errorMessage;
       status.value = 'idle';
       currentSession.value = null;

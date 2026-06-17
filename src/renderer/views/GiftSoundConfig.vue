@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Delete, Edit, Search, Upload, Download, Play, VideoPause, Refresh } from '@element-plus/icons-vue';
+import { Plus, Delete, Edit, Search, Upload, Download, VideoPlay, VideoPause, Refresh } from '@element-plus/icons-vue';
 import { giftSoundService } from '../services/gift-sound-service';
 import type { GiftSoundConfig, GiftSoundExportData } from '../modules/gift-sound/types';
 
@@ -366,7 +366,7 @@ function handleCloseDialog() {
         <template #default="{ row }">
           <el-button
             type="primary"
-            :icon="Play"
+            :icon="VideoPlay"
             size="small"
             :disabled="!row.enabled"
             @click="handlePreview(row)"

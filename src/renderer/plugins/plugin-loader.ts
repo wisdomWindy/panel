@@ -10,7 +10,7 @@ import {
   PluginLoadError,
   PluginValidationError,
   PLUGIN_MANIFEST_FILE,
-  PLUGIN_ENTRY_FILE,
+  PLUGIN_ENTRY_FILE
 } from './types';
 
 // 插件加载器配置
@@ -51,7 +51,7 @@ export class PluginLoader {
       if (!dirExists) {
         return {
           success: false,
-          error: `插件目录不存在: ${pluginPath}`,
+          error: `插件目录不存在: ${pluginPath}`
         };
       }
 
@@ -60,7 +60,7 @@ export class PluginLoader {
       if (!manifestResult.success) {
         return {
           success: false,
-          error: manifestResult.error,
+          error: manifestResult.error
         };
       }
 
@@ -71,7 +71,7 @@ export class PluginLoader {
       if (!validationResult.valid) {
         return {
           success: false,
-          error: `插件格式验证失败: ${validationResult.errors.join(', ')}`,
+          error: `插件格式验证失败: ${validationResult.errors.join(', ')}`
         };
       }
 
@@ -80,7 +80,7 @@ export class PluginLoader {
       if (!versionResult.compatible) {
         return {
           success: false,
-          error: versionResult.error,
+          error: versionResult.error
         };
       }
 
@@ -90,7 +90,7 @@ export class PluginLoader {
       if (!entryExists) {
         return {
           success: false,
-          error: `插件入口文件不存在: ${entryPath}`,
+          error: `插件入口文件不存在: ${entryPath}`
         };
       }
 
@@ -99,7 +99,7 @@ export class PluginLoader {
       if (!code.success) {
         return {
           success: false,
-          error: code.error,
+          error: code.error
         };
       }
 
@@ -110,14 +110,14 @@ export class PluginLoader {
           name: manifest.name,
           version: manifest.version,
           description: manifest.description,
-          author: manifest.author,
+          author: manifest.author
         },
-        warnings: versionResult.warnings,
+        warnings: versionResult.warnings
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -142,8 +142,8 @@ export class PluginLoader {
       return [
         {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
-        },
+          error: error instanceof Error ? error.message : String(error)
+        }
       ];
     }
   }
@@ -211,7 +211,7 @@ export class PluginLoader {
     return {
       valid: errors.length === 0,
       errors,
-      warnings,
+      warnings
     };
   }
 
@@ -231,7 +231,7 @@ export class PluginLoader {
     if (comparison > 0) {
       return {
         compatible: false,
-        error: `插件要求最低应用版本 ${manifest.minAppVersion}，当前版本 ${this.appVersion}`,
+        error: `插件要求最低应用版本 ${manifest.minAppVersion}，当前版本 ${this.appVersion}`
       };
     }
 
@@ -244,7 +244,7 @@ export class PluginLoader {
 
     return {
       compatible: true,
-      warnings,
+      warnings
     };
   }
 
@@ -277,7 +277,7 @@ export class PluginLoader {
       if (!content.success) {
         return {
           success: false,
-          error: `无法读取 manifest.json: ${content.error}`,
+          error: `无法读取 manifest.json: ${content.error}`
         };
       }
 
@@ -285,18 +285,18 @@ export class PluginLoader {
         const manifest = JSON.parse(content.content!);
         return {
           success: true,
-          manifest,
+          manifest
         };
       } catch (parseError) {
         return {
           success: false,
-          error: `manifest.json 格式错误: ${parseError}`,
+          error: `manifest.json 格式错误: ${parseError}`
         };
       }
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -315,18 +315,18 @@ export class PluginLoader {
       if (!content.success) {
         return {
           success: false,
-          error: `无法读取插件入口文件: ${content.error}`,
+          error: `无法读取插件入口文件: ${content.error}`
         };
       }
 
       return {
         success: true,
-        code: content.content,
+        code: content.content
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -377,18 +377,18 @@ export class PluginLoader {
         const content = await window.electronAPI.readFile(path);
         return {
           success: true,
-          content,
+          content
         };
       }
       // 在浏览器环境中模拟
       return {
         success: false,
-        error: '文件系统访问不可用',
+        error: '文件系统访问不可用'
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Play, Delete } from '@element-plus/icons-vue';
+import { VideoPlay, Delete } from '@element-plus/icons-vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import type { Highlight, HighlightReason } from '../modules/recording/types.js';
 import { useRecordingStore } from '../stores/recording';
@@ -158,7 +158,7 @@ async function handleDelete(highlight: Highlight) {
         <template #default="{ row }">
           <el-button
             type="primary"
-            :icon="Play"
+            :icon="VideoPlay"
             size="small"
             :disabled="!row.clipPath"
             @click="handlePlay(row)"

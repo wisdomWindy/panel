@@ -212,7 +212,7 @@ export class ASRService {
     }
 
     // 通过 IPC 调用主进程的 whisper 服务
-    const result = await window.electron.ipcRenderer.invoke('asr:start', {
+    const result = await window.electronAPI.invoke('asr:start', {
       engine: this.config.engine,
       model: this.config.model,
       language: this.config.language
@@ -267,7 +267,7 @@ export class ASRService {
         const base64Audio = (reader.result as string).split(',')[1];
 
         // 通过 IPC 发送到主进程进行识别
-        const result = await window.electron.ipcRenderer.invoke('asr:process', {
+        const result = await window.electronAPI.invoke('asr:process', {
           audio: base64Audio,
           language: this.config.language
         });
@@ -317,7 +317,7 @@ export class ASRService {
 
     // 通知主进程停止 whisper
     if (this.config.engine !== 'web-speech') {
-      window.electron.ipcRenderer.invoke('asr:stop').catch(console.error);
+      window.electronAPI.invoke('asr:stop').catch(console.error);
     }
 
     this.setStatus('idle');
@@ -366,7 +366,7 @@ export class ASRService {
    */
   async checkWhisperAvailability(): Promise<{ available: boolean; version?: string }> {
     try {
-      const result = await window.electron.ipcRenderer.invoke('asr:checkAvailability');
+      const result = await window.electronAPI.invoke('asr:checkAvailability');
       return result;
     } catch (error) {
       return { available: false };

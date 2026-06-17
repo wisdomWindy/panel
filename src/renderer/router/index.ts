@@ -80,6 +80,12 @@ const routes: RouteRecordRaw[] = [
     name: 'Recording',
     component: () => import('@/views/Recording.vue'),
     meta: { title: '录制管理' }
+  },
+  {
+    path: '/gift-sound',
+    name: 'GiftSound',
+    component: () => import('@/components/GiftSoundConfig.vue'),
+    meta: { title: '礼物音效配置' }
   }
 ];
 

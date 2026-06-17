@@ -174,6 +174,10 @@ onUnmounted(() => {
               <el-icon><VideoCamera /></el-icon>
               <span>{{ t('recording.title') }}</span>
             </el-menu-item>
+            <el-menu-item index="/gift-sound">
+              <el-icon><Present /></el-icon>
+              <span>礼物音效</span>
+            </el-menu-item>
           </el-menu>
         </el-aside>
 

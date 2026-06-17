@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useTTSStore } from '../stores/tts';
 import { useASRStore } from '../stores/asr';
+import { useAIStore } from '../stores/ai';
 import { EDGE_TTS_VOICES } from '../modules/tts/types';
 
 const danmakuService = getDanmakuService();
@@ -14,6 +15,7 @@ const router = useRouter();
 const { locale } = useI18n();
 const ttsStore = useTTSStore();
 const asrStore = useASRStore();
+const aiStore = useAIStore();
 const edgeTTSVoices = EDGE_TTS_VOICES;
 
 const configStore = useConfigStore();
@@ -35,7 +37,8 @@ const tabTitle = computed(() => {
     recording: '录制设置',
     language: '语言设置',
     tts: '语音播报',
-    asr: '语音识别'
+    asr: '语音识别',
+    ai: 'AI 对话'
   };
   return titles[activeTab.value] || '设置';
 });
@@ -122,11 +125,31 @@ const form = reactive({
     interimResults: asrStore.config.interimResults,
     noiseReduction: asrStore.config.noiseReduction,
     autoStart: asrStore.config.autoStart
+  },
+  ai: {
+    enabled: aiStore.config.enabled,
+    provider: aiStore.config.provider || 'openai',
+    apiKey: aiStore.config.apiKey || '',
+    model: aiStore.config.model || 'gpt-3.5-turbo',
+    endpoint: aiStore.config.endpoint || '',
+    personalityKey: 'friendly',
+    systemPrompt: aiStore.config.personality?.systemPrompt || '',
+    contextWindow: aiStore.config.contextWindow || 10,
+    maxResponseLength: aiStore.config.maxResponseLength || 100,
+    minInterval: aiStore.config.minInterval || 10,
+    replyToQuestions: aiStore.config.replyToQuestions ?? true,
+    replyToMentions: aiStore.config.replyToMentions ?? true,
+    sensitiveWordsFilter: aiStore.config.sensitiveWordsFilter ?? true
   }
 });
 
 function handleTabSelect(tab: string) {
   activeTab.value = tab;
+}
+
+function handlePersonalityChange(key: string) {
+  aiStore.setPersonality(key);
+  form.ai.systemPrompt = aiStore.config.personality.systemPrompt;
 }
 
 function handleSave() {
@@ -175,6 +198,25 @@ function handleSave() {
     interimResults: form.asr.interimResults,
     noiseReduction: form.asr.noiseReduction,
     autoStart: form.asr.autoStart
+  });
+
+  // 保存 AI 配置
+  aiStore.updateConfig({
+    enabled: form.ai.enabled,
+    provider: form.ai.provider,
+    apiKey: form.ai.apiKey,
+    model: form.ai.model,
+    endpoint: form.ai.endpoint,
+    personality: {
+      ...aiStore.config.personality,
+      systemPrompt: form.ai.systemPrompt
+    },
+    contextWindow: form.ai.contextWindow,
+    maxResponseLength: form.ai.maxResponseLength,
+    minInterval: form.ai.minInterval,
+    replyToQuestions: form.ai.replyToQuestions,
+    replyToMentions: form.ai.replyToMentions,
+    sensitiveWordsFilter: form.ai.sensitiveWordsFilter
   });
 
   danmakuService.updateMinInterval(form.danmaku.minSendInterval);
@@ -294,6 +336,10 @@ function confirmImport() {
             <el-menu-item index="asr">
               <el-icon><Setting /></el-icon>
               <span>语音识别</span>
+            </el-menu-item>
+            <el-menu-item index="ai">
+              <el-icon><Setting /></el-icon>
+              <span>AI 对话</span>
             </el-menu-item>
           </el-menu>
         </el-card>
@@ -775,6 +821,103 @@ function confirmImport() {
                   show-icon
                   :closable="false"
                 />
+              </el-form-item>
+            </el-form>
+          </div>
+
+          <!-- AI 对话设置 -->
+          <div v-show="activeTab === 'ai'">
+            <el-form :model="form.ai" label-width="150px">
+              <el-form-item label="启用 AI 对话">
+                <el-switch v-model="form.ai.enabled" />
+                <span class="ml-2 text-gray-500">开启后 AI 将自动回复弹幕</span>
+              </el-form-item>
+              <el-form-item label="AI 提供商">
+                <el-select v-model="form.ai.provider">
+                  <el-option label="OpenAI" value="openai" />
+                  <el-option label="Claude" value="claude" />
+                  <el-option label="Ollama（本地）" value="ollama" />
+                  <el-option label="自定义 API" value="custom" />
+                </el-select>
+              </el-form-item>
+              <el-form-item v-if="form.ai.provider !== 'ollama'" label="API Key">
+                <el-input
+                  v-model="form.ai.apiKey"
+                  type="password"
+                  placeholder="输入 API Key"
+                  show-password
+                />
+              </el-form-item>
+              <el-form-item v-if="form.ai.provider === 'custom'" label="API 端点">
+                <el-input
+                  v-model="form.ai.endpoint"
+                  placeholder="https://your-api.com/v1/chat/completions"
+                />
+              </el-form-item>
+              <el-form-item label="模型">
+                <el-select v-if="form.ai.provider === 'openai'" v-model="form.ai.model">
+                  <el-option label="GPT-3.5 Turbo" value="gpt-3.5-turbo" />
+                  <el-option label="GPT-4" value="gpt-4" />
+                  <el-option label="GPT-4 Turbo" value="gpt-4-turbo" />
+                </el-select>
+                <el-select v-else-if="form.ai.provider === 'claude'" v-model="form.ai.model">
+                  <el-option label="Claude 3 Haiku" value="claude-3-haiku-20240307" />
+                  <el-option label="Claude 3 Sonnet" value="claude-3-sonnet-20240229" />
+                  <el-option label="Claude 3 Opus" value="claude-3-opus-20240229" />
+                </el-select>
+                <el-input v-else v-model="form.ai.model" placeholder="模型名称" />
+              </el-form-item>
+              <el-form-item label="人设风格">
+                <el-select v-model="form.ai.personalityKey" @change="handlePersonalityChange">
+                  <el-option label="友好助手" value="friendly" />
+                  <el-option label="幽默达人" value="humorous" />
+                  <el-option label="二次元" value="anime" />
+                  <el-option label="专业主播" value="professional" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="系统提示词">
+                <el-input
+                  v-model="form.ai.systemPrompt"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="设定 AI 的性格和行为"
+                />
+              </el-form-item>
+              <el-form-item label="上下文窗口">
+                <el-input-number
+                  v-model="form.ai.contextWindow"
+                  :min="1"
+                  :max="50"
+                />
+                <span class="ml-2">条弹幕</span>
+              </el-form-item>
+              <el-form-item label="最大回复长度">
+                <el-input-number
+                  v-model="form.ai.maxResponseLength"
+                  :min="50"
+                  :max="500"
+                />
+                <span class="ml-2">字符</span>
+              </el-form-item>
+              <el-form-item label="发送间隔">
+                <el-input-number
+                  v-model="form.ai.minInterval"
+                  :min="5"
+                  :max="60"
+                />
+                <span class="ml-2">秒</span>
+              </el-form-item>
+              <el-form-item label="回复问题">
+                <el-switch v-model="form.ai.replyToQuestions" />
+                <span class="ml-2 text-gray-500">自动回复观众提问</span>
+              </el-form-item>
+              <el-form-item label="回复 @">
+                <el-switch v-model="form.ai.replyToMentions" />
+                <span class="ml-2 text-gray-500">自动回复 @ 消息</span>
+              </el-form-item>
+              <el-form-item label="敏感词过滤">
+                <el-switch v-model="form.ai.sensitiveWordsFilter" />
+                <span class="ml-2 text-gray-500">过滤 AI 回复中的敏感词</span>
               </el-form-item>
             </el-form>
           </div>

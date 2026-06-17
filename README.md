@@ -22,12 +22,14 @@
 - ✅ **直播录制** - 全程录制、高光标记、片段提取
 - ✅ **更新日志** - 版本更新检测与更新日志查看
 - ✅ **多语言支持** - 中文/英文界面切换
+- ✅ **AI 智能回复** - LLM 多提供商支持
+- ✅ **语音识别** - whisper.cpp 集成
+- ✅ **自动禁言与刷屏防护** - 检测刷屏自动禁言
+- ✅ **礼物音效系统** - 自定义礼物音效播放
 
 ### 开发中功能
 
-- 🚧 AI 智能回复
-- 🚧 语音识别
-- 🚧 自动禁言与刷屏防护
+- 🚧 无
 
 ## 技术栈
 
@@ -40,6 +42,9 @@
 - **样式**: Tailwind CSS
 - **录制**: FFmpeg (fluent-ffmpeg)
 - **国际化**: vue-i18n
+- **TTS**: edge-tts
+- **语音识别**: whisper.cpp
+- **AI**: LLM 多提供商支持
 
 ## 快速开始
 
@@ -74,7 +79,10 @@ panel/
 │   │   ├── database.ts          # 数据库操作
 │   │   ├── ipc-handlers.ts      # IPC 通信处理
 │   │   └── modules/
-│   │       └── recording/       # 录制模块
+│   │       ├── ai/               # AI 对话模块
+│   │       ├── asr/              # 语音识别模块
+│   │       ├── gift-sound/       # 礼物音效模块
+│   │       └── recording/        # 录制模块
 │   │           ├── index.ts             # 模块入口
 │   │           ├── ffmpeg-manager.ts    # FFmpeg 进程管理
 │   │           ├── recording-engine.ts  # 录制引擎
@@ -83,6 +91,7 @@ panel/
 │   ├── preload/                 # 预加载脚本
 │   └── renderer/                # Vue 渲染进程
 │       ├── components/          # 公共组件
+│       │   ├── GiftSoundPreview.vue # 礼物音效预览
 │       │   ├── RecordingStatusBar.vue  # 录制状态栏
 │       │   ├── RecordingList.vue       # 录制文件列表
 │       │   └── HighlightList.vue       # 高光列表
@@ -93,13 +102,21 @@ panel/
 │       │   ├── bilibili/        # Bilibili 客户端
 │       │   ├── danmaku/         # 弹幕管理
 │       │   ├── effects/         # 特效系统
+│       │   ├── gift-sound/      # 礼物音效类型定义
 │       │   ├── recording/       # 录制类型定义
 │       │   └── utils/           # 工具函数
 │       ├── services/            # 服务层
+│       │   ├── gift-sound-service.ts # 礼物音效服务
 │       │   └── recording-service.ts  # 录制服务
 │       ├── stores/              # Pinia 状态管理
-│       │   └── recording.ts     # 录制状态管理
+│       │   ├── ai.ts            # AI 状态管理
+│       │   ├── asr.ts           # 语音识别状态管理
+│       │   ├── gift-sound.ts    # 礼物音效状态管理
+│       │   ├── moderation.ts    # 内容审核状态管理
+│       │   ├── recording.ts     # 录制状态管理
+│       │   └── tts.ts           # TTS 状态管理
 │       ├── views/               # 页面组件
+│       │   ├── GiftSoundConfig.vue  # 礼物音效配置
 │       │   └── Recording.vue    # 录制管理页面
 │       └── router/              # 路由配置
 ├── docs/                        # 项目文档
@@ -182,6 +199,56 @@ panel/
 - **动画类型**: 淡入淡出、滑动、缩放、旋转、粒子
 - **持续时间**: 特效显示时长
 
+### AI 配置
+
+- **AI 提供商**: OpenAI、Claude、Ollama 或自定义
+- **API Key**: AI 服务 API Key（加密存储）
+- **模型选择**: GPT-4、Claude、本地模型等
+- **人设配置**: AI 机器人性格和回复风格
+
+### 语音识别配置
+
+- **识别引擎**: whisper.cpp（推荐）或 Web Speech API
+- **模型大小**: tiny、base、small、medium、large
+- **语言**: 中文、英文、自动检测
+
+### TTS 配置
+
+- **TTS 引擎**: edge-tts（推荐）或 Web Speech API
+- **语音选择**: 18 种中文语音
+- **语速调节**: 0.5x - 2.0x
+- **音量控制**: 0 - 100%
+
+### 礼物音效配置
+
+- **音效绑定**: 为每个礼物绑定自定义 MP3 音效
+- **音量控制**: 独立控制礼物音效音量
+- **播放模式**: 单次播放或循环播放
+- **冷却时间**: 设置同一礼物音效的最小播放间隔
+
 ## 许可证
 
 MIT
+
+## 更新日志
+
+### v2.0.0 (2026-06-17)
+
+- ✨ 新增礼物音效系统功能
+- ✨ 新增 AI 智能回复功能
+- ✨ 新增语音识别功能（whisper.cpp）
+- ✨ 新增自动禁言与刷屏防护功能
+- 🌐 完善多语言支持
+
+### v1.5.0 (2026-06-16)
+
+- ✨ 新增弹幕语音播报功能（edge-tts）
+- ✨ 新增直播录制功能（全程/高光）
+- ✨ 新增多语言支持（中文/英文）
+
+### v1.0.0 (2026-06-03)
+
+- 🎉 初始版本发布
+- ✨ 基础直播间连接与弹幕功能
+- ✨ 礼物感谢与上舰特效
+- ✨ 数据统计与日志监控

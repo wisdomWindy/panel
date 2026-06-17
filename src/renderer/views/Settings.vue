@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { Connection, ChatDotRound, Timer, Filter, Document, UserFilled, Bell, Setting, VideoCamera } from '@element-plus/icons-vue';
 import { useConfigStore } from '../stores/config';
 import { getDanmakuService } from '../services/danmaku-service';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useTTSStore } from '../stores/tts';
 
 const danmakuService = getDanmakuService();
 const router = useRouter();
 const { locale } = useI18n();
+const ttsStore = useTTSStore();
 
 const configStore = useConfigStore();
 
@@ -27,7 +29,8 @@ const tabTitle = computed(() => {
     update: '更新设置',
     plugins: '插件管理',
     recording: '录制设置',
-    language: '语言设置'
+    language: '语言设置',
+    tts: '语音播报'
   };
   return titles[activeTab.value] || '设置';
 });
@@ -91,6 +94,17 @@ const form = reactive({
   },
   language: {
     locale: configStore.config.language || 'zh-CN'
+  },
+  tts: {
+    enabled: ttsStore.config.enabled,
+    speed: ttsStore.config.speed,
+    volume: ttsStore.config.volume,
+    minInterval: ttsStore.config.minInterval,
+    formatTemplate: ttsStore.config.formatTemplate,
+    broadcastGifts: ttsStore.config.broadcastGifts,
+    giftValueThreshold: ttsStore.config.giftValueThreshold,
+    broadcastCaptain: ttsStore.config.broadcastCaptain,
+    filterKeywordsText: ttsStore.config.filterKeywords.join('\n')
   }
 });
 
@@ -117,6 +131,19 @@ function handleSave() {
     maxLogLines: form.log.maxLogLines,
     checkUpdates: form.update.checkUpdates,
     language: form.language.locale as 'zh-CN' | 'en-US'
+  });
+
+  // 保存 TTS 配置
+  ttsStore.updateConfig({
+    enabled: form.tts.enabled,
+    speed: form.tts.speed,
+    volume: form.tts.volume,
+    minInterval: form.tts.minInterval,
+    formatTemplate: form.tts.formatTemplate,
+    broadcastGifts: form.tts.broadcastGifts,
+    giftValueThreshold: form.tts.giftValueThreshold,
+    broadcastCaptain: form.tts.broadcastCaptain,
+    filterKeywords: form.tts.filterKeywordsText.split('\n').filter((word: string) => word.trim())
   });
 
   danmakuService.updateMinInterval(form.danmaku.minSendInterval);
@@ -228,6 +255,10 @@ function confirmImport() {
             <el-menu-item index="language">
               <el-icon><Setting /></el-icon>
               <span>语言设置</span>
+            </el-menu-item>
+            <el-menu-item index="tts">
+              <el-icon><Setting /></el-icon>
+              <span>语音播报</span>
             </el-menu-item>
           </el-menu>
         </el-card>
@@ -565,6 +596,73 @@ function confirmImport() {
                   type="info"
                   show-icon
                   :closable="false"
+                />
+              </el-form-item>
+            </el-form>
+          </div>
+
+          <!-- 语音播报设置 -->
+          <div v-show="activeTab === 'tts'">
+            <el-form :model="form.tts" label-width="150px">
+              <el-form-item label="启用语音播报">
+                <el-switch v-model="form.tts.enabled" />
+                <span class="ml-2 text-gray-500">开启后将自动播报弹幕内容</span>
+              </el-form-item>
+              <el-form-item label="播报语速">
+                <el-slider
+                  v-model="form.tts.speed"
+                  :min="0.5"
+                  :max="2"
+                  :step="0.1"
+                  show-input
+                />
+              </el-form-item>
+              <el-form-item label="播报音量">
+                <el-slider
+                  v-model="form.tts.volume"
+                  :min="0"
+                  :max="1"
+                  :step="0.1"
+                  show-input
+                />
+              </el-form-item>
+              <el-form-item label="最小播报间隔">
+                <el-input-number
+                  v-model="form.tts.minInterval"
+                  :min="500"
+                  :max="10000"
+                  :step="500"
+                />
+                <span class="ml-2">毫秒</span>
+              </el-form-item>
+              <el-form-item label="播报格式">
+                <el-input
+                  v-model="form.tts.formatTemplate"
+                  placeholder="{username}说：{content}"
+                />
+                <span class="ml-2 text-gray-500">可用变量: {username}, {content}</span>
+              </el-form-item>
+              <el-form-item label="礼物播报">
+                <el-switch v-model="form.tts.broadcastGifts" />
+              </el-form-item>
+              <el-form-item v-if="form.tts.broadcastGifts" label="礼物价值阈值">
+                <el-input-number
+                  v-model="form.tts.giftValueThreshold"
+                  :min="0"
+                  :max="10000"
+                  :step="100"
+                />
+                <span class="ml-2">舰长数</span>
+              </el-form-item>
+              <el-form-item label="舰长播报">
+                <el-switch v-model="form.tts.broadcastCaptain" />
+              </el-form-item>
+              <el-form-item label="过滤关键词">
+                <el-input
+                  v-model="form.tts.filterKeywordsText"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="每行一个关键词，包含这些词的弹幕将不会被播报"
                 />
               </el-form-item>
             </el-form>

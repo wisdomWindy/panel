@@ -3,7 +3,7 @@
 **版本号**: v1.0
 **创建日期**: 2026-06-03
 **文档状态**: 初稿
-**最后更新**: 2026-06-16（弹幕语音播报功能完成）
+**最后更新**: 2026-06-16（TTS 服务集成 edge-tts 开源工具）
 
 ---
 
@@ -643,7 +643,9 @@ interface RecordingResult {
 **实现状态**: 已完成（2026-06-16）
 
 **已实现功能**:
-- ✅ 使用 Web Speech API 实现本地 TTS 播报
+- ✅ 集成 edge-tts 开源工具（Microsoft Edge TTS 服务）
+- ✅ 支持 Web Speech API 作为备选引擎
+- ✅ 18 种高质量中文语音选择
 - ✅ 收到弹幕时自动朗读弹幕内容
 - ✅ 支持按用户身份过滤播报对象
 - ✅ 自动跳过敏感词、广告、刷屏内容
@@ -651,12 +653,22 @@ interface RecordingResult {
 - ✅ 支持礼物播报和舰长播报
 - ✅ 支持快捷开关、音量控制、暂停功能
 - ✅ 播报配置持久化
+- ✅ 引擎自动降级机制
 
 **技术实现**:
 - TTS 模块：`src/renderer/modules/tts/`
 - TTS 服务：`src/renderer/services/tts-service.ts`
 - TTS 状态管理：`src/renderer/stores/tts.ts`
+- 主进程 TTS 模块：`src/main/modules/tts/index.ts`
 - 设置页面：`src/renderer/views/Settings.vue`
+- 开源工具：edge-tts（https://github.com/rany2/edge-tts）
+
+**TTS 引擎对比**:
+
+| 引擎 | 语音质量 | 中文语音数量 | 离线支持 | 费用 |
+|------|----------|--------------|----------|------|
+| edge-tts | 高（微软神经网络语音） | 18 种 | 否 | 免费 |
+| Web Speech API | 中等 | 有限 | 是 | 免费 |
 
 #### 3.5.1 核心功能
 
@@ -667,8 +679,13 @@ interface RecordingResult {
 
 #### 3.5.2 TTS 引擎集成
 
-- **本地 TTS**: 集成系统原生 TTS 引擎（Windows SAPI、macOS NSSpeechSynthesizer）。
-- **云端 TTS**: 支持接入第三方 TTS 服务（如 Google TTS、Azure Speech、百度 TTS）。
+- **edge-tts（推荐）**: 集成 Microsoft Edge 的在线 TTS 服务，提供高质量神经网络语音。
+  - 开源项目：https://github.com/rany2/edge-tts
+  - 支持 18 种中文语音（晓晓、云希、云健等）
+  - 无需 API Key，免费使用
+  - 支持语速、音调调节
+- **Web Speech API（备选）**: 浏览器内置 TTS 引擎，支持离线使用。
+- **自动降级**: edge-tts 不可用时自动切换到 Web Speech API。
 - **语音选择**: 支持选择不同语音（男声/女声/童声）、语速、音调调节。
 - **多语言支持**: 支持中文、英文等多语言语音播报。
 

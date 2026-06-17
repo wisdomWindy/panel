@@ -19,11 +19,11 @@ const statusIcon = computed(() => {
 const statusClass = computed(() => {
   switch (recordingStore.status) {
     case 'recording':
-      return 'recording-active';
+      return 'text-red-500 animate-pulse';
     case 'paused':
-      return 'recording-paused';
+      return 'text-amber-500';
     default:
-      return 'recording-idle';
+      return 'text-gray-500';
   }
 });
 
@@ -63,7 +63,7 @@ async function handleStopRecording() {
 </script>
 
 <template>
-  <div class="recording-status-bar flex items-center gap-2 px-3 py-1 bg-gray-800 text-white text-sm">
+  <div class="flex items-center gap-2 px-3 py-1 bg-gray-800 text-white text-sm min-h-[32px] border-t border-gray-700">
     <!-- 录制状态图标 -->
     <div class="flex items-center gap-1">
       <el-icon
@@ -72,7 +72,7 @@ async function handleStopRecording() {
       >
         <component :is="statusIcon" />
       </el-icon>
-      <span class="status-text">{{ statusText }}</span>
+      <span class="min-w-[40px]">{{ statusText }}</span>
     </div>
 
     <!-- 录制时长 -->
@@ -130,36 +130,3 @@ async function handleStopRecording() {
     </div>
   </div>
 </template>
-
-<style scoped>
-.recording-status-bar {
-  min-height: 32px;
-  border-top: 1px solid #374151;
-}
-
-.recording-active {
-  color: #ef4444;
-  animation: pulse 1s infinite;
-}
-
-.recording-paused {
-  color: #f59e0b;
-}
-
-.recording-idle {
-  color: #6b7280;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.status-text {
-  min-width: 40px;
-}
-</style>

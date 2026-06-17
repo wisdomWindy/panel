@@ -95,7 +95,7 @@ async function handlePlay() {
     isPlaying.value = true;
     await giftSoundService.previewSound(currentSoundFile.value, currentVolume.value);
     emit('play', currentSoundFile.value);
-    
+
     // 模拟播放进度（实际应该通过事件监听）
     simulatePlayback();
   } catch (error) {
@@ -135,12 +135,12 @@ function handleVolumeChange(volume: number) {
 
 function handleProgressClick(event: MouseEvent) {
   if (duration.value === 0) return;
-  
+
   const progressBar = event.currentTarget as HTMLElement;
   const rect = progressBar.getBoundingClientRect();
   const clickX = event.clientX - rect.left;
   const progressPercent = clickX / rect.width;
-  
+
   progress.value = progressPercent * duration.value;
 }
 
@@ -151,7 +151,7 @@ function simulatePlayback() {
       clearInterval(interval);
       return;
     }
-    
+
     progress.value += 0.1;
     if (progress.value >= duration.value) {
       progress.value = duration.value;
@@ -175,17 +175,17 @@ function reset() {
 </script>
 
 <template>
-  <div class="gift-sound-preview">
+  <div class="bg-[#f5f7fa] rounded-lg p-5">
     <!-- 播放控制区域 -->
-    <div class="playback-controls">
-      <div class="control-buttons">
+    <div class="flex items-center gap-5 mb-4">
+      <div class="flex gap-2.5">
         <el-button
           v-if="!isPlaying"
           type="primary"
           :icon="Play"
           circle
-          @click="handlePlay"
           :disabled="!currentSoundFile"
+          @click="handlePlay"
         />
         <el-button
           v-else
@@ -197,37 +197,37 @@ function reset() {
         <el-button
           :icon="Refresh"
           circle
-          @click="handleStop"
           :disabled="!isPlaying && progress === 0"
+          @click="handleStop"
         />
       </div>
 
       <!-- 进度条 -->
-      <div class="progress-container">
-        <span class="time-display">{{ formattedProgress }}</span>
+      <div class="flex-1 flex items-center gap-2.5">
+        <span class="text-xs text-[#606266] min-w-[40px] text-center">{{ formattedProgress }}</span>
         <div
-          class="progress-bar"
+          class="flex-1 h-1.5 bg-[#dcdfe6] rounded-[3px] relative cursor-pointer"
           @click="handleProgressClick"
         >
           <div
-            class="progress-fill"
+            class="h-full bg-[#409eff] rounded-[3px] transition-[width] duration-100 linear"
             :style="{ width: `${progressPercent}%` }"
-          ></div>
+          />
           <div
-            class="progress-handle"
+            class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-[#409eff] rounded-full cursor-pointer opacity-0 transition-opacity duration-200 hover:opacity-100"
             :style="{ left: `${progressPercent}%` }"
-          ></div>
+          />
         </div>
-        <span class="time-display">{{ formattedDuration }}</span>
+        <span class="text-xs text-[#606266] min-w-[40px] text-center">{{ formattedDuration }}</span>
       </div>
 
       <!-- 音量控制 -->
-      <div class="volume-controls">
+      <div class="flex items-center gap-2.5">
         <el-button
           :icon="volumeIcon"
           circle
+          class="p-2"
           @click="handleToggleMute"
-          class="volume-button"
         />
         <el-slider
           v-model="currentVolume"
@@ -235,21 +235,21 @@ function reset() {
           :max="1"
           :step="0.01"
           :show-tooltip="false"
-          class="volume-slider"
+          class="w-25"
           @input="handleVolumeChange"
         />
-        <span class="volume-display">{{ volumePercent }}%</span>
+        <span class="text-xs text-[#606266] min-w-[35px] text-right">{{ volumePercent }}%</span>
       </div>
     </div>
 
     <!-- 当前播放信息 -->
-    <div v-if="currentSoundFile" class="playback-info">
-      <div class="sound-info">
-        <span class="label">当前音效:</span>
-        <span class="value">{{ currentSoundFile.split('/').pop() }}</span>
+    <div v-if="currentSoundFile" class="bg-white p-3 rounded-md border border-[#ebeef5]">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-xs text-[#909399] min-w-[60px]">当前音效:</span>
+        <span class="text-sm text-[#303133] break-all">{{ currentSoundFile.split('/').pop() }}</span>
       </div>
-      <div class="status-info">
-        <span class="label">状态:</span>
+      <div class="flex items-center gap-2 mb-0">
+        <span class="text-xs text-[#909399] min-w-[60px]">状态:</span>
         <el-tag :type="isPlaying ? 'success' : 'info'" size="small">
           {{ isPlaying ? '播放中' : '已停止' }}
         </el-tag>
@@ -257,145 +257,13 @@ function reset() {
     </div>
 
     <!-- 空状态 -->
-    <div v-else class="empty-state">
-      <el-icon class="empty-icon"><Volume /></el-icon>
-      <p>请选择音效文件进行预览</p>
+    <div v-else class="text-center py-8 text-[#909399]">
+      <el-icon class="text-5xl mb-2.5">
+        <Volume />
+      </el-icon>
+      <p class="m-0 text-sm">
+        请选择音效文件进行预览
+      </p>
     </div>
   </div>
 </template>
-
-<style scoped>
-.gift-sound-preview {
-  background: #f5f7fa;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.playback-controls {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 15px;
-}
-
-.control-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.progress-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.time-display {
-  font-size: 12px;
-  color: #606266;
-  min-width: 40px;
-  text-align: center;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 6px;
-  background: #dcdfe6;
-  border-radius: 3px;
-  position: relative;
-  cursor: pointer;
-}
-
-.progress-fill {
-  height: 100%;
-  background: #409eff;
-  border-radius: 3px;
-  transition: width 0.1s linear;
-}
-
-.progress-handle {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 12px;
-  height: 12px;
-  background: #409eff;
-  border-radius: 50%;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.progress-bar:hover .progress-handle {
-  opacity: 1;
-}
-
-.volume-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.volume-button {
-  padding: 8px;
-}
-
-.volume-slider {
-  width: 100px;
-}
-
-.volume-display {
-  font-size: 12px;
-  color: #606266;
-  min-width: 35px;
-  text-align: right;
-}
-
-.playback-info {
-  background: #fff;
-  padding: 12px;
-  border-radius: 6px;
-  border: 1px solid #ebeef5;
-}
-
-.sound-info,
-.status-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.sound-info:last-child,
-.status-info:last-child {
-  margin-bottom: 0;
-}
-
-.label {
-  font-size: 12px;
-  color: #909399;
-  min-width: 60px;
-}
-
-.value {
-  font-size: 14px;
-  color: #303133;
-  word-break: break-all;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 30px;
-  color: #909399;
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 10px;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 14px;
-}
-</style>

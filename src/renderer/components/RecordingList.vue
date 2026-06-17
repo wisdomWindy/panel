@@ -101,12 +101,12 @@ function handleDownload(recording: Recording) {
 </script>
 
 <template>
-  <div class="recording-list">
+  <div class="w-full">
     <el-table
       :data="recordings"
       :loading="loading"
       stripe
-      style="width: 100%"
+      class="w-full"
     >
       <el-table-column
         prop="fileName"
@@ -199,9 +199,3 @@ function handleDownload(recording: Recording) {
     />
   </div>
 </template>
-
-<style scoped>
-.recording-list {
-  width: 100%;
-}
-</style>

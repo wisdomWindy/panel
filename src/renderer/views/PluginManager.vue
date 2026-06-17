@@ -134,7 +134,7 @@ function getPermissionTagType(permission: string): string {
     captain: 'warning',
     config: 'info',
     effect: 'danger',
-    ui: '',
+    ui: ''
   };
   return types[permission] || '';
 }
@@ -147,18 +147,20 @@ function getPermissionLabel(permission: string): string {
     captain: '舰长',
     config: '配置',
     effect: '特效',
-    ui: 'UI',
+    ui: 'UI'
   };
   return labels[permission] || permission;
 }
 </script>
 
 <template>
-  <div class="plugin-manager">
+  <div class="p-5">
     <!-- 头部操作栏 -->
-    <div class="plugin-header">
-      <h2>插件管理</h2>
-      <div class="plugin-actions">
+    <div class="flex justify-between items-center mb-5">
+      <h2 class="m-0 text-xl font-semibold">
+        插件管理
+      </h2>
+      <div class="flex gap-2.5">
         <el-button type="primary" @click="showInstallDialog = true">
           <el-icon><Upload /></el-icon>
           安装插件
@@ -171,7 +173,7 @@ function getPermissionLabel(permission: string): string {
     </div>
 
     <!-- 统计信息 -->
-    <div class="plugin-stats">
+    <div class="flex gap-10 mb-5 p-5 bg-[#f5f7fa] rounded-lg">
       <el-statistic title="已安装" :value="pluginStore.pluginCount" />
       <el-statistic title="已启用" :value="pluginStore.enabledCount" />
       <el-statistic title="已禁用" :value="pluginStore.disabledPlugins.length" />
@@ -193,18 +195,23 @@ function getPermissionLabel(permission: string): string {
       :loading="loading"
       empty-text="暂无已安装的插件"
       stripe
-      style="width: 100%"
+      class="w-full"
     >
       <el-table-column prop="name" label="插件名称" min-width="150">
         <template #default="{ row }">
-          <div class="plugin-name">
-            <span class="name">{{ row.name }}</span>
-            <span class="version">v{{ row.version }}</span>
+          <div class="flex items-center gap-2">
+            <span class="font-semibold">{{ row.name }}</span>
+            <span class="text-[#909399] text-xs">v{{ row.version }}</span>
           </div>
         </template>
       </el-table-column>
 
-      <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+      <el-table-column
+        prop="description"
+        label="描述"
+        min-width="200"
+        show-overflow-tooltip
+      />
 
       <el-table-column prop="author" label="作者" width="120" />
 
@@ -215,7 +222,7 @@ function getPermissionLabel(permission: string): string {
             :key="permission"
             :type="getPermissionTagType(permission)"
             size="small"
-            class="permission-tag"
+            class="mr-1"
           >
             {{ getPermissionLabel(permission) }}
           </el-tag>
@@ -226,8 +233,8 @@ function getPermissionLabel(permission: string): string {
         <template #default="{ row }">
           <el-switch
             v-model="row.enabled"
-            @change="togglePlugin(row)"
             :active-text="row.enabled ? '已启用' : '已禁用'"
+            @change="togglePlugin(row)"
           />
         </template>
       </el-table-column>
@@ -255,14 +262,16 @@ function getPermissionLabel(permission: string): string {
 
     <!-- 安装对话框 -->
     <el-dialog v-model="showInstallDialog" title="安装插件" width="500px">
-      <div class="install-content">
+      <div class="py-5">
         <el-upload
           drag
           :auto-upload="false"
           :on-change="handleFileChange"
           accept=".zip,.js"
         >
-          <el-icon class="el-icon--upload"><Upload /></el-icon>
+          <el-icon class="el-icon--upload">
+            <Upload />
+          </el-icon>
           <div class="el-upload__text">
             将插件文件拖到此处，或<em>点击选择</em>
           </div>
@@ -275,9 +284,9 @@ function getPermissionLabel(permission: string): string {
       </div>
 
       <template #footer>
-        <span class="dialog-footer">
+        <span class="flex justify-end gap-2.5">
           <el-button @click="showInstallDialog = false">取消</el-button>
-          <el-button type="primary" @click="handleInstall" :loading="installing">
+          <el-button type="primary" :loading="installing" @click="handleInstall">
             安装
           </el-button>
         </span>
@@ -286,7 +295,7 @@ function getPermissionLabel(permission: string): string {
 
     <!-- 详情对话框 -->
     <el-dialog v-model="showDetailDialog" title="插件详情" width="600px">
-      <div v-if="selectedPlugin" class="detail-content">
+      <div v-if="selectedPlugin" class="py-2.5">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="插件名称">
             {{ selectedPlugin.name }}
@@ -310,7 +319,7 @@ function getPermissionLabel(permission: string): string {
               v-for="permission in selectedPlugin.permissions"
               :key="permission"
               :type="getPermissionTagType(permission)"
-              class="permission-tag"
+              class="mr-1"
             >
               {{ getPermissionLabel(permission) }}
             </el-tag>
@@ -327,82 +336,11 @@ function getPermissionLabel(permission: string): string {
 
     <!-- 配置对话框 -->
     <el-dialog v-model="showConfigDialog" title="插件配置" width="600px">
-      <div v-if="selectedPlugin" class="config-content">
+      <div v-if="selectedPlugin" class="py-2.5">
         <p>插件配置功能开发中...</p>
         <p>当前配置：</p>
-        <pre>{{ JSON.stringify(selectedPlugin.config, null, 2) }}</pre>
+        <pre class="bg-[#f5f7fa] p-2.5 rounded overflow-x-auto">{{ JSON.stringify(selectedPlugin.config, null, 2) }}</pre>
       </div>
     </el-dialog>
   </div>
 </template>
-
-<style scoped>
-.plugin-manager {
-  padding: 20px;
-}
-
-.plugin-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.plugin-header h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.plugin-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.plugin-stats {
-  display: flex;
-  gap: 40px;
-  margin-bottom: 20px;
-  padding: 20px;
-  background: #f5f7fa;
-  border-radius: 8px;
-}
-
-.plugin-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.plugin-name .name {
-  font-weight: 600;
-}
-
-.plugin-name .version {
-  color: #909399;
-  font-size: 12px;
-}
-
-.permission-tag {
-  margin-right: 4px;
-}
-
-.install-content {
-  padding: 20px 0;
-}
-
-.detail-content {
-  padding: 10px 0;
-}
-
-.config-content {
-  padding: 10px 0;
-}
-
-.config-content pre {
-  background: #f5f7fa;
-  padding: 10px;
-  border-radius: 4px;
-  overflow-x: auto;
-}
-</style>

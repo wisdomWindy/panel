@@ -162,7 +162,7 @@ async function handlePreview(giftSound: GiftSoundConfig) {
     previewVolume.value = giftSound.volume;
     isPreviewPlaying.value = true;
     await giftSoundService.previewSound(giftSound.soundFile, giftSound.volume);
-    
+
     // 模拟播放结束（实际应该通过事件监听）
     setTimeout(() => {
       isPreviewPlaying.value = false;
@@ -186,7 +186,7 @@ function handleFileSelect() {
     ElMessage.warning(`礼物 "${formData.giftName}" 已有音效配置，请先删除现有配置后再上传新文件`);
     return;
   }
-  
+
   // 这里应该打开文件选择对话框
   // 由于Electron环境限制，这里使用模拟数据
   ElMessage.info('请选择MP3格式的音效文件');
@@ -196,7 +196,7 @@ async function handleExport() {
   try {
     const exportData = await giftSoundService.exportGiftSounds();
     const jsonStr = JSON.stringify(exportData, null, 2);
-    
+
     // 创建下载链接
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -207,7 +207,7 @@ async function handleExport() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     ElMessage.success('导出成功');
   } catch (error) {
     ElMessage.error('导出失败');
@@ -267,15 +267,19 @@ function handleCloseDialog() {
 </script>
 
 <template>
-  <div class="gift-sound-config">
+  <div class="p-5">
     <!-- 页面标题 -->
-    <div class="page-header">
-      <h2>礼物音效配置</h2>
-      <p>为直播间礼物设置自定义音效，增强互动体验</p>
+    <div class="mb-5">
+      <h2 class="m-0 mb-2 text-2xl text-[#303133]">
+        礼物音效配置
+      </h2>
+      <p class="m-0 text-[#909399] text-sm">
+        为直播间礼物设置自定义音效，增强互动体验
+      </p>
     </div>
 
     <!-- 统计信息 -->
-    <div class="stats-bar">
+    <div class="bg-[#f5f7fa] p-5 rounded-lg mb-5">
       <el-row :gutter="20">
         <el-col :span="8">
           <el-statistic title="总配置数" :value="totalGiftSounds" />
@@ -290,8 +294,8 @@ function handleCloseDialog() {
     </div>
 
     <!-- 操作栏 -->
-    <div class="action-bar">
-      <div class="left-actions">
+    <div class="flex justify-between items-center mb-5">
+      <div class="flex gap-2.5">
         <el-button type="primary" :icon="Plus" @click="handleAdd">
           添加配置
         </el-button>
@@ -302,24 +306,24 @@ function handleCloseDialog() {
           导出
         </el-button>
       </div>
-      <div class="right-actions">
+      <div class="flex gap-2.5">
         <el-input
           v-model="searchQuery"
           placeholder="搜索礼物名称或ID"
           :prefix-icon="Search"
           clearable
-          style="width: 300px"
+          class="w-[300px]"
         />
       </div>
     </div>
 
     <!-- 礼物音效列表 -->
     <el-table
-      :data="filteredGiftSounds"
       v-loading="loading"
+      :data="filteredGiftSounds"
       border
       stripe
-      style="width: 100%"
+      class="w-full"
     >
       <el-table-column prop="giftName" label="礼物名称" width="150" />
       <el-table-column prop="giftId" label="礼物ID" width="120" />
@@ -364,8 +368,8 @@ function handleCloseDialog() {
             type="primary"
             :icon="Play"
             size="small"
-            @click="handlePreview(row)"
             :disabled="!row.enabled"
+            @click="handlePreview(row)"
           >
             预览
           </el-button>
@@ -394,7 +398,9 @@ function handleCloseDialog() {
       v-if="!loading && filteredGiftSounds.length === 0"
       description="暂无礼物音效配置"
     >
-      <el-button type="primary" @click="handleAdd">添加配置</el-button>
+      <el-button type="primary" @click="handleAdd">
+        添加配置
+      </el-button>
     </el-empty>
 
     <!-- 添加/编辑对话框 -->
@@ -414,7 +420,9 @@ function handleCloseDialog() {
         <el-form-item label="音效文件" required>
           <el-input v-model="formData.soundFile" placeholder="请选择音效文件">
             <template #append>
-              <el-button @click="handleFileSelect">选择</el-button>
+              <el-button @click="handleFileSelect">
+                选择
+              </el-button>
             </template>
           </el-input>
         </el-form-item>
@@ -437,12 +445,16 @@ function handleCloseDialog() {
             :step="1000"
             placeholder="0表示完整播放"
           />
-          <span class="form-tip">毫秒，0表示完整播放</span>
+          <span class="ml-2.5 text-[#909399] text-xs">毫秒，0表示完整播放</span>
         </el-form-item>
         <el-form-item label="播放模式">
           <el-radio-group v-model="formData.playMode">
-            <el-radio value="once">单次播放</el-radio>
-            <el-radio value="loop">循环播放</el-radio>
+            <el-radio value="once">
+              单次播放
+            </el-radio>
+            <el-radio value="loop">
+              循环播放
+            </el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="冷却时间">
@@ -451,7 +463,7 @@ function handleCloseDialog() {
             :min="0"
             :step="100"
           />
-          <span class="form-tip">毫秒</span>
+          <span class="ml-2.5 text-[#909399] text-xs">毫秒</span>
         </el-form-item>
         <el-form-item label="优先级">
           <el-input-number
@@ -459,14 +471,14 @@ function handleCloseDialog() {
             :min="0"
             :max="100"
           />
-          <span class="form-tip">数字越大优先级越高</span>
+          <span class="ml-2.5 text-[#909399] text-xs">数字越大优先级越高</span>
         </el-form-item>
         <el-form-item label="启用状态">
           <el-switch v-model="formData.enabled" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <span class="dialog-footer">
+        <span class="flex justify-end gap-2.5">
           <el-button @click="handleCloseDialog">取消</el-button>
           <el-button type="primary" @click="handleSave">保存</el-button>
         </span>
@@ -490,7 +502,7 @@ function handleCloseDialog() {
         </el-form-item>
       </el-form>
       <template #footer>
-        <span class="dialog-footer">
+        <span class="flex justify-end gap-2.5">
           <el-button @click="importDialogVisible = false">取消</el-button>
           <el-button type="primary" @click="handleImportConfirm">导入</el-button>
         </span>
@@ -498,8 +510,8 @@ function handleCloseDialog() {
     </el-dialog>
 
     <!-- 预览面板 -->
-    <div v-if="isPreviewPlaying" class="preview-panel">
-      <div class="preview-info">
+    <div v-if="isPreviewPlaying" class="fixed bottom-5 right-5 bg-white p-4 rounded-lg shadow-lg z-[1000]">
+      <div class="flex items-center gap-2.5">
         <span>正在预览: {{ previewSoundFile }}</span>
         <el-button
           type="danger"
@@ -513,78 +525,3 @@ function handleCloseDialog() {
     </div>
   </div>
 </template>
-
-<style scoped>
-.gift-sound-config {
-  padding: 20px;
-}
-
-.page-header {
-  margin-bottom: 20px;
-}
-
-.page-header h2 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  color: #303133;
-}
-
-.page-header p {
-  margin: 0;
-  color: #909399;
-  font-size: 14px;
-}
-
-.stats-bar {
-  background: #f5f7fa;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.action-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.left-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.right-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.form-tip {
-  margin-left: 10px;
-  color: #909399;
-  font-size: 12px;
-}
-
-.preview-panel {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-}
-
-.preview-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-</style>

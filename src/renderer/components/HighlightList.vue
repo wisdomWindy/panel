@@ -93,12 +93,12 @@ async function handleDelete(highlight: Highlight) {
 </script>
 
 <template>
-  <div class="highlight-list">
+  <div class="w-full">
     <el-table
       :data="highlights"
       :loading="loading"
       stripe
-      style="width: 100%"
+      class="w-full"
     >
       <el-table-column
         label="时间点"
@@ -180,9 +180,3 @@ async function handleDelete(highlight: Highlight) {
     />
   </div>
 </template>
-
-<style scoped>
-.highlight-list {
-  width: 100%;
-}
-</style>

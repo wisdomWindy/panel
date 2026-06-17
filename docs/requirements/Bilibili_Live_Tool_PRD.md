@@ -3,7 +3,7 @@
 **版本号**: v1.0
 **创建日期**: 2026-06-03
 **文档状态**: 初稿
-**最后更新**: 2026-06-16（多语言支持功能完成）
+**最后更新**: 2026-06-16（添加弹幕语音播报功能需求）
 
 ---
 
@@ -12,10 +12,10 @@
 | 优先级 | 总计 | 已完成 | 完成率 |
 |--------|------|--------|--------|
 | Must Have (v1.0) | 6 | 6 | 100% |
-| Should Have (v1.5) | 6 | 6 | 100% |
+| Should Have (v1.5) | 7 | 6 | 86% |
 | Could Have (v2.0) | 6 | 3 | 50% |
 | Won't Have (v3.0+) | 4 | 0 | 0% |
-| **总计** | **22** | **15** | **68%** |
+| **总计** | **23** | **15** | **65%** |
 
 **已完成的核心功能**:
 - ✅ Bilibili 直播间连接与弹幕接收
@@ -148,6 +148,7 @@
 | US-006 | 作为主播，我想要自动禁言刷屏用户，以便维护直播间秩序 | Must | 检测到刷屏后 2 秒内自动禁言 | ❌ |
 | US-007 | 作为主播，我想要录制直播内容，以便后期剪辑和存档 | Could | 录制文件可正常播放，CPU 占用增加 < 15% | ✅ |
 | US-008 | 作为主播，我想要自动标记高光时刻，以便快速找到精彩片段 | Could | 高光触发响应时间 < 5 秒 | ✅ |
+| US-009 | 作为主播，我想要弹幕语音播报，以便不看屏幕也能了解弹幕内容 | Should | 播报延迟 < 2 秒，准确率 > 95% | ❌ |
 
 ---
 
@@ -168,6 +169,7 @@
 - ✅ 自动禁言与刷屏防护
 - ✅ 黑名单管理
 - ✅ 高光手动打点
+- ❌ 弹幕语音播报
 
 ### Could Have (可以有，v2.0)
 - ❌ 语音识别接入（Whisper）
@@ -634,6 +636,164 @@ interface RecordingResult {
 
 ---
 
+### 3.5 弹幕语音播报 ❌
+
+**功能描述**: 将直播间的弹幕内容通过语音合成（TTS）技术实时播报为主播可听到的语音，帮助主播在不查看屏幕的情况下了解弹幕内容，提升互动体验和直播效率。
+
+#### 3.5.1 核心功能
+
+- **实时播报**: 收到弹幕时自动朗读弹幕内容（如"用户A说：主播你好"）。
+- **选择性播报**: 支持按用户身份（舰长、房管、粉丝等级）过滤播报对象。
+- **智能过滤**: 自动跳过敏感词、广告、刷屏内容，仅播报有效弹幕。
+- **播报队列**: 弹幕进入播报队列，按顺序播放，避免多条弹幕同时播报造成混乱。
+
+#### 3.5.2 TTS 引擎集成
+
+- **本地 TTS**: 集成系统原生 TTS 引擎（Windows SAPI、macOS NSSpeechSynthesizer）。
+- **云端 TTS**: 支持接入第三方 TTS 服务（如 Google TTS、Azure Speech、百度 TTS）。
+- **语音选择**: 支持选择不同语音（男声/女声/童声）、语速、音调调节。
+- **多语言支持**: 支持中文、英文等多语言语音播报。
+
+#### 3.5.3 播报规则配置
+
+- **播报对象**: 配置哪些用户的弹幕需要播报（全部/舰长/房管/指定等级以上）。
+- **播报内容**: 配置播报格式（如"{用户名}说：{弹幕内容}"）。
+- **播报间隔**: 设置最小播报间隔（如 2 秒），避免过于频繁。
+- **静音时段**: 支持设置静音时段（如夜间自动关闭）。
+- **关键词过滤**: 配置不播报的关键词列表。
+
+#### 3.5.4 礼物播报
+
+- **礼物感谢播报**: 收到礼物时自动播报感谢语（如"感谢 用户A 送出的 小心心"）。
+- **舰长播报**: 舰长开通时播报欢迎语（如"欢迎 用户A 开通舰长"）。
+- **价值阈值**: 可配置仅播报超过指定价值的礼物。
+
+#### 3.5.5 用户交互
+
+- **快捷开关**: 支持一键开启/关闭语音播报。
+- **音量控制**: 独立控制播报音量，不影响其他音频。
+- **播报暂停**: 支持临时暂停播报（如主播需要安静时）。
+- **历史回放**: 支持回放最近 N 条播报记录。
+
+#### 3.5.6 功能规格
+
+**输入**:
+- 弹幕消息流（来自 Bilibili WebSocket）
+- 礼物消息流
+- 播报配置（规则、语音、过滤）
+
+**输出**:
+- 语音音频输出（通过系统音频设备）
+- 播报日志记录
+
+**前置条件**:
+- 已连接 Bilibili 直播间
+- TTS 引擎可用（本地或云端）
+- 系统音频设备正常
+
+**后置条件**:
+- 弹幕已播报
+- 播报记录已保存
+
+**异常处理**:
+- TTS 引擎不可用：降级为文本提示，记录警告日志
+- 网络不可用（云端 TTS）：切换到本地 TTS 或暂停播报
+- 播报队列满：丢弃最旧的弹幕，优先播报新弹幕
+- 音频设备异常：暂停播报，提示用户检查设备
+
+**验收标准**:
+- 播报延迟 < 2 秒（从弹幕收到到语音输出）
+- 播报准确率 > 95%（正确朗读弹幕内容）
+- CPU 占用增加 < 5%
+- 内存占用增加 < 50MB
+- 支持同时处理 100+ 条弹幕/分钟的播报队列
+- 播报音量可独立调节
+
+#### 3.5.7 数据模型
+
+```sql
+-- 播报配置表
+CREATE TABLE tts_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    enabled BOOLEAN DEFAULT FALSE,
+    engine TEXT DEFAULT 'local',  -- 'local', 'google', 'azure', 'baidu'
+    voice TEXT DEFAULT 'default',  -- 语音名称
+    speed REAL DEFAULT 1.0,  -- 语速 (0.5-2.0)
+    pitch REAL DEFAULT 1.0,  -- 音调 (0.5-2.0)
+    volume REAL DEFAULT 0.8,  -- 音量 (0-1)
+    min_interval INTEGER DEFAULT 2000,  -- 最小播报间隔（毫秒）
+    format_template TEXT DEFAULT '{username}说：{content}',
+    filter_keywords TEXT,  -- 过滤关键词（JSON 数组）
+    broadcast_gifts BOOLEAN DEFAULT TRUE,
+    gift_value_threshold INTEGER DEFAULT 0,  -- 礼物价值阈值
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 播报日志表
+CREATE TABLE tts_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_type TEXT NOT NULL,  -- 'danmaku', 'gift', 'captain'
+    username TEXT,
+    content TEXT,
+    broadcast_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### 3.5.8 API 设计
+
+```typescript
+// TTS 配置接口
+interface TTSConfig {
+  enabled: boolean;
+  engine: 'local' | 'google' | 'azure' | 'baidu';
+  voice: string;
+  speed: number;  // 0.5-2.0
+  pitch: number;  // 0.5-2.0
+  volume: number;  // 0-1
+  minInterval: number;  // 毫秒
+  formatTemplate: string;
+  filterKeywords: string[];
+  broadcastGifts: boolean;
+  giftValueThreshold: number;
+}
+
+// 开始播报
+function startBroadcast(): Promise<void>;
+
+// 停止播报
+function stopBroadcast(): Promise<void>;
+
+// 暂停播报
+function pauseBroadcast(): Promise<void>;
+
+// 恢复播报
+function resumeBroadcast(): Promise<void>;
+
+// 更新配置
+function updateTTSConfig(config: Partial<TTSConfig>): Promise<void>;
+
+// 获取配置
+function getTTSConfig(): Promise<TTSConfig>;
+
+// 获取播报日志
+function getTTSLogs(options?: QueryOptions): Promise<TTSLog[]>;
+
+// 手动播报文本
+function speak(text: string): Promise<void>;
+```
+
+#### 3.5.9 技术实现建议
+
+- **本地 TTS**: 使用 Web Speech API (SpeechSynthesis) 或系统原生 TTS API。
+- **云端 TTS**: 使用 HTTP REST API 调用云端服务，支持流式返回。
+- **音频队列**: 使用 AudioContext API 实现音频队列管理和播放。
+- **弹幕缓冲**: 使用环形缓冲区处理弹幕高峰期，避免丢失。
+- **语音缓存**: 缓存常用语音片段（如"说"、"感谢"），减少 TTS 调用。
+- **异步处理**: 弹幕处理和 TTS 调用使用异步队列，不阻塞主线程。
+
+---
+
 ## 3.6 非功能性需求 (Non-Functional Requirements)
 
 ### 3.6.1 性能要求
@@ -651,6 +811,8 @@ interface RecordingResult {
 | 连接恢复时间 | < 10s | 网络断开后自动重连的时间 |
 | 录制启动延迟 | < 3s | 从点击录制到开始录制的时间 |
 | 录制同步误差 | < 1s | 录制文件与直播流的时间差 |
+| TTS 播报延迟 | < 2s | 从弹幕收到到语音输出的时间 |
+| TTS CPU 占用 | < 5% | 播报功能开启时的额外 CPU 占用 |
 
 ### 3.6.2 可靠性要求
 

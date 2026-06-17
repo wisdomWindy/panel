@@ -3,7 +3,7 @@
  * 注册所有 IPC 处理器，实现音效播放功能
  */
 
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, dialog } from 'electron';
 import { mainDatabase } from '../../database.js';
 import type {
   GiftSoundConfig,
@@ -182,6 +182,32 @@ function registerIpcHandlers(): void {
     }
   });
 
+  // ===== 文件选择 =====
+  ipcMain.handle('gift-sound:selectFile', async () => {
+    try {
+      if (!mainWindow) {
+        return { success: false, error: '主窗口未初始化' };
+      }
+
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: '选择音效文件',
+        filters: [
+          { name: '音频文件', extensions: ['mp3', 'wav', 'ogg', 'flac', 'aac'] },
+          { name: '所有文件', extensions: ['*'] }
+        ],
+        properties: ['openFile']
+      });
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, canceled: true };
+      }
+
+      return { success: true, filePath: result.filePaths[0] };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // ===== 事件处理（从渲染进程接收） =====
   ipcMain.on('gift-sound:playComplete', (_event, data) => {
     // 播放完成事件处理
@@ -212,4 +238,5 @@ export function cleanupGiftSoundModule(): void {
   ipcMain.removeHandler('gift-sound:export');
   ipcMain.removeHandler('gift-sound:getLogs');
   ipcMain.removeHandler('gift-sound:clearLogs');
+  ipcMain.removeHandler('gift-sound:selectFile');
 }

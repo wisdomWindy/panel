@@ -179,7 +179,7 @@ function handleStopPreview() {
   isPreviewPlaying.value = false;
 }
 
-function handleFileSelect() {
+async function handleFileSelect() {
   // 检查当前礼物是否已经有音效配置
   const existingConfig = giftSounds.value.find(gs => gs.giftId === formData.giftId);
   if (existingConfig) {
@@ -187,9 +187,26 @@ function handleFileSelect() {
     return;
   }
 
-  // 这里应该打开文件选择对话框
-  // 由于Electron环境限制，这里使用模拟数据
-  ElMessage.info('请选择MP3格式的音效文件');
+  try {
+    const result = await window.electronAPI.invoke('gift-sound:selectFile');
+    if (result.canceled) {
+      return;
+    }
+    if (result.success && result.filePath) {
+      // 提取文件名作为音效名称
+      const fileName = result.filePath.split(/[/\\]/).pop() || '';
+      const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+      
+      formData.soundFile = result.filePath;
+      formData.soundName = nameWithoutExt;
+      ElMessage.success('文件已选择');
+    } else {
+      ElMessage.error(result.error || '选择文件失败');
+    }
+  } catch (error) {
+    ElMessage.error('选择文件失败');
+    console.error('选择文件失败:', error);
+  }
 }
 
 async function handleExport() {

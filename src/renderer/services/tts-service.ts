@@ -1,6 +1,7 @@
 /**
  * TTS 服务
- * 使用 Web Speech API 实现语音播报
+ * 支持 Web Speech API 和 edge-tts 两种引擎
+ * edge-tts 使用微软 Edge 的在线 TTS 服务，质量更高
  */
 
 import type {
@@ -9,7 +10,7 @@ import type {
   TTSStatus,
   TTSEngineInfo
 } from '../modules/tts/types.js';
-import { DEFAULT_TTS_CONFIG, MAX_QUEUE_SIZE } from '../modules/tts/types.js';
+import { DEFAULT_TTS_CONFIG, MAX_QUEUE_SIZE, EDGE_TTS_VOICES } from '../modules/tts/types.js';
 
 export class TTSService {
   private config: TTSConfig = { ...DEFAULT_TTS_CONFIG };
@@ -19,9 +20,12 @@ export class TTSService {
   private lastBroadcastTime = 0;
   private statusListeners: Array<(status: TTSStatus) => void> = [];
   private messageListeners: Array<(message: BroadcastMessage) => void> = [];
+  private audioContext: AudioContext | null = null;
+  private currentAudio: HTMLAudioElement | null = null;
 
   constructor() {
     this.initSpeechSynthesis();
+    this.initAudioContext();
   }
 
   /**
@@ -31,6 +35,15 @@ export class TTSService {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       // Chrome 需要先调用一次 getVoices() 来触发 voicesloaded 事件
       window.speechSynthesis.getVoices();
+    }
+  }
+
+  /**
+   * 初始化 AudioContext（用于 edge-tts 音频播放）
+   */
+  private initAudioContext(): void {
+    if (typeof window !== 'undefined') {
+      this.audioContext = new AudioContext();
     }
   }
 
@@ -58,6 +71,13 @@ export class TTSService {
     return this.getVoices().filter(voice =>
       voice.lang.startsWith('zh') || voice.lang.startsWith('cmn')
     );
+  }
+
+  /**
+   * 获取 edge-tts 语音列表
+   */
+  getEdgeTTSVoices(): Array<{ name: string; label: string }> {
+    return EDGE_TTS_VOICES;
   }
 
   /**
@@ -253,9 +273,20 @@ export class TTSService {
   }
 
   /**
-   * 播报文本
+   * 播报文本（根据配置选择引擎）
    */
   async speak(text: string): Promise<void> {
+    if (this.config.engine === 'edge-tts') {
+      await this.speakWithEdgeTTS(text);
+    } else {
+      await this.speakWithWebSpeech(text);
+    }
+  }
+
+  /**
+   * 使用 Web Speech API 播报
+   */
+  private async speakWithWebSpeech(text: string): Promise<void> {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
       console.warn('SpeechSynthesis not available');
       return;
@@ -281,7 +312,7 @@ export class TTSService {
 
       utterance.onend = () => resolve();
       utterance.onerror = (event) => {
-        console.error('TTS error:', event);
+        console.error('Web Speech TTS error:', event);
         reject(event);
       };
 
@@ -290,12 +321,50 @@ export class TTSService {
   }
 
   /**
+   * 使用 edge-tts 播报（通过 IPC 调用主进程）
+   */
+  private async speakWithEdgeTTS(text: string): Promise<void> {
+    try {
+      // 通过 IPC 调用主进程的 edge-tts 服务
+      const result = await window.electron.ipcRenderer.invoke('tts:speak', {
+        text,
+        voice: this.config.edgeTTSVoice,
+        rate: this.config.speed,
+        volume: this.config.volume
+      });
+
+      if (!result.success) {
+        console.error('Edge TTS error:', result.error);
+        // 降级到 Web Speech API
+        await this.speakWithWebSpeech(text);
+      }
+    } catch (error) {
+      console.error('Edge TTS IPC error:', error);
+      // 降级到 Web Speech API
+      await this.speakWithWebSpeech(text);
+    }
+  }
+
+  /**
    * 停止播报
    */
   stop(): void {
+    // 停止 Web Speech API
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
+
+    // 停止当前播放的音频
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio = null;
+    }
+
+    // 通知主进程停止 edge-tts
+    if (this.config.engine === 'edge-tts') {
+      window.electron.ipcRenderer.invoke('tts:stop').catch(console.error);
+    }
+
     this.queue = [];
     this.isProcessing = false;
     this.setStatus('idle');
@@ -305,8 +374,15 @@ export class TTSService {
    * 暂停播报
    */
   pause(): void {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.pause();
+    if (this.config.engine === 'edge-tts') {
+      // edge-tts 暂停需要通过音频元素控制
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+      }
+    } else {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.pause();
+      }
     }
     this.setStatus('paused');
   }
@@ -315,8 +391,14 @@ export class TTSService {
    * 恢复播报
    */
   resume(): void {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.resume();
+    if (this.config.engine === 'edge-tts') {
+      if (this.currentAudio) {
+        this.currentAudio.play();
+      }
+    } else {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.resume();
+      }
     }
     this.setStatus('speaking');
   }
@@ -342,6 +424,9 @@ export class TTSService {
     this.stop();
     this.statusListeners = [];
     this.messageListeners = [];
+    if (this.audioContext) {
+      this.audioContext.close();
+    }
   }
 }
 

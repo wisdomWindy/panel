@@ -6,11 +6,13 @@ import { getDanmakuService } from '../services/danmaku-service';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useTTSStore } from '../stores/tts';
+import { EDGE_TTS_VOICES } from '../modules/tts/types';
 
 const danmakuService = getDanmakuService();
 const router = useRouter();
 const { locale } = useI18n();
 const ttsStore = useTTSStore();
+const edgeTTSVoices = EDGE_TTS_VOICES;
 
 const configStore = useConfigStore();
 
@@ -97,6 +99,7 @@ const form = reactive({
   },
   tts: {
     enabled: ttsStore.config.enabled,
+    engine: ttsStore.config.engine || 'edge-tts',
     speed: ttsStore.config.speed,
     volume: ttsStore.config.volume,
     minInterval: ttsStore.config.minInterval,
@@ -104,7 +107,8 @@ const form = reactive({
     broadcastGifts: ttsStore.config.broadcastGifts,
     giftValueThreshold: ttsStore.config.giftValueThreshold,
     broadcastCaptain: ttsStore.config.broadcastCaptain,
-    filterKeywordsText: ttsStore.config.filterKeywords.join('\n')
+    filterKeywordsText: ttsStore.config.filterKeywords.join('\n'),
+    edgeTTSVoice: ttsStore.config.edgeTTSVoice || 'zh-CN-XiaoxiaoNeural'
   }
 });
 
@@ -136,6 +140,7 @@ function handleSave() {
   // 保存 TTS 配置
   ttsStore.updateConfig({
     enabled: form.tts.enabled,
+    engine: form.tts.engine,
     speed: form.tts.speed,
     volume: form.tts.volume,
     minInterval: form.tts.minInterval,
@@ -143,7 +148,8 @@ function handleSave() {
     broadcastGifts: form.tts.broadcastGifts,
     giftValueThreshold: form.tts.giftValueThreshold,
     broadcastCaptain: form.tts.broadcastCaptain,
-    filterKeywords: form.tts.filterKeywordsText.split('\n').filter((word: string) => word.trim())
+    filterKeywords: form.tts.filterKeywordsText.split('\n').filter((word: string) => word.trim()),
+    edgeTTSVoice: form.tts.edgeTTSVoice
   });
 
   danmakuService.updateMinInterval(form.danmaku.minSendInterval);
@@ -607,6 +613,22 @@ function confirmImport() {
               <el-form-item label="启用语音播报">
                 <el-switch v-model="form.tts.enabled" />
                 <span class="ml-2 text-gray-500">开启后将自动播报弹幕内容</span>
+              </el-form-item>
+              <el-form-item label="TTS 引擎">
+                <el-select v-model="form.tts.engine">
+                  <el-option label="Edge TTS（推荐，高质量）" value="edge-tts" />
+                  <el-option label="Web Speech API（浏览器内置）" value="local" />
+                </el-select>
+              </el-form-item>
+              <el-form-item v-if="form.tts.engine === 'edge-tts'" label="语音选择">
+                <el-select v-model="form.tts.edgeTTSVoice">
+                  <el-option
+                    v-for="voice in edgeTTSVoices"
+                    :key="voice.name"
+                    :label="voice.label"
+                    :value="voice.name"
+                  />
+                </el-select>
               </el-form-item>
               <el-form-item label="播报语速">
                 <el-slider

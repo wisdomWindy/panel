@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n';
 import { useTTSStore } from '../stores/tts';
 import { useASRStore } from '../stores/asr';
 import { useAIStore } from '../stores/ai';
+import { useModerationStore } from '../stores/moderation';
 import { EDGE_TTS_VOICES } from '../modules/tts/types';
 
 const danmakuService = getDanmakuService();
@@ -16,6 +17,7 @@ const { locale } = useI18n();
 const ttsStore = useTTSStore();
 const asrStore = useASRStore();
 const aiStore = useAIStore();
+const moderationStore = useModerationStore();
 const edgeTTSVoices = EDGE_TTS_VOICES;
 
 const configStore = useConfigStore();
@@ -23,6 +25,7 @@ const configStore = useConfigStore();
 const activeTab = ref('connection');
 const importDialogVisible = ref(false);
 const importConfig = ref('');
+const newProhibitedWord = ref('');
 
 const tabTitle = computed(() => {
   const titles: Record<string, string> = {
@@ -38,7 +41,8 @@ const tabTitle = computed(() => {
     language: '语言设置',
     tts: '语音播报',
     asr: '语音识别',
-    ai: 'AI 对话'
+    ai: 'AI 对话',
+    moderation: '禁言防护'
   };
   return titles[activeTab.value] || '设置';
 });
@@ -140,6 +144,16 @@ const form = reactive({
     replyToQuestions: aiStore.config.replyToQuestions ?? true,
     replyToMentions: aiStore.config.replyToMentions ?? true,
     sensitiveWordsFilter: aiStore.config.sensitiveWordsFilter ?? true
+  },
+  moderation: {
+    enabled: moderationStore.config.enabled,
+    autoMuteEnabled: moderationStore.config.autoMuteEnabled,
+    floodProtectionEnabled: moderationStore.config.floodProtectionEnabled,
+    floodThreshold: moderationStore.config.floodThreshold,
+    floodTimeWindow: moderationStore.config.floodTimeWindow,
+    muteDuration: moderationStore.config.muteDuration,
+    warningBeforeMute: moderationStore.config.warningBeforeMute,
+    prohibitedWords: [...moderationStore.config.prohibitedWords]
   }
 });
 
@@ -150,6 +164,19 @@ function handleTabSelect(tab: string) {
 function handlePersonalityChange(key: string) {
   aiStore.setPersonality(key);
   form.ai.systemPrompt = aiStore.config.personality.systemPrompt;
+}
+
+function handleAddProhibitedWord() {
+  if (newProhibitedWord.value.trim()) {
+    moderationStore.addProhibitedWord(newProhibitedWord.value.trim());
+    form.moderation.prohibitedWords = [...moderationStore.config.prohibitedWords];
+    newProhibitedWord.value = '';
+  }
+}
+
+function handleRemoveProhibitedWord(word: string) {
+  moderationStore.removeProhibitedWord(word);
+  form.moderation.prohibitedWords = [...moderationStore.config.prohibitedWords];
 }
 
 function handleSave() {
@@ -217,6 +244,17 @@ function handleSave() {
     replyToQuestions: form.ai.replyToQuestions,
     replyToMentions: form.ai.replyToMentions,
     sensitiveWordsFilter: form.ai.sensitiveWordsFilter
+  });
+
+  // 保存禁言防护配置
+  moderationStore.updateConfig({
+    enabled: form.moderation.enabled,
+    autoMuteEnabled: form.moderation.autoMuteEnabled,
+    floodProtectionEnabled: form.moderation.floodProtectionEnabled,
+    floodThreshold: form.moderation.floodThreshold,
+    floodTimeWindow: form.moderation.floodTimeWindow,
+    muteDuration: form.moderation.muteDuration,
+    warningBeforeMute: form.moderation.warningBeforeMute
   });
 
   danmakuService.updateMinInterval(form.danmaku.minSendInterval);
@@ -340,6 +378,10 @@ function confirmImport() {
             <el-menu-item index="ai">
               <el-icon><Setting /></el-icon>
               <span>AI 对话</span>
+            </el-menu-item>
+            <el-menu-item index="moderation">
+              <el-icon><Setting /></el-icon>
+              <span>禁言防护</span>
             </el-menu-item>
           </el-menu>
         </el-card>
@@ -918,6 +960,74 @@ function confirmImport() {
               <el-form-item label="敏感词过滤">
                 <el-switch v-model="form.ai.sensitiveWordsFilter" />
                 <span class="ml-2 text-gray-500">过滤 AI 回复中的敏感词</span>
+              </el-form-item>
+            </el-form>
+          </div>
+
+          <!-- 禁言防护设置 -->
+          <div v-show="activeTab === 'moderation'">
+            <el-form :model="form.moderation" label-width="150px">
+              <el-form-item label="启用禁言防护">
+                <el-switch v-model="form.moderation.enabled" />
+                <span class="ml-2 text-gray-500">开启后自动检测违规行为</span>
+              </el-form-item>
+              <el-form-item label="自动禁言">
+                <el-switch v-model="form.moderation.autoMuteEnabled" />
+                <span class="ml-2 text-gray-500">检测到违禁词自动禁言</span>
+              </el-form-item>
+              <el-form-item label="刷屏防护">
+                <el-switch v-model="form.moderation.floodProtectionEnabled" />
+                <span class="ml-2 text-gray-500">检测刷屏行为自动禁言</span>
+              </el-form-item>
+              <el-form-item label="刷屏阈值">
+                <el-input-number
+                  v-model="form.moderation.floodThreshold"
+                  :min="3"
+                  :max="20"
+                />
+                <span class="ml-2">条/{{ form.moderation.floodTimeWindow }}秒</span>
+              </el-form-item>
+              <el-form-item label="检测时间窗口">
+                <el-input-number
+                  v-model="form.moderation.floodTimeWindow"
+                  :min="5"
+                  :max="60"
+                />
+                <span class="ml-2">秒</span>
+              </el-form-item>
+              <el-form-item label="禁言时长">
+                <el-input-number
+                  v-model="form.moderation.muteDuration"
+                  :min="1"
+                  :max="1440"
+                />
+                <span class="ml-2">分钟（0=永久）</span>
+              </el-form-item>
+              <el-form-item label="禁言前警告">
+                <el-switch v-model="form.moderation.warningBeforeMute" />
+                <span class="ml-2 text-gray-500">首次违规先警告再禁言</span>
+              </el-form-item>
+              <el-form-item label="违禁词列表">
+                <div class="w-full">
+                  <div class="flex gap-2 mb-2">
+                    <el-input
+                      v-model="newProhibitedWord"
+                      placeholder="输入违禁词"
+                      @keyup.enter="handleAddProhibitedWord"
+                    />
+                    <el-button type="primary" @click="handleAddProhibitedWord">添加</el-button>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <el-tag
+                      v-for="word in form.moderation.prohibitedWords"
+                      :key="word"
+                      closable
+                      @close="handleRemoveProhibitedWord(word)"
+                    >
+                      {{ word }}
+                    </el-tag>
+                  </div>
+                </div>
               </el-form-item>
             </el-form>
           </div>

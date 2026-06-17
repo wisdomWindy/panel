@@ -59,12 +59,12 @@ function formatTime(timestamp: number) {
           </el-col>
           <el-col :span="6">
             <div class="p-4 bg-gray-50 rounded-lg">
-              <el-statistic title="总价值" :value="totalValue" suffix="银瓜子" />
+              <el-statistic title="总价值" :value="totalValue" suffix="电池" />
             </div>
           </el-col>
           <el-col :span="6">
             <div class="p-4 bg-gray-50 rounded-lg">
-              <el-statistic title="最高价值" :value="maxValue" suffix="银瓜子" />
+              <el-statistic title="最高价值" :value="maxValue" suffix="电池" />
             </div>
           </el-col>
           <el-col :span="6">
@@ -93,7 +93,7 @@ function formatTime(timestamp: number) {
               <span class="font-bold">x{{ gift.count }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="font-bold text-red-600">{{ gift.price }} 银瓜子</span>
+              <span class="font-bold text-red-600">{{ gift.price }} 电池</span>
               <el-tag v-if="gift.isCombo" type="danger" size="small">
                 连击
               </el-tag>

@@ -318,10 +318,10 @@ function confirmImport() {
 </script>
 
 <template>
-  <div class="p-8 h-[calc(100vh-100px)]">
-    <el-row :gutter="20">
-      <el-col :span="6">
-        <el-card>
+  <div class="h-[calc(100vh-100px)] overflow-hidden">
+    <el-row :gutter="20" class="h-full">
+      <el-col :span="6" class="h-full">
+        <el-card class="h-full overflow-y-auto">
           <template #header>
             <span>设置菜单</span>
           </template>
@@ -386,8 +386,8 @@ function confirmImport() {
           </el-menu>
         </el-card>
       </el-col>
-      <el-col :span="18">
-        <el-card class="min-h-[500px]">
+      <el-col :span="18" class="h-full">
+        <el-card class="h-full overflow-y-auto">
           <template #header>
             <span>{{ tabTitle }}</span>
           </template>

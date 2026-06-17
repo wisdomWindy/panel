@@ -14,3 +14,4 @@ Required fields for each acceptance item:
 - result
 - evidence reference
 - follow-up if failed
+- handoff status

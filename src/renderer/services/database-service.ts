@@ -7,6 +7,31 @@ import { Logger } from '../modules/utils/logger';
 import { DanmakuPoolItem, Gift, CaptainInfo, LogEntry } from '../modules/danmaku/types';
 import { EffectConfig } from '../modules/effects/types';
 
+interface GiftSoundConfig {
+  id: string;
+  giftId: string;
+  giftName: string;
+  soundFile: string;
+  soundName: string;
+  volume: number;
+  duration: number;
+  playMode: 'once' | 'loop';
+  cooldown: number;
+  priority: number;
+  enabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface SoundLog {
+  id: string;
+  giftId: string;
+  giftName: string;
+  username: string;
+  soundFile: string;
+  playedAt: Date;
+}
+
 interface AppConfig {
   roomId: number;
   csrfToken: string;
@@ -134,6 +159,49 @@ export class DatabaseService {
   async deleteEffectConfig(id: string): Promise<void> {
     const configs = await this.getEffectConfigs();
     localStorage.setItem('effectConfigs', JSON.stringify(configs.filter(c => c.id !== id)));
+  }
+
+  // ===== 礼物音效配置 =====
+  async getGiftSounds(): Promise<GiftSoundConfig[]> {
+    return this.invoke('db:getGiftSounds');
+  }
+
+  async getGiftSoundById(id: string): Promise<GiftSoundConfig | undefined> {
+    return this.invoke('db:getGiftSoundById', id);
+  }
+
+  async getGiftSoundByGiftId(giftId: string): Promise<GiftSoundConfig | undefined> {
+    return this.invoke('db:getGiftSoundByGiftId', giftId);
+  }
+
+  async addGiftSound(giftSound: GiftSoundConfig): Promise<void> {
+    await this.invoke('db:addGiftSound', giftSound);
+    this.logger.info(`添加礼物音效配置: ${giftSound.giftName}`);
+  }
+
+  async updateGiftSound(id: string, updates: Partial<GiftSoundConfig>): Promise<void> {
+    await this.invoke('db:updateGiftSound', id, updates);
+    this.logger.info(`更新礼物音效配置: ${id}`);
+  }
+
+  async deleteGiftSound(id: string): Promise<void> {
+    await this.invoke('db:deleteGiftSound', id);
+    this.logger.info(`删除礼物音效配置: ${id}`);
+  }
+
+  // ===== 音效播放日志 =====
+  async getSoundLogs(): Promise<SoundLog[]> {
+    return this.invoke('db:getSoundLogs');
+  }
+
+  async addSoundLog(soundLog: SoundLog): Promise<void> {
+    await this.invoke('db:addSoundLog', soundLog);
+    this.logger.info(`添加音效播放日志: ${soundLog.giftName}`);
+  }
+
+  async clearSoundLogs(): Promise<void> {
+    await this.invoke('db:clearSoundLogs');
+    this.logger.info('音效播放日志已清除');
   }
 
   // ===== 配置 =====

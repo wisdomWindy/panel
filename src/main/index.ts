@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { registerIpcHandlers } from './ipc-handlers.js';
 import { initRecordingModule, cleanupRecordingModule } from './modules/recording/index.js';
+import { initGiftSoundModule, cleanupGiftSoundModule } from './modules/gift-sound/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -115,6 +116,11 @@ app.whenReady().then(async () => {
     initRecordingModule(mainWindow);
   }
 
+  // 初始化礼物音效模块
+  if (mainWindow) {
+    initGiftSoundModule(mainWindow);
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
@@ -130,6 +136,8 @@ app.on('before-quit', () => {
   isQuitting = true;
   // 清理录制模块
   cleanupRecordingModule();
+  // 清理礼物音效模块
+  cleanupGiftSoundModule();
 });
 
 app.on('window-all-closed', () => {

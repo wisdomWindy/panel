@@ -32,7 +32,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Write `review/review.md`.
 - Separate findings into blocking issues, non-blocking issues, accepted risks, and follow-up items.
 - Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
-- If blocking issues remain, record them and hand control back to the main skill so it can route the request back to `execute` with the correct loop re-entry metadata.
+- If blocking issues remain, record them and hand control back to the main skill so it can route the request back to `execute` with the correct loop re-entry metadata and continue the workflow immediately.
 - Do not mark the request complete while blockers remain.
 
 ## Required Inputs
@@ -51,6 +51,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Final review findings
 - Merge readiness judgment
 - Follow-up items that do not block completion
+- Blocking findings that can drive the next `execute` pass without extra user restatement
 
 ## Forbidden Actions
 

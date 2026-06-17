@@ -14,6 +14,13 @@ This framework separates three independent control dimensions:
 - loop: how the main skill keeps re-evaluating progress and gates
 - workflow: whether execution stays single-threaded or scales out into parallel work units
 
+It also treats proactive workflow design as a first-class concern:
+
+- trigger: what event or condition starts work
+- context: what information sources the workflow can rely on
+- steerability: how humans inspect and redirect work in progress
+- handoff: where results are delivered for review or downstream action
+
 The canonical request lifecycle is:
 
 `intake -> spec -> plan -> execute -> verify -> review -> complete`
@@ -32,6 +39,7 @@ In this framework:
 - the goal contract is established in request/spec artifacts and proved by verification/review artifacts
 - the main skill owns loop control, gate recovery, and rollback routing
 - workflow-style parallelization is optional execution scale, not a second lifecycle and not a default
+- proactive workflows must make trigger, context, steerability, and handoff explicit in repository artifacts
 - `verify -> execute`, `review -> execute`, and `execute -> spec/plan` are loop re-entry paths, not a second lifecycle
 - `state.json.loop` is the durable loop audit trail for iteration count, blocking gate, and re-entry reason
 

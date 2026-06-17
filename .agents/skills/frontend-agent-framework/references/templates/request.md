@@ -15,6 +15,9 @@ Required sections:
 - business summary
 - goal statement
 - initial done signal
+- trigger condition
+- initial context sources
+- human handoff point
 - affected area
 - participating modules
 

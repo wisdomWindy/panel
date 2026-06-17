@@ -28,6 +28,7 @@ Read intake-specific policy references only when needed for the active request.
 - Create `docs/requests/<request-id>/` as the canonical request workspace.
 - Write only intake artifacts in this stage.
 - Capture an initial goal statement and an initial done signal in `request.md`.
+- Capture the initial trigger condition, initial context sources, and intended human handoff point in `request.md`.
 - Initialize `state.json.loop` using the framework's required loop shape.
 - Do not write implementation code.
 - Do not write `spec/spec.md` in this stage.
@@ -71,6 +72,7 @@ Read intake-specific policy references only when needed for the active request.
 - The request workspace exists.
 - The source link is captured in `request.md` and `state.json`.
 - `request.md` captures an explicit goal statement plus an initial done signal that later stages can refine.
+- `request.md` captures the workflow trigger, the minimum starting context, and the intended human handoff point.
 - The PRD is summarized into `artifacts/prd-snapshot.md`.
 - `state.json` is initialized with `stage` set to `page-design` for page-oriented requests, otherwise `spec`.
 - `state.json.loop` is initialized with `iteration=1`, `state=running`, `last_completed_stage=null`, `pending_gate=null`, and `reentry_reason=new_request`.

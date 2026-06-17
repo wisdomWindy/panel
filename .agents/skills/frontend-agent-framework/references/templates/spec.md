@@ -15,11 +15,14 @@ Required sections:
 - background and goals
 - in scope
 - out of scope
+- trigger and start conditions
 - user flow
 - page and module design
 - API and data contracts
+- context and dependency sources
 - edge cases
 - acceptance criteria
+- human review and handoff
 - risks
 
 ## `spec/clarifications.md`

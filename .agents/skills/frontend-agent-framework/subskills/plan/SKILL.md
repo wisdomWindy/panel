@@ -34,6 +34,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - For each behavior change, define the intended verification path before implementation begins.
 - Distinguish serial work from independently parallelizable work.
 - Recommend workflow-style parallel execution only when the task set is large enough, independent enough, and valuable enough to justify the extra coordination and token cost.
+- Make trigger handling, context loading, observation points, and human intervention points explicit when the request describes a proactive workflow.
 - Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
 - Do not write implementation code.
 - Require user approval before setting `approvals.plan_approved` to `true`.
@@ -66,6 +67,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Test and validation strategy
 - Risk and rollback notes
 - Test-first execution sequencing for behavior changes
+- Trigger/context/handoff planning for proactive workflows
 
 ## Forbidden Actions
 
@@ -75,6 +77,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Reusing the sample plan as a shortcut instead of planning from the current approved spec
 - Deferring test design until after implementation for behavior that is reasonably testable
 - Recommending workflow-style parallel execution for trivial, tightly coupled, or single-thread work
+- Leaving trigger conditions, required context, or human intervention points implicit for a workflow that depends on them
 
 ## Exit Criteria
 
@@ -83,5 +86,6 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - The plan artifacts are written in Chinese unless the user explicitly requested another language.
 - The plan maps acceptance criteria to concrete execution and verification tasks, including test-first steps where behavior is testable.
 - The plan states which tasks stay serial and which tasks are safe candidates for workflow-style parallel execution.
+- The plan defines the workflow's trigger handling, minimum context, observation points, and human handoff path when those concerns apply.
 - The user approves the plan, preferably through structured approval options when available.
 - `state.json` is updated with `approvals.plan_approved=true` and `stage` set to `execute` while preserving the existing `loop` object.

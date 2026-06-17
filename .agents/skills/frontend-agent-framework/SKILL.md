@@ -16,12 +16,14 @@ Keep the repository-local workflow in control through one default entry skill th
 ## What This Skill Owns
 
 - Establish and preserve the request goal contract so "done" is explicit and checkable.
+- Establish the proactive workflow contract: trigger, context, steerability, and handoff.
 - Enforce the canonical lifecycle:
   `intake -> spec -> plan -> execute -> verify -> review -> complete`
 - Build or recover the active request's lifecycle execution path.
 - Run the loop orchestrator:
   `observe state -> decide next action -> dispatch one stage or gate recovery action -> observe result -> iterate`
 - Decide whether workflow-style parallel execution is justified, while keeping it separate from the lifecycle and loop.
+- Decide whether the request should remain reactive user-driven work or be framed as a proactive workflow with explicit start conditions.
 - Block stage skipping when required approvals or artifacts are missing.
 - Keep request decisions, transitions, and evidence in repository artifacts instead of chat-only state.
 - Enforce specification-driven development so implementation follows approved repository artifacts instead of ad hoc coding decisions.
@@ -44,11 +46,13 @@ This skill carries its own workflow constitution and does not require `.agents/A
 - When requirements change, update request artifacts first and roll the request back to `spec` or `plan`.
 - The main skill owns lifecycle decomposition, progression control, gate checks, and stage routing.
 - The main skill owns the goal contract and decides whether workflow-style parallel scale is justified.
+- The main skill owns proactive workflow design choices such as trigger shape, context boundary, and human handoff points.
 - Stage subskills own stage-local execution rules only.
 - Policy and template material lives under `references/` and is loaded on demand.
 - Bugfix defect retrieval should use source-system tools when available and fall back to manual bug context capture when unavailable.
 - Loop state is controlled by the main skill only; stage subskills must not reset or reinterpret it.
 - Goal, loop, and workflow are separate dimensions: goal decides when work is done, loop decides how the orchestrator keeps re-evaluating, and workflow decides whether parallel scale is warranted.
+- A strong workflow is defined by explicit trigger conditions, sufficient context, visible progress, and clear human intervention points.
 
 If a repository also provides `.agents/AGENTS.md`, treat it as an optional local override only when it does not weaken these built-in rules.
 
@@ -96,6 +100,19 @@ Goal rules:
 - If the request only describes a subjective improvement such as "better", "cleaner", or "more elegant", obtain or derive a more checkable completion condition before heavy execution begins.
 - The loop exists to drive work toward the goal contract; the loop itself is not the goal.
 
+## Proactive Workflow Contract
+
+When the request describes a repeatable or operational workflow rather than a one-off edit, define the workflow contract explicitly before heavy execution.
+
+Workflow contract rules:
+
+- Define what event or condition starts the workflow.
+- Define which repositories, documents, tools, and data sources provide the minimum viable context.
+- Define how a human can observe, redirect, pause, or stop the workflow if it starts drifting.
+- Define where the workflow hands results back to people or downstream systems.
+- Prefer narrow, concrete triggers over vague requests such as "look around and see what matters".
+- Prefer auditable evidence and visible artifacts over hidden automation.
+
 ## Loop Orchestration Model
 
 The main skill runs a single explicit control loop for the request. The lifecycle stages stay the same; the loop is the control mechanism that advances or re-enters those stages.
@@ -110,6 +127,7 @@ Loop rules:
 
 - Process only one current action per loop iteration.
 - After each completed stage or recovered gate, re-enter the loop and decide again.
+- After `execute`, `verify`, or `review`, continue looping immediately unless the request is truly blocked or has reached `complete`.
 - The loop stops only when `stage=complete` with `loop.state=complete`, or when a real external blocking gate requires waiting.
 - If a gate can be satisfied by gathering repository context, repairing missing artifacts, or repairing missing state, do that recovery work inside the loop before stopping.
 - Rollback is a valid loop re-entry path, not an exception outside the workflow.
@@ -125,6 +143,7 @@ Workflow rules:
 - Default to one active main-skill path through the lifecycle.
 - Use workflow-style parallel execution only when the approved plan identifies multiple independent work units whose cost and context split justify parallelism.
 - Do not use workflow-style parallel execution for trivial edits, tightly coupled changes, or single-thread tasks that fit comfortably in one context.
+- When a workflow is proactive, trigger clarity matters before scale; do not parallelize a poorly scoped trigger.
 - If parallel execution is used, it must still report back into the same request artifacts, gates, and loop state.
 - Workflow selection changes execution scale only; it does not waive approvals, verification, review, or state-discipline rules.
 
@@ -135,13 +154,17 @@ Workflow rules:
 - For page-oriented requests, treat page design as a required upstream input to `spec`, not as an implementation detail.
 - Treat lifecycle stages as delivery stages and the loop as control flow; do not invent a second lifecycle.
 - Treat the goal contract as the source of truth for "done"; do not substitute chat satisfaction or elapsed loop count.
+- Treat trigger design as the source of truth for "when should this workflow start"; do not replace it with vague polling or manual intuition when a specific event exists.
 - Execute the current stage completely through its designated subskill before attempting the next stage.
 - After each stage, re-read the request state and evaluate whether the next gate is satisfied.
 - If the next gate is already satisfied, continue automatically to the next stage.
+- If `verify` fails and the failure can be addressed by implementation work defined by the approved spec and plan, route immediately back to `execute` and continue the loop without waiting for a new user prompt.
+- If `review` finds blocking issues that can be addressed by implementation work defined by the approved spec and plan, route immediately back to `execute` and continue the loop without waiting for a new user prompt.
 - If the next gate depends on user approval or an unavailable external resource, stop at that gate and report exactly what is required to continue.
 - If the next gate can be satisfied by gathering repository-local context, artifacts, or evidence, obtain that prerequisite first and then continue the lifecycle.
 - When a gate fails, first attempt loop-local recovery for missing state, missing artifacts, or missing repository evidence before declaring the request blocked.
 - Use workflow-style parallelization only as an execution-scale choice after planning, never as a replacement for lifecycle control.
+- Prefer workflows that are observable and steerable: the team must be able to inspect progress, verify evidence, and intervene before completion claims are accepted.
 - For `spec` and `plan` approval gates, prefer structured approval UI over free-text confirmation when the environment supports it.
 - In Codex environments where `request_user_input` is available, use it to present explicit approval options such as approve / reject / revise.
 - Only fall back to plain-text approval requests when structured approval UI is unavailable in the current environment.
@@ -189,6 +212,7 @@ At each stage boundary, update `docs/requests/<request-id>/state.json` before en
 3. Update `state.json` to reflect the stage transition while preserving the current `loop` object.
 4. Re-read `state.json`, update loop metadata in the main skill, and continue only if the next gate is satisfied.
 5. Never leave a stage partially done and then proceed to a later stage.
+6. If `verify` or `review` sends the request back to `execute`, treat that as an immediate continuation of the same workflow, not as a stopping point.
 
 Forbidden examples:
 
@@ -237,6 +261,8 @@ Load only what is needed:
 - Stop only at real blocking gates such as required approval, missing upstream requirement information, or unavailable external dependency needed for the next stage.
 - Never implement behavior that is not defined, clarified, or accepted in the repository spec artifacts.
 - Never skip test-first execution for testable behavior changes unless the reason is explicitly recorded in repository artifacts.
+- Never hide the workflow's starting conditions, context sources, or human handoff path in chat-only instructions.
+- Never stop after a failed `verify` or blocking `review` if the next required action is more implementation work and no real blocking gate exists.
 
 ## Required State Discipline
 
@@ -273,6 +299,7 @@ Stage actions belong only to subskills.
 - If a requirement changes during execution, stop coding, set loop re-entry reason to `requirement_changed`, and route back to `spec` or `plan`.
 - If verification fails, set loop re-entry reason to `verification_failed` and route back to `execute`.
 - If review finds blockers, set loop re-entry reason to `review_blocked` and route back to `execute`.
+- After routing back from `verify` or `review`, continue the `execute -> verify` loop until verification passes or a real blocking gate is reached.
 - If execution discovers the spec is incomplete, ambiguous, or contradicted by reality, stop and route back to `spec` or `plan` before continuing implementation.
 - If TDD cannot be applied to a behavior change, record the reason and the fallback verification method in repository artifacts before continuing.
 

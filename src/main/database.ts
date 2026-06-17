@@ -42,6 +42,31 @@ interface CaptainInfo {
   title: string;
 }
 
+interface GiftSoundConfig {
+  id: string;
+  giftId: string;
+  giftName: string;
+  soundFile: string;
+  soundName: string;
+  volume: number;
+  duration: number;
+  playMode: 'once' | 'loop';
+  cooldown: number;
+  priority: number;
+  enabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface SoundLog {
+  id: string;
+  giftId: string;
+  giftName: string;
+  username: string;
+  soundFile: string;
+  playedAt: Date;
+}
+
 interface AppData {
   danmakuPool: DanmakuPoolItem[];
   gifts: Gift[];
@@ -49,6 +74,8 @@ interface AppData {
   logs: LogEntry[];
   recordings: Recording[];
   highlights: Highlight[];
+  giftSounds: GiftSoundConfig[];
+  soundLogs: SoundLog[];
   config: {
     roomId: number;
     csrfToken: string;
@@ -91,6 +118,8 @@ export class MainDatabaseService {
         logs: [],
         recordings: [],
         highlights: [],
+        giftSounds: [],
+        soundLogs: [],
         config: {
           roomId: 0,
           csrfToken: '',
@@ -316,6 +345,69 @@ export class MainDatabaseService {
     this.ensureInitialized();
     const highlights = this.getHighlights().filter(h => h.recordingId !== recordingId);
     this.store.set('highlights', highlights);
+  }
+
+  // ===== 礼物音效配置 =====
+  getGiftSounds(): GiftSoundConfig[] {
+    this.ensureInitialized();
+    return this.store.get('giftSounds', []) as GiftSoundConfig[];
+  }
+
+  getGiftSoundById(id: string): GiftSoundConfig | undefined {
+    this.ensureInitialized();
+    const giftSounds = this.getGiftSounds();
+    return giftSounds.find(gs => gs.id === id);
+  }
+
+  getGiftSoundByGiftId(giftId: string): GiftSoundConfig | undefined {
+    this.ensureInitialized();
+    const giftSounds = this.getGiftSounds();
+    return giftSounds.find(gs => gs.giftId === giftId && gs.enabled);
+  }
+
+  addGiftSound(giftSound: GiftSoundConfig): void {
+    this.ensureInitialized();
+    const giftSounds = this.getGiftSounds();
+    giftSounds.push(giftSound);
+    this.store.set('giftSounds', giftSounds);
+  }
+
+  updateGiftSound(id: string, updates: Partial<GiftSoundConfig>): void {
+    this.ensureInitialized();
+    const giftSounds = this.getGiftSounds();
+    const index = giftSounds.findIndex(gs => gs.id === id);
+    if (index !== -1) {
+      giftSounds[index] = { ...giftSounds[index], ...updates, updatedAt: new Date() };
+      this.store.set('giftSounds', giftSounds);
+    }
+  }
+
+  deleteGiftSound(id: string): void {
+    this.ensureInitialized();
+    const giftSounds = this.getGiftSounds().filter(gs => gs.id !== id);
+    this.store.set('giftSounds', giftSounds);
+  }
+
+  // ===== 音效播放日志 =====
+  getSoundLogs(): SoundLog[] {
+    this.ensureInitialized();
+    return this.store.get('soundLogs', []) as SoundLog[];
+  }
+
+  addSoundLog(soundLog: SoundLog): void {
+    this.ensureInitialized();
+    const soundLogs = this.getSoundLogs();
+    soundLogs.push(soundLog);
+    const maxLogs = this.store.get('config.maxLogEntries', 1000);
+    if (soundLogs.length > maxLogs) {
+      soundLogs.splice(0, soundLogs.length - maxLogs);
+    }
+    this.store.set('soundLogs', soundLogs);
+  }
+
+  clearSoundLogs(): void {
+    this.ensureInitialized();
+    this.store.set('soundLogs', []);
   }
 
   // ===== 工具 =====

@@ -35,6 +35,8 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 | Stage exit criteria satisfied and next gate satisfied | advance stage | enter the next lifecycle stage |
 | Gate missing but recoverable from repository state, artifacts, or evidence | recover gate | stay in the same lifecycle position, repair the prerequisite, then re-check the gate |
 | Gate missing and depends on user approval or external resource | block | set `loop.state=blocked`, set `loop.pending_gate`, wait for recovery |
+| Verification fails but implementation can continue under the approved plan | re-enter execute | route to `execute` immediately and continue the loop |
+| Review finds blockers but implementation can continue under the approved plan | re-enter execute | route to `execute` immediately and continue the loop |
 | Request reaches completion conditions | complete | set `stage=complete` and `loop.state=complete` |
 
 ## Goal and Workflow Constraints
@@ -42,6 +44,7 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 - The request may reach `complete` only when the goal contract is satisfied and verified.
 - Loop iterations do not themselves prove completion.
 - Workflow-style parallel execution does not create additional lifecycle states or bypass gates.
+- A proactive workflow must declare its trigger, minimum context, and handoff path before the team treats it as reliable automation.
 
 ## Re-entry Rules
 
@@ -57,3 +60,4 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 - Requirement change during execute: back to `spec` or `plan` with `reentry_reason=requirement_changed`
 - Verification failure: back to `execute` with `reentry_reason=verification_failed`
 - Blocking review finding: back to `execute` with `reentry_reason=review_blocked`
+- `execute -> verify -> execute -> verify` repeats until verification passes or a real blocking gate is reached

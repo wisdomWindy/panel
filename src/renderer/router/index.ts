@@ -84,7 +84,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/gift-sound',
     name: 'GiftSound',
-    component: () => import('@/components/GiftSoundConfig.vue'),
+    component: () => import('@/views/GiftSoundConfig.vue'),
     meta: { title: '礼物音效配置' }
   }
 ];

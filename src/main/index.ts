@@ -12,8 +12,39 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
 function createTray() {
-  // 创建 16x16 的简单图标
-  const icon = nativeImage.createEmpty();
+  // 创建一个简单的图标
+  const iconSize = 16;
+  const canvas = Buffer.alloc(iconSize * iconSize * 4);
+  
+  // 绘制一个简单的蓝色圆形图标
+  for (let y = 0; y < iconSize; y++) {
+    for (let x = 0; x < iconSize; x++) {
+      const idx = (y * iconSize + x) * 4;
+      const centerX = iconSize / 2;
+      const centerY = iconSize / 2;
+      const radius = iconSize / 2 - 1;
+      const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+      
+      if (distance <= radius) {
+        // 蓝色圆形
+        canvas[idx] = 29;      // R
+        canvas[idx + 1] = 53;  // G
+        canvas[idx + 2] = 87;  // B
+        canvas[idx + 3] = 255; // A
+      } else {
+        // 透明背景
+        canvas[idx] = 0;
+        canvas[idx + 1] = 0;
+        canvas[idx + 2] = 0;
+        canvas[idx + 3] = 0;
+      }
+    }
+  }
+  
+  const icon = nativeImage.createFromBuffer(canvas, {
+    width: iconSize,
+    height: iconSize
+  });
   tray = new Tray(icon);
 
   const contextMenu = Menu.buildFromTemplate([
@@ -77,9 +108,44 @@ function registerGlobalShortcuts() {
 }
 
 function createWindow() {
+  // 创建窗口图标
+  const iconSize = 32;
+  const canvas = Buffer.alloc(iconSize * iconSize * 4);
+  
+  // 绘制一个简单的蓝色圆形图标
+  for (let y = 0; y < iconSize; y++) {
+    for (let x = 0; x < iconSize; x++) {
+      const idx = (y * iconSize + x) * 4;
+      const centerX = iconSize / 2;
+      const centerY = iconSize / 2;
+      const radius = iconSize / 2 - 1;
+      const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+      
+      if (distance <= radius) {
+        // 蓝色圆形
+        canvas[idx] = 29;      // R
+        canvas[idx + 1] = 53;  // G
+        canvas[idx + 2] = 87;  // B
+        canvas[idx + 3] = 255; // A
+      } else {
+        // 透明背景
+        canvas[idx] = 0;
+        canvas[idx + 1] = 0;
+        canvas[idx + 2] = 0;
+        canvas[idx + 3] = 0;
+      }
+    }
+  }
+  
+  const windowIcon = nativeImage.createFromBuffer(canvas, {
+    width: iconSize,
+    height: iconSize
+  });
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: windowIcon,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,

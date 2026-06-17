@@ -86,7 +86,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-[#F5F6FA]">
+  <div class="h-screen flex flex-col bg-[#F5F6FA] overflow-hidden">
     <!-- 未连接：全屏显示身份码输入页 -->
     <LoginPage v-if="!roomStore.isConnected" />
 
@@ -117,7 +117,7 @@ onUnmounted(() => {
       </el-header>
 
       <el-container class="flex flex-1 min-h-0">
-        <el-aside width="220px" class="shrink-0 bg-[#304156]">
+        <el-aside width="220px" class="shrink-0 bg-[#304156] overflow-y-auto">
           <el-menu
             :default-active="$route.path"
             router

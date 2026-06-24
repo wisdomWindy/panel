@@ -1,47 +1,60 @@
 /**
  * TTS 服务
- * 纯 IPC 调用和配置管理，队列逻辑已提取到 composables
+ * 使用 Strategy 模式管理不同的 TTS 引擎
  */
 
-import { invokeIPC, invokeIPCVoid } from '../utils/ipc.js';
+import type { TTSEngine, TTSSpeakOptions } from '../engines/tts-engine.js';
 import type { TTSConfig } from '../modules/tts/types.js';
 import { DEFAULT_TTS_CONFIG } from '../modules/tts/types.js';
+import { createTTSEngine, type TTSEngineType } from '../engines/engine-factory.js';
 
 export class TTSService {
   private config: TTSConfig = { ...DEFAULT_TTS_CONFIG };
+  private engine: TTSEngine;
+
+  constructor() {
+    this.engine = createTTSEngine(this.config.engine as TTSEngineType);
+  }
 
   updateConfig(config: Partial<TTSConfig>): void {
+    const oldEngine = this.config.engine;
     this.config = { ...this.config, ...config };
+
+    // 引擎类型变化时切换引擎
+    if (config.engine && config.engine !== oldEngine) {
+      this.engine = createTTSEngine(config.engine as TTSEngineType);
+    }
   }
 
   getConfig(): TTSConfig {
     return { ...this.config };
   }
 
+  getEngine(): TTSEngine {
+    return this.engine;
+  }
+
   async speak(text: string): Promise<void> {
-    if (this.config.engine === 'edge-tts') {
-      await this.speakWithEdgeTTS(text);
-    }
+    const options: TTSSpeakOptions = {
+      voice: this.config.edgeTTSVoice,
+      rate: this.config.speed,
+      pitch: this.config.pitch,
+      volume: this.config.volume,
+      lang: 'zh-CN'
+    };
+    await this.engine.speak(text, options);
   }
 
   async stop(): Promise<void> {
-    if (this.config.engine === 'edge-tts') {
-      await invokeIPCVoid('tts:stop');
-    }
+    await this.engine.stop();
   }
 
-  private async speakWithEdgeTTS(text: string): Promise<void> {
-    try {
-      await invokeIPC('tts:speak', {
-        text,
-        voice: this.config.edgeTTSVoice,
-        rate: this.config.speed,
-        volume: this.config.volume
-      });
-    } catch (error) {
-      console.error('Edge TTS error:', error);
-      throw error;
-    }
+  pause(): void {
+    this.engine.pause();
+  }
+
+  resume(): void {
+    this.engine.resume();
   }
 }
 

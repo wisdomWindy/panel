@@ -1,6 +1,6 @@
 /**
  * TTS 状态管理
- * 管理 TTS 相关的状态和操作
+ * 使用 Strategy 模式，通过引擎接口调用不同的 TTS 引擎
  */
 
 import { defineStore } from 'pinia';
@@ -24,6 +24,7 @@ export const useTTSStore = defineStore('tts', () => {
   const isSpeaking = computed(() => status.value === 'speaking');
   const isPaused = computed(() => status.value === 'paused');
   const queueLength = computed(() => broadcastQueue.getQueueLength());
+  const engineName = computed(() => ttsService.getEngine().name);
 
   // Actions
   function updateConfig(updates: Partial<TTSConfig>): void {
@@ -94,21 +95,7 @@ export const useTTSStore = defineStore('tts', () => {
     if (!broadcastQueue.isProcessing.value) {
       status.value = 'speaking';
       broadcastQueue.processQueue(
-        async (text) => {
-          if (config.value.engine === 'edge-tts') {
-            await ttsService.speak(text);
-          } else {
-            // Web Speech API fallback
-            if (typeof window !== 'undefined' && window.speechSynthesis) {
-              const utterance = new SpeechSynthesisUtterance(text);
-              utterance.rate = config.value.speed;
-              utterance.pitch = config.value.pitch;
-              utterance.volume = config.value.volume;
-              utterance.lang = 'zh-CN';
-              window.speechSynthesis.speak(utterance);
-            }
-          }
-        },
+        (text) => ttsService.speak(text),
         config.value
       ).then(() => {
         status.value = 'idle';
@@ -118,24 +105,17 @@ export const useTTSStore = defineStore('tts', () => {
 
   function stopBroadcast(): void {
     ttsService.stop().catch(console.error);
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
     broadcastQueue.clearQueue();
     status.value = 'idle';
   }
 
   function pauseBroadcast(): void {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.pause();
-    }
+    ttsService.pause();
     status.value = 'paused';
   }
 
   function resumeBroadcast(): void {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.resume();
-    }
+    ttsService.resume();
     status.value = 'speaking';
   }
 
@@ -177,6 +157,7 @@ export const useTTSStore = defineStore('tts', () => {
     status,
     queueLength,
     recentMessages,
+    engineName,
     isEnabled,
     isSpeaking,
     isPaused,

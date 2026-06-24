@@ -1,19 +1,18 @@
 /**
  * ASR 状态管理
- * 管理语音识别相关的状态和操作
+ * 使用 Strategy 模式，通过引擎接口调用不同的 ASR 引擎
  */
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { ASRConfig, ASRResult, ASRStatus, ASRError } from '../modules/asr/types.js';
 import { DEFAULT_ASR_CONFIG } from '../modules/asr/types.js';
-import { getASRService } from '../services/asr-service.js';
-import { useWebSpeechRecognition } from '../composables/useWebSpeechRecognition.js';
+import type { ASREngine } from '../engines/asr-engine.js';
+import { createASREngine, type ASREngineType } from '../engines/engine-factory.js';
 import { useAudioRecording } from '../composables/useAudioRecording.js';
 
 export const useASRStore = defineStore('asr', () => {
-  const asrService = getASRService();
-  const webSpeech = useWebSpeechRecognition();
+  let engine: ASREngine;
   const audioRecording = useAudioRecording();
 
   // State
@@ -27,11 +26,36 @@ export const useASRStore = defineStore('asr', () => {
   const isEnabled = computed(() => config.value.enabled);
   const isListening = computed(() => status.value === 'listening');
   const isProcessing = computed(() => status.value === 'processing');
+  const engineName = computed(() => engine?.name ?? 'unknown');
+
+  // 初始化引擎
+  function initEngine(): void {
+    engine = createASREngine(config.value.engine as ASREngineType);
+
+    engine.onResult((result) => addResult(result));
+    engine.onError((error) => {
+      lastError.value = { code: error.code, message: error.message, details: error.message };
+      status.value = 'error';
+    });
+    engine.onEnd(() => {
+      if (status.value === 'listening' && config.value.continuous) {
+        engine.resume();
+      } else {
+        status.value = 'idle';
+      }
+    });
+  }
 
   // Actions
   function updateConfig(updates: Partial<ASRConfig>): void {
+    const oldEngine = config.value.engine;
     config.value = { ...config.value, ...updates };
-    asrService.updateConfig(updates);
+
+    // 引擎类型变化时重新初始化
+    if (updates.engine && updates.engine !== oldEngine) {
+      initEngine();
+    }
+
     saveConfig();
   }
 
@@ -41,13 +65,18 @@ export const useASRStore = defineStore('asr', () => {
 
   async function startRecognition(): Promise<void> {
     try {
-      asrService.updateConfig(config.value);
+      const hasMic = await audioRecording.requestMicrophone();
+      if (!hasMic) throw new Error('无法访问麦克风');
 
-      if (config.value.engine === 'web-speech') {
-        await startWebSpeechRecognition();
-      } else {
-        await startWhisperRecognition();
-      }
+      await engine.start({
+        language: config.value.language,
+        continuous: config.value.continuous,
+        interimResults: config.value.interimResults,
+        maxAlternatives: config.value.maxAlternatives,
+        model: config.value.model
+      });
+
+      status.value = 'listening';
     } catch (error) {
       lastError.value = {
         code: 'start-failed',
@@ -57,84 +86,14 @@ export const useASRStore = defineStore('asr', () => {
     }
   }
 
-  async function startWebSpeechRecognition(): Promise<void> {
-    webSpeech.init({
-      continuous: config.value.continuous,
-      interimResults: config.value.interimResults,
-      maxAlternatives: config.value.maxAlternatives,
-      language: config.value.language
-    });
-
-    webSpeech.onResult((result) => addResult(result));
-    webSpeech.onError((error) => {
-      lastError.value = { code: error.code, message: error.message, details: error.message };
-      status.value = 'error';
-    });
-    webSpeech.onEnd(() => {
-      if (status.value === 'listening' && config.value.continuous) {
-        webSpeech.start();
-      } else {
-        status.value = 'idle';
-      }
-    });
-
-    const hasMic = await audioRecording.requestMicrophone();
-    if (!hasMic) throw new Error('无法访问麦克风');
-
-    webSpeech.start();
-    status.value = 'listening';
-  }
-
-  async function startWhisperRecognition(): Promise<void> {
-    const hasMic = await audioRecording.requestMicrophone();
-    if (!hasMic) throw new Error('无法访问麦克风');
-
-    await asrService.start({
-      engine: config.value.engine,
-      model: config.value.model,
-      language: config.value.language
-    });
-
-    status.value = 'listening';
-    audioRecording.startRecording(async (blob) => {
-      status.value = 'processing';
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        try {
-          const result = await asrService.processAudio(base64, config.value.language);
-          addResult({
-            text: result.text,
-            confidence: result.confidence || 0.9,
-            isFinal: true,
-            timestamp: Date.now()
-          });
-        } catch (error) {
-          console.error('Audio processing error:', error);
-        }
-        status.value = 'listening';
-      };
-      reader.readAsDataURL(blob);
-    });
-  }
-
   function stopRecognition(): void {
-    if (config.value.engine === 'web-speech') {
-      webSpeech.stop();
-    } else {
-      audioRecording.stopRecording();
-      audioRecording.releaseMicrophone();
-      asrService.stop().catch(console.error);
-    }
+    engine.stop().catch(console.error);
+    audioRecording.releaseMicrophone();
     status.value = 'idle';
   }
 
   function pauseRecognition(): void {
-    if (config.value.engine === 'web-speech') {
-      webSpeech.stop();
-    } else {
-      audioRecording.pauseRecording();
-    }
+    engine.pause();
     status.value = 'idle';
   }
 
@@ -160,12 +119,7 @@ export const useASRStore = defineStore('asr', () => {
   }
 
   async function checkAvailability(): Promise<void> {
-    if (config.value.engine === 'web-speech') {
-      isAvailable.value = webSpeech.isAvailable.value;
-    } else {
-      const result = await asrService.checkAvailability();
-      isAvailable.value = result.available;
-    }
+    isAvailable.value = await engine.isAvailable();
   }
 
   function saveConfig(): void {
@@ -189,6 +143,7 @@ export const useASRStore = defineStore('asr', () => {
   }
 
   loadConfig();
+  initEngine();
 
   return {
     config,
@@ -196,6 +151,7 @@ export const useASRStore = defineStore('asr', () => {
     isAvailable,
     recentResults,
     lastError,
+    engineName,
     isEnabled,
     isListening,
     isProcessing,

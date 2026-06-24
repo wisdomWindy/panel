@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Delete, Edit, Search, Upload, Download, VideoPlay, VideoPause, Refresh } from '@element-plus/icons-vue';
+import { Plus, Delete, Edit, Search, Upload, Download, VideoPlay, VideoPause } from '@element-plus/icons-vue';
 import { giftSoundService } from '../services/gift-sound-service';
 import type { GiftSoundConfig, GiftSoundExportData } from '../modules/gift-sound/types';
 
@@ -9,7 +9,6 @@ import type { GiftSoundConfig, GiftSoundExportData } from '../modules/gift-sound
 const giftSounds = ref<GiftSoundConfig[]>([]);
 const loading = ref(false);
 const searchQuery = ref('');
-const selectedGiftSound = ref<GiftSoundConfig | null>(null);
 const dialogVisible = ref(false);
 const isEditing = ref(false);
 const importDialogVisible = ref(false);

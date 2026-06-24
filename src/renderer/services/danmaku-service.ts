@@ -87,7 +87,7 @@ export class DanmakuService {
     // 礼物接收
     this.manager.on('gift', (gift: Gift) => {
       this.danmakuStore.addGift(gift);
-      databaseService.addGift(gift).catch(() => {});
+      databaseService.addGift(gift).catch((err) => console.error('Failed to save gift:', err));
 
       // 触发礼物连击特效
       if (gift.isCombo && gift.count >= 3 && this.effectManager) {
@@ -109,7 +109,7 @@ export class DanmakuService {
 
     // 弹幕池更新
     this.manager.on('poolUpdated', (pool) => {
-      databaseService.setDanmakuPool(pool).catch(() => {});
+      databaseService.setDanmakuPool(pool).catch((err) => console.error('Failed to save danmaku pool:', err));
     });
 
     // 弹幕发送成功

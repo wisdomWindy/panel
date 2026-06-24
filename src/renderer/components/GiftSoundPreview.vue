@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Play, VideoPause, Refresh, VolumeMute, Volume } from '@element-plus/icons-vue';
 import { giftSoundService } from '../services/gift-sound-service';
-import type { GiftSoundConfig, SoundPlaybackState } from '../modules/gift-sound/types';
 
 // Props
 const props = defineProps<{
@@ -28,13 +27,6 @@ const progress = ref(0);
 const duration = ref(0);
 const isMuted = ref(false);
 const previousVolume = ref(0.8);
-const playbackState = ref<SoundPlaybackState>({
-  isPlaying: false,
-  currentSound: null,
-  volume: 0.8,
-  progress: 0,
-  duration: 0
-});
 
 // 计算属性
 const progressPercent = computed(() => {
@@ -167,11 +159,6 @@ function formatTime(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-function reset() {
-  isPlaying.value = false;
-  progress.value = 0;
-  duration.value = 0;
-}
 </script>
 
 <template>

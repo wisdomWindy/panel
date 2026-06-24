@@ -2,7 +2,6 @@
 import { onMounted } from 'vue';
 import { useUpdateStore } from '../stores/update';
 import { Bell, Download, Document } from '@element-plus/icons-vue';
-import { ChangelogEntry } from '../services/update-service';
 
 const updateStore = useUpdateStore();
 

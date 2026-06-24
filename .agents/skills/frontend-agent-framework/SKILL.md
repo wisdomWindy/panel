@@ -44,6 +44,8 @@ This skill carries its own workflow constitution and does not require `.agents/A
 - Never start coding before a request workspace exists under `docs/requests/<request-id>/`.
 - Never implement before approved `spec/spec.md` and `plan/plan.md` exist.
 - Never declare work complete before `verification/verification.md` and `review/review.md` both exist and pass.
+- Never declare work complete before `verification/verification.md` explicitly records `spec constraint compliance: pass`.
+- Never declare work complete before `review/review.md` explicitly records `clean-code assessment: pass` and `design-pattern assessment: pass`.
 - Never treat loop progress as proof of completion; only the goal contract and verification evidence can prove the request is done.
 - When requirements change, update request artifacts first and roll the request back to `spec` or `plan`.
 - The main skill owns lifecycle decomposition, progression control, gate checks, and stage routing.
@@ -262,6 +264,7 @@ Load only what is needed:
 - Never implement before approved spec and plan exist.
 - Never let page-oriented work enter `spec` without a page design artifact when layout, styling, or interaction structure is a material requirement.
 - Never declare work complete before verification and review artifacts both exist and pass.
+- Never treat missing compliance verdicts as implied pass results.
 - When requirements change, update request artifacts first and roll the stage back to `spec` or `plan`.
 - Do not bypass the local workflow by jumping straight to code.
 - When a gate fails, resolve the missing prerequisite first instead of forcing stage progression.
@@ -324,7 +327,10 @@ Treat a request as complete only after all of the following are true:
 - the goal contract is satisfied by observable results
 - implementation matches the approved plan
 - verification evidence exists for acceptance criteria
+- `verification/verification.md` explicitly records `spec constraint compliance: pass`
 - review records no unresolved blocking issues
+- `review/review.md` explicitly records `clean-code assessment: pass`
+- `review/review.md` explicitly records `design-pattern assessment: pass`
 - `state.json` is updated to `stage="complete"`
 - `state.json.loop.state` is updated to `complete`
 

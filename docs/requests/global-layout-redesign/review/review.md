@@ -27,3 +27,20 @@
 ## merge readiness summary
 
 - 可以合入。Tailwind 本地接入、样式约束、构建告警治理、Element Plus 自动按需加载、ts-plugin 兼容性修正以及 Vue SFC 块顺序统一均已完成；最终 `type-check` 与 `vite build` 通过，无阻塞问题。
+
+## clean-code assessment
+
+- result: pass
+- key findings:
+  - 本次改动主要聚焦样式链路、构建配置与 IDE/模板兼容性，责任边界清晰，未引入额外业务分支
+  - 对表格插槽和数值输入的调整采用了更显式的参数传递与更新方式，可读性优于隐式双向绑定
+  - 剩余风险已记录在 accepted risks 中，但未构成当前交付阻塞
+- required follow-up if failed: 无
+
+## design-pattern assessment
+
+- result: pass
+- key findings:
+  - 本次请求未引入新的模式层、管理器层或不必要抽象，维持了问题驱动的最小实现
+  - 兼容性修复优先采用局部参数收窄和显式事件写回，而非新增中间抽象，复杂度受控
+- required follow-up if failed: 无

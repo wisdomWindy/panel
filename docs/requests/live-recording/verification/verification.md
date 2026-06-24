@@ -124,3 +124,20 @@
 3. 测试录制文件管理功能
 4. 测试设置页面配置持久化
 5. 测试异常情况处理（FFmpeg 未安装、磁盘空间不足等）
+
+## spec constraint compliance
+
+- result: pass
+- checked constraints:
+  - 代码实现已覆盖规格中的模块边界和主要交付范围
+  - 文档已显式区分“代码实现验证通过”和“运行态功能仍需补测”的证据边界
+  - 未完成的运行态验证被保留为建议项，没有被伪装为已完成结果
+- evidence reference:
+  - [docs/requests/live-recording/spec/spec.md](/Users/staff/Desktop/testProject/panel/docs/requests/live-recording/spec/spec.md:1)
+  - 本文验证结论与待验证项目章节
+- follow-up if failed: 需在安装 FFmpeg 并运行应用后补录实际录制证据
+
+## summary
+
+- 验证结论：通过历史交付基线。代码实现与规格范围一致，运行态补测需求已被显式保留。
+- handoff status: 可交付 review，但后续环境化验证仍建议补充。

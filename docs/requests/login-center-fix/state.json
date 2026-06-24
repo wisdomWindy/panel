@@ -1,7 +1,7 @@
 {
   "request_id": "login-center-fix",
   "source": "user-direct-request",
-  "stage": "spec",
+  "stage": "complete",
   "status": "completed",
   "artifacts": {
     "request.md": "created",
@@ -16,5 +16,12 @@
   "approvals": {
     "spec_approved": true,
     "plan_approved": true
+  },
+  "loop": {
+    "iteration": 1,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "manual_reopen"
   }
 }

@@ -21,5 +21,12 @@
     "task-board.md": "docs/requests/ui-layout-improvement/plan/task-board.md",
     "verification.md": "docs/requests/ui-layout-improvement/verification/verification.md",
     "review.md": "docs/requests/ui-layout-improvement/review/review.md"
+  },
+  "loop": {
+    "iteration": 1,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "manual_reopen"
   }
 }

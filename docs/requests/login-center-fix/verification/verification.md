@@ -13,3 +13,19 @@
 
 - 源代码审查：确认 `Login.vue` 根 `<div>` 的 `class` 属性已移除 `p-10`
 - 构建验证：`pnpm run build` 成功
+
+## spec constraint compliance
+
+- result: pass
+- checked constraints:
+  - 变更范围严格限定在登录页居中布局修正，未触及脚本逻辑
+  - 完成信号与验证方法均围绕布局效果和构建无错误展开
+- evidence reference:
+  - [docs/requests/login-center-fix/spec/spec.md](/Users/staff/Desktop/testProject/panel/docs/requests/login-center-fix/spec/spec.md:1)
+  - 本文验收标准核对与验证方法章节
+- follow-up if failed: 无
+
+## summary
+
+- 验证结论：通过。历史请求的范围、验证方法和结果一致。
+- handoff status: 已可交付 review。

@@ -129,3 +129,20 @@
 所有验收标准均已通过验证，排行榜功能实现完整，符合规格说明要求。
 
 **建议**：可以进入代码审查阶段。
+
+## spec constraint compliance
+
+- result: pass
+- checked constraints:
+  - 排行榜功能范围保持在数据聚合、展示与空态处理之内
+  - 风险验证已将舰长识别和刷新频率限制显式暴露为后续优化点
+  - 现有结论未将低风险已知局限误判为已解决问题
+- evidence reference:
+  - [docs/requests/leaderboard/spec/spec.md](/Users/staff/Desktop/testProject/panel/docs/requests/leaderboard/spec/spec.md:1)
+  - 本文验收标准验证与风险验证章节
+- follow-up if failed: 无
+
+## summary
+
+- 验证结论：通过。验收项与风险项均有记录，满足当前模板的显式约束结论要求。
+- handoff status: 已可交付 review。

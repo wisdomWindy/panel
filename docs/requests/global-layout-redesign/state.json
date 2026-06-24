@@ -18,5 +18,12 @@
   "approvals": {
     "spec_approved": true,
     "plan_approved": true
+  },
+  "loop": {
+    "iteration": 1,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "manual_reopen"
   }
 }

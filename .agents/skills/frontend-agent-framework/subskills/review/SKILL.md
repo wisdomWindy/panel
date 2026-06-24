@@ -37,6 +37,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Review changed code against the clean-code policy, not just against functional correctness.
 - Review any introduced or modified pattern use against the design-pattern policy, including whether the abstraction was necessary and correctly fitted to the problem.
 - Review the implementation against the spec's declared design constraints instead of treating maintainability and abstraction judgments as free-floating preferences.
+- Write explicit pass or fail conclusions for `clean-code assessment` and `design-pattern assessment`.
 - Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
 - If blocking issues remain, record them and hand control back to the main skill so it can route the request back to `execute` with the correct loop re-entry metadata and continue the workflow immediately.
 - Do not mark the request complete while blockers remain.
@@ -59,6 +60,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Follow-up items that do not block completion
 - Clean-code findings covering naming, responsibility boundaries, duplication, side effects, and control-flow readability
 - Design-pattern findings covering fit, overengineering risk, dependency direction, and whether the abstraction simplified future change
+- Explicit pass/fail compliance conclusions for clean-code and design-pattern assessments
 - Blocking findings that can drive the next `execute` pass without extra user restatement
 
 ## Forbidden Actions
@@ -66,6 +68,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Collapsing review into a one-line approval note
 - Ignoring maintainability problems that materially affect readability or safe future change on the grounds that the feature already works
 - Accepting unnecessary pattern layers, fake extensibility, or framework-shaped indirection without checking whether they solve a real problem
+- Treating clean-code or design-pattern compliance as implicit without a written pass/fail judgment
 - Declaring merge readiness when blockers remain
 
 ## Exit Criteria
@@ -73,5 +76,6 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - `review/review.md` exists and records findings by severity.
 - The review explicitly states whether clean-code blockers remain in the changed area.
 - The review explicitly states whether the introduced pattern choices were justified, overbuilt, or unnecessary.
+- `review/review.md` explicitly states `clean-code assessment: pass|fail` and `design-pattern assessment: pass|fail`.
 - No blocking issues remain unresolved.
 - `state.json` is updated with `stage` set to `complete` while preserving the existing `loop` object.

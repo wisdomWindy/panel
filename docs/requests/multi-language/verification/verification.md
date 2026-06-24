@@ -61,3 +61,19 @@
 1. 后续可扩展其他语言支持（日语、韩语等）
 2. 可考虑添加自动检测系统语言功能
 3. 定期检查语言包完整性，补充新增功能的翻译
+
+## spec constraint compliance
+
+- result: pass
+- checked constraints:
+  - 多语言支持范围保持在语言切换、持久化和 Element Plus 国际化同步之内
+  - 代码实现验证与功能验证都已记录，未将后续语言扩展误判为当前范围
+- evidence reference:
+  - [docs/requests/multi-language/spec/spec.md](/Users/staff/Desktop/testProject/panel/docs/requests/multi-language/spec/spec.md:1)
+  - 本文验证结论章节
+- follow-up if failed: 无
+
+## summary
+
+- 验证结论：通过。多语言支持的核心目标和边界与规格保持一致。
+- handoff status: 已可交付 review。

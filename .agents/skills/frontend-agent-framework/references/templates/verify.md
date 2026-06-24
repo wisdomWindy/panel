@@ -7,6 +7,12 @@
 
 ## `verification/verification.md`
 
+Required top-level sections:
+
+- acceptance coverage
+- spec constraint compliance
+- summary
+
 Required fields for each acceptance item:
 
 - acceptance item id
@@ -15,3 +21,10 @@ Required fields for each acceptance item:
 - evidence reference
 - follow-up if failed
 - handoff status
+
+`spec constraint compliance` must include:
+
+- result (`pass` or `fail`)
+- checked constraints
+- evidence reference
+- follow-up if failed

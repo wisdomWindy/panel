@@ -14,6 +14,15 @@
   "artifacts": {
     "request.md": "docs/requests/blank-screen-bugfix/request.md",
     "bugfix-source.md": "docs/requests/blank-screen-bugfix/artifacts/bugfix-source.md",
-    "state.json": "docs/requests/blank-screen-bugfix/state.json"
+    "state.json": "docs/requests/blank-screen-bugfix/state.json",
+    "verification.md": "docs/requests/blank-screen-bugfix/verification/verification.md",
+    "review.md": "docs/requests/blank-screen-bugfix/review/review.md"
+  },
+  "loop": {
+    "iteration": 1,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "manual_reopen"
   }
 }

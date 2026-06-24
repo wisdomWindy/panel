@@ -9,7 +9,7 @@
   "loop": {
     "iteration": 3,
     "state": "complete",
-    "last_completed_stage": "verify",
+    "last_completed_stage": "review",
     "pending_gate": null,
     "reentry_reason": "new_request"
   },

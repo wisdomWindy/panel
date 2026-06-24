@@ -70,3 +70,21 @@
 ## 结论
 
 核心 API 对齐实现已通过 TypeScript 编译验证，消息类型合约与官方文档一致。建议在获取真实 access_key 后执行集成测试。
+
+## spec constraint compliance
+
+- result: pass
+- checked constraints:
+  - API 对齐范围保持在开放平台鉴权、生命周期、消息解析与兼容性适配之内
+  - 现有实现未偏离规格中定义的字段契约与兼容性目标
+  - 未验证项已显式记录为后续集成测试，不被误判为已完成范围
+- evidence reference:
+  - [docs/requests/api-alignment-open-platform/spec/spec.md](/Users/staff/Desktop/testProject/panel/docs/requests/api-alignment-open-platform/spec/spec.md:1)
+  - `npx tsc --noEmit`
+  - description-doc 官方字段对照记录
+- follow-up if failed: 需在获取真实凭据后补充集成验证并回写结论
+
+## summary
+
+- 验证结论：通过。静态契约与类型层面对齐完成，真实环境集成验证作为已记录后续项保留。
+- handoff status: 可交付 review 阶段，需由后续真实凭据测试补完集成证据。

@@ -15,3 +15,15 @@ Required sections:
 - clean-code assessment
 - design-pattern assessment
 - merge readiness summary
+
+`clean-code assessment` must include:
+
+- result (`pass` or `fail`)
+- key findings
+- required follow-up if failed
+
+`design-pattern assessment` must include:
+
+- result (`pass` or `fail`)
+- key findings
+- required follow-up if failed

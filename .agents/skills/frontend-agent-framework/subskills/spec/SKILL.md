@@ -22,8 +22,11 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - `../../references/state-machine.md`
 - `../../references/templates/spec.md`
 - `../../references/policies/api-contracts.md`
+- `../../references/policies/clean-code.md`
+- `../../references/policies/design-patterns.md`
 - `../../references/policies/doc-writing.md`
 - `../../references/policies/frontend-architecture.md`
+- `../../references/policies/spec-constraints.md`
 
 Load other policy references only when they materially affect the spec.
 
@@ -35,6 +38,9 @@ Load other policy references only when they materially affect the spec.
 - Keep requirement changes explicit in artifacts.
 - Define behavior in a way that is implementable, reviewable, and verifiable by downstream stages.
 - Make acceptance criteria concrete enough to drive planning, testing, and verification.
+- Convert material maintainability and abstraction decisions into explicit spec constraints instead of leaving them for downstream taste-based interpretation.
+- Identify where the request has real pattern-level pressures such as variation by type or state, scattered creation logic, boundary adaptation, notification fan-out, or pipeline handling.
+- Define the intended responsibility boundaries, side-effect placement, duplication ownership, and naming or domain-language constraints when they materially shape the solution.
 - Treat the acceptance criteria as the formal goal contract for downstream stages.
 - Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
 - Do not write implementation code.
@@ -66,6 +72,8 @@ Load other policy references only when they materially affect the spec.
 - Scope definition
 - User flow and module design
 - API and data contract decisions
+- Spec constraints covering module boundaries, side-effect placement, duplication ownership, naming vocabulary, complexity guardrails, and pattern decisions
+- Pattern-relevant design constraints and explicit notes on whether a named pattern is needed
 - Edge cases, risks, and acceptance criteria
 - Clarification records
 - Explicit behavior contracts that can drive tests and verification evidence
@@ -78,10 +86,14 @@ Load other policy references only when they materially affect the spec.
 - Copying sample conclusions into a new spec without re-deriving them from the current requirement
 - Leaving behavior ambiguous enough that implementation must guess intent
 - Leaving the goal subjective enough that verification cannot determine whether the request is done
+- Leaving a major abstraction or collaboration problem implicit when the downstream plan would otherwise have to guess whether a pattern is justified
+- Leaving material responsibility, side-effect, duplication, or readability constraints unspecified when they would change the implementation shape
 
 ## Exit Criteria
 
 - `spec/spec.md` exists and covers scope, flows, modules, contracts, edge cases, acceptance criteria, and risks.
+- The spec records the design constraints that downstream stages must preserve, including responsibility boundaries, side-effect placement, duplication ownership, complexity guardrails, and any required or explicitly rejected pattern use.
+- The spec records whether design-pattern use is required, optional, or explicitly unnecessary for the main change axes.
 - `spec/clarifications.md` records open questions and resolved decisions.
 - The spec defines observable behavior clearly enough for plan tasks, tests, and verification evidence to map back to it.
 - The user approves the spec, preferably through structured approval options when available.

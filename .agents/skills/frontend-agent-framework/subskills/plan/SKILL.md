@@ -20,7 +20,10 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - `docs/requests/<request-id>/spec/clarifications.md`
 - `../../references/state-machine.md`
 - `../../references/templates/plan.md`
+- `../../references/policies/design-patterns.md`
 - `../../references/policies/doc-writing.md`
+- `../../references/policies/clean-code.md`
+- `../../references/policies/spec-constraints.md`
 - `../../references/policies/testing.md`
 
 ## Hard Rules
@@ -32,6 +35,9 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Map every task back to the approved spec.
 - Decompose testable behavior changes into TDD-oriented execution units.
 - For each behavior change, define the intended verification path before implementation begins.
+- Plan the change so module boundaries, responsibilities, duplication control, and side-effect containment stay explicit instead of being deferred to ad hoc cleanup during execution.
+- When the spec shows a real pattern-level pressure, choose the simplest fitting pattern family and record why it is better than direct code or another pattern option.
+- Treat declared spec constraints as mandatory planning inputs, not as optional commentary.
 - Distinguish serial work from independently parallelizable work.
 - Recommend workflow-style parallel execution only when the task set is large enough, independent enough, and valuable enough to justify the extra coordination and token cost.
 - Make trigger handling, context loading, observation points, and human intervention points explicit when the request describes a proactive workflow.
@@ -67,6 +73,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Test and validation strategy
 - Risk and rollback notes
 - Test-first execution sequencing for behavior changes
+- Clean-code guardrails for naming, responsibilities, dependency boundaries, and likely refactor points
+- Pattern decisions, their problem statements, and the code areas where those abstractions should live
 - Trigger/context/handoff planning for proactive workflows
 
 ## Forbidden Actions
@@ -76,6 +84,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Entering execution without user approval
 - Reusing the sample plan as a shortcut instead of planning from the current approved spec
 - Deferring test design until after implementation for behavior that is reasonably testable
+- Leaving obvious complexity, duplication, or mixed-responsibility hotspots unplanned when they are clearly part of the approved change
+- Introducing a pattern in the plan without naming the concrete change axis, selection pressure, or rejected simpler alternative
 - Recommending workflow-style parallel execution for trivial, tightly coupled, or single-thread work
 - Leaving trigger conditions, required context, or human intervention points implicit for a workflow that depends on them
 
@@ -85,6 +95,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - `plan/task-board.md` exists and reflects the planned execution units.
 - The plan artifacts are written in Chinese unless the user explicitly requested another language.
 - The plan maps acceptance criteria to concrete execution and verification tasks, including test-first steps where behavior is testable.
+- The plan records any required clean-code guardrails for the touched modules, especially around naming, responsibility splits, duplication risks, and side-effect boundaries.
+- The plan records any approved pattern decisions, why they are needed, and what simpler alternative was rejected.
 - The plan states which tasks stay serial and which tasks are safe candidates for workflow-style parallel execution.
 - The plan defines the workflow's trigger handling, minimum context, observation points, and human handoff path when those concerns apply.
 - The user approves the plan, preferably through structured approval options when available.

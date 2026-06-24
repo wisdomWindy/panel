@@ -18,6 +18,8 @@ Required sections:
 - trigger and start conditions
 - user flow
 - page and module design
+- design constraints
+- change axes and pattern decision
 - API and data contracts
 - context and dependency sources
 - edge cases

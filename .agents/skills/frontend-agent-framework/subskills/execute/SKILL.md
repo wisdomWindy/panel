@@ -21,6 +21,9 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - `docs/requests/<request-id>/plan/task-board.md`
 - `../../references/state-machine.md`
 - `../../references/policies/api-contracts.md`
+- `../../references/policies/clean-code.md`
+- `../../references/policies/design-patterns.md`
+- `../../references/policies/spec-constraints.md`
 - `../../references/policies/frontend-architecture.md`
 - `../../references/policies/frontend-components.md`
 - `../../references/policies/testing.md`
@@ -31,8 +34,11 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Update `execution/changelog.md` and `plan/task-board.md` as work progresses.
 - Implement only approved tasks.
 - Treat the approved spec and plan as the authoritative implementation contract.
+- Treat the spec's declared design constraints as part of that contract, especially for boundaries, side effects, duplication ownership, readability guardrails, and pattern decisions.
 - For testable behavior changes, execute in red -> green -> refactor order.
 - Write or update the failing test first, then implement the minimal passing change, then refactor while keeping tests green.
+- Apply the clean-code policy while implementing: use intention-revealing names, keep units focused, reduce rule-level duplication, and keep side effects explicit.
+- Apply approved pattern decisions deliberately; if the plan chose Strategy, State, Adapter, Observer, Command, or another pattern family, implement that intent clearly instead of drifting into ad hoc branching or accidental abstractions.
 - Default to serial execution unless the approved plan explicitly marks independent work units as parallel-safe.
 - If workflow-style parallel execution is used, keep every parallel unit mapped back to the same request artifacts, approvals, and task board.
 - Keep execution observable enough that a human can inspect progress, ask follow-up questions, or redirect the work without losing artifact continuity.
@@ -59,6 +65,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Execution notes
 - Task status updates
 - Test-first implementation progress and deviations that are explicitly recorded
+- Targeted clean-code refactors that are necessary to keep the touched area maintainable and aligned with the approved plan
+- Pattern-conforming implementation changes that reflect approved abstraction choices and boundary decisions
 - Workflow-style parallel execution records when the approved plan explicitly calls for them
 - Evidence of progress and intervention-friendly execution notes
 
@@ -69,6 +77,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Declaring the request done
 - Writing behavior-first implementation for a testable change without recording why TDD was not applicable
 - Treating the spec or plan as optional guidance instead of the implementation contract
+- Leaving behind known misleading names, hidden side effects, or duplicated business rules in the touched area when the current change already depends on understanding or editing that area
+- Inventing a new pattern layer during coding without updating the approved design artifacts
 - Spawning workflow-style parallel execution for trivial or unplanned work
 - Hiding material progress, context switches, or human intervention points outside repository artifacts
 
@@ -77,6 +87,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Planned implementation work is complete.
 - Major execution decisions and deviations are recorded in `execution/changelog.md`.
 - Test-first execution steps or justified exceptions are recorded for behavior changes.
+- The changed area remains readable enough for review, with any necessary clean-code refactors completed or explicitly tracked in the plan and changelog.
+- Any introduced pattern remains traceable to an approved problem statement and is expressed clearly enough for review to judge whether it earned its complexity.
 - `plan/task-board.md` reflects the completed execution state.
 - `state.json` is updated with `stage` set to `verify` while preserving the existing `loop` object.
 - The stage leaves enough updated evidence that `verify` can re-run immediately in the same workflow loop.

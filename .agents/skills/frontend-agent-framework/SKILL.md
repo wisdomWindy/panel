@@ -28,6 +28,8 @@ Keep the repository-local workflow in control through one default entry skill th
 - Keep request decisions, transitions, and evidence in repository artifacts instead of chat-only state.
 - Enforce specification-driven development so implementation follows approved repository artifacts instead of ad hoc coding decisions.
 - Enforce TDD for testable behavior changes unless the current task is explicitly non-testable and that exception is recorded.
+- Enforce clean-code discipline so shipped changes remain readable, low-surprise, and maintainable.
+- Enforce design-pattern discipline so abstractions are introduced only when they solve a real change, dependency, or behavior-selection problem.
 
 ## Built-In Constitution
 
@@ -172,6 +174,9 @@ Workflow rules:
 - Treat the approved spec and plan as the authoritative implementation contract for all downstream stages.
 - Do not let execution, verification, or review invent behavior that is not justified by the approved spec and plan.
 - For behavior that can be covered by tests, plan and execute the work using a red -> green -> refactor loop.
+- Apply `references/policies/clean-code.md` as a durable rule set for naming, responsibility boundaries, duplication control, side-effect containment, and maintainability judgment.
+- Apply `references/policies/design-patterns.md` as a durable rule set for deciding when a pattern is justified, which pattern family fits, and when direct code remains the better choice.
+- Apply `references/policies/spec-constraints.md` as the upstream rule that forces maintainability and abstraction decisions into `spec/spec.md` before planning and coding.
 
 ## Loop State Contract
 
@@ -243,6 +248,10 @@ Load only what is needed:
 - Framework authoring constraints: `references/authoring-guide.md`
 - Feishu/Lark bug retrieval rules: `references/bugfix-feishu-project.md`
 - Durable standards: `references/policies/*.md`
+- Clean-code maintainability policy: `references/policies/clean-code.md`
+- Design-pattern decision policy: `references/policies/design-patterns.md`
+- Spec constraint policy: `references/policies/spec-constraints.md`
+- Pattern catalog: `references/patterns/*.md`
 - Artifact shape requirements: `references/templates/*.md`
 - Bugfix intake artifact shape: `references/templates/bugfix-intake.md`
 - Page design artifact shape: `references/templates/page-design.md`
@@ -261,6 +270,9 @@ Load only what is needed:
 - Stop only at real blocking gates such as required approval, missing upstream requirement information, or unavailable external dependency needed for the next stage.
 - Never implement behavior that is not defined, clarified, or accepted in the repository spec artifacts.
 - Never skip test-first execution for testable behavior changes unless the reason is explicitly recorded in repository artifacts.
+- Never allow materially misleading names, hidden side effects, duplicate business rules, or mixed-responsibility structures to pass review as if they were style-only concerns.
+- Never introduce pattern layers, factories, managers, handlers, or indirection objects without a concrete problem statement in the approved spec or plan.
+- Never treat maintainability, boundary, side-effect, or pattern choices as purely downstream concerns when they materially affect the shape of the solution; record them in the spec first.
 - Never hide the workflow's starting conditions, context sources, or human handoff path in chat-only instructions.
 - Never stop after a failed `verify` or blocking `review` if the next required action is more implementation work and no real blocking gate exists.
 
@@ -302,6 +314,8 @@ Stage actions belong only to subskills.
 - After routing back from `verify` or `review`, continue the `execute -> verify` loop until verification passes or a real blocking gate is reached.
 - If execution discovers the spec is incomplete, ambiguous, or contradicted by reality, stop and route back to `spec` or `plan` before continuing implementation.
 - If TDD cannot be applied to a behavior change, record the reason and the fallback verification method in repository artifacts before continuing.
+- If execution or review finds a clean-code violation severe enough to endanger readability, safe change, or future extension, treat it as a real workflow issue and route it through the normal execute/review loop instead of deferring it as cosmetic feedback.
+- If the need for a pattern is discovered during execution, record and approve that design decision through spec or plan artifacts before cementing the abstraction in code.
 
 ## Completion Rule
 

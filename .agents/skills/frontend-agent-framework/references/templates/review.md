@@ -12,4 +12,6 @@ Required sections:
 - non-blocking issues
 - accepted risks
 - follow-up items
+- clean-code assessment
+- design-pattern assessment
 - merge readiness summary

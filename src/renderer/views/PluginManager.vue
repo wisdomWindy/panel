@@ -41,7 +41,7 @@ async function loadPlugins() {
 }
 
 // 启用/禁用插件
-async function togglePlugin(plugin: PluginState) {
+async function togglePlugin(_plugin: PluginState) {
   try {
     // TODO: 调用插件管理器启用/禁用插件
     // const pluginManager = getPluginManager();

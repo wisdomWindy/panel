@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
-import { useRecordingStore } from '../../stores/recording';
+import { useRecordingStore } from '../../../stores/recording';
 
 const recordingStore = useRecordingStore();
 

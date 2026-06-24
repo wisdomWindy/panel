@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Monitor, User, ChatDotRound, Present } from '@element-plus/icons-vue';
 import { init, use, type ECharts } from 'echarts/core';
 import { BarChart, LineChart } from 'echarts/charts';
@@ -14,6 +15,7 @@ import Leaderboard from './components/Leaderboard.vue';
 
 use([BarChart, LineChart, GridComponent, TitleComponent, TooltipComponent, CanvasRenderer]);
 
+const { t } = useI18n();
 const roomStore = useRoomStore();
 const danmakuStore = useDanmakuStore();
 
@@ -61,7 +63,7 @@ const recentActivities = computed(() => {
 
   const recentGift = danmakuStore.giftList.slice(0, 5).map(g => ({
     type: 'gift' as const,
-    message: `${g.username} 送了 ${g.giftName} x${g.count}`,
+    message: `${g.username} ${t('dashboard.giftMessage', { giftName: g.giftName, count: g.count })}`,
     timestamp: g.timestamp
   }));
 
@@ -88,19 +90,19 @@ function formatTime(timestamp: number) {
 }
 
 function formatRoomNameStatistic() {
-  return roomStore.roomInfo?.roomName || '未连接';
+  return roomStore.roomInfo?.roomName || t('dashboard.disconnected');
 }
 
 function initOnlineChart() {
   if (!onlineChartRef.value) return;
   onlineChart = init(onlineChartRef.value);
   onlineChart.setOption({
-    title: { text: '在线人数趋势', left: 'center', textStyle: { fontSize: 14 } },
+    title: { text: t('dashboard.onlineTrend'), left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
     xAxis: { type: 'category', data: timeLabels.value },
-    yAxis: { type: 'value', name: '人数' },
+    yAxis: { type: 'value', name: t('dashboard.people') },
     series: [{
-      name: '在线人数',
+      name: t('dashboard.onlineCount'),
       type: 'line',
       data: onlineHistory.value,
       smooth: true,
@@ -113,12 +115,12 @@ function initDanmakuChart() {
   if (!danmakuChartRef.value) return;
   danmakuChart = init(danmakuChartRef.value);
   danmakuChart.setOption({
-    title: { text: '弹幕数量趋势', left: 'center', textStyle: { fontSize: 14 } },
+    title: { text: t('dashboard.danmakuTrend'), left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
     xAxis: { type: 'category', data: timeLabels.value },
-    yAxis: { type: 'value', name: '条数' },
+    yAxis: { type: 'value', name: t('dashboard.count') },
     series: [{
-      name: '弹幕数',
+      name: t('dashboard.danmakuCount'),
       type: 'line',
       data: danmakuHistory.value,
       smooth: true,
@@ -132,12 +134,12 @@ function initGiftChart() {
   giftChart = init(giftChartRef.value);
   const data = giftRankData.value;
   giftChart.setOption({
-    title: { text: '礼物价值排行榜', left: 'center', textStyle: { fontSize: 14 } },
+    title: { text: t('dashboard.giftRank'), left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     xAxis: { type: 'category', data: data.map(d => d[0]) },
-    yAxis: { type: 'value', name: '电池' },
+    yAxis: { type: 'value', name: t('dashboard.silverCoin') },
     series: [{
-      name: '礼物价值',
+      name: t('dashboard.totalValue'),
       type: 'bar',
       data: data.map(d => d[1]),
       itemStyle: { color: '#ffa500' }
@@ -213,7 +215,7 @@ onUnmounted(() => {
             <div class="flex justify-between items-center">
               <span class="font-semibold text-gray-700">系统概览</span>
               <el-tag :type="roomStore.isConnected ? 'success' : 'danger'">
-                {{ roomStore.isConnected ? '已连接' : '未连接' }}
+                {{ roomStore.isConnected ? t('dashboard.connected') : t('dashboard.disconnected') }}
               </el-tag>
             </div>
           </template>
@@ -221,7 +223,7 @@ onUnmounted(() => {
           <el-row :gutter="20">
             <el-col :span="6">
               <div class="p-4 bg-gray-50 rounded-lg">
-                <el-statistic title="直播间" :value="0" :formatter="formatRoomNameStatistic">
+                <el-statistic :title="t('dashboard.room')" :value="0" :formatter="formatRoomNameStatistic">
                   <template #prefix>
                     <el-icon><Monitor /></el-icon>
                   </template>
@@ -230,7 +232,7 @@ onUnmounted(() => {
             </el-col>
             <el-col :span="6">
               <div class="p-4 bg-gray-50 rounded-lg">
-                <el-statistic title="在线人数" :value="roomStore.onlineCount">
+                <el-statistic :title="t('dashboard.onlineCount')" :value="roomStore.onlineCount">
                   <template #prefix>
                     <el-icon><User /></el-icon>
                   </template>
@@ -239,7 +241,7 @@ onUnmounted(() => {
             </el-col>
             <el-col :span="6">
               <div class="p-4 bg-gray-50 rounded-lg">
-                <el-statistic title="弹幕总数" :value="danmakuStore.danmakuList.length">
+                <el-statistic :title="t('dashboard.danmakuCount')" :value="danmakuStore.danmakuList.length">
                   <template #prefix>
                     <el-icon><ChatDotRound /></el-icon>
                   </template>
@@ -248,7 +250,7 @@ onUnmounted(() => {
             </el-col>
             <el-col :span="6">
               <div class="p-4 bg-gray-50 rounded-lg">
-                <el-statistic title="礼物总数" :value="danmakuStore.giftList.length">
+                <el-statistic :title="t('dashboard.giftCount')" :value="danmakuStore.giftList.length">
                   <template #prefix>
                     <el-icon><Present /></el-icon>
                   </template>
@@ -264,15 +266,15 @@ onUnmounted(() => {
       <el-col :span="12">
         <el-card>
           <template #header>
-            <span>弹幕统计</span>
+            <span>{{ t('dashboard.danmakuStats') }}</span>
           </template>
           <div class="grid grid-cols-2 gap-6">
-            <StatCard label="今日发送" :value="danmakuStore.sentTodayCount.toString()" />
-            <StatCard label="发送成功率" :value="danmakuStore.sendSuccessRate + '%'" />
-            <StatCard label="最后发送" :value="danmakuStore.lastSentTime ? formatTime(danmakuStore.lastSentTime) : '无'" />
-            <StatCard label="自动发送">
+            <StatCard :label="t('danmaku.todaySent')" :value="danmakuStore.sentTodayCount.toString()" />
+            <StatCard :label="t('danmaku.sendSuccessRate')" :value="danmakuStore.sendSuccessRate + '%'" />
+            <StatCard :label="t('danmaku.lastSent')" :value="danmakuStore.lastSentTime ? formatTime(danmakuStore.lastSentTime) : t('danmaku.none')" />
+            <StatCard :label="t('danmaku.autoSend')">
               <el-tag :type="danmakuService.isAutoSending ? 'success' : 'info'">
-                {{ danmakuService.isAutoSending ? '运行中' : '已停止' }}
+                {{ danmakuService.isAutoSending ? t('danmaku.running') : t('danmaku.stopped') }}
               </el-tag>
             </StatCard>
           </div>
@@ -281,13 +283,13 @@ onUnmounted(() => {
       <el-col :span="12">
         <el-card>
           <template #header>
-            <span>礼物统计</span>
+            <span>{{ t('dashboard.giftStats') }}</span>
           </template>
           <div class="grid grid-cols-2 gap-5">
-            <StatCard :label="'总价值'" :value="totalValue + ' 电池'" />
-            <StatCard :label="'最高价值'" :value="maxValue + ' 电池'" />
-            <StatCard label="感谢发送" :value="danmakuStore.thankSentCount.toString()" />
-            <StatCard label="礼物类型" :value="giftTypes" />
+            <StatCard :label="t('dashboard.totalValue')" :value="`${totalValue} ${t('dashboard.silverCoin')}`" />
+            <StatCard :label="t('dashboard.maxValue')" :value="`${maxValue} ${t('dashboard.silverCoin')}`" />
+            <StatCard :label="t('dashboard.thankSent')" :value="danmakuStore.thankSentCount.toString()" />
+            <StatCard :label="t('dashboard.giftType')" :value="giftTypes" />
           </div>
         </el-card>
       </el-col>
@@ -297,7 +299,7 @@ onUnmounted(() => {
       <el-col :span="24">
         <el-card>
           <template #header>
-            <span class="font-semibold text-gray-700">最近活动</span>
+            <span class="font-semibold text-gray-700">{{ t('dashboard.recentActivity') }}</span>
           </template>
           <div class="max-h-[300px] overflow-y-auto">
             <div v-for="(activity, index) in recentActivities" :key="index" class="flex items-center py-3 border-b border-gray-100 last:border-b-0 hover:bg-blue-50 transition-colors duration-200 rounded px-2">
@@ -316,7 +318,7 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
-            <el-empty v-if="recentActivities.length === 0" description="暂无活动记录" />
+            <el-empty v-if="recentActivities.length === 0" :description="t('dashboard.noActivity')" />
           </div>
         </el-card>
       </el-col>

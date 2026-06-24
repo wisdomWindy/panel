@@ -32,11 +32,20 @@ export class PluginLoader {
    * 加载单个插件
    */
   async loadPlugin(pluginId: string): Promise<PluginLoadResult> {
-    try {
-      // 1. 获取插件目录路径
-      const pluginPath = this.getPluginPath(pluginId);
+    const pluginPath = this.getPluginPath(pluginId);
+    return this.loadPluginAtPath(pluginPath);
+  }
 
-      // 2. 验证插件目录存在
+  /**
+   * 从外部路径加载单个插件
+   */
+  async loadPluginFromPath(pluginPath: string): Promise<PluginLoadResult> {
+    return this.loadPluginAtPath(pluginPath);
+  }
+
+  private async loadPluginAtPath(pluginPath: string): Promise<PluginLoadResult> {
+    try {
+      // 1. 验证插件目录存在
       const dirExists = await this.checkDirectoryExists(pluginPath);
       if (!dirExists) {
         return {
@@ -45,7 +54,7 @@ export class PluginLoader {
         };
       }
 
-      // 3. 读取并验证 manifest.json
+      // 2. 读取并验证 manifest.json
       const manifestResult = await this.loadManifest(pluginPath);
       if (!manifestResult.success) {
         return {
@@ -56,7 +65,7 @@ export class PluginLoader {
 
       const manifest = manifestResult.manifest!;
 
-      // 4. 验证插件格式
+      // 3. 验证插件格式
       const validationResult = this.validateManifest(manifest);
       if (!validationResult.valid) {
         return {
@@ -65,7 +74,7 @@ export class PluginLoader {
         };
       }
 
-      // 5. 检查版本兼容性
+      // 4. 检查版本兼容性
       const versionResult = this.checkVersionCompatibility(manifest);
       if (!versionResult.compatible) {
         return {
@@ -74,7 +83,7 @@ export class PluginLoader {
         };
       }
 
-      // 6. 验证入口文件存在
+      // 5. 验证入口文件存在
       const entryPath = this.getEntryPath(pluginPath, manifest.main);
       const entryExists = await this.checkFileExists(entryPath);
       if (!entryExists) {
@@ -84,7 +93,7 @@ export class PluginLoader {
         };
       }
 
-      // 7. 读取插件代码
+      // 6. 读取插件代码
       const code = await this.readPluginCode(entryPath);
       if (!code.success) {
         return {

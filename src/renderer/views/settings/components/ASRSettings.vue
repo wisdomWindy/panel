@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
-import { useASRStore } from '../../stores/asr';
+import { useASRStore } from '../../../stores/asr';
 
 const asrStore = useASRStore();
 

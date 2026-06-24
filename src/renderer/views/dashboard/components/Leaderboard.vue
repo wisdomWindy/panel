@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useDanmakuStore } from '../stores/danmaku';
+import { useDanmakuStore } from '../../../stores/danmaku';
 
 const danmakuStore = useDanmakuStore();
 

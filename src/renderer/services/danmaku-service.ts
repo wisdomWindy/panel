@@ -8,10 +8,15 @@ import { ConnectionStatus, Gift } from '../modules/danmaku/types';
 import { useRoomStore } from '../stores/room';
 import { useDanmakuStore } from '../stores/danmaku';
 import { useConfigStore } from '../stores/config';
+import { useRecordingStore } from '../stores/recording';
 import { filterSensitiveWords } from '../modules/utils/sensitive-words';
 import { EffectType } from '../modules/effects/types';
 import { databaseService } from './database-service';
 import type { EffectManager } from '../modules/effects/types';
+import {
+  buildRecordingStartOptions,
+  canStartRecording
+} from '../views/recording/utils/recording-context.js';
 
 type InitializableEffectManager = EffectManager & {
   initialize: () => Promise<void>;
@@ -22,6 +27,7 @@ export class DanmakuService {
   private roomStore = useRoomStore();
   private danmakuStore = useDanmakuStore();
   private configStore = useConfigStore();
+  private recordingStore = useRecordingStore();
   private effectManager: EffectManager | null = null;
 
   constructor() {
@@ -158,9 +164,21 @@ export class DanmakuService {
   private handleAutoRecordStart(): void {
     // 检查是否启用了自动录制功能
     if (this.configStore.config.enableAutoRecord) {
-      console.log('自动录制功能已触发');
-      // TODO: 实现自动录制逻辑
-      // 这里可以调用录制服务开始录制
+      const roomContext = this.roomStore.roomInfo
+        ? {
+            roomId: String(this.roomStore.roomInfo.roomId),
+            roomName: this.roomStore.roomInfo.roomName
+          }
+        : null;
+      const canStart = canStartRecording(roomContext);
+      if (!canStart.ok || this.recordingStore.isRecording) {
+        return;
+      }
+      void this.recordingStore.startRecording(
+        buildRecordingStartOptions(roomContext as { roomId: string; roomName?: string }, this.recordingStore.config)
+      ).catch((error) => {
+        console.error('自动录制启动失败:', error);
+      });
     }
   }
 

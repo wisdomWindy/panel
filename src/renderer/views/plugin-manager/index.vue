@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { usePluginStore } from '../../stores/plugin';
 import { PluginState } from '../../plugins/types';
+import { ensurePluginManagerInitialized } from '../../plugins/runtime/index.js';
 
 const pluginStore = usePluginStore();
 
@@ -29,10 +30,8 @@ async function loadPlugins() {
   pluginStore.setError(null);
 
   try {
-    // TODO: 从插件管理器加载插件列表
-    // const pluginManager = getPluginManager();
-    // const plugins = pluginManager.getPlugins();
-    // pluginStore.setPlugins(plugins);
+    const pluginManager = await ensurePluginManagerInitialized();
+    pluginStore.setPlugins(pluginManager.getPlugins());
   } catch (err) {
     pluginStore.setError(err instanceof Error ? err.message : '加载插件失败');
   } finally {
@@ -41,19 +40,19 @@ async function loadPlugins() {
 }
 
 // 启用/禁用插件
-async function togglePlugin(_plugin: PluginState) {
+async function togglePlugin(plugin: PluginState) {
   try {
-    // TODO: 调用插件管理器启用/禁用插件
-    // const pluginManager = getPluginManager();
-    // if (plugin.enabled) {
-    //   await pluginManager.disablePlugin(plugin.id);
-    //   pluginStore.disablePlugin(plugin.id);
-    // } else {
-    //   await pluginManager.enablePlugin(plugin.id);
-    //   pluginStore.enablePlugin(plugin.id);
-    // }
+    const pluginManager = await ensurePluginManagerInitialized();
+    if (plugin.enabled) {
+      await pluginManager.enablePlugin(plugin.id);
+      pluginStore.enablePlugin(plugin.id);
+    } else {
+      await pluginManager.disablePlugin(plugin.id);
+      pluginStore.disablePlugin(plugin.id);
+    }
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : '操作失败');
+    await loadPlugins();
   }
 }
 
@@ -78,10 +77,9 @@ async function uninstallPlugin(plugin: PluginState) {
       { type: 'warning' }
     );
 
-    // TODO: 调用插件管理器卸载插件
-    // const pluginManager = getPluginManager();
-    // await pluginManager.uninstallPlugin(plugin.id);
-    // pluginStore.removePlugin(plugin.id);
+    const pluginManager = await ensurePluginManagerInitialized();
+    await pluginManager.uninstallPlugin(plugin.id);
+    pluginStore.removePlugin(plugin.id);
 
     ElMessage.success('插件已卸载');
   } catch (err) {
@@ -101,9 +99,12 @@ async function handleInstall() {
   installing.value = true;
 
   try {
-    // TODO: 调用插件管理器安装插件
-    // const pluginManager = getPluginManager();
-    // await pluginManager.installPlugin(installFile.value.path);
+    const pluginPath = (installFile.value as File & { path?: string }).path;
+    if (!pluginPath) {
+      throw new Error('当前环境无法读取插件路径，请选择本地插件目录');
+    }
+    const pluginManager = await ensurePluginManagerInitialized();
+    await pluginManager.installPlugin(pluginPath);
 
     ElMessage.success('插件安装成功');
     showInstallDialog.value = false;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
-import { useConfigStore } from '../../stores/config';
+import { useConfigStore } from '../../../stores/config';
 
 const configStore = useConfigStore();
 

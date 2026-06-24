@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
-import { useAIStore } from '../../stores/ai';
+import { useAIStore } from '../../../stores/ai';
 
 const aiStore = useAIStore();
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useConfigStore } from '../../stores/config';
+import { useConfigStore } from '../../../stores/config';
+import { setAppLocale } from '../../../i18n-runtime';
 
 const { locale } = useI18n();
 const configStore = useConfigStore();
@@ -12,7 +13,7 @@ const form = reactive({
 
 function handleLanguageChange(lang: string) {
   locale.value = lang;
-  localStorage.setItem('locale', lang);
+  setAppLocale(lang as 'zh-CN' | 'en-US');
   configStore.updateConfig({ language: lang as 'zh-CN' | 'en-US' });
 }
 

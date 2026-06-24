@@ -15,6 +15,7 @@ import {
 import { PluginLoader, createPluginLoader } from './plugin-loader';
 import { PluginSandbox, createPluginSandbox } from './plugin-sandbox';
 import { PluginAPIImpl, createPluginAPI } from './plugin-api';
+import { resolvePluginInstallTarget, toPluginDirectoryPath } from './runtime/helpers.js';
 
 // 插件管理器配置
 interface PluginManagerConfig {
@@ -175,7 +176,7 @@ export class PluginManager {
       }
 
       // 2. 加载插件
-      const loadResult = await this.loader.loadPlugin(pluginPath);
+      const loadResult = await this.loader.loadPluginFromPath(pluginPath);
       if (!loadResult.success) {
         throw new PluginLoadError(loadResult.error || '加载插件失败', pluginPath);
       }
@@ -192,7 +193,10 @@ export class PluginManager {
       }
 
       // 4. 复制插件到插件目录
-      await this.copyPluginToDirectory(pluginPath, loadResult.plugin!.id);
+      const installTarget = resolvePluginInstallTarget(pluginPath, {
+        id: loadResult.plugin!.id
+      });
+      await this.copyPluginToDirectory(installTarget.sourcePath, installTarget.pluginId);
 
       // 5. 注册插件
       await this.registerPlugin(loadResult.plugin!.id, loadResult);
@@ -401,7 +405,7 @@ export class PluginManager {
   private async copyPluginToDirectory(sourcePath: string, pluginId: string): Promise<void> {
     // 在 Electron 环境中使用 fs 模块
     if (typeof window !== 'undefined' && window.electronAPI) {
-      const targetPath = `${this.pluginDir}/${pluginId}`;
+      const targetPath = toPluginDirectoryPath(this.pluginDir, pluginId);
       await window.electronAPI.copyDirectory(sourcePath, targetPath);
     }
   }
@@ -412,7 +416,7 @@ export class PluginManager {
   private async deletePluginDirectory(pluginId: string): Promise<void> {
     // 在 Electron 环境中使用 fs 模块
     if (typeof window !== 'undefined' && window.electronAPI) {
-      const pluginPath = `${this.pluginDir}/${pluginId}`;
+      const pluginPath = toPluginDirectoryPath(this.pluginDir, pluginId);
       await window.electronAPI.deleteDirectory(pluginPath);
     }
   }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
 import { useRouter } from 'vue-router';
-import { useConfigStore } from '../../stores/config';
+import { useConfigStore } from '../../../stores/config';
 
 const router = useRouter();
 const configStore = useConfigStore();

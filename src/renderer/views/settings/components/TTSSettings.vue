@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
-import { useTTSStore } from '../../stores/tts';
-import { EDGE_TTS_VOICES } from '../../modules/tts/types';
+import { useTTSStore } from '../../../stores/tts';
+import { EDGE_TTS_VOICES } from '../../../modules/tts/types';
 
 const ttsStore = useTTSStore();
 const edgeTTSVoices = EDGE_TTS_VOICES;

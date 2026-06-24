@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
-import { useModerationStore } from '../../stores/moderation';
+import { useModerationStore } from '../../../stores/moderation';
 
 const moderationStore = useModerationStore();
 const newProhibitedWord = ref('');

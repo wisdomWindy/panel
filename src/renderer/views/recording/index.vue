@@ -2,10 +2,16 @@
 import { ref, onMounted, computed } from 'vue';
 import { VideoCamera, VideoPause, VideoPlay, Setting, Star } from '@element-plus/icons-vue';
 import { useRecordingStore } from '../../stores/recording';
+import { useRoomStore } from '../../stores/room';
 import RecordingList from './components/RecordingList.vue';
 import HighlightList from './components/HighlightList.vue';
+import {
+  buildRecordingStartOptions,
+  canStartRecording
+} from './utils/recording-context.js';
 
 const recordingStore = useRecordingStore();
+const roomStore = useRoomStore();
 
 const activeTab = ref('recordings');
 const configDialogVisible = ref(false);
@@ -25,15 +31,21 @@ async function handleStartRecording() {
       return;
     }
 
-    // 使用默认配置开始录制
-    await recordingStore.startRecording({
-      roomId: 'default', // 实际应该从当前连接的直播间获取
-      format: recordingStore.config.format,
-      quality: recordingStore.config.quality,
-      outputPath: recordingStore.config.outputPath || '',
-      highlightEnabled: recordingStore.config.highlightEnabled,
-      highlightConfig: recordingStore.config.highlightConfig
-    });
+    const roomContext = roomStore.roomInfo
+      ? {
+          roomId: String(roomStore.roomInfo.roomId),
+          roomName: roomStore.roomInfo.roomName
+        }
+      : null;
+    const canStart = canStartRecording(roomContext);
+    if (!canStart.ok) {
+      ElMessage.error(canStart.message);
+      return;
+    }
+
+    await recordingStore.startRecording(
+      buildRecordingStartOptions(roomContext, recordingStore.config)
+    );
 
     ElMessage.success('开始录制');
   } catch (error) {

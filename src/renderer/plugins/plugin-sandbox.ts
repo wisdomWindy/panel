@@ -3,7 +3,7 @@
  * 提供插件隔离执行环境，防止插件异常影响主应用
  */
 
-import { PluginPermission, PluginAPI, PluginPermissionError } from './types';
+import { PluginPermission, PluginAPI } from './types';
 
 // 沙箱配置接口
 interface SandboxConfig {
@@ -154,18 +154,6 @@ export class PluginSandbox {
       },
       Console: null as any
     } as Console;
-  }
-
-  /**
-   * 检查权限
-   */
-  private checkPermission(permission: PluginPermission): void {
-    if (!this.permissions.has(permission)) {
-      throw new PluginPermissionError(
-        `插件 ${this.pluginId} 未声明 ${permission} 权限`,
-        this.pluginId
-      );
-    }
   }
 
   /**

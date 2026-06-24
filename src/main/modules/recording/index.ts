@@ -162,7 +162,7 @@ function registerIpcHandlers(): void {
   });
 
   // ===== 高光管理 =====
-  ipcMain.handle('recording:markHighlight', (_event, sessionId: string, reason: string, description?: string) => {
+  ipcMain.handle('recording:markHighlight', (_event, _sessionId: string, _reason: string, description?: string) => {
     try {
       if (highlightDetector) {
         highlightDetector.manualMark(description);

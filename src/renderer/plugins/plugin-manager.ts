@@ -10,8 +10,6 @@ import {
   PluginLoadResult,
   PluginInstallOptions,
   PluginPermission,
-  PluginEvent,
-  PluginError,
   PluginLoadError
 } from './types';
 import { PluginLoader, createPluginLoader } from './plugin-loader';
@@ -152,7 +150,7 @@ export class PluginManager {
 
       // 7. 保存插件实例
       this.plugins.set(pluginId, {
-        manifest: manifestResult.plugin!,
+        manifest: manifestResult.plugin! as PluginManifest,
         sandbox,
         api,
         plugin,
@@ -184,7 +182,7 @@ export class PluginManager {
 
       // 3. 检查版本兼容性
       if (!options?.skipVersionCheck) {
-        const versionResult = this.loader.checkVersionCompatibility(loadResult.plugin!);
+        const versionResult = this.loader.checkVersionCompatibility(loadResult.plugin! as PluginManifest);
         if (!versionResult.compatible) {
           if (!options?.force) {
             throw new Error(versionResult.error);

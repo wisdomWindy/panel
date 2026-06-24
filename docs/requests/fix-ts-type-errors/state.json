@@ -1,0 +1,30 @@
+{
+  "requestId": "fix-ts-type-errors",
+  "title": "修复项目 TypeScript 类型错误",
+  "type": "bugfix",
+  "stage": "complete",
+  "status": "completed",
+  "createdAt": "2026-06-24T00:00:00.000Z",
+  "updatedAt": "2026-06-24T00:00:00.000Z",
+  "loop": {
+    "iteration": 5,
+    "state": "complete",
+    "last_completed_stage": "verify",
+    "pending_gate": null,
+    "reentry_reason": "new_request"
+  },
+  "artifacts": {
+    "request": true,
+    "bugfixSource": true,
+    "prdSnapshot": true,
+    "spec": true,
+    "plan": true,
+    "taskBoard": false,
+    "verification": true,
+    "review": true
+  },
+  "approvals": {
+    "spec": "auto",
+    "plan": "auto"
+  }
+}

@@ -7,8 +7,7 @@ import { ipcMain, BrowserWindow, dialog } from 'electron';
 import { mainDatabase } from '../../database.js';
 import type {
   GiftSoundConfig,
-  PlaySoundRequest,
-  PlaySoundResult
+  PlaySoundRequest
 } from '../../../renderer/modules/gift-sound/types.js';
 
 let mainWindow: BrowserWindow | null = null;

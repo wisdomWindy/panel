@@ -9,7 +9,7 @@ import type {
   RecordingFormat,
   RecordingOptions,
   RecordingSession,
-  RecordingStatus
+  RecordingStatusInfo
 } from '../../../renderer/modules/recording/types.js';
 
 export class RecordingEngine extends EventEmitter {
@@ -137,7 +137,7 @@ export class RecordingEngine extends EventEmitter {
   /**
    * 获取当前录制状态
    */
-  getRecordingStatus(): RecordingStatus | null {
+  getRecordingStatus(): RecordingStatusInfo | null {
     if (!this.currentSession) {
       return null;
     }

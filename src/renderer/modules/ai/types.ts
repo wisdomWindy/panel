@@ -28,7 +28,7 @@ export interface AIConfig {
 // AI 人设配置
 export interface AIPersonality {
   name: string;  // 人设名称
-  tone: 'humorous' | 'gentle' | 'professional' | 'anime' | 'custom';
+  tone: 'humorous' | 'gentle' | 'professional' | 'anime' | 'custom' | 'friendly';
   responseStyle: 'casual' | 'formal' | 'friendly' | 'custom';
   systemPrompt: string;  // 系统提示词
   examples: string[];  // 示例回复

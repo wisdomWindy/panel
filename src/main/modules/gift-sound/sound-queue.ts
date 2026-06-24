@@ -72,7 +72,7 @@ export class SoundQueue {
     if (item) {
       this.emitEvent('dequeue', item);
     }
-    return item;
+    return item ?? null;
   }
 
   /**

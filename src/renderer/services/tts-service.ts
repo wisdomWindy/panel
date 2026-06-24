@@ -331,7 +331,7 @@ export class TTSService {
         voice: this.config.edgeTTSVoice,
         rate: this.config.speed,
         volume: this.config.volume
-      });
+      }) as any;
 
       if (!result.success) {
         console.error('Edge TTS error:', result.error);

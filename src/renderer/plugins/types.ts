@@ -163,6 +163,9 @@ export interface Plugin {
   version: string;
   description: string;
   author: string;
+  main?: string;
+  minAppVersion?: string;
+  permissions?: PluginPermission[];
 
   // 生命周期钩子
   onLoad?: () => Promise<void> | void;
@@ -213,4 +216,60 @@ export interface PluginValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+}
+
+// 插件常量
+export const PLUGIN_MANIFEST_FILE = 'manifest.json';
+export const PLUGIN_ENTRY_FILE = 'index.js';
+
+// 插件事件类型
+export type PluginEvent =
+  | 'registered'
+  | 'unregistered'
+  | 'enabled'
+  | 'disabled'
+  | 'installed'
+  | 'uninstalled'
+  | 'config_changed'
+  | 'initialized';
+
+// 插件错误基类
+export class PluginError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PluginError';
+  }
+}
+
+// 插件加载错误
+export class PluginLoadError extends PluginError {
+  pluginId: string;
+
+  constructor(message: string, pluginId: string) {
+    super(message);
+    this.name = 'PluginLoadError';
+    this.pluginId = pluginId;
+  }
+}
+
+// 插件验证错误
+export class PluginValidationError extends PluginError {
+  errors: string[];
+
+  constructor(message: string, errors: string[]) {
+    super(message);
+    this.name = 'PluginValidationError';
+    this.errors = errors;
+  }
+}
+
+// 插件权限错误
+export class PluginPermissionError extends PluginError {
+  pluginId: string;
+
+  constructor(message: string, pluginId: string) {
+    super(message);
+    this.name = 'PluginPermissionError';
+    this.pluginId = pluginId;
+  }
 }

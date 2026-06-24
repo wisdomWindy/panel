@@ -226,7 +226,7 @@ export class LLMService {
       messages: request.messages,
       maxTokens: request.maxTokens,
       temperature: request.temperature
-    });
+    }) as any;
 
     if (!result.success) {
       throw new Error(result.error);
@@ -272,7 +272,7 @@ export class LLMService {
         apiKey: this.config.apiKey,
         endpoint: this.config.endpoint
       });
-      return result;
+      return result as { available: boolean; error?: string };
     } catch (error) {
       return {
         available: false,

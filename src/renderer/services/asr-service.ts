@@ -216,7 +216,7 @@ export class ASRService {
       engine: this.config.engine,
       model: this.config.model,
       language: this.config.language
-    });
+    }) as any;
 
     if (!result.success) {
       throw new Error(result.error);
@@ -270,7 +270,7 @@ export class ASRService {
         const result = await window.electronAPI.invoke('asr:process', {
           audio: base64Audio,
           language: this.config.language
-        });
+        }) as any;
 
         if (result.success && result.text) {
           const asrResult: ASRResult = {
@@ -367,7 +367,7 @@ export class ASRService {
   async checkWhisperAvailability(): Promise<{ available: boolean; version?: string }> {
     try {
       const result = await window.electronAPI.invoke('asr:checkAvailability');
-      return result;
+      return result as { available: boolean; version?: string };
     } catch (error) {
       return { available: false };
     }

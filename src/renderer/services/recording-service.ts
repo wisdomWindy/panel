@@ -47,7 +47,7 @@ class RecordingServiceImpl implements RecordingService {
    * 开始录制
    */
   async startRecording(options: RecordingOptions): Promise<RecordingSession> {
-    const result = await window.electronAPI.invoke('recording:start', options);
+    const result = await window.electronAPI.invoke('recording:start', options) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -58,7 +58,7 @@ class RecordingServiceImpl implements RecordingService {
    * 暂停录制
    */
   async pauseRecording(sessionId: string): Promise<void> {
-    const result = await window.electronAPI.invoke('recording:pause', sessionId);
+    const result = await window.electronAPI.invoke('recording:pause', sessionId) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -68,7 +68,7 @@ class RecordingServiceImpl implements RecordingService {
    * 恢复录制
    */
   async resumeRecording(sessionId: string): Promise<void> {
-    const result = await window.electronAPI.invoke('recording:resume', sessionId);
+    const result = await window.electronAPI.invoke('recording:resume', sessionId) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -78,7 +78,7 @@ class RecordingServiceImpl implements RecordingService {
    * 停止录制
    */
   async stopRecording(sessionId: string): Promise<RecordingSession> {
-    const result = await window.electronAPI.invoke('recording:stop', sessionId);
+    const result = await window.electronAPI.invoke('recording:stop', sessionId) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -89,7 +89,7 @@ class RecordingServiceImpl implements RecordingService {
    * 标记高光
    */
   async markHighlight(sessionId: string, reason: string, description?: string): Promise<void> {
-    const result = await window.electronAPI.invoke('recording:markHighlight', sessionId, reason, description);
+    const result = await window.electronAPI.invoke('recording:markHighlight', sessionId, reason, description) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -99,7 +99,7 @@ class RecordingServiceImpl implements RecordingService {
    * 获取高光列表
    */
   async getHighlights(recordingId?: string): Promise<Highlight[]> {
-    const result = await window.electronAPI.invoke('recording:getHighlights', recordingId);
+    const result = await window.electronAPI.invoke('recording:getHighlights', recordingId) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -110,7 +110,7 @@ class RecordingServiceImpl implements RecordingService {
    * 删除高光
    */
   async deleteHighlight(highlightId: string): Promise<void> {
-    const result = await window.electronAPI.invoke('recording:deleteHighlight', highlightId);
+    const result = await window.electronAPI.invoke('recording:deleteHighlight', highlightId) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -120,7 +120,7 @@ class RecordingServiceImpl implements RecordingService {
    * 获取录制状态
    */
   async getRecordingStatus(sessionId: string): Promise<RecordingStatus> {
-    const result = await window.electronAPI.invoke('recording:status', sessionId);
+    const result = await window.electronAPI.invoke('recording:status', sessionId) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -131,7 +131,7 @@ class RecordingServiceImpl implements RecordingService {
    * 获取录制列表
    */
   async getRecordings(options?: QueryOptions): Promise<Recording[]> {
-    const result = await window.electronAPI.invoke('recording:getRecordings', options);
+    const result = await window.electronAPI.invoke('recording:getRecordings', options) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -142,7 +142,7 @@ class RecordingServiceImpl implements RecordingService {
    * 删除录制
    */
   async deleteRecording(recordingId: string): Promise<void> {
-    const result = await window.electronAPI.invoke('recording:deleteRecording', recordingId);
+    const result = await window.electronAPI.invoke('recording:deleteRecording', recordingId) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -152,7 +152,7 @@ class RecordingServiceImpl implements RecordingService {
    * 打开录制文件所在目录
    */
   async openRecordingFolder(recordingId: string): Promise<void> {
-    const result = await window.electronAPI.invoke('recording:openFolder', recordingId);
+    const result = await window.electronAPI.invoke('recording:openFolder', recordingId) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -162,7 +162,7 @@ class RecordingServiceImpl implements RecordingService {
    * 获取录制文件路径
    */
   async getRecordingPath(recordingId: string): Promise<string> {
-    const result = await window.electronAPI.invoke('recording:getPath', recordingId);
+    const result = await window.electronAPI.invoke('recording:getPath', recordingId) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -173,7 +173,7 @@ class RecordingServiceImpl implements RecordingService {
    * 获取录制配置
    */
   async getConfig(): Promise<RecordingConfig> {
-    const result = await window.electronAPI.invoke('recording:getConfig');
+    const result = await window.electronAPI.invoke('recording:getConfig') as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -184,7 +184,7 @@ class RecordingServiceImpl implements RecordingService {
    * 更新录制配置
    */
   async updateConfig(config: Partial<RecordingConfig>): Promise<void> {
-    const result = await window.electronAPI.invoke('recording:setConfig', config);
+    const result = await window.electronAPI.invoke('recording:setConfig', config) as any;
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -194,7 +194,7 @@ class RecordingServiceImpl implements RecordingService {
    * 检测 FFmpeg 可用性
    */
   async checkFFmpeg(): Promise<{ available: boolean; version: string }> {
-    const result = await window.electronAPI.invoke('recording:checkFFmpeg');
+    const result = await window.electronAPI.invoke('recording:checkFFmpeg') as any;
     if (!result.success) {
       throw new Error(result.error);
     }

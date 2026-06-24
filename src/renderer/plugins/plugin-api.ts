@@ -27,7 +27,7 @@ export class PluginAPIImpl implements PluginAPI {
   private permissions: Set<PluginPermission>;
   private eventListeners: Map<string, Set<EventListener<any>>> = new Map();
   private configListeners: Set<ConfigChangeListener> = new Set();
-  private cleanupFunctions: Set<() => void> = new set();
+  private cleanupFunctions: Set<() => void> = new Set();
 
   // 外部依赖（需要注入）
   private danmakuService: any;

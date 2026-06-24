@@ -12,6 +12,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   off: (channel: string, callback: (...args: unknown[]) => void) => {
     ipcRenderer.removeListener(channel, callback);
+  },
+
+  // 文件系统操作
+  checkDirectoryExists: (path: string) => {
+    return ipcRenderer.invoke('fs:checkDirectoryExists', path);
+  },
+
+  checkFileExists: (path: string) => {
+    return ipcRenderer.invoke('fs:checkFileExists', path);
+  },
+
+  readFile: (path: string) => {
+    return ipcRenderer.invoke('fs:readFile', path);
+  },
+
+  getDirectories: (path: string) => {
+    return ipcRenderer.invoke('fs:getDirectories', path);
+  },
+
+  copyDirectory: (source: string, target: string) => {
+    return ipcRenderer.invoke('fs:copyDirectory', source, target);
+  },
+
+  deleteDirectory: (path: string) => {
+    return ipcRenderer.invoke('fs:deleteDirectory', path);
   }
 });
 
@@ -22,6 +47,12 @@ declare global {
       invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
       on: (channel: string, callback: (...args: unknown[]) => void) => void;
       off: (channel: string, callback: (...args: unknown[]) => void) => void;
+      checkDirectoryExists: (path: string) => Promise<boolean>;
+      checkFileExists: (path: string) => Promise<boolean>;
+      readFile: (path: string) => Promise<string>;
+      getDirectories: (path: string) => Promise<string[]>;
+      copyDirectory: (source: string, target: string) => Promise<void>;
+      deleteDirectory: (path: string) => Promise<void>;
     };
   }
 }

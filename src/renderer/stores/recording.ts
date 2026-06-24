@@ -10,7 +10,6 @@ import type {
   Highlight,
   RecordingConfig,
   RecordingSession,
-  RecordingStatus,
   RecordingOptions
 } from '../modules/recording/types.js';
 
@@ -62,7 +61,7 @@ export const useRecordingStore = defineStore('recording', () => {
       isLoading.value = true;
       error.value = null;
 
-      const result = await window.electronAPI.invoke('recording:start', options);
+      const result = await window.electronAPI.invoke('recording:start', options) as any;
 
       if (result.success) {
         currentSession.value = result.session;
@@ -86,7 +85,7 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       if (!currentSession.value) return;
 
-      const result = await window.electronAPI.invoke('recording:pause', currentSession.value.id);
+      const result = await window.electronAPI.invoke('recording:pause', currentSession.value.id) as any;
 
       if (result.success) {
         status.value = 'paused';
@@ -104,7 +103,7 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       if (!currentSession.value) return;
 
-      const result = await window.electronAPI.invoke('recording:resume', currentSession.value.id);
+      const result = await window.electronAPI.invoke('recording:resume', currentSession.value.id) as any;
 
       if (result.success) {
         status.value = 'recording';
@@ -122,7 +121,7 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       if (!currentSession.value) return;
 
-      const result = await window.electronAPI.invoke('recording:stop', currentSession.value.id);
+      const result = await window.electronAPI.invoke('recording:stop', currentSession.value.id) as any;
 
       if (result.success) {
         currentSession.value = null;
@@ -152,7 +151,7 @@ export const useRecordingStore = defineStore('recording', () => {
         currentSession.value.id,
         reason,
         description
-      );
+      ) as any;
 
       if (result.success) {
         highlightCount.value++;
@@ -170,7 +169,7 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       isLoading.value = true;
 
-        const result = await window.electronAPI.invoke('recording:getRecordings');
+      const result = await window.electronAPI.invoke('recording:getRecordings') as any;
 
       if (result.success) {
         recordings.value = result.recordings;
@@ -188,7 +187,7 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       isLoading.value = true;
 
-        const result = await window.electronAPI.invoke('recording:getHighlights', recordingId);
+      const result = await window.electronAPI.invoke('recording:getHighlights', recordingId) as any;
 
       if (result.success) {
         highlights.value = result.highlights;
@@ -204,7 +203,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function deleteRecording(id: string): Promise<void> {
     try {
-      const result = await window.electronAPI.invoke('recording:deleteRecording', id);
+      const result = await window.electronAPI.invoke('recording:deleteRecording', id) as any;
 
       if (result.success) {
         // 从列表中移除
@@ -221,7 +220,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function deleteHighlight(id: string): Promise<void> {
     try {
-      const result = await window.electronAPI.invoke('recording:deleteHighlight', id);
+      const result = await window.electronAPI.invoke('recording:deleteHighlight', id) as any;
 
       if (result.success) {
         // 从列表中移除
@@ -246,7 +245,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function updateConfig(newConfig: Partial<RecordingConfig>): Promise<void> {
     try {
-      const result = await window.electronAPI.invoke('recording:setConfig', newConfig);
+      const result = await window.electronAPI.invoke('recording:setConfig', newConfig) as any;
 
       if (result.success) {
         config.value = { ...config.value, ...newConfig };
@@ -262,7 +261,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function fetchConfig(): Promise<void> {
     try {
-      const result = await window.electronAPI.invoke('recording:getConfig');
+      const result = await window.electronAPI.invoke('recording:getConfig') as any;
 
       if (result.success) {
         config.value = result.config;
@@ -276,7 +275,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function checkFFmpeg(): Promise<{ available: boolean; version: string }> {
     try {
-      const result = await window.electronAPI.invoke('recording:checkFFmpeg');
+      const result = await window.electronAPI.invoke('recording:checkFFmpeg') as any;
 
       if (result.success) {
         return result.info;
@@ -293,27 +292,27 @@ export const useRecordingStore = defineStore('recording', () => {
   // IPC 事件监听
   function setupIpcListeners(): void {
     // 监听状态更新
-    window.electronAPI.on('recording:statusChanged', (data: { sessionId: string; status: string; currentDuration: number; currentSize: number; highlightCount: number }) => {
+    window.electronAPI.on('recording:statusChanged', ((data: { sessionId: string; status: string; currentDuration: number; currentSize: number; highlightCount: number }) => {
       if (currentSession.value && currentSession.value.id === data.sessionId) {
         status.value = data.status as any;
         duration.value = data.currentDuration;
         fileSize.value = data.currentSize;
         highlightCount.value = data.highlightCount;
       }
-    });
+    }) as (...args: unknown[]) => void);
 
     // 监听高光标记
-    window.electronAPI.on('recording:highlightMarked', (highlight: Highlight) => {
+    window.electronAPI.on('recording:highlightMarked', ((highlight: Highlight) => {
       highlights.value.unshift(highlight);
       highlightCount.value++;
-    });
+    }) as (...args: unknown[]) => void);
 
     // 监听错误
-    window.electronAPI.on('recording:error', (errorMessage: string) => {
+    window.electronAPI.on('recording:error', ((errorMessage: string) => {
       error.value = errorMessage;
       status.value = 'idle';
       currentSession.value = null;
-    });
+    }) as (...args: unknown[]) => void);
   }
 
   // 工具函数

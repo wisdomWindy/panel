@@ -7,23 +7,13 @@ import {
   PluginManifest,
   PluginLoadResult,
   PluginValidationResult,
-  PluginLoadError,
-  PluginValidationError,
-  PLUGIN_MANIFEST_FILE,
-  PLUGIN_ENTRY_FILE
+  PLUGIN_MANIFEST_FILE
 } from './types';
 
 // 插件加载器配置
 interface PluginLoaderConfig {
   pluginDir: string;
   appVersion: string;
-}
-
-// 插件文件信息
-interface PluginFileInfo {
-  path: string;
-  manifest: PluginManifest;
-  entryPath: string;
 }
 
 /**

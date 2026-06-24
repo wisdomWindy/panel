@@ -87,8 +87,8 @@ onMounted(async () => {
   await recordingStore.fetchHighlights();
   await recordingStore.fetchConfig();
 
-    // 监听 F9 快捷键
-    window.electronAPI.on('recording:markHighlightHotkey', () => {
+  // 监听 F9 快捷键
+  window.electronAPI.on('recording:markHighlightHotkey', () => {
     if (recordingStore.isRecording) {
       handleMarkHighlight();
     }

@@ -8,16 +8,22 @@ import { ref, computed } from 'vue';
 import type { AIConfig, AIResponse, AIStatus, AIError, ChatMessage } from '../modules/ai/types.js';
 import { DEFAULT_AI_CONFIG, PRESET_PERSONALITIES } from '../modules/ai/types.js';
 import { getLLMService } from '../services/llm-service.js';
+import { useChatContext } from '../composables/useChatContext.js';
+import { useReplyLogic } from '../composables/useReplyLogic.js';
 
 export const useAIStore = defineStore('ai', () => {
+  const llmService = getLLMService();
+  const chatContext = useChatContext();
+  const replyLogic = useReplyLogic();
+
   // State
   const config = ref<AIConfig>({ ...DEFAULT_AI_CONFIG });
   const status = ref<AIStatus>('idle');
   const isAvailable = ref<boolean>(false);
   const recentResponses = ref<AIResponse[]>([]);
-  const chatHistory = ref<ChatMessage[]>([]);
   const lastError = ref<AIError | null>(null);
   const totalTokensUsed = ref<number>(0);
+  const lastReplyTime = ref<number>(0);
 
   // Getters
   const isEnabled = computed(() => config.value.enabled);
@@ -27,7 +33,6 @@ export const useAIStore = defineStore('ai', () => {
   // Actions
   function updateConfig(updates: Partial<AIConfig>): void {
     config.value = { ...config.value, ...updates };
-    const llmService = getLLMService();
     llmService.updateConfig(updates);
     saveConfig();
   }
@@ -43,42 +48,83 @@ export const useAIStore = defineStore('ai', () => {
     }
   }
 
-  async function startListening(): Promise<void> {
+  async function handleDanmaku(username: string, content: string): Promise<void> {
+    if (!config.value.enabled || !config.value.autoReply) return;
+    if (!replyLogic.shouldReply(content, config.value)) return;
+    if (!replyLogic.checkCooldown(lastReplyTime.value, config.value.minInterval)) return;
+
+    chatContext.addToContext({
+      role: 'user',
+      content: `${username}: ${content}`,
+      timestamp: Date.now(),
+      username
+    });
+
     try {
-      const llmService = getLLMService();
-      llmService.updateConfig(config.value);
-
-      // 设置监听器
-      llmService.onResponse((response) => {
+      const response = await generateReply();
+      if (response.shouldSend) {
+        lastReplyTime.value = Date.now();
         addResponse(response);
-      });
-
-      llmService.onStatusChange((newStatus) => {
-        status.value = newStatus;
-      });
-
-      llmService.onError((error) => {
-        lastError.value = error;
-      });
+      }
     } catch (error) {
       lastError.value = {
-        code: 'start-failed',
+        code: 'generate-failed',
         message: (error as Error).message
       };
-      throw error;
     }
   }
 
-  function stopListening(): void {
-    const llmService = getLLMService();
-    llmService.destroy();
-    status.value = 'idle';
+  async function generateReply(): Promise<AIResponse> {
+    const startTime = Date.now();
+    status.value = 'thinking';
+
+    try {
+      const messages: ChatMessage[] = [
+        {
+          role: 'system',
+          content: config.value.personality.systemPrompt,
+          timestamp: Date.now()
+        },
+        ...chatContext.getContextWindow(config.value.contextWindow)
+      ];
+
+      status.value = 'generating';
+      const response = await llmService.callLLM({
+        messages,
+        model: config.value.model,
+        maxTokens: config.value.maxTokens,
+        temperature: config.value.temperature,
+        stream: false
+      });
+
+      const latency = Date.now() - startTime;
+      const replyText = replyLogic.truncateReply(response.content.trim(), config.value.maxResponseLength);
+
+      const aiResponse: AIResponse = {
+        text: replyText,
+        shouldSend: true,
+        confidence: 0.8,
+        tokensUsed: response.usage.totalTokens,
+        latency
+      };
+
+      chatContext.addToContext({
+        role: 'assistant',
+        content: replyText,
+        timestamp: Date.now()
+      });
+
+      status.value = 'idle';
+      return aiResponse;
+    } catch (error) {
+      status.value = 'error';
+      throw error;
+    }
   }
 
   function addResponse(response: AIResponse): void {
     recentResponses.value.unshift(response);
     totalTokensUsed.value += response.tokensUsed;
-    // 只保留最近 50 条回复
     if (recentResponses.value.length > 50) {
       recentResponses.value = recentResponses.value.slice(0, 50);
     }
@@ -93,18 +139,19 @@ export const useAIStore = defineStore('ai', () => {
   }
 
   function clearContext(): void {
-    const llmService = getLLMService();
-    llmService.clearContext();
-    chatHistory.value = [];
+    chatContext.clearContext();
   }
 
   async function manualReply(prompt: string): Promise<AIResponse> {
-    const llmService = getLLMService();
-    return llmService.manualReply(prompt);
+    chatContext.addToContext({
+      role: 'user',
+      content: prompt,
+      timestamp: Date.now()
+    });
+    return generateReply();
   }
 
   async function checkAvailability(): Promise<void> {
-    const llmService = getLLMService();
     const result = await llmService.checkAvailability();
     isAvailable.value = result.available;
     if (!result.available && result.error) {
@@ -135,30 +182,23 @@ export const useAIStore = defineStore('ai', () => {
     }
   }
 
-  // 初始化
   loadConfig();
 
   return {
-    // State
     config,
     status,
     isAvailable,
     recentResponses,
-    chatHistory,
     lastError,
     totalTokensUsed,
-
-    // Getters
     isEnabled,
     isThinking,
     isGenerating,
-
-    // Actions
     updateConfig,
     toggleEnabled,
     setPersonality,
-    startListening,
-    stopListening,
+    handleDanmaku,
+    generateReply,
     addResponse,
     clearResponses,
     clearError,

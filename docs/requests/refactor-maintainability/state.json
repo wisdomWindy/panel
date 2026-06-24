@@ -1,0 +1,30 @@
+{
+  "requestId": "refactor-maintainability",
+  "title": "项目代码重构 — 可维护性、可读性、可扩展性、职责边界、组件复用",
+  "type": "feature",
+  "stage": "complete",
+  "status": "completed",
+  "createdAt": "2026-06-24T00:00:00.000Z",
+  "updatedAt": "2026-06-24T00:00:00.000Z",
+  "loop": {
+    "iteration": 3,
+    "state": "complete",
+    "last_completed_stage": "verify",
+    "pending_gate": null,
+    "reentry_reason": "new_request"
+  },
+  "artifacts": {
+    "request": true,
+    "bugfixSource": true,
+    "prdSnapshot": true,
+    "spec": true,
+    "plan": true,
+    "taskBoard": false,
+    "verification": true,
+    "review": true
+  },
+  "approvals": {
+    "spec": "auto",
+    "plan": "auto"
+  }
+}

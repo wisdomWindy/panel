@@ -196,7 +196,7 @@ async function handleFileSelect() {
       // 提取文件名作为音效名称
       const fileName = result.filePath.split(/[/\\]/).pop() || '';
       const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
-      
+
       formData.soundFile = result.filePath;
       formData.soundName = nameWithoutExt;
       ElMessage.success('文件已选择');

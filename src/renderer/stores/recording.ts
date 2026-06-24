@@ -1,6 +1,6 @@
 /**
  * 录制状态管理
- * 管理录制相关的状态和操作
+ * 通过 Service 层调用 IPC，只负责状态管理
  */
 
 import { defineStore } from 'pinia';
@@ -12,8 +12,12 @@ import type {
   RecordingSession,
   RecordingOptions
 } from '../modules/recording/types.js';
+import { getRecordingService } from '../services/recording-service.js';
+import { formatDuration, formatFileSize } from '../utils/format.js';
 
 export const useRecordingStore = defineStore('recording', () => {
+  const service = getRecordingService();
+
   // State
   const currentSession = ref<RecordingSession | null>(null);
   const status = ref<'idle' | 'recording' | 'paused'>('idle');
@@ -60,19 +64,12 @@ export const useRecordingStore = defineStore('recording', () => {
     try {
       isLoading.value = true;
       error.value = null;
-
-      const result = await window.electronAPI.invoke('recording:start', options) as any;
-
-      if (result.success) {
-        currentSession.value = result.session;
-        status.value = 'recording';
-        duration.value = 0;
-        fileSize.value = 0;
-        highlightCount.value = 0;
-      } else {
-        error.value = result.error;
-        throw new Error(result.error);
-      }
+      const session = await service.startRecording(options);
+      currentSession.value = session;
+      status.value = 'recording';
+      duration.value = 0;
+      fileSize.value = 0;
+      highlightCount.value = 0;
     } catch (err) {
       error.value = (err as Error).message;
       throw err;
@@ -82,17 +79,10 @@ export const useRecordingStore = defineStore('recording', () => {
   }
 
   async function pauseRecording(): Promise<void> {
+    if (!currentSession.value) return;
     try {
-      if (!currentSession.value) return;
-
-      const result = await window.electronAPI.invoke('recording:pause', currentSession.value.id) as any;
-
-      if (result.success) {
-        status.value = 'paused';
-      } else {
-        error.value = result.error;
-        throw new Error(result.error);
-      }
+      await service.pauseRecording(currentSession.value.id);
+      status.value = 'paused';
     } catch (err) {
       error.value = (err as Error).message;
       throw err;
@@ -100,17 +90,10 @@ export const useRecordingStore = defineStore('recording', () => {
   }
 
   async function resumeRecording(): Promise<void> {
+    if (!currentSession.value) return;
     try {
-      if (!currentSession.value) return;
-
-      const result = await window.electronAPI.invoke('recording:resume', currentSession.value.id) as any;
-
-      if (result.success) {
-        status.value = 'recording';
-      } else {
-        error.value = result.error;
-        throw new Error(result.error);
-      }
+      await service.resumeRecording(currentSession.value.id);
+      status.value = 'recording';
     } catch (err) {
       error.value = (err as Error).message;
       throw err;
@@ -118,24 +101,15 @@ export const useRecordingStore = defineStore('recording', () => {
   }
 
   async function stopRecording(): Promise<void> {
+    if (!currentSession.value) return;
     try {
-      if (!currentSession.value) return;
-
-      const result = await window.electronAPI.invoke('recording:stop', currentSession.value.id) as any;
-
-      if (result.success) {
-        currentSession.value = null;
-        status.value = 'idle';
-        duration.value = 0;
-        fileSize.value = 0;
-        highlightCount.value = 0;
-
-        // 刷新录制列表
-        await fetchRecordings();
-      } else {
-        error.value = result.error;
-        throw new Error(result.error);
-      }
+      await service.stopRecording(currentSession.value.id);
+      currentSession.value = null;
+      status.value = 'idle';
+      duration.value = 0;
+      fileSize.value = 0;
+      highlightCount.value = 0;
+      await fetchRecordings();
     } catch (err) {
       error.value = (err as Error).message;
       throw err;
@@ -143,22 +117,10 @@ export const useRecordingStore = defineStore('recording', () => {
   }
 
   async function markHighlight(reason: string, description?: string): Promise<void> {
+    if (!currentSession.value) return;
     try {
-      if (!currentSession.value) return;
-
-      const result = await window.electronAPI.invoke(
-        'recording:markHighlight',
-        currentSession.value.id,
-        reason,
-        description
-      ) as any;
-
-      if (result.success) {
-        highlightCount.value++;
-      } else {
-        error.value = result.error;
-        throw new Error(result.error);
-      }
+      await service.markHighlight(currentSession.value.id, reason, description);
+      highlightCount.value++;
     } catch (err) {
       error.value = (err as Error).message;
       throw err;
@@ -168,14 +130,7 @@ export const useRecordingStore = defineStore('recording', () => {
   async function fetchRecordings(): Promise<void> {
     try {
       isLoading.value = true;
-
-      const result = await window.electronAPI.invoke('recording:getRecordings') as any;
-
-      if (result.success) {
-        recordings.value = result.recordings;
-      } else {
-        error.value = result.error;
-      }
+      recordings.value = await service.getRecordings();
     } catch (err) {
       error.value = (err as Error).message;
     } finally {
@@ -186,14 +141,7 @@ export const useRecordingStore = defineStore('recording', () => {
   async function fetchHighlights(recordingId?: string): Promise<void> {
     try {
       isLoading.value = true;
-
-      const result = await window.electronAPI.invoke('recording:getHighlights', recordingId) as any;
-
-      if (result.success) {
-        highlights.value = result.highlights;
-      } else {
-        error.value = result.error;
-      }
+      highlights.value = await service.getHighlights(recordingId);
     } catch (err) {
       error.value = (err as Error).message;
     } finally {
@@ -203,15 +151,8 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function deleteRecording(id: string): Promise<void> {
     try {
-      const result = await window.electronAPI.invoke('recording:deleteRecording', id) as any;
-
-      if (result.success) {
-        // 从列表中移除
-        recordings.value = recordings.value.filter(r => r.id !== id);
-      } else {
-        error.value = result.error;
-        throw new Error(result.error);
-      }
+      await service.deleteRecording(id);
+      recordings.value = recordings.value.filter(r => r.id !== id);
     } catch (err) {
       error.value = (err as Error).message;
       throw err;
@@ -220,15 +161,8 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function deleteHighlight(id: string): Promise<void> {
     try {
-      const result = await window.electronAPI.invoke('recording:deleteHighlight', id) as any;
-
-      if (result.success) {
-        // 从列表中移除
-        highlights.value = highlights.value.filter(h => h.id !== id);
-      } else {
-        error.value = result.error;
-        throw new Error(result.error);
-      }
+      await service.deleteHighlight(id);
+      highlights.value = highlights.value.filter(h => h.id !== id);
     } catch (err) {
       error.value = (err as Error).message;
       throw err;
@@ -237,7 +171,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function openRecordingFolder(id: string): Promise<void> {
     try {
-      await window.electronAPI.invoke('recording:openFolder', id);
+      await service.openRecordingFolder(id);
     } catch (err) {
       error.value = (err as Error).message;
     }
@@ -245,14 +179,8 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function updateConfig(newConfig: Partial<RecordingConfig>): Promise<void> {
     try {
-      const result = await window.electronAPI.invoke('recording:setConfig', newConfig) as any;
-
-      if (result.success) {
-        config.value = { ...config.value, ...newConfig };
-      } else {
-        error.value = result.error;
-        throw new Error(result.error);
-      }
+      await service.updateConfig(newConfig);
+      config.value = { ...config.value, ...newConfig };
     } catch (err) {
       error.value = (err as Error).message;
       throw err;
@@ -261,13 +189,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function fetchConfig(): Promise<void> {
     try {
-      const result = await window.electronAPI.invoke('recording:getConfig') as any;
-
-      if (result.success) {
-        config.value = result.config;
-      } else {
-        error.value = result.error;
-      }
+      config.value = await service.getConfig();
     } catch (err) {
       error.value = (err as Error).message;
     }
@@ -275,14 +197,7 @@ export const useRecordingStore = defineStore('recording', () => {
 
   async function checkFFmpeg(): Promise<{ available: boolean; version: string }> {
     try {
-      const result = await window.electronAPI.invoke('recording:checkFFmpeg') as any;
-
-      if (result.success) {
-        return result.info;
-      } else {
-        error.value = result.error;
-        return { available: false, version: '' };
-      }
+      return await service.checkFFmpeg();
     } catch (err) {
       error.value = (err as Error).message;
       return { available: false, version: '' };
@@ -291,8 +206,13 @@ export const useRecordingStore = defineStore('recording', () => {
 
   // IPC 事件监听
   function setupIpcListeners(): void {
-    // 监听状态更新
-    window.electronAPI.on('recording:statusChanged', ((data: { sessionId: string; status: string; currentDuration: number; currentSize: number; highlightCount: number }) => {
+    window.electronAPI.on('recording:statusChanged', ((data: {
+      sessionId: string;
+      status: string;
+      currentDuration: number;
+      currentSize: number;
+      highlightCount: number;
+    }) => {
       if (currentSession.value && currentSession.value.id === data.sessionId) {
         status.value = data.status as any;
         duration.value = data.currentDuration;
@@ -301,13 +221,11 @@ export const useRecordingStore = defineStore('recording', () => {
       }
     }) as (...args: unknown[]) => void);
 
-    // 监听高光标记
     window.electronAPI.on('recording:highlightMarked', ((highlight: Highlight) => {
       highlights.value.unshift(highlight);
       highlightCount.value++;
     }) as (...args: unknown[]) => void);
 
-    // 监听错误
     window.electronAPI.on('recording:error', ((errorMessage: string) => {
       error.value = errorMessage;
       status.value = 'idle';
@@ -315,27 +233,9 @@ export const useRecordingStore = defineStore('recording', () => {
     }) as (...args: unknown[]) => void);
   }
 
-  // 工具函数
-  function formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-
-  function formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const k = 1024;
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + units[i];
-  }
-
-  // 初始化
   setupIpcListeners();
 
   return {
-    // State
     currentSession,
     status,
     duration,
@@ -346,15 +246,11 @@ export const useRecordingStore = defineStore('recording', () => {
     isLoading,
     config,
     error,
-
-    // Getters
     isRecording,
     isPaused,
     isIdle,
     formattedDuration,
     formattedFileSize,
-
-    // Actions
     startRecording,
     pauseRecording,
     resumeRecording,

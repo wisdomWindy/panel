@@ -5,28 +5,29 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { TTSConfig, TTSStatus, BroadcastMessage, TTSEngineInfo } from '../modules/tts/types.js';
+import type { TTSConfig, TTSStatus, BroadcastMessage } from '../modules/tts/types.js';
 import { DEFAULT_TTS_CONFIG } from '../modules/tts/types.js';
 import { getTTSService } from '../services/tts-service.js';
+import { useBroadcastQueue } from '../composables/useBroadcastQueue.js';
 
 export const useTTSStore = defineStore('tts', () => {
+  const ttsService = getTTSService();
+  const broadcastQueue = useBroadcastQueue();
+
   // State
   const config = ref<TTSConfig>({ ...DEFAULT_TTS_CONFIG });
   const status = ref<TTSStatus>('idle');
-  const queueLength = ref<number>(0);
   const recentMessages = ref<BroadcastMessage[]>([]);
-  const voices = ref<TTSEngineInfo[]>([]);
-  const chineseVoices = ref<TTSEngineInfo[]>([]);
 
   // Getters
   const isEnabled = computed(() => config.value.enabled);
   const isSpeaking = computed(() => status.value === 'speaking');
   const isPaused = computed(() => status.value === 'paused');
+  const queueLength = computed(() => broadcastQueue.getQueueLength());
 
   // Actions
   function updateConfig(updates: Partial<TTSConfig>): void {
     config.value = { ...config.value, ...updates };
-    const ttsService = getTTSService();
     ttsService.updateConfig(updates);
     saveConfig();
   }
@@ -35,39 +36,111 @@ export const useTTSStore = defineStore('tts', () => {
     updateConfig({ enabled: !config.value.enabled });
   }
 
-  function startBroadcast(): void {
-    const ttsService = getTTSService();
-    ttsService.updateConfig(config.value);
-    // 设置消息监听器
-    ttsService.onMessage((message) => {
-      addRecentMessage(message);
-    });
-    // 设置状态监听器
-    ttsService.onStatusChange((newStatus) => {
-      status.value = newStatus;
-      queueLength.value = ttsService.getQueueLength();
-    });
+  function handleDanmaku(username: string, content: string): void {
+    if (!config.value.enabled) return;
+    if (broadcastQueue.shouldFilter(content, config.value.filterKeywords)) return;
+
+    const message: BroadcastMessage = {
+      id: `danmaku_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: 'danmaku',
+      username,
+      content,
+      timestamp: Date.now()
+    };
+
+    addMessage(message);
+  }
+
+  function handleGift(username: string, giftName: string, giftCount: number, giftValue: number): void {
+    if (!config.value.enabled || !config.value.broadcastGifts) return;
+    if (giftValue < config.value.giftValueThreshold) return;
+
+    const message: BroadcastMessage = {
+      id: `gift_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: 'gift',
+      username,
+      content: `${giftName} x${giftCount}`,
+      timestamp: Date.now(),
+      giftName,
+      giftCount,
+      giftValue
+    };
+
+    addMessage(message);
+  }
+
+  function handleCaptain(username: string, level: number): void {
+    if (!config.value.enabled || !config.value.broadcastCaptain) return;
+
+    const levelNames = ['舰长', '提督', '总督'];
+    const levelName = levelNames[level - 1] || '舰长';
+
+    const message: BroadcastMessage = {
+      id: `captain_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: 'captain',
+      username,
+      content: levelName,
+      timestamp: Date.now(),
+      captainLevel: level
+    };
+
+    addMessage(message);
+  }
+
+  function addMessage(message: BroadcastMessage): void {
+    broadcastQueue.addToQueue(message);
+    addRecentMessage(message);
+
+    if (!broadcastQueue.isProcessing.value) {
+      status.value = 'speaking';
+      broadcastQueue.processQueue(
+        async (text) => {
+          if (config.value.engine === 'edge-tts') {
+            await ttsService.speak(text);
+          } else {
+            // Web Speech API fallback
+            if (typeof window !== 'undefined' && window.speechSynthesis) {
+              const utterance = new SpeechSynthesisUtterance(text);
+              utterance.rate = config.value.speed;
+              utterance.pitch = config.value.pitch;
+              utterance.volume = config.value.volume;
+              utterance.lang = 'zh-CN';
+              window.speechSynthesis.speak(utterance);
+            }
+          }
+        },
+        config.value
+      ).then(() => {
+        status.value = 'idle';
+      });
+    }
   }
 
   function stopBroadcast(): void {
-    const ttsService = getTTSService();
-    ttsService.stop();
-    queueLength.value = 0;
+    ttsService.stop().catch(console.error);
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    broadcastQueue.clearQueue();
+    status.value = 'idle';
   }
 
   function pauseBroadcast(): void {
-    const ttsService = getTTSService();
-    ttsService.pause();
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.pause();
+    }
+    status.value = 'paused';
   }
 
   function resumeBroadcast(): void {
-    const ttsService = getTTSService();
-    ttsService.resume();
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.resume();
+    }
+    status.value = 'speaking';
   }
 
   function addRecentMessage(message: BroadcastMessage): void {
     recentMessages.value.unshift(message);
-    // 只保留最近 50 条消息
     if (recentMessages.value.length > 50) {
       recentMessages.value = recentMessages.value.slice(0, 50);
     }
@@ -75,12 +148,6 @@ export const useTTSStore = defineStore('tts', () => {
 
   function clearRecentMessages(): void {
     recentMessages.value = [];
-  }
-
-  function loadVoices(): void {
-    const ttsService = getTTSService();
-    voices.value = ttsService.getVoices();
-    chineseVoices.value = ttsService.getChineseVoices();
   }
 
   function saveConfig(): void {
@@ -103,33 +170,26 @@ export const useTTSStore = defineStore('tts', () => {
     }
   }
 
-  // 初始化
   loadConfig();
 
   return {
-    // State
     config,
     status,
     queueLength,
     recentMessages,
-    voices,
-    chineseVoices,
-
-    // Getters
     isEnabled,
     isSpeaking,
     isPaused,
-
-    // Actions
     updateConfig,
     toggleEnabled,
-    startBroadcast,
+    handleDanmaku,
+    handleGift,
+    handleCaptain,
     stopBroadcast,
     pauseBroadcast,
     resumeBroadcast,
     addRecentMessage,
     clearRecentMessages,
-    loadVoices,
     saveConfig,
     loadConfig
   };

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { blacklistManager } from '../modules/danmaku/blacklist';
-import { BlacklistItem } from '../modules/danmaku/types';
+import { blacklistManager } from '../../modules/danmaku/blacklist';
+import { BlacklistItem } from '../../modules/danmaku/types';
 
 const dialogVisible = ref(false);
 const form = ref({

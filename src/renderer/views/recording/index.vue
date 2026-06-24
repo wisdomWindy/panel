@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { VideoCamera, VideoPause, VideoPlay, Setting, Star } from '@element-plus/icons-vue';
-import { useRecordingStore } from '../stores/recording';
-import RecordingList from '../components/RecordingList.vue';
-import HighlightList from '../components/HighlightList.vue';
+import { useRecordingStore } from '../../stores/recording';
+import RecordingList from './components/RecordingList.vue';
+import HighlightList from './components/HighlightList.vue';
 
 const recordingStore = useRecordingStore();
 

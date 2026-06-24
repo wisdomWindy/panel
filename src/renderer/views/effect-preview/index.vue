@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, reactive } from 'vue';
-import { createEffectManager, EffectManagerImpl } from '../modules/effects/effect-manager';
-import { EffectType, AnimationType, EffectConfig, EffectTriggerData } from '../modules/effects/types';
-import { WebGLRenderer } from '../modules/effects/webgl-renderer';
+import { createEffectManager, EffectManagerImpl } from '../../modules/effects/effect-manager';
+import { EffectType, AnimationType, EffectConfig, EffectTriggerData } from '../../modules/effects/types';
+import { WebGLRenderer } from '../../modules/effects/webgl-renderer';
 
 const canvas2dRef = ref<HTMLCanvasElement>();
 const canvas3dRef = ref<HTMLCanvasElement>();

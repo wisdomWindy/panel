@@ -5,12 +5,12 @@ import { init, use, type ECharts } from 'echarts/core';
 import { BarChart, LineChart } from 'echarts/charts';
 import { GridComponent, TitleComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import { useRoomStore } from '../stores/room';
-import { useDanmakuStore } from '../stores/danmaku';
-import { getDanmakuService } from '../services/danmaku-service';
+import { useRoomStore } from '../../stores/room';
+import { useDanmakuStore } from '../../stores/danmaku';
+import { getDanmakuService } from '../../services/danmaku-service';
 const danmakuService = getDanmakuService();
-import StatCard from '../components/StatCard.vue';
-import Leaderboard from '../components/Leaderboard.vue';
+import StatCard from './components/StatCard.vue';
+import Leaderboard from './components/Leaderboard.vue';
 
 use([BarChart, LineChart, GridComponent, TitleComponent, TooltipComponent, CanvasRenderer]);
 

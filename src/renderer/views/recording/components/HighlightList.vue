@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { VideoPlay, Delete } from '@element-plus/icons-vue';
-import type { Highlight } from '../modules/recording/types.js';
-import { useRecordingStore } from '../stores/recording';
-import { formatTimestamp, formatDate } from '../utils/format.js';
-import { getHighlightReasonTagType, getHighlightReasonText, confirmDelete, showSuccess, showError, showWarning } from '../utils/ui.js';
+import type { Highlight } from '../../../modules/recording/types.js';
+import { useRecordingStore } from '../../../stores/recording';
+import { formatTimestamp, formatDate } from '../../../utils/format.js';
+import { getHighlightReasonTagType, getHighlightReasonText, confirmDelete, showSuccess, showError, showWarning } from '../../../utils/ui.js';
 
 defineProps<{
   highlights: Highlight[];

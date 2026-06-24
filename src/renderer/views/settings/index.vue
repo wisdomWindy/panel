@@ -4,24 +4,24 @@ import {
   Connection, ChatDotRound, Timer, Filter, Document,
   UserFilled, Bell, Setting, VideoCamera
 } from '@element-plus/icons-vue';
-import { useConfigStore } from '../stores/config';
-import { getDanmakuService } from '../services/danmaku-service';
-import { showSuccess } from '../utils/ui';
+import { useConfigStore } from '../../stores/config';
+import { getDanmakuService } from '../../services/danmaku-service';
+import { showSuccess } from '../../utils/ui';
 
-import ConnectionSettings from '../components/settings/ConnectionSettings.vue';
-import DanmakuSettings from '../components/settings/DanmakuSettings.vue';
-import AutoSendSettings from '../components/settings/AutoSendSettings.vue';
-import FilterSettings from '../components/settings/FilterSettings.vue';
-import LogSettings from '../components/settings/LogSettings.vue';
-import UpdateSettings from '../components/settings/UpdateSettings.vue';
-import PluginSettings from '../components/settings/PluginSettings.vue';
-import LanguageSettings from '../components/settings/LanguageSettings.vue';
-import TTSSettings from '../components/settings/TTSSettings.vue';
-import ASRSettings from '../components/settings/ASRSettings.vue';
-import AISettings from '../components/settings/AISettings.vue';
-import ModerationSettings from '../components/settings/ModerationSettings.vue';
-import RecordingSettings from '../components/settings/RecordingSettings.vue';
-import RoleSettings from '../components/settings/RoleSettings.vue';
+import ConnectionSettings from './components/ConnectionSettings.vue';
+import DanmakuSettings from './components/DanmakuSettings.vue';
+import AutoSendSettings from './components/AutoSendSettings.vue';
+import FilterSettings from './components/FilterSettings.vue';
+import LogSettings from './components/LogSettings.vue';
+import UpdateSettings from './components/UpdateSettings.vue';
+import PluginSettings from './components/PluginSettings.vue';
+import LanguageSettings from './components/LanguageSettings.vue';
+import TTSSettings from './components/TTSSettings.vue';
+import ASRSettings from './components/ASRSettings.vue';
+import AISettings from './components/AISettings.vue';
+import ModerationSettings from './components/ModerationSettings.vue';
+import RecordingSettings from './components/RecordingSettings.vue';
+import RoleSettings from './components/RoleSettings.vue';
 
 const danmakuService = getDanmakuService();
 const configStore = useConfigStore();
@@ -148,10 +148,10 @@ function confirmImport() {
 }
 
 // 需要导入的 stores
-import { useTTSStore } from '../stores/tts';
-import { useASRStore } from '../stores/asr';
-import { useAIStore } from '../stores/ai';
-import { useModerationStore } from '../stores/moderation';
+import { useTTSStore } from '../../stores/tts';
+import { useASRStore } from '../../stores/asr';
+import { useAIStore } from '../../stores/ai';
+import { useModerationStore } from '../../stores/moderation';
 import { computed } from 'vue';
 import { ElMessage } from 'element-plus';
 </script>

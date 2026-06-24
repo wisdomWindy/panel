@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { reactive, computed } from 'vue';
-import { useRoomStore } from '../stores/room';
-import { useConfigStore } from '../stores/config';
-import { getDanmakuService } from '../services/danmaku-service';
+import { useRoomStore } from '../../stores/room';
+import { useConfigStore } from '../../stores/config';
+import { getDanmakuService } from '../../services/danmaku-service';
 
 const danmakuService = getDanmakuService();
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { usePluginStore } from '../stores/plugin';
-import { PluginState } from '../plugins/types';
+import { usePluginStore } from '../../stores/plugin';
+import { PluginState } from '../../plugins/types';
 
 const pluginStore = usePluginStore();
 

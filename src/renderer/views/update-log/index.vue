@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { useUpdateStore } from '../stores/update';
+import { useUpdateStore } from '../../stores/update';
 import { Bell, Download, Document } from '@element-plus/icons-vue';
 
 const updateStore = useUpdateStore();

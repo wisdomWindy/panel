@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-06-24
+
+### Changed
+- 重构项目架构，提升可维护性、可读性、可扩展性
+- 提取公共工具层 (utils/)：format.ts、ipc.ts、ui.ts
+- 提取 Composables 层：录音、播报队列、聊天上下文等
+- 实现 Strategy 模式：TTS/ASR 引擎支持动态切换
+- Views 模块化：每个页面独立文件夹，模块专属组件内聚
+- 拆分 Settings.vue (1081→130行) 为 14 个独立子组件
+- Services 层精简：ASR (395→52行)、TTS (441→63行)、LLM (303→58行)
+
+### Fixed
+- 修复所有 TypeScript 类型错误 (100+ 错误)
+- 修复插件系统类型错误
+
+### Removed
+- 清理未使用代码和死代码
+- 删除未使用的 event-emitter.ts
+- 删除未使用的 GiftSoundPreview.vue 组件
+
+## [0.3.0] - 2026-06-17
+
+### Added
+- 新增排行榜功能（送礼榜、弹幕榜、舰长贡献榜）
+- 新增礼物音效系统功能
+- 新增 AI 智能回复功能（LLM 多提供商支持）
+- 新增语音识别功能（whisper.cpp 集成）
+- 新增自动禁言与刷屏防护功能
+- 完善多语言支持
+
 ## [0.2.0] - 2026-06-16
 
 ### Added
@@ -13,6 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - 新增"新版本特性"弹窗，版本变更后首次启动展示更新摘要
 - 新增状态栏更新提示图标，检测到新版本时显示红点
 - 新增设置页面更新检查开关，支持开启/关闭自动检查更新
+- 新增弹幕语音播报功能（edge-tts）
+- 新增直播录制功能（全程/高光）
+- 新增多语言支持（中文/英文）
 
 ### Changed
 - 优化更新检查为异步执行，不阻塞主界面加载

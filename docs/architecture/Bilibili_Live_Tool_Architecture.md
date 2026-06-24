@@ -304,70 +304,138 @@ bilibili-live-tool/
 ├── public/                     # 公共静态资源
 ├── src/                        # 源代码
 │   ├── main/                   # 主进程
-│   │   └── index.ts            # 主进程入口（窗口管理 + 生命周期）
+│   │   ├── index.ts            # 主进程入口（窗口管理 + 生命周期）
+│   │   ├── bilibili-api.ts     # Bilibili API 封装
+│   │   ├── database.ts         # 数据库操作
+│   │   ├── ipc-handlers.ts     # IPC 通信处理
+│   │   └── modules/            # 主进程模块
+│   │       ├── ai/             # AI 对话模块
+│   │       ├── asr/            # 语音识别模块
+│   │       ├── gift-sound/     # 礼物音效模块
+│   │       └── recording/      # 录制模块
+│   │           ├── index.ts            # 模块入口
+│   │           ├── ffmpeg-manager.ts   # FFmpeg 进程管理
+│   │           ├── recording-engine.ts # 录制引擎
+│   │           ├── highlight-detector.ts # 高光检测
+│   │           └── file-manager.ts     # 文件管理
 │   ├── preload/                # 预加载脚本
 │   │   └── index.ts            # contextBridge API 暴露
-│   ├── renderer/               # 渲染进程
-│   │   ├── index.html          # HTML 入口
-│   │   ├── main.ts             # Vue 应用入口
-│   │   ├── App.vue             # 根组件（Element Plus 布局 + 路由视图）
-│   │   ├── router/             # 路由配置
-│   │   │   └── index.ts        # 8 个懒加载路由
-│   │   ├── stores/             # Pinia 状态管理
-│   │   │   ├── config.ts       # 配置 Store (localStorage 持久化)
-│   │   │   ├── danmaku.ts      # 弹幕 Store
-│   │   │   └── room.ts         # 直播间 Store
-│   │   ├── services/           # 服务层
-│   │   │   ├── danmaku-service.ts  # 弹幕服务
-│   │   │   └── database-service.ts # 数据库服务
-│   │   ├── views/              # 页面组件 (8 个)
-│   │   │   ├── Dashboard.vue   # 主界面（ECharts 数据可视化）
-│   │   │   ├── Connection.vue  # 直播间连接管理
-│   │   │   ├── DanmakuList.vue # 弹幕列表
-│   │   │   ├── DanmakuPool.vue # 弹幕池管理
-│   │   │   ├── GiftList.vue    # 礼物列表
-│   │   │   ├── Blacklist.vue   # 黑名单管理
-│   │   │   ├── Settings.vue    # 设置页面
-│   │   │   └── Logs.vue        # 日志查看
-│   │   └── modules/            # 业务逻辑模块
-│   │       ├── danmaku/        # 弹幕模块
-│   │       │   ├── manager.ts  # 弹幕管理器 (EventEmitter)
-│   │       │   ├── sender.ts   # 弹幕发送器（频率限制 + 变量替换）
-│   │       │   ├── parser.ts   # 弹幕解析器
-│   │       │   ├── blacklist.ts# 黑名单管理
-│   │       │   └── types.ts    # 类型定义
-│   │       ├── bilibili/       # Bilibili 协议
-│   │       │   ├── client.ts   # WebSocket 客户端（原生 WebSocket + pako 解压）
-│   │       │   ├── protocol.ts # 协议解析
-│   │       │   └── types.ts    # 类型定义
-│   │       ├── effects/        # 特效模块
-│   │       │   ├── effect-manager.ts  # 特效管理器
-│   │       │   ├── canvas-renderer.ts # Canvas 2D 渲染器
-│   │       │   ├── webgl-renderer.ts  # Three.js WebGL 渲染器
-│   │       │   ├── sound-manager.ts   # 音效管理器
-│   │       │   └── types.ts    # 类型定义
-│   │       ├── ai/             # AI 模块
-│   │       │   ├── ai-manager.ts# AI 管理器
-│   │       │   ├── ai-service.ts# AI 服务（LLM 调用）
-│   │       │   ├── asr-service.ts# ASR 语音识别服务
-│   │       │   └── types.ts    # 类型定义
-│   │       └── utils/           # 工具模块
-│   │           ├── sensitive-words.ts  # 敏感词过滤
-│   │           ├── variable-replacer.ts# 变量替换
-│   │           └── logger.ts   # 日志工具
-│   └── vue-shims.d.ts          # Vue SFC 类型声明
-├── .eslintrc.json              # ESLint 配置
-├── .eslintignore               # ESLint 忽略文件
-├── .prettierrc                 # Prettier 配置
-├── .prettierignore             # Prettier 忽略文件
-├── index.html                  # Vite 入口 HTML
-├── package.json                # 项目配置
-├── tsconfig.json               # TypeScript 基础配置
-├── tsconfig.eslint.json        # TypeScript ESLint 配置
-├── vite.config.ts              # Vite + Electron 构建配置
-├── tailwind.config.js          # Tailwind CSS 配置
-├── postcss.config.js           # PostCSS 配置
-└── README.md                   # 项目说明
+│   └── renderer/               # 渲染进程
+│       ├── index.html          # HTML 入口
+│       ├── main.ts             # Vue 应用入口
+│       ├── App.vue             # 根组件（Element Plus 布局 + 路由视图）
+│       ├── router/             # 路由配置
+│       │   └── index.ts        # 懒加载路由
+│       ├── stores/             # Pinia 状态管理
+│       │   ├── ai.ts           # AI 状态
+│       │   ├── asr.ts          # 语音识别状态
+│       │   ├── config.ts       # 配置状态
+│       │   ├── danmaku.ts      # 弹幕状态
+│       │   ├── gift-sound.ts   # 礼物音效状态
+│       │   ├── moderation.ts   # 审核状态
+│       │   ├── plugin.ts       # 插件状态
+│       │   ├── recording.ts    # 录制状态
+│       │   ├── room.ts         # 房间状态
+│       │   ├── tts.ts          # TTS 状态
+│       │   └── update.ts       # 更新状态
+│       ├── services/           # 服务层
+│       │   ├── asr-service.ts      # ASR 服务
+│       │   ├── tts-service.ts      # TTS 服务
+│       │   ├── llm-service.ts      # LLM 服务
+│       │   ├── recording-service.ts # 录制服务
+│       │   ├── danmaku-service.ts  # 弹幕服务
+│       │   ├── gift-sound-service.ts # 礼物音效服务
+│       │   ├── database-service.ts # 数据库服务
+│       │   ├── moderation-service.ts # 内容审核服务
+│       │   └── update-service.ts   # 更新服务
+│       ├── engines/            # TTS/ASR 引擎层 (Strategy 模式)
+│       │   ├── tts-engine.ts       # TTS 引擎接口
+│       │   ├── asr-engine.ts       # ASR 引擎接口
+│       │   ├── edge-tts-engine.ts  # Edge TTS 实现
+│       │   ├── web-speech-tts-engine.ts # Web Speech TTS 实现
+│       │   ├── web-speech-asr-engine.ts # Web Speech ASR 实现
+│       │   ├── whisper-asr-engine.ts # Whisper ASR 实现
+│       │   └── engine-factory.ts   # 引擎工厂
+│       ├── composables/        # Vue 组合式函数
+│       │   ├── useAudioRecording.ts    # 音频录制
+│       │   ├── useBroadcastQueue.ts    # 播报队列
+│       │   ├── useChatContext.ts       # 聊天上下文
+│       │   ├── useReplyLogic.ts        # 回复判断逻辑
+│       │   └── useWebSpeechRecognition.ts # Web Speech 识别
+│       ├── utils/              # 公共工具函数
+│       │   ├── format.ts       # 格式化工具
+│       │   ├── ipc.ts          # IPC 通信封装
+│       │   └── ui.ts           # UI 工具函数
+│       ├── plugins/            # 插件系统
+│       │   ├── types.ts        # 插件类型定义
+│       │   ├── plugin-api.ts   # 插件 API
+│       │   ├── plugin-loader.ts # 插件加载器
+│       │   ├── plugin-manager.ts # 插件管理器
+│       │   └── plugin-sandbox.ts # 插件沙箱
+│       ├── modules/            # 业务逻辑模块
+│       │   ├── bilibili/       # Bilibili 协议
+│       │   │   ├── client.ts   # WebSocket 客户端
+│       │   │   ├── protocol.ts # 协议解析
+│       │   │   ├── api.ts      # 开放平台 API
+│       │   │   └── types.ts    # 类型定义
+│       │   ├── danmaku/        # 弹幕模块
+│       │   │   ├── manager.ts  # 弹幕管理器 (EventEmitter)
+│       │   │   ├── sender.ts   # 弹幕发送器
+│       │   │   ├── parser.ts   # 弹幕解析器
+│       │   │   ├── blacklist.ts # 黑名单管理
+│       │   │   └── types.ts    # 类型定义
+│       │   ├── effects/        # 特效模块
+│       │   │   ├── effect-manager.ts  # 特效管理器
+│       │   │   ├── canvas-renderer.ts # Canvas 2D 渲染器
+│       │   │   ├── webgl-renderer.ts  # Three.js WebGL 渲染器
+│       │   │   ├── sound-manager.ts   # 音效管理器
+│       │   │   └── types.ts    # 类型定义
+│       │   ├── ai/             # AI 类型定义
+│       │   ├── asr/            # ASR 类型定义
+│       │   ├── tts/            # TTS 类型定义
+│       │   ├── recording/      # 录制类型定义
+│       │   ├── gift-sound/     # 礼物音效类型定义
+│       │   └── utils/           # 工具模块
+│       │       ├── sensitive-words.ts  # 敏感词过滤
+│       │       └── variable-replacer.ts # 变量替换
+│       ├── views/              # 页面模块 (每个模块独立文件夹)
+│       │   ├── dashboard/      # 仪表盘
+│       │   │   ├── index.vue
+│       │   │   └── components/
+│       │   │       ├── StatCard.vue
+│       │   │       └── Leaderboard.vue
+│       │   ├── connection/     # 连接配置
+│       │   ├── danmaku-list/   # 弹幕列表
+│       │   ├── danmaku-pool/   # 弹幕池管理
+│       │   ├── settings/       # 设置
+│       │   │   ├── index.vue
+│       │   │   └── components/ # 设置子组件 (14 个)
+│       │   ├── recording/      # 录制管理
+│       │   │   ├── index.vue
+│       │   │   └── components/
+│       │   │       ├── RecordingList.vue
+│       │   │       └── HighlightList.vue
+│       │   ├── gift-list/      # 礼物列表
+│       │   ├── gift-sound/     # 礼物音效配置
+│       │   ├── effect-preview/ # 特效预览
+│       │   ├── blacklist/      # 黑名单管理
+│       │   ├── logs/           # 日志监控
+│       │   ├── plugin-manager/ # 插件管理
+│       │   ├── update-log/     # 更新日志
+│       │   └── login/          # 登录
+│       ├── components/         # 全局共享组件
+│       │   ├── RecordingStatusBar.vue # 录制状态栏
+│       │   └── WhatsNewModal.vue # 新版本特性弹窗
+│       ├── locales/            # 国际化语言包
+│       │   ├── zh-CN.json      # 中文语言包
+│       │   └── en-US.json      # 英文语言包
+│       └── typings/            # 类型声明
+│           ├── whisper-node.d.ts
+│           ├── edge-tts.d.ts
+│           └── element-plus-locale.d.ts
+├── docs/                       # 项目文档
+├── tests/                      # 测试文件
+└── scripts/                    # 构建脚本
 ```
 
 ---
@@ -786,6 +854,7 @@ MVP 阶段：目前主进程没有注册 IPC handlers，渲染进程主要通过
 |------|------|------|------|
 | v1.0 | 2026-06-03 | Cline | 初始版本 |
 | v1.1 | 2026-06-04 | Cline | 根据实际项目实现更新技术栈、目录结构、模块设计 |
+| v1.2 | 2026-06-24 | Cline | 更新目录结构：新增 engines/、composables/、utils/ 层；Views 模块化；Strategy 模式 |
 
 ---
 

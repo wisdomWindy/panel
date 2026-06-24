@@ -2,8 +2,8 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Delete, Edit, Search, Upload, Download, VideoPlay, VideoPause } from '@element-plus/icons-vue';
-import { giftSoundService } from '../services/gift-sound-service';
-import type { GiftSoundConfig, GiftSoundExportData } from '../modules/gift-sound/types';
+import { giftSoundService } from '../../services/gift-sound-service';
+import type { GiftSoundConfig, GiftSoundExportData } from '../../modules/gift-sound/types';
 
 // 响应式数据
 const giftSounds = ref<GiftSoundConfig[]>([]);

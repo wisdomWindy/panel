@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
-import { useConfigStore } from '../stores/config';
+import { useConfigStore } from '../../stores/config';
 
 const configStore = useConfigStore();
 

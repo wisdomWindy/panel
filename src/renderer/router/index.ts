@@ -12,79 +12,79 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/dashboard',
     name: 'Dashboard',
-    component: () => import('@/views/Dashboard.vue'),
+    component: () => import('@/views/dashboard/index.vue'),
     meta: { title: '仪表盘' }
   },
   {
     path: '/connection',
     name: 'Connection',
-    component: () => import('@/views/Connection.vue'),
+    component: () => import('@/views/connection/index.vue'),
     meta: { title: '连接配置' }
   },
   {
     path: '/danmaku-pool',
     name: 'DanmakuPool',
-    component: () => import('@/views/DanmakuPool.vue'),
+    component: () => import('@/views/danmaku-pool/index.vue'),
     meta: { title: '弹幕池管理' }
   },
   {
     path: '/danmaku-list',
     name: 'DanmakuList',
-    component: () => import('@/views/DanmakuList.vue'),
+    component: () => import('@/views/danmaku-list/index.vue'),
     meta: { title: '弹幕列表' }
   },
   {
     path: '/gift-list',
     name: 'GiftList',
-    component: () => import('@/views/GiftList.vue'),
+    component: () => import('@/views/gift-list/index.vue'),
     meta: { title: '礼物列表' }
   },
   {
     path: '/settings',
     name: 'Settings',
-    component: () => import('@/views/Settings.vue'),
+    component: () => import('@/views/settings/index.vue'),
     meta: { title: '设置' }
   },
   {
     path: '/logs',
     name: 'Logs',
-    component: () => import('@/views/Logs.vue'),
+    component: () => import('@/views/logs/index.vue'),
     meta: { title: '日志监控' }
   },
   {
     path: '/blacklist',
     name: 'Blacklist',
-    component: () => import('@/views/Blacklist.vue'),
+    component: () => import('@/views/blacklist/index.vue'),
     meta: { title: '黑名单管理' }
   },
   {
     path: '/effect-preview',
     name: 'EffectPreview',
-    component: () => import('@/views/EffectPreview.vue'),
+    component: () => import('@/views/effect-preview/index.vue'),
     meta: { title: '特效预览' }
   },
   {
     path: '/update-log',
     name: 'UpdateLog',
-    component: () => import('@/views/UpdateLog.vue'),
+    component: () => import('@/views/update-log/index.vue'),
     meta: { title: '更新日志' }
   },
   {
     path: '/plugins',
     name: 'PluginManager',
-    component: () => import('@/views/PluginManager.vue'),
+    component: () => import('@/views/plugin-manager/index.vue'),
     meta: { title: '插件管理' }
   },
   {
     path: '/recording',
     name: 'Recording',
-    component: () => import('@/views/Recording.vue'),
+    component: () => import('@/views/recording/index.vue'),
     meta: { title: '录制管理' }
   },
   {
     path: '/gift-sound',
     name: 'GiftSound',
-    component: () => import('@/views/GiftSoundConfig.vue'),
+    component: () => import('@/views/gift-sound/index.vue'),
     meta: { title: '礼物音效配置' }
   }
 ];

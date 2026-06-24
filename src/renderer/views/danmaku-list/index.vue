@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useDanmakuStore } from '../stores/danmaku';
-import { getDanmakuService } from '../services/danmaku-service';
+import { useDanmakuStore } from '../../stores/danmaku';
+import { getDanmakuService } from '../../services/danmaku-service';
 
 const danmakuService = getDanmakuService();
 

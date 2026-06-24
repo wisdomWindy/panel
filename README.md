@@ -43,8 +43,8 @@
 - **样式**: Tailwind CSS
 - **录制**: FFmpeg (fluent-ffmpeg)
 - **国际化**: vue-i18n
-- **TTS**: edge-tts
-- **语音识别**: whisper.cpp
+- **TTS**: edge-tts (Strategy 模式)
+- **语音识别**: whisper.cpp (Strategy 模式)
 - **AI**: LLM 多提供商支持
 
 ## 快速开始
@@ -74,56 +74,149 @@ pnpm run build:vite
 ```
 panel/
 ├── src/
-│   ├── main/                    # Electron 主进程
-│   │   ├── index.ts             # 应用入口
-│   │   ├── bilibili-api.ts      # Bilibili API 封装
-│   │   ├── database.ts          # 数据库操作
-│   │   ├── ipc-handlers.ts      # IPC 通信处理
+│   ├── main/                          # Electron 主进程
+│   │   ├── index.ts                   # 应用入口
+│   │   ├── bilibili-api.ts            # Bilibili API 封装
+│   │   ├── database.ts                # 数据库操作
+│   │   ├── ipc-handlers.ts            # IPC 通信处理
 │   │   └── modules/
-│   │       ├── ai/               # AI 对话模块
-│   │       ├── asr/              # 语音识别模块
-│   │       ├── gift-sound/       # 礼物音效模块
-│   │       └── recording/        # 录制模块
-│   │           ├── index.ts             # 模块入口
-│   │           ├── ffmpeg-manager.ts    # FFmpeg 进程管理
-│   │           ├── recording-engine.ts  # 录制引擎
+│   │       ├── ai/                    # AI 对话模块
+│   │       ├── asr/                   # 语音识别模块
+│   │       ├── gift-sound/            # 礼物音效模块
+│   │       └── recording/             # 录制模块
+│   │           ├── index.ts           # 模块入口
+│   │           ├── ffmpeg-manager.ts  # FFmpeg 进程管理
+│   │           ├── recording-engine.ts # 录制引擎
 │   │           ├── highlight-detector.ts # 高光检测
-│   │           └── file-manager.ts      # 文件管理
-│   ├── preload/                 # 预加载脚本
-│   └── renderer/                # Vue 渲染进程
-│       ├── components/          # 公共组件
-│       │   ├── GiftSoundPreview.vue # 礼物音效预览
-│       │   ├── Leaderboard.vue      # 排行榜组件
-│       │   ├── RecordingStatusBar.vue  # 录制状态栏
-│       │   ├── RecordingList.vue       # 录制文件列表
-│       │   └── HighlightList.vue       # 高光列表
-│       ├── locales/             # 国际化语言包
-│       │   ├── zh-CN.json       # 中文语言包
-│       │   └── en-US.json       # 英文语言包
-│       ├── modules/             # 核心模块
-│       │   ├── bilibili/        # Bilibili 客户端
-│       │   ├── danmaku/         # 弹幕管理
-│       │   ├── effects/         # 特效系统
-│       │   ├── gift-sound/      # 礼物音效类型定义
-│       │   ├── recording/       # 录制类型定义
-│       │   └── utils/           # 工具函数
-│       ├── services/            # 服务层
-│       │   ├── gift-sound-service.ts # 礼物音效服务
-│       │   └── recording-service.ts  # 录制服务
-│       ├── stores/              # Pinia 状态管理
-│       │   ├── ai.ts            # AI 状态管理
-│       │   ├── asr.ts           # 语音识别状态管理
-│       │   ├── gift-sound.ts    # 礼物音效状态管理
-│       │   ├── moderation.ts    # 内容审核状态管理
-│       │   ├── recording.ts     # 录制状态管理
-│       │   └── tts.ts           # TTS 状态管理
-│       ├── views/               # 页面组件
-│       │   ├── GiftSoundConfig.vue  # 礼物音效配置
-│       │   └── Recording.vue    # 录制管理页面
-│       └── router/              # 路由配置
-├── docs/                        # 项目文档
-├── tests/                       # 测试文件
-└── scripts/                     # 构建脚本
+│   │           └── file-manager.ts    # 文件管理
+│   ├── preload/                       # 预加载脚本
+│   └── renderer/                      # Vue 渲染进程
+│       ├── components/                # 全局共享组件
+│       │   ├── RecordingStatusBar.vue # 录制状态栏
+│       │   └── WhatsNewModal.vue      # 新版本特性弹窗
+│       ├── composables/               # Vue 组合式函数
+│       │   ├── useAudioRecording.ts   # 音频录制
+│       │   ├── useBroadcastQueue.ts   # 播报队列
+│       │   ├── useChatContext.ts      # 聊天上下文
+│       │   ├── useReplyLogic.ts       # 回复判断逻辑
+│       │   └── useWebSpeechRecognition.ts # Web Speech 识别
+│       ├── engines/                   # TTS/ASR 引擎 (Strategy 模式)
+│       │   ├── tts-engine.ts          # TTS 引擎接口
+│       │   ├── asr-engine.ts          # ASR 引擎接口
+│       │   ├── edge-tts-engine.ts     # Edge TTS 实现
+│       │   ├── web-speech-tts-engine.ts # Web Speech TTS 实现
+│       │   ├── web-speech-asr-engine.ts # Web Speech ASR 实现
+│       │   ├── whisper-asr-engine.ts  # Whisper ASR 实现
+│       │   └── engine-factory.ts      # 引擎工厂
+│       ├── locales/                   # 国际化语言包
+│       │   ├── zh-CN.json             # 中文语言包
+│       │   └── en-US.json             # 英文语言包
+│       ├── modules/                   # 核心模块
+│       │   ├── bilibili/              # Bilibili 客户端
+│       │   ├── danmaku/               # 弹幕管理
+│       │   ├── effects/               # 特效系统
+│       │   ├── gift-sound/            # 礼物音效类型定义
+│       │   ├── recording/             # 录制类型定义
+│       │   └── utils/                 # 工具函数
+│       ├── plugins/                   # 插件系统
+│       ├── services/                  # 服务层
+│       │   ├── asr-service.ts         # ASR 服务
+│       │   ├── tts-service.ts         # TTS 服务
+│       │   ├── llm-service.ts         # LLM 服务
+│       │   ├── recording-service.ts   # 录制服务
+│       │   ├── danmaku-service.ts     # 弹幕服务
+│       │   ├── gift-sound-service.ts  # 礼物音效服务
+│       │   ├── database-service.ts    # 数据库服务
+│       │   ├── moderation-service.ts  # 内容审核服务
+│       │   └── update-service.ts      # 更新服务
+│       ├── stores/                    # Pinia 状态管理
+│       │   ├── ai.ts                  # AI 状态
+│       │   ├── asr.ts                 # 语音识别状态
+│       │   ├── config.ts              # 配置状态
+│       │   ├── danmaku.ts             # 弹幕状态
+│       │   ├── gift-sound.ts          # 礼物音效状态
+│       │   ├── moderation.ts          # 审核状态
+│       │   ├── plugin.ts              # 插件状态
+│       │   ├── recording.ts           # 录制状态
+│       │   ├── room.ts                # 房间状态
+│       │   ├── tts.ts                 # TTS 状态
+│       │   └── update.ts              # 更新状态
+│       ├── utils/                     # 公共工具函数
+│       │   ├── format.ts              # 格式化工具
+│       │   ├── ipc.ts                 # IPC 通信封装
+│       │   └── ui.ts                  # UI 工具函数
+│       ├── views/                     # 页面模块 (每个模块独立文件夹)
+│       │   ├── dashboard/             # 仪表盘
+│       │   │   ├── index.vue
+│       │   │   └── components/
+│       │   │       ├── StatCard.vue
+│       │   │       └── Leaderboard.vue
+│       │   ├── connection/            # 连接配置
+│       │   ├── danmaku-list/          # 弹幕列表
+│       │   ├── danmaku-pool/          # 弹幕池管理
+│       │   ├── settings/              # 设置
+│       │   │   ├── index.vue
+│       │   │   └── components/        # 设置子组件
+│       │   │       ├── ConnectionSettings.vue
+│       │   │       ├── DanmakuSettings.vue
+│       │   │       ├── AutoSendSettings.vue
+│       │   │       ├── FilterSettings.vue
+│       │   │       ├── LogSettings.vue
+│       │   │       ├── UpdateSettings.vue
+│       │   │       ├── PluginSettings.vue
+│       │   │       ├── LanguageSettings.vue
+│       │   │       ├── TTSSettings.vue
+│       │   │       ├── ASRSettings.vue
+│       │   │       ├── AISettings.vue
+│       │   │       ├── ModerationSettings.vue
+│       │   │       ├── RecordingSettings.vue
+│       │   │       └── RoleSettings.vue
+│       │   ├── recording/             # 录制管理
+│       │   │   ├── index.vue
+│       │   │   └── components/
+│       │   │       ├── RecordingList.vue
+│       │   │       └── HighlightList.vue
+│       │   ├── gift-list/             # 礼物列表
+│       │   ├── gift-sound/            # 礼物音效配置
+│       │   ├── effect-preview/        # 特效预览
+│       │   ├── blacklist/             # 黑名单管理
+│       │   ├── logs/                  # 日志监控
+│       │   ├── plugin-manager/        # 插件管理
+│       │   ├── update-log/            # 更新日志
+│       │   └── login/                 # 登录
+│       └── router/                    # 路由配置
+├── docs/                              # 项目文档
+├── tests/                             # 测试文件
+└── scripts/                           # 构建脚本
+```
+
+## 架构设计
+
+### 分层架构
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Views (页面层)                         │
+│  每个模块独立文件夹，包含 index.vue 和模块专属组件        │
+├─────────────────────────────────────────────────────────┤
+│                  Stores (状态管理层)                      │
+│  Pinia stores，管理应用状态，调用 Services               │
+├─────────────────────────────────────────────────────────┤
+│              Composables (组合式函数层)                   │
+│  可复用的逻辑：录音、播报队列、聊天上下文等               │
+├─────────────────────────────────────────────────────────┤
+│                  Services (服务层)                        │
+│  业务逻辑封装，IPC 调用代理                              │
+├─────────────────────────────────────────────────────────┤
+│              Engines (引擎层 - Strategy 模式)             │
+│  TTS/ASR 引擎接口和实现，支持动态切换                    │
+├─────────────────────────────────────────────────────────┤
+│                  Utils (工具层)                           │
+│  格式化、IPC 封装、UI 工具等公共函数                     │
+├─────────────────────────────────────────────────────────┤
+│              Modules (核心模块层)                         │
+│  Bilibili 客户端、弹幕管理、特效系统等                   │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## 使用说明
@@ -179,7 +272,7 @@ panel/
 1. 在 `src/renderer/locales/` 目录创建新的语言文件（如 `ja-JP.json`）
 2. 复制 `zh-CN.json` 的结构并翻译所有文本
 3. 在 `src/renderer/main.ts` 中导入新语言包
-4. 在 `src/renderer/views/Settings.vue` 中添加语言选项
+4. 在 `src/renderer/views/settings/components/LanguageSettings.vue` 中添加语言选项
 
 ## 配置说明
 
@@ -233,6 +326,18 @@ panel/
 MIT
 
 ## 更新日志
+
+### v2.2.0 (2026-06-24)
+
+- 🏗️ 重构项目架构，提升可维护性、可读性、可扩展性
+- ✨ 提取公共工具层 (utils/)：format.ts、ipc.ts、ui.ts
+- ✨ 提取 Composables 层：录音、播报队列、聊天上下文等
+- ✨ 实现 Strategy 模式：TTS/ASR 引擎支持动态切换
+- ✨ Views 模块化：每个页面独立文件夹，模块专属组件内聚
+- ✨ 拆分 Settings.vue (1081→130行) 为 14 个独立子组件
+- ✨ Services 层精简：ASR (395→52行)、TTS (441→63行)、LLM (303→58行)
+- 🐛 修复所有 TypeScript 类型错误
+- 🧹 清理未使用代码和死代码
 
 ### v2.1.0 (2026-06-17)
 

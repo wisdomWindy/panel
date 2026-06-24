@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { VideoPlay, FolderOpened, Delete, Download } from '@element-plus/icons-vue';
-import type { Recording } from '../modules/recording/types.js';
-import { useRecordingStore } from '../stores/recording';
-import { formatDuration, formatFileSize, formatDate } from '../utils/format.js';
-import { getRecordingStatusTagType, getRecordingStatusText, confirmDelete, showSuccess, showError } from '../utils/ui.js';
+import type { Recording } from '../../../modules/recording/types.js';
+import { useRecordingStore } from '../../../stores/recording';
+import { formatDuration, formatFileSize, formatDate } from '../../../utils/format.js';
+import { getRecordingStatusTagType, getRecordingStatusText, confirmDelete, showSuccess, showError } from '../../../utils/ui.js';
 
 defineProps<{
   recordings: Recording[];

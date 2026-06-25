@@ -27,9 +27,5 @@ output.log
 # Electron
 app.asar
 
-# Auto-generated files
-auto-imports.d.ts
-components.d.ts
-
 # Temporary files
 *.tmp

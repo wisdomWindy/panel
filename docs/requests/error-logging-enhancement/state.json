@@ -1,0 +1,23 @@
+{
+  "request_id": "error-logging-enhancement",
+  "source": {
+    "type": "user_input",
+    "path": "用户需求"
+  },
+  "stage": "complete",
+  "status": "in_progress",
+  "artifacts": {
+    "request_md": "docs/requests/error-logging-enhancement/request.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "loop": {
+    "iteration": 7,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "new_request"
+  }
+}

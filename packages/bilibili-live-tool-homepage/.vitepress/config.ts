@@ -11,6 +11,7 @@ export default defineConfig({
     logo: '/logo.svg',
     nav: [
       { text: '首页', link: '/' },
+      { text: '下载', link: '/download/' },
       { text: '功能介绍', link: '/features/' },
       { text: '使用指南', link: '/guide/' },
       { text: '更新日志', link: '/changelog' }

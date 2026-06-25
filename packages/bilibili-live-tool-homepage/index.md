@@ -10,8 +10,8 @@ hero:
     alt: Bilibili 直播助手
   actions:
     - theme: brand
-      text: 快速开始
-      link: /guide/
+      text: 立即下载
+      link: /download/
     - theme: alt
       text: 功能介绍
       link: /features/
@@ -49,21 +49,110 @@ features:
 - 支持 Monorepo 架构
 :::
 
-## 快速体验
+## 下载安装
 
-```bash
-# 克隆项目
-git clone https://github.com/wisdomWindy/panel.git
+<div class="download-section">
+  <div class="download-buttons">
+    <a href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手-Setup.exe" class="download-btn windows">
+      <span class="download-icon">🪟</span>
+      <span class="download-text">
+        <span class="download-label">下载 Windows 版</span>
+        <span class="download-version">v2.0.0 · exe</span>
+      </span>
+    </a>
+    <a href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.dmg" class="download-btn macos">
+      <span class="download-icon">🍎</span>
+      <span class="download-text">
+        <span class="download-label">下载 macOS 版</span>
+        <span class="download-version">v2.0.0 · dmg</span>
+      </span>
+    </a>
+    <a href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.AppImage" class="download-btn linux">
+      <span class="download-icon">🐧</span>
+      <span class="download-text">
+        <span class="download-label">下载 Linux 版</span>
+        <span class="download-version">v2.0.0 · AppImage</span>
+      </span>
+    </a>
+  </div>
+  <p class="download-hint">
+    也可以前往 <a href="https://github.com/wisdomWindy/panel/releases">GitHub Releases</a> 页面下载其他版本
+  </p>
+</div>
 
-# 进入项目目录
-cd panel/packages/bilibili-live-tool
+<style>
+.download-section {
+  text-align: center;
+  margin: 2rem 0;
+}
 
-# 安装依赖
-pnpm install
+.download-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
 
-# 启动开发模式
-pnpm dev
-```
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: white;
+  font-weight: 500;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.download-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.download-btn.windows {
+  background: linear-gradient(135deg, #0078d4, #005a9e);
+}
+
+.download-btn.macos {
+  background: linear-gradient(135deg, #333, #000);
+}
+
+.download-btn.linux {
+  background: linear-gradient(135deg, #dd4814, #b33a10);
+}
+
+.download-icon {
+  font-size: 1.5rem;
+}
+
+.download-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.download-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.download-version {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.download-hint {
+  color: var(--vp-c-text-2);
+  font-size: 0.875rem;
+}
+
+.download-hint a {
+  color: var(--vp-c-brand);
+  text-decoration: underline;
+}
+</style>
 
 ## 技术栈
 

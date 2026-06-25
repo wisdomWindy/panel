@@ -23,6 +23,7 @@
   "build": {
     "appId": "com.bilibili.live-tool",
     "productName": "Bilibili 直播助手",
+    "executableName": "start",
     "directories": {
       "output": "release"
     },

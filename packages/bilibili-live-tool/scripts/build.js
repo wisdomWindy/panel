@@ -1,4 +1,6 @@
-import { spawn } from 'child_process';
+import { spawn, exec } from 'child_process';
+import { existsSync, rmSync } from 'fs';
+import { join } from 'path';
 
 // Function to run a command and return a promise
 function runCommand(command, args) {
@@ -17,6 +19,43 @@ function runCommand(command, args) {
       reject(error);
     });
   });
+}
+
+// Kill process by name
+function killProcess(name) {
+  return new Promise((resolve) => {
+    const isWin = process.platform === 'win32';
+    const cmd = isWin ? `taskkill /F /IM ${name}` : `pkill -f ${name}`;
+    
+    exec(cmd, (error) => {
+      // Ignore errors if process not found
+      resolve();
+    });
+  });
+}
+
+// Clean release directory
+async function cleanReleaseDir() {
+  const releaseDir = join(process.cwd(), 'release');
+  
+  if (existsSync(releaseDir)) {
+    console.log('Cleaning release directory...');
+    
+    // Try to kill running processes
+    await killProcess('start.exe');
+    await killProcess('start');
+    await killProcess('Bilibili 直播助手');
+    
+    // Wait a bit for processes to terminate
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    try {
+      rmSync(releaseDir, { recursive: true, force: true });
+      console.log('Release directory cleaned.');
+    } catch (error) {
+      console.warn('Warning: Could not fully clean release directory:', error.message);
+    }
+  }
 }
 
 // Build the main process
@@ -40,6 +79,7 @@ async function buildRenderer() {
 // Main build function
 async function buildAll() {
   try {
+    await cleanReleaseDir();
     await buildMain();
     await buildPreload();
     await buildRenderer();

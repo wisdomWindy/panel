@@ -5,40 +5,6 @@
 ## 系统要求
 
 - **操作系统**: Windows 10+、macOS 10.15+、Ubuntu 20.04+
-- **Node.js**: 18.0 或更高版本
-- **pnpm**: 8.0 或更高版本
-
-## 安装步骤
-
-### 1. 克隆项目
-
-```bash
-git clone https://github.com/wisdomWindy/panel.git
-cd panel
-```
-
-### 2. 安装依赖
-
-```bash
-pnpm install
-```
-
-### 3. 启动开发模式
-
-```bash
-# 进入直播助手子项目
-cd packages/bilibili-live-tool
-
-# 启动开发模式
-pnpm dev
-```
-
-### 4. 构建应用
-
-```bash
-# 构建应用
-pnpm build:app
-```
 
 ## 首次使用
 

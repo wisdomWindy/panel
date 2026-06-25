@@ -1,198 +1,158 @@
-# 计划: 礼物音效系统
+# 计划：礼物音效系统调整
 
 ## 任务拆解
 
-### 阶段1: 基础架构搭建
-1. **扩展electron-store数据结构**
-   - 添加giftSounds配置存储
-   - 添加soundLogs日志存储
-   - 更新默认配置
+### 1. 创建Bilibili礼物服务
+**任务描述**：创建bilibili-gift-service.ts，实现从Bilibili API获取礼物列表的功能
+**关联规格**：spec.md - API and Data Contracts部分
+**执行模式**：串行
+**前置条件**：无
 
-2. **搭建主进程模块框架**
-   - 创建src/main/modules/gift-sound/目录结构
-   - 实现模块入口index.ts
-   - 定义IPC通信接口
+### 2. 创建Bilibili礼物状态管理
+**任务描述**：创建bilibili-gifts.ts store，管理礼物列表状态
+**关联规格**：spec.md - Page and Module Design部分
+**执行模式**：串行
+**前置条件**：任务1完成
 
-3. **搭建渲染进程模块框架**
-   - 创建src/renderer/modules/gift-sound/目录结构
-   - 实现types.ts类型定义
-   - 创建gift-sound-service.ts服务框架
+### 3. 修改礼物音效配置UI
+**任务描述**：修改gift-sound/index.vue，将手动输入礼物信息改为从礼物列表选择
+**关联规格**：spec.md - User Flow部分
+**执行模式**：串行
+**前置条件**：任务2完成
 
-### 阶段2: 核心功能实现
-4. **实现音频播放器**
-   - 封装Web Audio API
-   - 实现基础播放控制（播放、暂停、停止）
-   - 实现音量控制
-   - 实现淡入淡出效果
+### 4. 更新礼物音效服务
+**任务描述**：更新gift-sound-service.ts，适配新的礼物信息获取方式
+**关联规格**：spec.md - API and Data Contracts部分
+**执行模式**：可并行
+**前置条件**：任务1完成
 
-5. **实现音效队列管理**
-   - 设计优先级队列数据结构
-   - 实现队列的入队、出队操作
-   - 实现优先级排序算法
-   - 实现冷却时间管理
+### 5. 更新主进程IPC处理
+**任务描述**：更新src/main/modules/gift-sound/index.ts，添加bilibili礼物相关IPC处理
+**关联规格**：spec.md - API and Data Contracts部分
+**执行模式**：可并行
+**前置条件**：任务1完成
 
-6. **实现配置管理服务**
-   - 实现配置的CRUD操作
-   - 实现配置的导入导出
-   - 实现配置的验证逻辑
-
-### 阶段3: UI组件开发
-7. **实现GiftSoundConfig主组件**
-   - 实现礼物列表区域
-   - 实现音效配置表单
-   - 实现批量操作功能
-
-8. **实现音效预览组件**
-   - 实现音频播放控件
-   - 实现进度条显示
-   - 实现音量调节
-
-9. **实现状态管理**
-   - 创建Pinia store
-   - 实现状态的持久化
-   - 实现状态的同步
-
-### 阶段4: 集成与测试
-10. **集成各模块**
-    - 连接主进程和渲染进程
-    - 集成WebSocket事件处理
-    - 集成数据库操作
-
-11. **实现错误处理**
-    - 实现异常捕获和处理
-    - 实现用户提示
-    - 实现日志记录
-
-12. **性能优化**
-    - 优化音频播放性能
-    - 优化队列处理性能
-    - 优化UI渲染性能
+### 6. 测试验证
+**任务描述**：测试礼物列表获取、音效配置、播放功能
+**关联规格**：spec.md - Acceptance Criteria部分
+**执行模式**：串行
+**前置条件**：任务3、4、5完成
 
 ## 依赖关系
 
-### 强依赖
-1. electron-store数据结构 → 所有数据操作
-2. 类型定义 → 所有模块开发
-3. 主进程模块 → 渲染进程服务
-4. 音频播放器 → 音效预览功能
-5. 配置管理 → UI组件
+```
+任务1 → 任务2 → 任务3
+任务1 → 任务4（可并行）
+任务1 → 任务5（可并行）
+任务3、4、5 → 任务6
+```
 
-### 弱依赖
-1. 基础架构 → 核心功能
-2. 核心功能 → UI组件
-3. UI组件 → 集成测试
+## 整洁性与复杂度控制
+
+### 命名规范
+- 服务文件：bilibili-gift-service.ts
+- Store文件：bilibili-gifts.ts
+- 组件名称：GiftSoundConfig
+
+### 职责边界
+- bilibili-gift-service.ts：只负责API调用和数据转换
+- bilibili-gifts.ts：只负责状态管理
+- gift-sound-service.ts：只负责音效配置业务逻辑
+- UI组件：只负责展示和用户交互
+
+### 副作用控制
+- API调用失败时提供重试机制
+- 网络异常时显示友好提示
+- 缓存礼物列表减少API调用
+
+## 模式决策与替代方案
+
+### 选择的模式
+**服务层模式**：将Bilibili API调用封装在独立的服务中
+
+**理由**：
+1. 单一职责：服务只负责API调用
+2. 可测试性：便于单元测试
+3. 可维护性：API变更时只需修改服务
+
+**替代方案**：
+- 直接在组件中调用API：违反单一职责，难以测试
+- 使用全局状态管理API调用：过度设计
 
 ## 并行执行建议
 
-### 可并行任务
-1. 数据库表结构 和 类型定义
-2. 主进程模块框架 和 渲染进程模块框架
-3. 音频播放器 和 音效队列管理
-4. GiftSoundConfig组件 和 音效预览组件
-
-### 串行任务
-1. 数据库表结构 → 配置管理服务
-2. 类型定义 → 所有模块实现
-3. 主进程模块 → 渲染进程服务
-4. 所有模块 → 集成测试
-
-**建议**：当前任务规模适中，建议采用串行执行，确保质量。如果时间紧张，可考虑并行执行可并行任务。
+**不建议启用workflow-style并行执行**：
+1. 任务数量较少（6个）
+2. 依赖关系紧密
+3. 单线程执行更简单可控
 
 ## 触发与上下文准备
 
 ### 触发条件
-1. 用户打开礼物音效配置页面
-2. 应用启动时加载配置
-3. WebSocket接收到礼物事件
+- 用户打开礼物音效配置页面
+- 用户点击刷新礼物列表按钮
 
 ### 上下文准备
-1. 加载数据库配置
-2. 初始化音频设备
-3. 建立WebSocket连接
-4. 加载用户配置
+- Bilibili API访问凭证
+- 当前直播间ID
+- 网络连接状态
 
 ## 受影响文件或模块
 
 ### 新增文件
-1. `src/main/modules/gift-sound/index.ts`
-2. `src/main/modules/gift-sound/audio-player.ts`
-3. `src/main/modules/gift-sound/sound-queue.ts`
-4. `src/renderer/modules/gift-sound/types.ts`
-5. `src/renderer/services/gift-sound-service.ts`
-6. `src/renderer/stores/gift-sound.ts`
-7. `src/renderer/components/GiftSoundConfig.vue`
-8. `src/renderer/components/GiftSoundPreview.vue`
-9. `src/renderer/components/GiftSoundList.vue`
+- src/renderer/services/bilibili-gift-service.ts
+- src/renderer/stores/bilibili-gifts.ts
 
 ### 修改文件
-1. `src/main/database.ts` - 添加giftSounds和soundLogs数据结构
-2. `src/renderer/services/database-service.ts` - 添加giftSounds相关方法
-3. 主进程模块注册文件
-4. 渲染进程路由配置
-5. 状态管理配置
+- src/renderer/views/gift-sound/index.vue
+- src/renderer/services/gift-sound-service.ts
+- src/main/modules/gift-sound/index.ts
+
+### 可能影响
+- 数据库schema（可能需要添加礼物信息缓存表）
+- 类型定义（可能需要更新GiftSoundConfig接口）
 
 ## 测试策略
 
 ### 单元测试
-1. 音频播放器测试
-   - 播放控制测试
-   - 音量控制测试
-   - 淡入淡出测试
+1. bilibili-gift-service.ts
+   - 测试API调用成功/失败情况
+   - 测试数据转换逻辑
+   - 测试错误处理
 
-2. 音效队列测试
-   - 入队出队测试
-   - 优先级排序测试
-   - 冷却时间测试
-
-3. 配置管理测试
-   - CRUD操作测试
-   - 导入导出测试
-   - 数据验证测试
+2. bilibili-gifts.ts
+   - 测试状态管理逻辑
+   - 测试缓存机制
 
 ### 集成测试
-1. 主进程与渲染进程通信测试
-2. WebSocket事件处理测试
-3. 数据库操作测试
+1. 礼物列表获取流程
+2. 音效配置保存流程
+3. 音效播放流程
 
 ### 端到端测试
 1. 完整配置流程测试
-2. 完整播放流程测试
-3. 异常情况处理测试
-
-### 性能测试
-1. 音效触发延迟测试
-2. 队列处理能力测试
-3. CPU和内存占用测试
+2. 异常情况处理测试
 
 ## 观察与人工介入点
 
 ### 观察点
-1. 音效播放状态
-2. 队列处理状态
-3. 配置保存状态
-4. 错误日志记录
+1. API调用成功率
+2. 礼物列表加载时间
+3. 用户配置完成率
 
 ### 人工介入点
-1. 配置页面UI设计审核
-2. 音效播放效果测试
-3. 性能测试验证
-4. 用户体验测试
+1. API访问凭证配置
+2. 直播间ID设置
+3. 网络异常处理
 
 ## 回滚说明
 
-### 回滚策略
-1. **数据回滚**：保留electron-store数据备份
-2. **代码回滚**：使用Git版本控制
-3. **配置回滚**：保留配置备份
+### 回滚条件
+1. Bilibili API不可用
+2. 礼物列表获取失败
+3. 用户配置流程中断
 
 ### 回滚步骤
-1. 停止相关服务
-2. 执行数据库回滚
-3. 恢复代码版本
-4. 恢复配置文件
-5. 重启服务
-
-### 回滚验证
-1. 验证功能恢复正常
-2. 验证数据完整性
-3. 验证性能指标
+1. 保留原有手动输入功能作为备选
+2. 提供离线模式支持
+3. 记录回滚原因供后续分析

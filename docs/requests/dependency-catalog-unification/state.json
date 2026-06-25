@@ -1,0 +1,32 @@
+{
+  "request_id": "dependency-catalog-unification",
+  "source": {
+    "type": "local_requirement",
+    "path": "packages",
+    "context": "将多个子项目共同使用的依赖版本统一到 pnpm workspace catalog 中"
+  },
+  "stage": "complete",
+  "status": "in_progress",
+  "artifacts": {
+    "request.md": "created",
+    "artifacts/prd-snapshot.md": "created",
+    "spec/spec.md": "created",
+    "spec/clarifications.md": "created",
+    "plan/plan.md": "created",
+    "plan/task-board.md": "created",
+    "execution/changelog.md": "created",
+    "verification/verification.md": "created",
+    "review/review.md": "created"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "loop": {
+    "iteration": 6,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "gate_recovery"
+  }
+}

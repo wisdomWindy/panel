@@ -1,2 +1,12 @@
 packages:
   - 'packages/*'
+allowBuilds:
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  vue-demi: true
+catalog:
+  "@tailwindcss/postcss": ^4.3.0
+  autoprefixer: ^10.5.0
+  postcss: ^8.5.15
+  tailwindcss: ^4.3.0

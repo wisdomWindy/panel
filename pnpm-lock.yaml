@@ -4,6 +4,21 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    '@tailwindcss/postcss':
+      specifier: ^4.3.0
+      version: 4.3.1
+    autoprefixer:
+      specifier: ^10.5.0
+      version: 10.5.2
+    postcss:
+      specifier: ^8.5.15
+      version: 8.5.15
+    tailwindcss:
+      specifier: ^4.3.0
+      version: 4.3.1
+
 importers:
 
   .: {}
@@ -66,7 +81,7 @@ importers:
         version: 3.19.0
     devDependencies:
       '@tailwindcss/postcss':
-        specifier: ^4.3.0
+        specifier: 'catalog:'
         version: 4.3.1
       '@types/node':
         specifier: ^20.10.0
@@ -90,7 +105,7 @@ importers:
         specifier: ^3.3.3
         version: 3.3.5(typescript@5.9.3)
       autoprefixer:
-        specifier: ^10.5.0
+        specifier: 'catalog:'
         version: 10.5.2(postcss@8.5.15)
       electron:
         specifier: ^30.0.0
@@ -105,7 +120,7 @@ importers:
         specifier: ^9.33.0
         version: 9.33.0(eslint@8.57.1)
       postcss:
-        specifier: ^8.5.15
+        specifier: 'catalog:'
         version: 8.5.15
       prettier:
         specifier: ^3.8.3
@@ -114,7 +129,7 @@ importers:
         specifier: ^17.12.0
         version: 17.13.0(typescript@5.9.3)
       tailwindcss:
-        specifier: ^4.3.0
+        specifier: 'catalog:'
         version: 4.3.1
       typescript:
         specifier: ^5.9.3
@@ -137,6 +152,18 @@ importers:
 
   packages/bilibili-live-tool-homepage:
     devDependencies:
+      '@tailwindcss/postcss':
+        specifier: 'catalog:'
+        version: 4.3.1
+      autoprefixer:
+        specifier: 'catalog:'
+        version: 10.5.2(postcss@8.5.15)
+      postcss:
+        specifier: 'catalog:'
+        version: 8.5.15
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 4.3.1
       vitepress:
         specifier: ^1.0.0
         version: 1.6.4(@algolia/client-search@5.55.1)(@types/node@20.19.43)(async-validator@4.2.5)(axios@1.18.1)(lightningcss@1.32.0)(postcss@8.5.15)(search-insights@2.17.3)(typescript@5.9.3)

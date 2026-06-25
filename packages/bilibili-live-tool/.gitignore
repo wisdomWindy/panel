@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+release/
+build-output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+app.log
+app.log.out
+error.log
+output.log
+
+# Electron
+app.asar
+
+# Temporary files
+*.tmp

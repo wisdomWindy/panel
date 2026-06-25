@@ -1,0 +1,23 @@
+{
+  "request_id": "gift-sound-system-enhancement",
+  "source": {
+    "type": "review",
+    "path": "docs/requests/gift-sound-system/review/review.md"
+  },
+  "stage": "complete",
+  "status": "in_progress",
+  "artifacts": {
+    "request_md": "docs/requests/gift-sound-system-enhancement/request.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "loop": {
+    "iteration": 7,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "new_request"
+  }
+}

@@ -9,6 +9,42 @@ import type {
   GiftSoundConfig,
   PlaySoundRequest
 } from '../../../renderer/modules/gift-sound/types.js';
+import type { GiftInfo } from '../../../renderer/modules/gift-sound/types.js';
+
+/**
+ * 将API响应转换为GiftInfo列表
+ * @param data API响应数据
+ * @returns GiftInfo列表
+ */
+function convertToGiftInfoList(data: unknown): GiftInfo[] {
+  try {
+    const giftData = data as {
+      list?: Array<{
+        id: number;
+        name: string;
+        price: number;
+        img_basic?: string;
+        img?: string;
+        desc?: string;
+      }>;
+    };
+
+    if (!giftData.list || !Array.isArray(giftData.list)) {
+      return [];
+    }
+
+    return giftData.list.map(gift => ({
+      giftId: String(gift.id),
+      giftName: gift.name,
+      giftPrice: gift.price || 0,
+      giftImg: gift.img_basic || gift.img || '',
+      giftDesc: gift.desc || ''
+    }));
+  } catch (error) {
+    console.error('转换礼物数据失败:', error);
+    return [];
+  }
+}
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -207,6 +243,48 @@ function registerIpcHandlers(): void {
     }
   });
 
+  // ===== 礼物列表 =====
+  ipcMain.handle('bilibili:getGiftList', async (_event, roomId: string) => {
+    try {
+      // 调用Bilibili API获取礼物列表
+      const url = new URL('https://api.live.bilibili.com/xlive/web-room/v1/giftPanel/roomGiftList');
+      url.searchParams.set('platform', 'web');
+      url.searchParams.set('room_id', roomId);
+
+      const response = await fetch(url.toString());
+      
+      if (!response.ok) {
+        throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.code !== 0) {
+        throw new Error(`API返回错误: ${data.message || '未知错误'}`);
+      }
+
+      // 转换数据格式
+      const gifts = convertToGiftInfoList(data.data);
+      
+      return { success: true, gifts };
+    } catch (error) {
+      console.error('获取礼物列表失败:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // ===== 礼物事件转发 =====
+  ipcMain.on('gift-event', (_event, giftData) => {
+    try {
+      // 转发礼物事件到渲染进程
+      if (mainWindow) {
+        mainWindow.webContents.send('gift-event', giftData);
+      }
+    } catch (error) {
+      console.error('转发礼物事件失败:', error);
+    }
+  });
+
   // ===== 事件处理（从渲染进程接收） =====
   ipcMain.on('gift-sound:playComplete', (_event, data) => {
     // 播放完成事件处理
@@ -238,4 +316,5 @@ export function cleanupGiftSoundModule(): void {
   ipcMain.removeHandler('gift-sound:getLogs');
   ipcMain.removeHandler('gift-sound:clearLogs');
   ipcMain.removeHandler('gift-sound:selectFile');
+  ipcMain.removeHandler('bilibili:getGiftList');
 }

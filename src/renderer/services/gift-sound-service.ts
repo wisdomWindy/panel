@@ -418,6 +418,27 @@ export class GiftSoundService {
       updatedAt: new Date()
     };
   }
+
+  /**
+   * 根据礼物信息创建配置
+   */
+  createConfigFromGift(gift: { giftId: string; giftName: string }): GiftSoundConfig {
+    return {
+      id: Date.now().toString(),
+      giftId: gift.giftId,
+      giftName: gift.giftName,
+      soundFile: '',
+      soundName: '',
+      volume: 0.8,
+      duration: 0,
+      playMode: 'once',
+      cooldown: 1000,
+      priority: 0,
+      enabled: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
 }
 
 // 创建单例实例

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Delete, Edit, Search, Upload, Download, VideoPlay, VideoPause } from '@element-plus/icons-vue';
+import { Plus, Delete, Edit, Search, Upload, Download, VideoPlay, VideoPause, Refresh } from '@element-plus/icons-vue';
 import { giftSoundService } from '../../services/gift-sound-service';
-import type { GiftSoundConfig, GiftSoundExportData } from '../../modules/gift-sound/types';
+import { bilibiliGiftService } from '../../services/bilibili-gift-service';
+import type { GiftSoundConfig, GiftSoundExportData, GiftInfo } from '../../modules/gift-sound/types';
 
 // 响应式数据
 const giftSounds = ref<GiftSoundConfig[]>([]);
@@ -16,6 +17,12 @@ const importData = ref('');
 const previewSoundFile = ref('');
 const previewVolume = ref(0.8);
 const isPreviewPlaying = ref(false);
+
+// 礼物列表相关状态
+const giftList = ref<GiftInfo[]>([]);
+const giftListLoading = ref(false);
+const giftSearchQuery = ref('');
+const selectedGift = ref<GiftInfo | null>(null);
 
 // 表单数据
 const formData = reactive<GiftSoundConfig>({
@@ -51,9 +58,23 @@ const filteredGiftSounds = computed(() => {
 const totalGiftSounds = computed(() => giftSounds.value.length);
 const enabledGiftSounds = computed(() => giftSounds.value.filter(gs => gs.enabled).length);
 
+// 礼物列表相关计算属性
+const filteredGiftList = computed(() => {
+  if (!giftSearchQuery.value) {
+    return giftList.value;
+  }
+  const query = giftSearchQuery.value.toLowerCase();
+  return giftList.value.filter(
+    gift =>
+      gift.giftName.toLowerCase().includes(query) ||
+      gift.giftId.toLowerCase().includes(query)
+  );
+});
+
 // 生命周期
 onMounted(() => {
   loadGiftSounds();
+  loadGiftList();
 });
 
 // 方法
@@ -69,15 +90,57 @@ async function loadGiftSounds() {
   }
 }
 
+async function loadGiftList() {
+  giftListLoading.value = true;
+  try {
+    // 这里需要从配置中获取roomId，暂时使用默认值
+    const roomId = 'default';
+    giftList.value = await bilibiliGiftService.getGiftList(roomId);
+    
+    if (giftList.value.length === 0) {
+      ElMessage.warning('暂无礼物数据，请等待礼物事件或手动刷新');
+    }
+  } catch (error) {
+    const errorMessage = (error as Error).message || '获取礼物列表失败';
+    ElMessage.error(`获取礼物列表失败: ${errorMessage}`);
+    console.error('获取礼物列表失败:', error);
+  } finally {
+    giftListLoading.value = false;
+  }
+}
+
+async function handleRefreshGiftList() {
+  giftListLoading.value = true;
+  try {
+    const roomId = 'default';
+    giftList.value = await bilibiliGiftService.getGiftList(roomId, true);
+    ElMessage.success('礼物列表已刷新');
+  } catch (error) {
+    const errorMessage = (error as Error).message || '刷新礼物列表失败';
+    ElMessage.error(`刷新礼物列表失败: ${errorMessage}`);
+    console.error('刷新礼物列表失败:', error);
+  } finally {
+    giftListLoading.value = false;
+  }
+}
+
 function handleAdd() {
   isEditing.value = false;
   resetFormData();
+  selectedGift.value = null;
+  giftSearchQuery.value = '';
   dialogVisible.value = true;
 }
 
 function handleEdit(giftSound: GiftSoundConfig) {
   isEditing.value = true;
   Object.assign(formData, giftSound);
+  
+  // 设置选中的礼物
+  const gift = giftList.value.find(g => g.giftId === giftSound.giftId);
+  selectedGift.value = gift || null;
+  giftSearchQuery.value = '';
+  
   dialogVisible.value = true;
 }
 
@@ -107,8 +170,8 @@ async function handleDelete(giftSound: GiftSoundConfig) {
 async function handleSave() {
   try {
     // 验证表单
-    if (!formData.giftId || !formData.giftName) {
-      ElMessage.warning('请填写礼物ID和名称');
+    if (!selectedGift.value) {
+      ElMessage.warning('请选择礼物');
       return;
     }
 
@@ -116,6 +179,10 @@ async function handleSave() {
       ElMessage.warning('请选择音效文件');
       return;
     }
+
+    // 设置礼物信息
+    formData.giftId = selectedGift.value.giftId;
+    formData.giftName = selectedGift.value.giftName;
 
     // 检查是否已存在相同礼物ID的配置（仅在添加时检查）
     if (!isEditing.value) {
@@ -179,13 +246,6 @@ function handleStopPreview() {
 }
 
 async function handleFileSelect() {
-  // 检查当前礼物是否已经有音效配置
-  const existingConfig = giftSounds.value.find(gs => gs.giftId === formData.giftId);
-  if (existingConfig) {
-    ElMessage.warning(`礼物 "${formData.giftName}" 已有音效配置，请先删除现有配置后再上传新文件`);
-    return;
-  }
-
   try {
     const result = await window.electronAPI.invoke('gift-sound:selectFile');
     if (result.canceled) {
@@ -427,11 +487,55 @@ function handleCloseDialog() {
       @close="handleCloseDialog"
     >
       <el-form :model="formData" label-width="100px">
-        <el-form-item label="礼物ID" required>
-          <el-input v-model="formData.giftId" placeholder="请输入礼物ID" />
-        </el-form-item>
-        <el-form-item label="礼物名称" required>
-          <el-input v-model="formData.giftName" placeholder="请输入礼物名称" />
+        <el-form-item label="选择礼物" required>
+          <div class="w-full">
+            <el-input
+              v-model="giftSearchQuery"
+              placeholder="搜索礼物名称或ID"
+              :prefix-icon="Search"
+              clearable
+              class="mb-2"
+            />
+            <el-select
+              v-model="selectedGift"
+              value-key="giftId"
+              placeholder="请选择礼物"
+              filterable
+              :loading="giftListLoading"
+              class="w-full"
+            >
+              <template #header>
+                <div class="flex justify-between items-center p-2">
+                  <span>礼物列表</span>
+                  <el-button
+                    :icon="Refresh"
+                    size="small"
+                    :loading="giftListLoading"
+                    @click="handleRefreshGiftList"
+                  >
+                    刷新
+                  </el-button>
+                </div>
+              </template>
+              <el-option
+                v-for="gift in filteredGiftList"
+                :key="gift.giftId"
+                :label="gift.giftName"
+                :value="gift"
+              >
+                <div class="flex items-center gap-2">
+                  <img
+                    v-if="gift.giftImg"
+                    :src="gift.giftImg"
+                    :alt="gift.giftName"
+                    class="w-6 h-6 object-cover rounded"
+                  />
+                  <span>{{ gift.giftName }}</span>
+                  <span class="text-[#909399] text-xs">({{ gift.giftId }})</span>
+                </div>
+              </el-option>
+            </el-select>
+          </div>
         </el-form-item>
         <el-form-item label="音效文件" required>
           <el-input v-model="formData.soundFile" placeholder="请选择音效文件">

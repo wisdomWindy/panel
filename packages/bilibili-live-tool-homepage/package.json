@@ -1,0 +1,15 @@
+{
+  "name": "@monorepo/bilibili-live-tool-homepage",
+  "version": "1.0.0",
+  "description": "Bilibili 直播助手官方主页",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0"
+  }
+}

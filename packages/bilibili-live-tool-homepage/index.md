@@ -51,108 +51,50 @@ features:
 
 ## 下载安装
 
-<div class="download-section">
-  <div class="download-buttons">
-    <a href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手-Setup.exe" class="download-btn windows">
-      <span class="download-icon">🪟</span>
-      <span class="download-text">
-        <span class="download-label">下载 Windows 版</span>
-        <span class="download-version">v2.0.0 · exe</span>
+<div class="my-8 text-center">
+  <div class="mb-4 flex flex-wrap justify-center gap-4">
+    <a
+      href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手-Setup.exe"
+      class="inline-flex translate-y-0 items-center gap-3 rounded-lg bg-[linear-gradient(135deg,#0078d4,#005a9e)] px-6 py-3 text-white no-underline transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+    >
+      <span class="text-2xl">🪟</span>
+      <span class="flex flex-col items-start">
+        <span class="text-sm font-semibold">下载 Windows 版</span>
+        <span class="text-xs opacity-80">v2.0.0 · exe</span>
       </span>
     </a>
-    <a href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.dmg" class="download-btn macos">
-      <span class="download-icon">🍎</span>
-      <span class="download-text">
-        <span class="download-label">下载 macOS 版</span>
-        <span class="download-version">v2.0.0 · dmg</span>
+    <a
+      href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.dmg"
+      class="inline-flex translate-y-0 items-center gap-3 rounded-lg bg-[linear-gradient(135deg,#333,#000)] px-6 py-3 text-white no-underline transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+    >
+      <span class="text-2xl">🍎</span>
+      <span class="flex flex-col items-start">
+        <span class="text-sm font-semibold">下载 macOS 版</span>
+        <span class="text-xs opacity-80">v2.0.0 · dmg</span>
       </span>
     </a>
-    <a href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.AppImage" class="download-btn linux">
-      <span class="download-icon">🐧</span>
-      <span class="download-text">
-        <span class="download-label">下载 Linux 版</span>
-        <span class="download-version">v2.0.0 · AppImage</span>
+    <a
+      href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.AppImage"
+      class="inline-flex translate-y-0 items-center gap-3 rounded-lg bg-[linear-gradient(135deg,#dd4814,#b33a10)] px-6 py-3 text-white no-underline transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+    >
+      <span class="text-2xl">🐧</span>
+      <span class="flex flex-col items-start">
+        <span class="text-sm font-semibold">下载 Linux 版</span>
+        <span class="text-xs opacity-80">v2.0.0 · AppImage</span>
       </span>
     </a>
   </div>
-  <p class="download-hint">
-    也可以前往 <a href="https://github.com/wisdomWindy/panel/releases">GitHub Releases</a> 页面下载其他版本
+  <p class="text-sm text-[var(--vp-c-text-2)]">
+    也可以前往
+    <a
+      href="https://github.com/wisdomWindy/panel/releases"
+      class="text-[var(--vp-c-brand)] underline"
+    >
+      GitHub Releases
+    </a>
+    页面下载其他版本
   </p>
 </div>
-
-<style>
-.download-section {
-  text-align: center;
-  margin: 2rem 0;
-}
-
-.download-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-}
-
-.download-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  text-decoration: none;
-  color: white;
-  font-weight: 500;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.download-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.download-btn.windows {
-  background: linear-gradient(135deg, #0078d4, #005a9e);
-}
-
-.download-btn.macos {
-  background: linear-gradient(135deg, #333, #000);
-}
-
-.download-btn.linux {
-  background: linear-gradient(135deg, #dd4814, #b33a10);
-}
-
-.download-icon {
-  font-size: 1.5rem;
-}
-
-.download-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.download-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.download-version {
-  font-size: 0.75rem;
-  opacity: 0.8;
-}
-
-.download-hint {
-  color: var(--vp-c-text-2);
-  font-size: 0.875rem;
-}
-
-.download-hint a {
-  color: var(--vp-c-brand);
-  text-decoration: underline;
-}
-</style>
 
 ## 技术栈
 

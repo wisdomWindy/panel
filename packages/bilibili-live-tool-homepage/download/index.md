@@ -2,35 +2,44 @@
 
 ## 选择您的平台
 
-<div class="download-cards">
-  <div class="download-card">
-    <div class="card-icon">🪟</div>
+<div class="my-8 grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
+  <div class="translate-y-0 rounded-xl border border-[var(--vp-c-divider)] bg-[var(--vp-c-bg-soft)] p-8 text-center transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
+    <div class="mb-4 text-[3rem]">🪟</div>
     <h3>Windows</h3>
-    <p>支持 Windows 10 及以上版本</p>
-    <a href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手-Setup.exe" class="download-btn windows">
+    <p class="mb-6 text-sm text-[var(--vp-c-text-2)]">支持 Windows 10 及以上版本</p>
+    <a
+      href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手-Setup.exe"
+      class="inline-block rounded-lg bg-[linear-gradient(135deg,#0078d4,#005a9e)] px-6 py-3 font-medium text-white no-underline transition-transform duration-200 hover:-translate-y-0.5"
+    >
       下载 exe 安装包
     </a>
-    <span class="file-info">约 80 MB</span>
+    <span class="mt-3 block text-xs text-[var(--vp-c-text-3)]">约 80 MB</span>
   </div>
-  
-  <div class="download-card">
-    <div class="card-icon">🍎</div>
+
+  <div class="translate-y-0 rounded-xl border border-[var(--vp-c-divider)] bg-[var(--vp-c-bg-soft)] p-8 text-center transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
+    <div class="mb-4 text-[3rem]">🍎</div>
     <h3>macOS</h3>
-    <p>支持 macOS 10.15 及以上版本</p>
-    <a href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.dmg" class="download-btn macos">
+    <p class="mb-6 text-sm text-[var(--vp-c-text-2)]">支持 macOS 10.15 及以上版本</p>
+    <a
+      href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.dmg"
+      class="inline-block rounded-lg bg-[linear-gradient(135deg,#333,#000)] px-6 py-3 font-medium text-white no-underline transition-transform duration-200 hover:-translate-y-0.5"
+    >
       下载 dmg 安装包
     </a>
-    <span class="file-info">约 90 MB</span>
+    <span class="mt-3 block text-xs text-[var(--vp-c-text-3)]">约 90 MB</span>
   </div>
-  
-  <div class="download-card">
-    <div class="card-icon">🐧</div>
+
+  <div class="translate-y-0 rounded-xl border border-[var(--vp-c-divider)] bg-[var(--vp-c-bg-soft)] p-8 text-center transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
+    <div class="mb-4 text-[3rem]">🐧</div>
     <h3>Linux</h3>
-    <p>支持 Ubuntu 20.04 及以上版本</p>
-    <a href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.AppImage" class="download-btn linux">
+    <p class="mb-6 text-sm text-[var(--vp-c-text-2)]">支持 Ubuntu 20.04 及以上版本</p>
+    <a
+      href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.AppImage"
+      class="inline-block rounded-lg bg-[linear-gradient(135deg,#dd4814,#b33a10)] px-6 py-3 font-medium text-white no-underline transition-transform duration-200 hover:-translate-y-0.5"
+    >
       下载 AppImage
     </a>
-    <span class="file-info">约 85 MB</span>
+    <span class="mt-3 block text-xs text-[var(--vp-c-text-3)]">约 85 MB</span>
   </div>
 </div>
 
@@ -75,75 +84,3 @@
 ## 从源码构建
 
 如果您想从源码构建，请参考 [安装配置](/guide/installation) 指南。
-
-<style>
-.download-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin: 2rem 0;
-}
-
-.download-card {
-  text-align: center;
-  padding: 2rem;
-  border-radius: 12px;
-  background: var(--vp-c-bg-soft);
-  border: 1px solid var(--vp-c-divider);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.download-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.card-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.download-card h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
-}
-
-.download-card p {
-  color: var(--vp-c-text-2);
-  font-size: 0.875rem;
-  margin: 0 0 1.5rem 0;
-}
-
-.download-btn {
-  display: inline-block;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  color: white;
-  font-weight: 500;
-  text-decoration: none;
-  transition: transform 0.2s;
-}
-
-.download-btn:hover {
-  transform: translateY(-2px);
-}
-
-.download-btn.windows {
-  background: linear-gradient(135deg, #0078d4, #005a9e);
-}
-
-.download-btn.macos {
-  background: linear-gradient(135deg, #333, #000);
-}
-
-.download-btn.linux {
-  background: linear-gradient(135deg, #dd4814, #b33a10);
-}
-
-.file-info {
-  display: block;
-  margin-top: 0.75rem;
-  font-size: 0.75rem;
-  color: var(--vp-c-text-3);
-}
-</style>

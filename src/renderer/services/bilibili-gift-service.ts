@@ -4,6 +4,7 @@
  */
 
 import type { GiftInfo } from '../modules/gift-sound/types.js';
+import { logger } from '../../main/modules/logger/logger.js';
 
 interface ElectronAPI {
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
@@ -110,7 +111,11 @@ export class BilibiliGiftService {
         return collectedGifts;
       } catch (error) {
         lastError = error as Error;
-        console.error(`获取礼物列表失败 (尝试 ${attempt}/${maxRetries}):`, error);
+        await logger.error('BilibiliGiftService', `获取礼物列表失败 (尝试 ${attempt}/${maxRetries})`, lastError, {
+          roomId,
+          attempt,
+          maxRetries
+        });
         
         // 如果不是最后一次尝试，等待一段时间后重试
         if (attempt < maxRetries) {
@@ -120,7 +125,10 @@ export class BilibiliGiftService {
     }
 
     // 所有重试都失败，返回收集的礼物列表
-    console.error('获取礼物列表最终失败:', lastError);
+    await logger.error('BilibiliGiftService', '获取礼物列表最终失败', lastError!, {
+      roomId,
+      maxRetries
+    });
     const collectedGifts = Array.from(this.collectedGifts.values());
     return collectedGifts;
   }
@@ -180,7 +188,7 @@ export class BilibiliGiftService {
         giftDesc: gift.desc || ''
       }));
     } catch (error) {
-      console.error('转换礼物数据失败:', error);
+      await logger.error('BilibiliGiftService', '转换礼物数据失败', error as Error);
       return [];
     }
   }
@@ -196,7 +204,10 @@ export class BilibiliGiftService {
       const gifts = await this.getGiftList(roomId);
       return gifts.find(gift => gift.giftId === giftId) || null;
     } catch (error) {
-      console.error('获取礼物信息失败:', error);
+      await logger.error('BilibiliGiftService', '获取礼物信息失败', error as Error, {
+        roomId,
+        giftId
+      });
       throw error;
     }
   }
@@ -218,7 +229,10 @@ export class BilibiliGiftService {
         gift.giftDesc.toLowerCase().includes(lowerQuery)
       );
     } catch (error) {
-      console.error('搜索礼物失败:', error);
+      await logger.error('BilibiliGiftService', '搜索礼物失败', error as Error, {
+        roomId,
+        query
+      });
       throw error;
     }
   }

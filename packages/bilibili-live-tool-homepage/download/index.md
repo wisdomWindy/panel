@@ -3,39 +3,39 @@
 ## 选择您的平台
 
 <div class="my-8 grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
-  <div class="translate-y-0 rounded-xl border border-[var(--vp-c-divider)] bg-[var(--vp-c-bg-soft)] p-8 text-center transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
-    <div class="mb-4 text-[3rem]">🪟</div>
-    <h3>Windows</h3>
+  <div class="download-card windows">
+    <div class="mb-4"><el-icon :size="16"><Monitor /></el-icon></div>
+    <h3 class="text-lg font-semibold text-[var(--vp-c-text-1)]">Windows</h3>
     <p class="mb-6 text-sm text-[var(--vp-c-text-2)]">支持 Windows 10 及以上版本</p>
     <a
       href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手-Setup.exe"
-      class="inline-block rounded-lg bg-[linear-gradient(135deg,#0078d4,#005a9e)] px-6 py-3 font-medium text-white no-underline transition-transform duration-200 hover:-translate-y-0.5"
+      class="download-btn windows-btn"
     >
       下载 exe 安装包
     </a>
     <span class="mt-3 block text-xs text-[var(--vp-c-text-3)]">约 80 MB</span>
   </div>
 
-  <div class="translate-y-0 rounded-xl border border-[var(--vp-c-divider)] bg-[var(--vp-c-bg-soft)] p-8 text-center transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
-    <div class="mb-4 text-[3rem]">🍎</div>
-    <h3>macOS</h3>
+  <div class="download-card macos">
+    <div class="mb-4"><el-icon :size="16"><Platform /></el-icon></div>
+    <h3 class="text-lg font-semibold text-[var(--vp-c-text-1)]">macOS</h3>
     <p class="mb-6 text-sm text-[var(--vp-c-text-2)]">支持 macOS 10.15 及以上版本</p>
     <a
       href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.dmg"
-      class="inline-block rounded-lg bg-[linear-gradient(135deg,#333,#000)] px-6 py-3 font-medium text-white no-underline transition-transform duration-200 hover:-translate-y-0.5"
+      class="download-btn macos-btn"
     >
       下载 dmg 安装包
     </a>
     <span class="mt-3 block text-xs text-[var(--vp-c-text-3)]">约 90 MB</span>
   </div>
 
-  <div class="translate-y-0 rounded-xl border border-[var(--vp-c-divider)] bg-[var(--vp-c-bg-soft)] p-8 text-center transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
-    <div class="mb-4 text-[3rem]">🐧</div>
-    <h3>Linux</h3>
+  <div class="download-card linux">
+    <div class="mb-4"><el-icon :size="16"><Terminal /></el-icon></div>
+    <h3 class="text-lg font-semibold text-[var(--vp-c-text-1)]">Linux</h3>
     <p class="mb-6 text-sm text-[var(--vp-c-text-2)]">支持 Ubuntu 20.04 及以上版本</p>
     <a
       href="https://github.com/wisdomWindy/panel/releases/latest/download/Bilibili直播助手.AppImage"
-      class="inline-block rounded-lg bg-[linear-gradient(135deg,#dd4814,#b33a10)] px-6 py-3 font-medium text-white no-underline transition-transform duration-200 hover:-translate-y-0.5"
+      class="download-btn linux-btn"
     >
       下载 AppImage
     </a>

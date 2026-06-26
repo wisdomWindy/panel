@@ -48,7 +48,7 @@ export default defineConfig({
     ],
     footer: {
       message: '基于 MIT 许可发布',
-      copyright: 'Copyright © 2024 Bilibili 直播助手'
+      copyright: 'Copyright © 2026 Bilibili 直播助手'
     },
     search: {
       provider: 'local'

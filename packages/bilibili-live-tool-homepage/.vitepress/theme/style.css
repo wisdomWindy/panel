@@ -1,2 +1,201 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
+
+/* 强制设置所有el-icon大小 */
+.el-icon {
+  width: 1em !important;
+  height: 1em !important;
+}
+
+.feature-icon .el-icon,
+.download-card .el-icon,
+.home-download-btn .el-icon {
+  width: 16px !important;
+  height: 16px !important;
+  font-size: 16px !important;
+}
+
+.feature-icon .el-icon svg,
+.download-card .el-icon svg,
+.home-download-btn .el-icon svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* 下载页面卡片样式 */
+.download-card {
+  border-radius: 0.75rem;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+  padding: 2rem;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.download-card .el-icon {
+  vertical-align: middle;
+}
+
+.download-card.windows .el-icon {
+  color: #2563eb;
+}
+
+.download-card.macos .el-icon {
+  color: #7c3aed;
+}
+
+.download-card.linux .el-icon {
+  color: #ea580c;
+}
+
+.download-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.download-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Windows 卡片 - 蓝色调 */
+.download-card.windows::before {
+  background: linear-gradient(90deg, #4f8cff, #2563eb);
+}
+
+/* macOS 卡片 - 紫色调 */
+.download-card.macos::before {
+  background: linear-gradient(90deg, #a78bfa, #7c3aed);
+}
+
+/* Linux 卡片 - 橙色调 */
+.download-card.linux::before {
+  background: linear-gradient(90deg, #fb923c, #ea580c);
+}
+
+/* 下载按钮通用样式 */
+.download-btn {
+  display: inline-block;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  letter-spacing: 0.025em;
+  border: 2px solid;
+}
+
+.download-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Windows 按钮 */
+.windows-btn {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.windows-btn:hover {
+  background: #bfdbfe;
+}
+
+/* macOS 按钮 */
+.macos-btn {
+  background: #ede9fe;
+  color: #5b21b6;
+  border-color: #c4b5fd;
+}
+
+.macos-btn:hover {
+  background: #ddd6fe;
+}
+
+/* Linux 按钮 */
+.linux-btn {
+  background: #ffedd5;
+  color: #9a3412;
+  border-color: #fdba74;
+}
+
+.linux-btn:hover {
+  background: #fed7aa;
+}
+
+/* 首页下载按钮 */
+.home-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  letter-spacing: 0.025em;
+  border: 2px solid;
+}
+
+.home-download-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.home-download-btn .el-icon {
+  vertical-align: middle;
+}
+
+/* 首页功能卡片 */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-item {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  background: var(--vp-c-bg-soft);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.feature-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.feature-icon {
+  margin-bottom: 0.75rem;
+  color: var(--vp-c-brand);
+}
+
+.feature-icon .el-icon,
+.feature-icon .el-icon svg {
+  width: 16px !important;
+  height: 16px !important;
+  font-size: 16px !important;
+}
+
+.feature-item h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.feature-item p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--vp-c-text-2);
+  line-height: 1.5;
+}

@@ -10,3 +10,41 @@ catalog:
   autoprefixer: ^10.5.0
   postcss: ^8.5.15
   tailwindcss: ^4.3.0
+  vitepress: ^1.0.0
+  "@element-plus/icons-vue": ^2.3.2
+  "@types/lodash": ^4.17.24
+  "@types/three": ^0.184.1
+  "@vueuse/core": ^10.7.0
+  axios: ^1.6.0
+  crypto-js: ^4.2.0
+  dayjs: ^1.11.21
+  echarts: ^6.1.0
+  electron-store: ^11.0.2
+  element-plus: ^2.5.0
+  lodash: ^4.18.1
+  pako: ^2.1.0
+  pinia: ^2.1.0
+  three: ^0.184.0
+  vue: ^3.4.0
+  vue-i18n: ^9.14.4
+  vue-router: ^4.2.5
+  winston: ^3.19.0
+  "@types/node": ^20.10.0
+  "@types/pako": ^2.0.4
+  "@typescript-eslint/eslint-plugin": ^7.18.0
+  "@typescript-eslint/parser": ^7.18.0
+  "@vitejs/plugin-vue": ^5.2.4
+  "@vue/tsconfig": ^0.9.1
+  "@vue/typescript-plugin": ^3.3.3
+  electron: ^30.0.0
+  electron-builder: ^26.15.2
+  eslint: ^8.57.1
+  eslint-plugin-vue: ^9.33.0
+  prettier: ^3.8.3
+  stylelint: ^17.12.0
+  typescript: ^5.9.3
+  unplugin-auto-import: ^21.0.0
+  unplugin-vue-components: ^32.1.0
+  vite: ^5.4.21
+  vite-plugin-electron: ^0.28.0
+  vite-plugin-electron-renderer: ^0.14.5

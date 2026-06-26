@@ -176,6 +176,8 @@ Workflow rules:
 - Only fall back to plain-text approval requests when structured approval UI is unavailable in the current environment.
 - Unless the user explicitly requests another language, request artifacts should follow the user's working language; for this repository's current workflow, `spec` / `clarifications` / `plan` / `task-board` should default to Chinese.
 - Treat the approved spec and plan as the authoritative implementation contract for all downstream stages.
+- Require the approved spec and approved plan to stay aligned at the same function-complete behavior granularity for the scoped work; if one artifact is materially coarser, finer, or contradictory, route back to repair the artifacts before downstream execution continues.
+- Require `plan/plan.md` to reach function-complete task decomposition for scoped work so downstream execution does not infer missing fields, columns, interactions, states, or flow steps ad hoc.
 - Do not let execution, verification, or review invent behavior that is not justified by the approved spec and plan.
 - For behavior that can be covered by tests, plan and execute the work using a red -> green -> refactor loop.
 - Apply `references/policies/clean-code.md` as a durable rule set for naming, responsibility boundaries, duplication control, side-effect containment, and maintainability judgment.

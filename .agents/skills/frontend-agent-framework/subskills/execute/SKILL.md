@@ -37,6 +37,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Update `execution/changelog.md` and `plan/task-board.md` as work progresses.
 - Implement only approved tasks.
 - Treat the approved spec and plan as the authoritative implementation contract.
+- If the approved plan lacks material field definitions, column definitions, interaction outcomes, state transitions, or loading completion conditions needed for correct implementation, stop execution and route the request back to `plan` instead of guessing.
+- If the approved spec and approved plan disagree on behavior granularity or product meaning, stop execution and route the request back to `spec` or `plan` instead of choosing one interpretation ad hoc.
 - Treat the spec's declared design constraints as part of that contract, especially for boundaries, side effects, duplication ownership, readability guardrails, and pattern decisions.
 - For testable behavior changes, execute in red -> green -> refactor order.
 - Write or update the failing test first, then implement the minimal passing change, then refactor while keeping tests green.
@@ -80,6 +82,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 ## Forbidden Actions
 
 - Inventing new requirements during coding
+- Guessing omitted product behavior that the plan should have defined explicitly
+- Choosing between conflicting spec and plan behavior interpretations without first repairing the artifacts
 - Skipping task tracking
 - Declaring the request done
 - Writing behavior-first implementation for a testable change without recording why TDD was not applicable

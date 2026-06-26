@@ -40,6 +40,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Review changed code against the clean-code policy, not just against functional correctness.
 - Review any introduced or modified pattern use against the design-pattern policy, including whether the abstraction was necessary and correctly fitted to the problem.
 - Review the implementation against the spec's declared design constraints instead of treating maintainability and abstraction judgments as free-floating preferences.
+- Review whether the approved spec and approved plan stayed aligned at the same function-complete behavior granularity, and treat material drift as a blocking workflow issue rather than a documentation nit.
 - Write explicit pass or fail conclusions for `clean-code assessment` and `design-pattern assessment`.
 - When the review depends on dependency direction, ownership boundaries, side-effect spread, or actual abstraction fan-out, prefer code graph evidence over impressionistic reasoning.
 - If review extends or contradicts earlier structural understanding, update `artifacts/code-context.md` so the final artifact reflects the current best view of the code structure.
@@ -62,6 +63,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 
 - Final review findings
 - Merge readiness judgment
+- Spec-plan alignment findings where behavior granularity drift changed or risked changing implementation meaning
 - Follow-up items that do not block completion
 - Clean-code findings covering naming, responsibility boundaries, duplication, side effects, and control-flow readability
 - Design-pattern findings covering fit, overengineering risk, dependency direction, and whether the abstraction simplified future change
@@ -76,6 +78,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Ignoring maintainability problems that materially affect readability or safe future change on the grounds that the feature already works
 - Accepting unnecessary pattern layers, fake extensibility, or framework-shaped indirection without checking whether they solve a real problem
 - Treating clean-code or design-pattern compliance as implicit without a written pass/fail judgment
+- Treating material spec-plan granularity drift as harmless when it changes, obscures, or weakens the approved behavior contract
 - Declaring merge readiness when blockers remain
 
 ## Exit Criteria
@@ -84,5 +87,6 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - The review explicitly states whether clean-code blockers remain in the changed area.
 - The review explicitly states whether the introduced pattern choices were justified, overbuilt, or unnecessary.
 - `review/review.md` explicitly states `clean-code assessment: pass|fail` and `design-pattern assessment: pass|fail`.
+- The review explicitly states whether spec and plan remained aligned at the required behavior granularity for the changed scope.
 - No blocking issues remain unresolved.
 - `state.json` is updated with `stage` set to `complete` while preserving the existing `loop` object.

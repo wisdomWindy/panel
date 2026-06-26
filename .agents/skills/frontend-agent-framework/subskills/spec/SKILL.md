@@ -41,6 +41,13 @@ Load other policy references only when they materially affect the spec.
 - Keep requirement changes explicit in artifacts.
 - Define behavior in a way that is implementable, reviewable, and verifiable by downstream stages.
 - Make acceptance criteria concrete enough to drive planning, testing, and verification.
+- Define scoped behavior at the same function-complete granularity that downstream `plan` must use, so `plan`, `execute`, `verify`, and `review` do not need to reinterpret coarse requirements into finer behavior on their own.
+- When the request includes pages, modules, panels, drawers, modals, cards, tables, forms, display blocks, or workflows, explicitly describe the subfunctions inside those units instead of leaving `plan` to expand them ad hoc.
+- For form-bearing scope, record the form purpose, field set, required vs optional semantics, control expectations, validation expectations, state conditions, and submission outcomes when those details are knowable from the request.
+- For table-bearing scope, record the table purpose, column intent, row or batch actions, display expectations, and state expectations when those details are knowable from the request.
+- For pure display scope, record the displayed fields, grouping, layout intent, formatting expectations, and visibility behavior when those details are knowable from the request.
+- For interaction or workflow scope, record the trigger, state transition, side effect, success path, failure path, and loading or pending-state expectations when those details are knowable from the request.
+- If material product detail is still unknown, record it as an explicit clarification or approved assumption in the spec instead of leaving `plan` to fill it in silently.
 - Convert material maintainability and abstraction decisions into explicit spec constraints instead of leaving them for downstream taste-based interpretation.
 - Identify where the request has real pattern-level pressures such as variation by type or state, scattered creation logic, boundary adaptation, notification fan-out, or pipeline handling.
 - Define the intended responsibility boundaries, side-effect placement, duplication ownership, and naming or domain-language constraints when they materially shape the solution.
@@ -85,6 +92,7 @@ Load other policy references only when they materially affect the spec.
 - Edge cases, risks, and acceptance criteria
 - Clarification records
 - Explicit behavior contracts that can drive tests and verification evidence
+- Function-complete behavior contracts that `plan` can translate directly into equally granular tasks without inventing new product detail
 
 ## Forbidden Actions
 
@@ -93,6 +101,7 @@ Load other policy references only when they materially affect the spec.
 - Moving to plan without user approval
 - Copying sample conclusions into a new spec without re-deriving them from the current requirement
 - Leaving behavior ambiguous enough that implementation must guess intent
+- Leaving behavior at a coarser granularity than the downstream plan requires for correct execution
 - Leaving the goal subjective enough that verification cannot determine whether the request is done
 - Leaving a major abstraction or collaboration problem implicit when the downstream plan would otherwise have to guess whether a pattern is justified
 - Leaving material responsibility, side-effect, duplication, or readability constraints unspecified when they would change the implementation shape
@@ -100,9 +109,11 @@ Load other policy references only when they materially affect the spec.
 ## Exit Criteria
 
 - `spec/spec.md` exists and covers scope, flows, modules, contracts, edge cases, acceptance criteria, and risks.
+- `spec/spec.md` defines scoped behavior at a function-complete granularity that matches the expected planning granularity for forms, tables, displays, interactions, states, and workflows within the approved scope.
 - The spec records the design constraints that downstream stages must preserve, including responsibility boundaries, side-effect placement, duplication ownership, complexity guardrails, and any required or explicitly rejected pattern use.
 - The spec records whether design-pattern use is required, optional, or explicitly unnecessary for the main change axes.
 - `spec/clarifications.md` records open questions and resolved decisions.
 - The spec defines observable behavior clearly enough for plan tasks, tests, and verification evidence to map back to it.
+- The spec does not force `plan` to add material product behavior that was absent from the approved spec or clarifications.
 - The user approves the spec, preferably through structured approval options when available.
 - `state.json` is updated with `approvals.spec_approved=true` and `stage` set to `plan` while preserving the existing `loop` object.

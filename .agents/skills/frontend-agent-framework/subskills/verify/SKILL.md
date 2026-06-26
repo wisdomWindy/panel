@@ -29,6 +29,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Write `verification/verification.md`.
 - Map each acceptance criterion to verification method, result, and evidence.
 - Verify that implemented behavior matches the approved spec rather than undocumented intent.
+- Verify that the approved spec and approved plan stayed aligned at the same function-complete behavior granularity for the implemented scope.
 - Confirm that testable behavior changes were covered by tests or explicitly justified exceptions.
 - Verify that the workflow used the intended trigger/context/handoff assumptions when those assumptions are part of the approved spec.
 - Write an explicit `spec constraint compliance` conclusion in `verification/verification.md` with a pass or fail judgment.
@@ -53,6 +54,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Acceptance coverage mapping
 - Verification evidence
 - Spec-constraint compliance judgment with pass/fail and supporting evidence
+- Spec-plan granularity alignment judgment and any mismatch evidence that must be repaired before completion
 - Failure records that route work back to execution
 - TDD exception checks and fallback verification evidence where needed
 - Handoff readiness evidence for workflows that produce outputs for people or downstream systems
@@ -63,12 +65,14 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Ignoring failed acceptance criteria
 - Advancing as if spec-constraint compliance is implied without writing an explicit pass/fail conclusion
 - Accepting implementation behavior that cannot be traced back to the approved spec
+- Passing verification while spec and plan disagree on material behavior detail, UI structure, interaction outcome, or state handling
 
 ## Exit Criteria
 
 - Every acceptance criterion is checked.
 - Evidence is attached or referenced for each verified item.
 - `verification/verification.md` explicitly states whether spec constraints pass or fail.
+- `verification/verification.md` explicitly states whether spec and plan remained aligned at the required behavior granularity for the implemented scope.
 - Any TDD exception for testable behavior is explicitly justified and backed by alternative evidence.
 - Any failures are fixed or explicitly routed back to execution.
 - Any required handoff or downstream-ready result is explicitly verified when part of the approved workflow contract.

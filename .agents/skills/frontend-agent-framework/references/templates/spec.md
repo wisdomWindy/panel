@@ -20,6 +20,7 @@ Required sections:
 - page and module design
 - design constraints
 - change axes and pattern decision
+- code context and impact assumptions
 - API and data contracts
 - context and dependency sources
 - edge cases

@@ -3,6 +3,7 @@
 ## Required Artifact Path
 
 - `docs/requests/<request-id>/artifacts/bugfix-source.md`
+- `docs/requests/<request-id>/artifacts/code-context.md` when structural analysis is needed
 
 ## `artifacts/bugfix-source.md`
 

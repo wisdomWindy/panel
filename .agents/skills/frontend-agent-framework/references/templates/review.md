@@ -14,6 +14,7 @@ Required sections:
 - follow-up items
 - clean-code assessment
 - design-pattern assessment
+- code-context structural assessment
 - merge readiness summary
 
 `clean-code assessment` must include:

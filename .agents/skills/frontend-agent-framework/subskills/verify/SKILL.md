@@ -33,7 +33,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Verify that the workflow used the intended trigger/context/handoff assumptions when those assumptions are part of the approved spec.
 - Write an explicit `spec constraint compliance` conclusion in `verification/verification.md` with a pass or fail judgment.
 - Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
-- If verification fails, record the failure clearly and hand control back to the main skill so it can route the request back to `execute` with the correct loop re-entry metadata and continue the workflow immediately.
+- If verification fails, record the failure clearly and hand control back to the main skill so it can route the request back to `execute` with the correct loop re-entry metadata and continue the workflow immediately in the same active run.
 - Do not claim completion without verification artifacts.
 
 ## Required Inputs
@@ -73,4 +73,4 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Any failures are fixed or explicitly routed back to execution.
 - Any required handoff or downstream-ready result is explicitly verified when part of the approved workflow contract.
 - `state.json` is updated with `stage` set to `review` while preserving the existing `loop` object when verification passes.
-- A failed verification result is documented precisely enough that `execute` can continue without waiting for a new user restatement.
+- A failed verification result is documented precisely enough that `execute` can continue in the same workflow run without waiting for a new user restatement.

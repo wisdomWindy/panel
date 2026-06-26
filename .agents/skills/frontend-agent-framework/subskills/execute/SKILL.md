@@ -19,9 +19,12 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - `docs/requests/<request-id>/spec/spec.md`
 - `docs/requests/<request-id>/plan/plan.md`
 - `docs/requests/<request-id>/plan/task-board.md`
+- `docs/requests/<request-id>/artifacts/code-context.md` when present
 - `../../references/state-machine.md`
+- `../../references/templates/code-context.md`
 - `../../references/policies/api-contracts.md`
 - `../../references/policies/clean-code.md`
+- `../../references/policies/code-graph.md`
 - `../../references/policies/design-patterns.md`
 - `../../references/policies/spec-constraints.md`
 - `../../references/policies/frontend-architecture.md`
@@ -39,12 +42,14 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Write or update the failing test first, then implement the minimal passing change, then refactor while keeping tests green.
 - Apply the clean-code policy while implementing: use intention-revealing names, keep units focused, reduce rule-level duplication, and keep side effects explicit.
 - Apply approved pattern decisions deliberately; if the plan chose Strategy, State, Adapter, Observer, Command, or another pattern family, implement that intent clearly instead of drifting into ad hoc branching or accidental abstractions.
+- Before or during non-trivial existing-code modification, prefer code graph to confirm impact scope, call sites, or ownership boundaries when that reduces the risk of incomplete or structurally inconsistent edits.
+- Update `artifacts/code-context.md` instead of ad hoc notes when execution discovers new impact scope, call sites, or structural blind spots.
 - Default to serial execution unless the approved plan explicitly marks independent work units as parallel-safe.
 - If workflow-style parallel execution is used, keep every parallel unit mapped back to the same request artifacts, approvals, and task board.
 - Keep execution observable enough that a human can inspect progress, ask follow-up questions, or redirect the work without losing artifact continuity.
 - Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
 - If requirements shift or a plan gap appears, stop and move the request back to `spec` or `plan`.
-- When re-entered from failed verification or blocking review, continue from the approved plan and the latest recorded findings instead of treating the request as a fresh task.
+- When re-entered from failed verification or blocking review, continue from the approved plan and the latest recorded findings in the same active workflow run instead of treating the request as a fresh task.
 - Do not claim completion in this stage.
 
 ## Required Inputs
@@ -67,6 +72,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Test-first implementation progress and deviations that are explicitly recorded
 - Targeted clean-code refactors that are necessary to keep the touched area maintainable and aligned with the approved plan
 - Pattern-conforming implementation changes that reflect approved abstraction choices and boundary decisions
+- Graph-supported impact analysis notes or fallback analysis notes when structural context is material to the change
+- Durable code-context artifact updates when execution materially changes the understanding of impact scope
 - Workflow-style parallel execution records when the approved plan explicitly calls for them
 - Evidence of progress and intervention-friendly execution notes
 

@@ -18,9 +18,12 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - `docs/requests/<request-id>/state.json`
 - `docs/requests/<request-id>/spec/spec.md`
 - `docs/requests/<request-id>/spec/clarifications.md`
+- `docs/requests/<request-id>/artifacts/code-context.md` when present
 - `../../references/state-machine.md`
 - `../../references/templates/plan.md`
+- `../../references/templates/code-context.md`
 - `../../references/policies/design-patterns.md`
+- `../../references/policies/code-graph.md`
 - `../../references/policies/doc-writing.md`
 - `../../references/policies/clean-code.md`
 - `../../references/policies/spec-constraints.md`
@@ -38,6 +41,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Plan the change so module boundaries, responsibilities, duplication control, and side-effect containment stay explicit instead of being deferred to ad hoc cleanup during execution.
 - When the spec shows a real pattern-level pressure, choose the simplest fitting pattern family and record why it is better than direct code or another pattern option.
 - Treat declared spec constraints as mandatory planning inputs, not as optional commentary.
+- For existing-code changes with non-trivial impact scope, prefer code graph to identify affected symbols, callers, consumers, and neighboring modules before finalizing the plan.
+- Reuse and extend `artifacts/code-context.md` when the plan stage confirms impact scope, neighboring modules, or verification surface.
 - Distinguish serial work from independently parallelizable work.
 - Recommend workflow-style parallel execution only when the task set is large enough, independent enough, and valuable enough to justify the extra coordination and token cost.
 - Make trigger handling, context loading, observation points, and human intervention points explicit when the request describes a proactive workflow.
@@ -64,6 +69,7 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 
 - `docs/requests/<request-id>/plan/plan.md`
 - `docs/requests/<request-id>/plan/task-board.md`
+- `docs/requests/<request-id>/artifacts/code-context.md` when structural analysis is needed
 
 ## Allowed Outputs
 
@@ -75,6 +81,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Test-first execution sequencing for behavior changes
 - Clean-code guardrails for naming, responsibilities, dependency boundaries, and likely refactor points
 - Pattern decisions, their problem statements, and the code areas where those abstractions should live
+- Code-context impact scope, including affected symbols, modules, and likely verification surface when graph-based analysis is available
+- Structured code-context updates that preserve graph detection, bootstrap, and fallback records in one durable artifact
 - Trigger/context/handoff planning for proactive workflows
 
 ## Forbidden Actions

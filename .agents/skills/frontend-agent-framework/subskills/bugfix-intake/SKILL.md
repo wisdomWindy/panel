@@ -21,6 +21,8 @@ Invoke from the main `frontend-agent-framework` skill when the incoming work ite
 - `../../references/bugfix-feishu-project.md`
 - `../../references/templates/request.md`
 - `../../references/templates/bugfix-intake.md`
+- `../../references/templates/code-context.md`
+- `../../references/policies/code-graph.md`
 - `../../references/policies/doc-writing.md`
 
 Load repository- or tool-specific bug retrieval instructions only when they exist in the active environment.
@@ -31,6 +33,8 @@ Load repository- or tool-specific bug retrieval instructions only when they exis
 - If the source is a Feishu/Lark defect and `meegle` is available, treat `meegle` as the default retrieval tool and automatically obtain the defect content from the provided project key and defect/work item ID before asking the user to restate it manually.
 - If `meegle` is available but not authenticated, stop at the authentication gate, complete login, and then continue automatic retrieval.
 - If the defect content cannot be retrieved automatically, record that limitation and request the missing bug details instead of guessing.
+- For existing-code defects, prefer code graph for initial structural context when available; if missing, attempt automatic bootstrap before falling back to text search.
+- When structural analysis is needed, write `artifacts/code-context.md` using the shared template and record graph detection, bootstrap attempts, and fallback status there.
 - Create `docs/requests/<request-id>/` as the canonical request workspace.
 - Write only bugfix intake artifacts in this stage.
 - Capture the bugfix goal and initial done signal in `request.md`.
@@ -66,6 +70,7 @@ Load repository- or tool-specific bug retrieval instructions only when they exis
 
 - `docs/requests/<request-id>/request.md`
 - `docs/requests/<request-id>/artifacts/bugfix-source.md`
+- `docs/requests/<request-id>/artifacts/code-context.md` when structural analysis is needed
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
 - `docs/requests/<request-id>/state.json`
 
@@ -87,6 +92,7 @@ Load repository- or tool-specific bug retrieval instructions only when they exis
 - Standardized bug context that downstream spec and plan stages can consume
 - Automatic retrieval status, including whether source content came from tool fetch or manual fallback
 - Authentication status for the retrieval tool when the bug source is a Feishu/Lark project defect
+- Initial code-context artifact with detection, bootstrap, and fallback status when structural analysis is needed
 
 ## Forbidden Actions
 
@@ -102,6 +108,7 @@ Load repository- or tool-specific bug retrieval instructions only when they exis
 - The bug source is captured in `request.md` and `state.json`.
 - `request.md` captures an explicit bugfix goal plus an initial done signal for the repaired behavior.
 - The defect context is summarized into `artifacts/bugfix-source.md`.
+- `artifacts/code-context.md` exists whenever existing-code structural analysis was needed for the defect.
 - A normalized downstream summary is written to `artifacts/prd-snapshot.md`.
 - `state.json` is initialized with `stage` set to `spec`.
 - `state.json.loop` is initialized with `iteration=1`, `state=running`, `last_completed_stage=null`, `pending_gate=null`, and `reentry_reason=new_request`.

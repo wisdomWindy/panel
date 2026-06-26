@@ -18,11 +18,14 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - `docs/requests/<request-id>/state.json`
 - `docs/requests/<request-id>/request.md`
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+- `docs/requests/<request-id>/artifacts/code-context.md` when present
 - `docs/requests/<request-id>/design/page-design.md` when the request includes the page-design stage
 - `../../references/state-machine.md`
 - `../../references/templates/spec.md`
+- `../../references/templates/code-context.md`
 - `../../references/policies/api-contracts.md`
 - `../../references/policies/clean-code.md`
+- `../../references/policies/code-graph.md`
 - `../../references/policies/design-patterns.md`
 - `../../references/policies/doc-writing.md`
 - `../../references/policies/frontend-architecture.md`
@@ -41,6 +44,8 @@ Load other policy references only when they materially affect the spec.
 - Convert material maintainability and abstraction decisions into explicit spec constraints instead of leaving them for downstream taste-based interpretation.
 - Identify where the request has real pattern-level pressures such as variation by type or state, scattered creation logic, boundary adaptation, notification fan-out, or pipeline handling.
 - Define the intended responsibility boundaries, side-effect placement, duplication ownership, and naming or domain-language constraints when they materially shape the solution.
+- When the request modifies existing code structure, prefer code graph to identify actual module boundaries, dependency directions, and impacted symbols before writing structural spec constraints.
+- Reuse and update `artifacts/code-context.md` when structural code understanding is material instead of scattering graph or fallback notes across multiple stage artifacts.
 - Treat the acceptance criteria as the formal goal contract for downstream stages.
 - Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
 - Do not write implementation code.
@@ -59,6 +64,7 @@ Load other policy references only when they materially affect the spec.
 
 - `docs/requests/<request-id>/request.md`
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+- `docs/requests/<request-id>/artifacts/code-context.md` when structural analysis is needed
 - `docs/requests/<request-id>/state.json`
 - `docs/requests/<request-id>/design/page-design.md` when present
 
@@ -74,6 +80,8 @@ Load other policy references only when they materially affect the spec.
 - API and data contract decisions
 - Spec constraints covering module boundaries, side-effect placement, duplication ownership, naming vocabulary, complexity guardrails, and pattern decisions
 - Pattern-relevant design constraints and explicit notes on whether a named pattern is needed
+- Code-context findings that justify the structural spec constraints when existing-code understanding is material
+- Updated code-context artifact entries when the spec stage deepens structural understanding
 - Edge cases, risks, and acceptance criteria
 - Clarification records
 - Explicit behavior contracts that can drive tests and verification evidence

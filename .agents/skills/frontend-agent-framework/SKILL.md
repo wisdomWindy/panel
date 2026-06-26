@@ -30,6 +30,7 @@ Keep the repository-local workflow in control through one default entry skill th
 - Enforce TDD for testable behavior changes unless the current task is explicitly non-testable and that exception is recorded.
 - Enforce clean-code discipline so shipped changes remain readable, low-surprise, and maintainable.
 - Enforce design-pattern discipline so abstractions are introduced only when they solve a real change, dependency, or behavior-selection problem.
+- Enforce repository-context discipline by preferring code graph for structural code understanding when existing-code analysis is material to the request.
 
 ## Built-In Constitution
 
@@ -132,6 +133,7 @@ Loop rules:
 - Process only one current action per loop iteration.
 - After each completed stage or recovered gate, re-enter the loop and decide again.
 - After `execute`, `verify`, or `review`, continue looping immediately unless the request is truly blocked or has reached `complete`.
+- Unless the request is truly `blocked` or has reached `complete`, do not stop the workflow or emit a terminal completion-style response; continue the next loop action in the same active workflow run.
 - The loop stops only when `stage=complete` with `loop.state=complete`, or when a real external blocking gate requires waiting.
 - If a gate can be satisfied by gathering repository context, repairing missing artifacts, or repairing missing state, do that recovery work inside the loop before stopping.
 - Rollback is a valid loop re-entry path, not an exception outside the workflow.
@@ -179,6 +181,7 @@ Workflow rules:
 - Apply `references/policies/clean-code.md` as a durable rule set for naming, responsibility boundaries, duplication control, side-effect containment, and maintainability judgment.
 - Apply `references/policies/design-patterns.md` as a durable rule set for deciding when a pattern is justified, which pattern family fits, and when direct code remains the better choice.
 - Apply `references/policies/spec-constraints.md` as the upstream rule that forces maintainability and abstraction decisions into `spec/spec.md` before planning and coding.
+- Apply `references/policies/code-graph.md` as the rule set for when to use code graph, when to auto-bootstrap it, and when fallback search is acceptable.
 
 ## Loop State Contract
 
@@ -197,6 +200,7 @@ Workflow rules:
 Field rules:
 
 - `iteration`: increment once each time the main skill re-enters the top-level decision loop.
+- `iteration` must increase whenever the main skill finishes one top-level action and starts the next loop decision, including re-entry from `verify`, `review`, or gate recovery.
 - `state`: only `running`, `blocked`, or `complete`.
 - `last_completed_stage`: the most recent stage whose exit criteria were fully satisfied.
 - `pending_gate`: the currently blocking gate name, or `null` when no blocking gate is active.
@@ -217,9 +221,10 @@ At each stage boundary, update `docs/requests/<request-id>/state.json` before en
 1. When a stage starts, complete all required work for that stage through its subskill.
 2. Before advancing, verify that the current stage's exit criteria are fully satisfied.
 3. Update `state.json` to reflect the stage transition while preserving the current `loop` object.
-4. Re-read `state.json`, update loop metadata in the main skill, and continue only if the next gate is satisfied.
+4. Re-read `state.json`, update loop metadata in the main skill, increment `loop.iteration`, and continue only if the next gate is satisfied.
 5. Never leave a stage partially done and then proceed to a later stage.
 6. If `verify` or `review` sends the request back to `execute`, treat that as an immediate continuation of the same workflow, not as a stopping point.
+7. If `verify` or `review` returns the request to `execute`, continue that re-entry in the same active workflow run unless a real blocking gate interrupts progress.
 
 Forbidden examples:
 
@@ -253,8 +258,10 @@ Load only what is needed:
 - Clean-code maintainability policy: `references/policies/clean-code.md`
 - Design-pattern decision policy: `references/policies/design-patterns.md`
 - Spec constraint policy: `references/policies/spec-constraints.md`
+- Code-graph policy: `references/policies/code-graph.md`
 - Pattern catalog: `references/patterns/*.md`
 - Artifact shape requirements: `references/templates/*.md`
+- Code-context artifact template: `references/templates/code-context.md`
 - Bugfix intake artifact shape: `references/templates/bugfix-intake.md`
 - Page design artifact shape: `references/templates/page-design.md`
 
@@ -276,6 +283,7 @@ Load only what is needed:
 - Never allow materially misleading names, hidden side effects, duplicate business rules, or mixed-responsibility structures to pass review as if they were style-only concerns.
 - Never introduce pattern layers, factories, managers, handlers, or indirection objects without a concrete problem statement in the approved spec or plan.
 - Never treat maintainability, boundary, side-effect, or pattern choices as purely downstream concerns when they materially affect the shape of the solution; record them in the spec first.
+- Never skip code-context recovery for an existing-code request that clearly depends on dependency structure, impact scope, or ownership boundaries; use code graph when available and fall back explicitly when not.
 - Never hide the workflow's starting conditions, context sources, or human handoff path in chat-only instructions.
 - Never stop after a failed `verify` or blocking `review` if the next required action is more implementation work and no real blocking gate exists.
 
@@ -314,11 +322,13 @@ Stage actions belong only to subskills.
 - If a requirement changes during execution, stop coding, set loop re-entry reason to `requirement_changed`, and route back to `spec` or `plan`.
 - If verification fails, set loop re-entry reason to `verification_failed` and route back to `execute`.
 - If review finds blockers, set loop re-entry reason to `review_blocked` and route back to `execute`.
-- After routing back from `verify` or `review`, continue the `execute -> verify` loop until verification passes or a real blocking gate is reached.
+- After routing back from `verify` or `review`, continue the `execute -> verify` loop in the same active workflow run until verification passes or a real blocking gate is reached.
 - If execution discovers the spec is incomplete, ambiguous, or contradicted by reality, stop and route back to `spec` or `plan` before continuing implementation.
 - If TDD cannot be applied to a behavior change, record the reason and the fallback verification method in repository artifacts before continuing.
 - If execution or review finds a clean-code violation severe enough to endanger readability, safe change, or future extension, treat it as a real workflow issue and route it through the normal execute/review loop instead of deferring it as cosmetic feedback.
 - If the need for a pattern is discovered during execution, record and approve that design decision through spec or plan artifacts before cementing the abstraction in code.
+- If an existing-code request depends on structural understanding and no usable code graph is present, attempt automatic graph installation or bootstrap first, then record detection status, installation or bootstrap result, and fallback status in `artifacts/code-context.md`.
+- If a stage exits with more implementation work required and no real external block exists, do not pause for a fresh user prompt; update loop metadata and immediately dispatch the next stage.
 
 ## Completion Rule
 

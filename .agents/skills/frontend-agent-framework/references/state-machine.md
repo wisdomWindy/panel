@@ -54,6 +54,7 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 - `verification_failed`: route back to `execute`
 - `review_blocked`: route back to `execute`
 - `manual_reopen`: re-enter a previously completed request after an explicit reopen decision
+- Every re-entry above must increment `loop.iteration` when the main orchestrator starts the next decision cycle.
 
 ## Rollback Rules
 
@@ -61,3 +62,4 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 - Verification failure: back to `execute` with `reentry_reason=verification_failed`
 - Blocking review finding: back to `execute` with `reentry_reason=review_blocked`
 - `execute -> verify -> execute -> verify` repeats until verification passes or a real blocking gate is reached
+- These rollback paths are same-run loop continuations unless a real blocking gate requires waiting.

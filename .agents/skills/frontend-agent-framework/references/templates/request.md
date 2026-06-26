@@ -57,6 +57,7 @@ Loop field rules:
 
 - keep the existing top-level `status` semantics unchanged
 - `iteration` increments once per main orchestrator decision cycle
+- `iteration` must continue increasing across same-run re-entries such as `verification_failed`, `review_blocked`, and `gate_recovery`
 - `state` only allows `running`, `blocked`, or `complete`
 - `last_completed_stage` stores the most recent fully completed lifecycle stage, or `null`
 - `pending_gate` stores the active blocking gate name, or `null`

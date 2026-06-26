@@ -19,10 +19,13 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - `docs/requests/<request-id>/spec/spec.md`
 - `docs/requests/<request-id>/plan/plan.md`
 - `docs/requests/<request-id>/verification/verification.md`
+- `docs/requests/<request-id>/artifacts/code-context.md` when present
 - `../../references/state-machine.md`
 - `../../references/templates/review.md`
+- `../../references/templates/code-context.md`
 - `../../references/policies/api-contracts.md`
 - `../../references/policies/clean-code.md`
+- `../../references/policies/code-graph.md`
 - `../../references/policies/design-patterns.md`
 - `../../references/policies/spec-constraints.md`
 - `../../references/policies/frontend-architecture.md`
@@ -38,8 +41,10 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Review any introduced or modified pattern use against the design-pattern policy, including whether the abstraction was necessary and correctly fitted to the problem.
 - Review the implementation against the spec's declared design constraints instead of treating maintainability and abstraction judgments as free-floating preferences.
 - Write explicit pass or fail conclusions for `clean-code assessment` and `design-pattern assessment`.
+- When the review depends on dependency direction, ownership boundaries, side-effect spread, or actual abstraction fan-out, prefer code graph evidence over impressionistic reasoning.
+- If review extends or contradicts earlier structural understanding, update `artifacts/code-context.md` so the final artifact reflects the current best view of the code structure.
 - Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
-- If blocking issues remain, record them and hand control back to the main skill so it can route the request back to `execute` with the correct loop re-entry metadata and continue the workflow immediately.
+- If blocking issues remain, record them and hand control back to the main skill so it can route the request back to `execute` with the correct loop re-entry metadata and continue the workflow immediately in the same active run.
 - Do not mark the request complete while blockers remain.
 
 ## Required Inputs
@@ -60,6 +65,8 @@ Invoke from the main `frontend-agent-framework` skill after routing a request wi
 - Follow-up items that do not block completion
 - Clean-code findings covering naming, responsibility boundaries, duplication, side effects, and control-flow readability
 - Design-pattern findings covering fit, overengineering risk, dependency direction, and whether the abstraction simplified future change
+- Code-graph-backed structural review findings when graph analysis is available
+- Final structural assessment aligned with the durable code-context artifact
 - Explicit pass/fail compliance conclusions for clean-code and design-pattern assessments
 - Blocking findings that can drive the next `execute` pass without extra user restatement
 

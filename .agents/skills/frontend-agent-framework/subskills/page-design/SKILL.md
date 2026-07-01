@@ -5,65 +5,71 @@ description: Stage subskill for page design. Define page layout, visual hierarch
 
 # Page Design Subskill
 
-## Purpose
+## 触发场景
 
-Turn a page-oriented request into a durable page design artifact that defines layout, visual hierarchy, styling direction, and interaction structure before the formal engineering spec is written.
+- 当主 `frontend-agent-framework` 在 `intake` 之后判断该需求是页面型需求时使用。
+- 适用于：
+  - 新页面
+  - 页面改版
+  - 明显影响布局、样式、视觉层级、交互组织的 UI-heavy 变更
 
-## Use With
-
-Invoke from the main `frontend-agent-framework` skill after `intake` when the request is a new page, a page redesign, or a UI-heavy change that materially affects layout, styling, or interaction structure.
-
-## Read First
-
-- `docs/requests/<request-id>/state.json`
-- `docs/requests/<request-id>/request.md`
-- `docs/requests/<request-id>/artifacts/prd-snapshot.md`
-- `../../references/framework-overview.md`
-- `../../references/state-machine.md`
-- `../../references/templates/page-design.md`
-- `../../references/policies/doc-writing.md`
-- `../../references/policies/frontend-components.md`
-- `../../references/policies/frontend-architecture.md`
-
-## Hard Rules
-
-- Use this stage only for page-oriented requests.
-- Write `design/page-design.md`.
-- Define the page structure clearly enough that `spec` can treat it as upstream input instead of recreating layout decisions from scratch.
-- Keep design decisions durable and explicit in repository artifacts.
-- Preserve the existing `state.json.loop` object; do not reset or reinterpret it in this stage.
-- Do not write implementation code.
-- Do not skip this stage for page requests that introduce or materially change layout, visual hierarchy, styling direction, or interaction organization.
-
-## Required Inputs
+## 必要输入
 
 - `docs/requests/<request-id>/request.md`
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+- `docs/requests/<request-id>/requirements/requirement-map.md`
 - `docs/requests/<request-id>/state.json`
 
-## Required Artifacts
+## 执行步骤
 
-- `docs/requests/<request-id>/design/page-design.md`
+1. 先读：
+   - `docs/requests/<request-id>/state.json`
+   - `docs/requests/<request-id>/request.md`
+   - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+   - `docs/requests/<request-id>/requirements/requirement-map.md`
+   - `../../references/framework-overview.md`
+   - `../../references/state-machine.md`
+   - `../../references/templates/page-design.md`
+   - `../../references/policies/doc-writing.md`
+   - `../../references/policies/frontend-components.md`
+   - `../../references/policies/frontend-architecture.md`
+2. 只在页面型需求中使用本阶段。
+3. 产出 `design/page-design.md`。
+4. 明确定义：
+   - 页面布局结构
+   - 区块层级
+   - 样式方向
+   - 交互骨架
+   - 响应式考虑
+5. 设计结果必须足够稳定，使 `spec` 能把它当作上游输入，而不是再重新发明布局决策。
+6. 必须以 `requirements/requirement-map.md` 和对应模块工件为页面范围来源，不得跳过已经拆分出的页面模块。
+7. 所有设计决策必须写入仓库工件，不保留在聊天上下文里。
+8. 保留 `state.json.loop`，不重置、不改写。
+9. 本阶段不写代码。
+10. 对于引入或实质改变布局、视觉层级、样式方向、交互组织的页面需求，不允许跳过本阶段。
 
-## Allowed Outputs
+## 输出格式
 
-- Page layout structure
-- Section hierarchy
-- Styling direction
-- Interaction skeleton
-- Responsive considerations
-- Design risks and unresolved UI questions
+- 必须产出：
+  - `docs/requests/<request-id>/design/page-design.md`
+- 最终交付物应至少包含：
+  - 页面布局结构
+  - 区块层级
+  - 样式方向
+  - 交互骨架
+  - 响应式考虑
+  - 设计风险与未决 UI 问题
 
-## Forbidden Actions
+## 验收标准
 
-- Writing code
-- Turning this stage into a pixel-perfect design tool workflow requirement
-- Moving to implementation planning without producing a durable design artifact
-- Using this stage for non-UI tasks that do not materially affect page structure or styling
+- `design/page-design.md` 已存在。
+- 文档已定义布局、层级、样式方向、交互结构、响应式考虑。
+- 所有未决 UI 问题已记录。
+- `state.json.stage=spec`，且保留原有 `loop`。
 
-## Exit Criteria
+## 安全边界
 
-- `design/page-design.md` exists.
-- The page design artifact defines layout, hierarchy, style direction, interaction structure, and responsive considerations.
-- Any unresolved UI questions are recorded.
-- `state.json` is updated with `stage` set to `spec` while preserving the existing `loop` object.
+- 不能写代码。
+- 不能把本阶段强行变成像素级设计工具流程要求。
+- 没有 durable design artifact 时，不能进入实现规划。
+- 不能把本阶段用于不影响页面结构或样式的非 UI 任务。

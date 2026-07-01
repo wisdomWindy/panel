@@ -5,6 +5,7 @@
 - `docs/requests/<request-id>/request.md`
 - `docs/requests/<request-id>/state.json`
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+- `docs/requests/<request-id>/requirements/requirement-map.md` for PRD-driven requests after requirement splitting
 
 ## `request.md`
 
@@ -39,7 +40,7 @@ Required shape:
 {
   "request_id": "...",
   "source": {},
-  "stage": "spec",
+  "stage": "requirement-splitting",
   "status": "in_progress",
   "artifacts": {},
   "approvals": {},
@@ -52,6 +53,9 @@ Required shape:
   }
 }
 ```
+
+For PRD-driven requests, initialize `stage` to `requirement-splitting`.
+For bugfix requests normalized through `bugfix-intake`, initialize `stage` to `spec` unless the main skill explicitly routes the defect through requirement splitting.
 
 Loop field rules:
 
@@ -71,5 +75,79 @@ Required sections:
 
 - source summary
 - key business goals
+- explicit behavior constraints
+- forms, tables, displays, and interactions extracted from source
+- workflow and state rules extracted from source
 - relevant modules or pages
 - notable open questions from the upstream PRD
+
+### `explicit behavior constraints`
+
+This section must preserve explicit upstream requirement detail whenever the PRD already states it.
+
+At minimum, extract and normalize:
+
+- form-related constraints already present in the source
+- table-related constraints already present in the source
+- display-field constraints already present in the source
+- interaction rules already present in the source
+- loading, disabled, empty, error, success, and failure-state rules already present in the source
+- workflow steps, branches, and state-transition rules already present in the source
+
+Do not replace explicit upstream detail with vague summaries such as "contains a form" or "supports table operations" when the source already names the fields, columns, actions, validations, or state rules.
+
+### `forms, tables, displays, and interactions extracted from source`
+
+When applicable, organize the extracted source content by functional unit and preserve:
+
+- page or container name
+- form field names and rules
+- table column names and rules
+- display fields and formatting notes
+- interaction triggers and outcomes
+
+### `workflow and state rules extracted from source`
+
+When applicable, preserve:
+
+- start and end states
+- branch conditions
+- loading or pending-state rules
+- success and failure outcomes
+- retry, rollback, or confirmation behavior
+
+## `requirements/requirement-map.md`
+
+Required sections for PRD-driven requests:
+
+- splitting summary
+- source modules
+- split modules and functional units
+- source traceability
+- module dependencies
+- page-design routing hint
+- spec input checklist
+- open questions
+
+Requirements:
+
+- split the normalized requirement by module, page, feature group, or workflow unit based on the source
+- preserve source wording for each module snapshot instead of paraphrasing away explicit detail
+- for every split module, point back to the matching source section or excerpt anchor
+- explicitly mark whether the module requires page design before spec
+- identify upstream details that must be carried into `spec` without loss, including fields, columns, displays, interactions, validations, and state rules
+
+## `requirements/modules/<module-id>.md`
+
+Recommended sections for each split module:
+
+- module name
+- source snapshot
+- source-trace references
+- business goal
+- user-visible behaviors
+- forms, tables, displays, and interactions from source
+- workflow and state rules from source
+- upstream constraints that spec must preserve
+- page-design need
+- open questions

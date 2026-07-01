@@ -1,8 +1,0 @@
-interface:
-  display_name: "AI Workflow Feishu Spec"
-  short_description: "Subagent for creating and updating Feishu technical specifications"
-  brand_color: "#1F6FEB"
-  default_prompt: "Use $ai-workflow-feishu-spec to create or update a Feishu technical spec from the current analysis."
-
-policy:
-  allow_implicit_invocation: true

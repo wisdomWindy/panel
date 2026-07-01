@@ -5,125 +5,133 @@ description: Stage subskill for planning. Convert the approved spec into executi
 
 # Plan Subskill
 
-## Purpose
+## 触发场景
 
-Break the approved spec into concrete execution tasks, dependencies, and verification strategy.
+- 当主 `frontend-agent-framework` 将请求路由到 `stage=plan` 时使用。
+- 适用于把已批准 spec 转成执行任务、依赖关系、验证策略的场景。
 
-## Use With
-
-Invoke from the main `frontend-agent-framework` skill after routing a request with `stage=plan`.
-
-## Read First
-
-- `docs/requests/<request-id>/state.json`
-- `docs/requests/<request-id>/spec/spec.md`
-- `docs/requests/<request-id>/spec/clarifications.md`
-- `docs/requests/<request-id>/artifacts/code-context.md` when present
-- `../../references/state-machine.md`
-- `../../references/templates/plan.md`
-- `../../references/templates/code-context.md`
-- `../../references/policies/design-patterns.md`
-- `../../references/policies/code-graph.md`
-- `../../references/policies/doc-writing.md`
-- `../../references/policies/clean-code.md`
-- `../../references/policies/spec-constraints.md`
-- `../../references/policies/testing.md`
-
-## Hard Rules
-
-- Require `approvals.spec_approved=true` before starting this stage.
-- Write `plan/plan.md` and `plan/task-board.md`.
-- Unless the user explicitly requests another language, write `plan/plan.md` and `plan/task-board.md` in Chinese.
-- Use Chinese for titles, section names, task labels, execution notes, dependency descriptions, testing strategy, and rollback notes; code ids, paths, field names, and API identifiers may remain in their original language where needed for accuracy.
-- Map every task back to the approved spec.
-- Preserve spec granularity: `plan` must decompose work at the same function-complete behavior granularity already defined in the approved spec, rather than inventing new product behavior or silently refining an under-specified spec.
-- Decompose tasks to a function-complete level instead of stopping at module or page names.
-- For each task, write enough delivery detail that `execute` can complete the requested functionality without guessing omitted fields, views, interactions, or states.
-- When a task covers a module, page, panel, drawer, modal, card, table, form, detail view, or display block, explicitly break down the subfunctions inside that unit instead of treating the container as the whole task.
-- For form-bearing work, record the form purpose, field list, field order when material, required vs optional status, control type, value semantics, default value, validation rules, disabled/editable conditions, visibility conditions, option sources, submission trigger, failure handling, and loading lifecycle.
-- For table-bearing work, record the table purpose, column list, column order, column meaning, value source, formatting rule, empty-state behavior, row-level actions, batch actions, pagination or scrolling mode when material, and loading lifecycle.
-- For pure display content, record the displayed fields, grouping or layout structure, formatting rule, hidden/empty-state behavior, and whether the content is read-only, collapsible, progressive, or conditionally visible.
-- For interactions, record the user trigger, preconditions, resulting UI change, side effect, confirmation requirement, loading behavior, success feedback, failure feedback, and exact condition that ends loading or disables retry.
-- For workflow or multi-step behavior, record the end-to-end path, branch conditions, state transitions, retry or rollback path, and cross-page or cross-module handoff points.
-- If any material product detail is still unknown, record it as a blocking clarification or approved assumption in the plan instead of leaving `execute` to infer it silently.
-- If the approved spec is too coarse to support function-complete planning, stop and route the request back to `spec` instead of compensating by inventing missing behavior inside the plan.
-- Decompose testable behavior changes into TDD-oriented execution units.
-- For each behavior change, define the intended verification path before implementation begins.
-- Plan the change so module boundaries, responsibilities, duplication control, and side-effect containment stay explicit instead of being deferred to ad hoc cleanup during execution.
-- When the spec shows a real pattern-level pressure, choose the simplest fitting pattern family and record why it is better than direct code or another pattern option.
-- Treat declared spec constraints as mandatory planning inputs, not as optional commentary.
-- For existing-code changes with non-trivial impact scope, prefer code graph to identify affected symbols, callers, consumers, and neighboring modules before finalizing the plan.
-- Reuse and extend `artifacts/code-context.md` when the plan stage confirms impact scope, neighboring modules, or verification surface.
-- Distinguish serial work from independently parallelizable work.
-- Recommend workflow-style parallel execution only when the task set is large enough, independent enough, and valuable enough to justify the extra coordination and token cost.
-- Make trigger handling, context loading, observation points, and human intervention points explicit when the request describes a proactive workflow.
-- Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
-- Do not write implementation code.
-- Require user approval before setting `approvals.plan_approved` to `true`.
-- When the environment supports structured approval UI, present plan approval through explicit options such as approve / reject / revise instead of asking the user to type approval text manually.
-- Only use plain-text approval prompts when structured approval UI is unavailable.
-
-## Sample Usage
-
-- Use `docs/requests/prd-material-delivery-config-center/plan/plan.md` and `plan/task-board.md` only as examples of decomposition quality and task-board style.
-- Build the new plan from the approved current spec, not from the sample request's final outcome.
-- Reuse numbering and follow-up recording patterns only when they fit the current request.
-- Do not assume the sample's task count, dependency order, or module split applies to another request.
-
-## Required Inputs
+## 必要输入
 
 - `docs/requests/<request-id>/spec/spec.md`
 - `docs/requests/<request-id>/spec/clarifications.md`
+- `docs/requests/<request-id>/requirements/requirement-map.md`（如存在）
 - `docs/requests/<request-id>/state.json`
+- `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
 
-## Required Artifacts
+## 执行步骤
 
-- `docs/requests/<request-id>/plan/plan.md`
-- `docs/requests/<request-id>/plan/task-board.md`
-- `docs/requests/<request-id>/artifacts/code-context.md` when structural analysis is needed
+1. 先读：
+   - `docs/requests/<request-id>/state.json`
+   - `docs/requests/<request-id>/spec/spec.md`
+   - `docs/requests/<request-id>/spec/clarifications.md`
+   - `docs/requests/<request-id>/requirements/requirement-map.md`（如存在）
+   - `docs/requests/<request-id>/requirements/modules/` 下相关模块文件（如存在）
+   - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
+   - `../../references/state-machine.md`
+   - `../../references/templates/plan.md`
+   - `../../references/templates/code-context.md`
+   - `../../references/policies/design-patterns.md`
+   - `../../references/policies/code-graph.md`
+   - `../../references/policies/doc-writing.md`
+   - `../../references/policies/clean-code.md`
+   - `../../references/policies/spec-constraints.md`
+   - `../../references/policies/testing.md`
+2. 进入本阶段前，要求 `approvals.spec_approved=true`。
+3. 产出：
+   - `plan/plan.md`
+   - `plan/task-board.md`
+4. 默认使用中文写计划工件。
+5. 所有任务都必须回溯到已批准 spec。
+6. 保持 spec 颗粒度：
+   - `plan` 必须沿用 spec 的 function-complete behavior granularity
+   - 不能用 plan 私自补产品行为
+   - 若 spec 太粗，必须回退到 spec
+7. 把任务拆到 `execute` 无需猜测的粒度：
+   - 表单拆字段、校验、状态、提交结果
+   - 表格拆列、操作、状态
+   - 展示拆字段、布局、格式、显隐
+   - 交互拆触发、前置条件、UI 变化、副作用、loading 起止
+   - 流程拆步骤、分支、回退和交接点
+8. 如果任何产品细节仍未知，显式写成 blocking clarification 或 approved assumption。
+9. 如果 PRD 明明有细节而 spec 缺失，视为 spec 质量问题，回退到 spec。
+10. 如果 requirement-splitting 已经拆出了模块与功能单元，plan 必须逐个覆盖范围内模块，不得把多个模块重新压成会导致实现遗漏的黑盒任务。
+11. 对可测试行为按 TDD 导向拆任务，并在实现前定义验证路径。
+12. 对 API 对接工作，拆成：
+   - contract-source 确认
+   - type reuse / translation
+   - request-layer
+   - adapter / mapper
+   - UI consumption
+   - verification
+13. 服务端有 TS 声明时优先复用；无 TS 声明时，保持服务端字段名并写成 TS 类型；proto 需说明复用生成类型还是从 proto 推导。
+14. 把 clean-code guardrails、pattern decisions、side-effect boundaries、request-layer ownership 写进计划。
+15. 既有代码影响面较大时，优先用 code graph 明确 impact scope，并更新 `artifacts/code-context.md`。
+16. 区分串行任务与可并行任务，仅在确实值得时建议 workflow-style parallel execution。
+17. 如果请求本质是主动式 workflow，写清 trigger / context / observation points / handoff。
+18. `plan/plan.md` 必须使用利于人眼快速扫描的结构：
+   - 先给全局摘要
+   - 再按任务分节
+   - 每个任务都用固定小节展示目标、范围、前置条件、交互、状态、风险、测试
+   - 避免输出大段连续散文
+19. 每个任务都必须附一个流程图，默认使用 Mermaid，至少覆盖：
+   - 起点
+   - 关键步骤
+   - 分支判断
+   - 成功出口
+   - 失败/回退出口
+20. 如果任务很小，也不能省略流程图；可以使用最小闭环流程图，但不能缺失。
+21. 保留 `state.json.loop`，不重置、不改写。
+22. 本阶段不写实现代码。
+23. 完成后请求用户审批，再设置 `approvals.plan_approved=true` 并切到 `stage=execute`。
 
-## Allowed Outputs
+## 输出格式
 
-- Task breakdown
-- Function-complete task decomposition with subfunction coverage
-- Dependency ordering
-- Parallelization guidance
-- Test and validation strategy
-- Risk and rollback notes
-- Test-first execution sequencing for behavior changes
-- Clean-code guardrails for naming, responsibilities, dependency boundaries, and likely refactor points
-- Pattern decisions, their problem statements, and the code areas where those abstractions should live
-- Code-context impact scope, including affected symbols, modules, and likely verification surface when graph-based analysis is available
-- Structured code-context updates that preserve graph detection, bootstrap, and fallback records in one durable artifact
-- Trigger/context/handoff planning for proactive workflows
+- 必须产出：
+  - `docs/requests/<request-id>/plan/plan.md`
+  - `docs/requests/<request-id>/plan/task-board.md`
+  - `docs/requests/<request-id>/artifacts/code-context.md`（如需要结构分析）
+- 最终交付物应包含：
+  - 利于人眼浏览的任务化排版
+  - 任务拆解
+  - function-complete 级任务细化
+  - 每个任务对应的流程图
+  - 依赖关系
+  - 测试与验证策略
+  - API 对接与类型策略
+  - 风险与回滚说明
+  - clean-code / pattern / boundary 约束
+  - trigger / context / handoff 规划（如适用）
 
-## Forbidden Actions
+## 验收标准
 
-- Writing code
-- Creating tasks not justified by the spec
-- Entering execution without user approval
-- Reusing the sample plan as a shortcut instead of planning from the current approved spec
-- Deferring test design until after implementation for behavior that is reasonably testable
-- Leaving obvious complexity, duplication, or mixed-responsibility hotspots unplanned when they are clearly part of the approved change
-- Introducing a pattern in the plan without naming the concrete change axis, selection pressure, or rejected simpler alternative
-- Recommending workflow-style parallel execution for trivial, tightly coupled, or single-thread work
-- Leaving trigger conditions, required context, or human intervention points implicit for a workflow that depends on them
-- Leaving page structure, field definitions, column definitions, interaction outcomes, or loading-state rules unspecified when the approved scope depends on them
-- Letting `execute` infer missing product behavior that should have been defined or bounded in the plan
-- Refining the approved spec into materially new behavior detail without recording that the request must first return to `spec`
+- `plan/plan.md` 已存在并覆盖任务、依赖、影响面、测试、回滚。
+- `plan/plan.md` 使用了清晰的人眼友好结构，而不是难以扫描的大段文字。
+- 每个任务都有对应流程图。
+- `plan/task-board.md` 已存在并反映执行单元。
+- 任务颗粒度与已批准 spec 保持一致，不出现产品含义漂移。
+- `execute` 无需猜测表单字段、表格列、展示字段、交互效果、loading 结束条件。
+- 所有验收标准都已映射到执行任务和验证任务。
+- API 对接项已写清 contract source、type strategy、adapter boundary、request-layer ownership。
+- clean-code / pattern 决策已记录。
+- 串行与可并行任务已区分。
+- 主动式 workflow 的 trigger / context / observation / handoff 已写清（如适用）。
+- 用户已审批 plan。
+- `state.json.approvals.plan_approved=true`，`state.json.stage=execute`，且保留原有 `loop`。
 
-## Exit Criteria
+## 安全边界
 
-- `plan/plan.md` exists and covers tasks, dependencies, affected areas, testing, and rollback notes.
-- `plan/plan.md` decomposes each planned unit to a function-complete level, including the required UI structure, data fields, interactions, states, and flow details for the scoped work.
-- `plan/task-board.md` exists and reflects the planned execution units.
-- The plan artifacts are written in Chinese unless the user explicitly requested another language.
-- The plan maps acceptance criteria to concrete execution and verification tasks, including test-first steps where behavior is testable.
-- The plan's task granularity matches the approved spec's function-complete behavior granularity instead of drifting coarser or finer in a way that changes product meaning.
-- The plan does not rely on `execute` to guess omitted form fields, table columns, display fields, interaction effects, or loading-state completion conditions.
-- The plan records any required clean-code guardrails for the touched modules, especially around naming, responsibility splits, duplication risks, and side-effect boundaries.
-- The plan records any approved pattern decisions, why they are needed, and what simpler alternative was rejected.
-- The plan states which tasks stay serial and which tasks are safe candidates for workflow-style parallel execution.
-- The plan defines the workflow's trigger handling, minimum context, observation points, and human handoff path when those concerns apply.
-- The user approves the plan, preferably through structured approval options when available.
-- `state.json` is updated with `approvals.plan_approved=true` and `stage` set to `execute` while preserving the existing `loop` object.
+- 不能写代码。
+- 不能创建 spec 未授权的任务。
+- 没有用户审批时不能进入 execution。
+- 不能把样例计划当捷径直接套用。
+- 对可测试行为，不能把测试设计拖到实现之后。
+- 不能把明显的复杂度、重复、混责问题留成未规划状态。
+- 不能在没有明确 change axis / rejected alternative 的前提下引入 pattern。
+- 不能把 trivial / tightly-coupled 任务包装成 workflow-style parallel execution。
+- 不能把 trigger / context / intervention points 留成隐式。
+- 不能把页面结构、字段定义、列定义、交互结果、loading 规则留空。
+- 不能让 `execute` 自行补产品行为。
+- 不能私自把 spec 细化成新行为。
+- 不能把多接口/多表面 API 对接压成一个黑盒任务。
+- 不能省略任何任务的流程图。
+- 不能把整份 `plan.md` 写成只有长段落、缺少任务分节的低可读格式。

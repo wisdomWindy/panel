@@ -5,101 +5,102 @@ description: Stage subskill for execution. Implement only approved tasks and kee
 
 # Execute Subskill
 
-## Purpose
+## 触发场景
 
-Implement the approved request while keeping execution records aligned with the spec and plan.
+- 当主 `frontend-agent-framework` 将请求路由到 `stage=execute` 时使用。
+- 适用于按已批准 spec 和 plan 落地代码实现的阶段。
 
-## Use With
-
-Invoke from the main `frontend-agent-framework` skill after routing a request with `stage=execute`.
-
-## Read First
-
-- `docs/requests/<request-id>/state.json`
-- `docs/requests/<request-id>/spec/spec.md`
-- `docs/requests/<request-id>/plan/plan.md`
-- `docs/requests/<request-id>/plan/task-board.md`
-- `docs/requests/<request-id>/artifacts/code-context.md` when present
-- `../../references/state-machine.md`
-- `../../references/templates/code-context.md`
-- `../../references/policies/api-contracts.md`
-- `../../references/policies/clean-code.md`
-- `../../references/policies/code-graph.md`
-- `../../references/policies/design-patterns.md`
-- `../../references/policies/spec-constraints.md`
-- `../../references/policies/frontend-architecture.md`
-- `../../references/policies/frontend-components.md`
-- `../../references/policies/testing.md`
-
-## Hard Rules
-
-- Require `approvals.plan_approved=true` before writing code.
-- Update `execution/changelog.md` and `plan/task-board.md` as work progresses.
-- Implement only approved tasks.
-- Treat the approved spec and plan as the authoritative implementation contract.
-- If the approved plan lacks material field definitions, column definitions, interaction outcomes, state transitions, or loading completion conditions needed for correct implementation, stop execution and route the request back to `plan` instead of guessing.
-- If the approved spec and approved plan disagree on behavior granularity or product meaning, stop execution and route the request back to `spec` or `plan` instead of choosing one interpretation ad hoc.
-- Treat the spec's declared design constraints as part of that contract, especially for boundaries, side effects, duplication ownership, readability guardrails, and pattern decisions.
-- For testable behavior changes, execute in red -> green -> refactor order.
-- Write or update the failing test first, then implement the minimal passing change, then refactor while keeping tests green.
-- Apply the clean-code policy while implementing: use intention-revealing names, keep units focused, reduce rule-level duplication, and keep side effects explicit.
-- Apply approved pattern decisions deliberately; if the plan chose Strategy, State, Adapter, Observer, Command, or another pattern family, implement that intent clearly instead of drifting into ad hoc branching or accidental abstractions.
-- Before or during non-trivial existing-code modification, prefer code graph to confirm impact scope, call sites, or ownership boundaries when that reduces the risk of incomplete or structurally inconsistent edits.
-- Update `artifacts/code-context.md` instead of ad hoc notes when execution discovers new impact scope, call sites, or structural blind spots.
-- Default to serial execution unless the approved plan explicitly marks independent work units as parallel-safe.
-- If workflow-style parallel execution is used, keep every parallel unit mapped back to the same request artifacts, approvals, and task board.
-- Keep execution observable enough that a human can inspect progress, ask follow-up questions, or redirect the work without losing artifact continuity.
-- Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
-- If requirements shift or a plan gap appears, stop and move the request back to `spec` or `plan`.
-- When re-entered from failed verification or blocking review, continue from the approved plan and the latest recorded findings in the same active workflow run instead of treating the request as a fresh task.
-- Do not claim completion in this stage.
-
-## Required Inputs
+## 必要输入
 
 - `docs/requests/<request-id>/spec/spec.md`
 - `docs/requests/<request-id>/plan/plan.md`
 - `docs/requests/<request-id>/plan/task-board.md`
 - `docs/requests/<request-id>/state.json`
+- `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
 
-## Required Artifacts
+## 执行步骤
 
-- `docs/requests/<request-id>/execution/changelog.md`
-- Code changes that map to planned tasks
+1. 先读：
+   - `docs/requests/<request-id>/state.json`
+   - `docs/requests/<request-id>/spec/spec.md`
+   - `docs/requests/<request-id>/plan/plan.md`
+   - `docs/requests/<request-id>/plan/task-board.md`
+   - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
+   - `../../references/state-machine.md`
+   - `../../references/templates/code-context.md`
+   - `../../references/policies/api-contracts.md`
+   - `../../references/policies/clean-code.md`
+   - `../../references/policies/code-graph.md`
+   - `../../references/policies/design-patterns.md`
+   - `../../references/policies/spec-constraints.md`
+   - `../../references/policies/frontend-architecture.md`
+   - `../../references/policies/frontend-components.md`
+   - `../../references/policies/testing.md`
+2. 执行前要求 `approvals.plan_approved=true`。
+3. 仅实现已批准任务。
+4. 把 spec 与 plan 视为唯一实现合同。
+5. 如果 plan 缺少关键字段、列、交互、状态或 loading 结束条件，停止执行并回退到 `plan`。
+6. 如果 spec 与 plan 在行为颗粒度或产品含义上冲突，停止执行并回退修复工件。
+7. 对可测试行为按 red -> green -> refactor 执行：
+   - 先写失败测试
+   - 再写最小通过实现
+   - 最后重构并保持测试通过
+8. 实现过程中应用 clean-code 规则和已批准的 pattern 决策。
+9. 对 API 集成工作：
+   - 服务端有 TS contract types 时优先复用
+   - 非 TS 契约时保留后端字段名并用 TS 类型表达
+   - proto 优先复用生成类型，否则从 proto 导出 TS-facing types
+   - request transport / contract handling / semantic normalization 保持在 request layer 或 adapter boundary
+10. 既有代码影响较大时，优先用 code graph 确认 impact scope / callers / ownership boundaries。
+11. 如执行中发现新的结构信息，更新 `artifacts/code-context.md`。
+12. 默认串行执行，除非计划明确标注某些 work unit 可并行。
+13. 持续更新：
+   - `execution/changelog.md`
+   - `plan/task-board.md`
+14. 保持执行过程可观察、可追问、可重定向。
+15. 保留 `state.json.loop`，不重置、不改写。
+16. 如果需求变化或计划暴露出 gap，立即停下并回退到 `spec` 或 `plan`。
+17. 如果是从 verify / review 失败回流而来，继续当前活动 workflow run，不当作全新任务重来。
+18. 本阶段不宣称完成。
 
-## Allowed Outputs
+## 输出格式
 
-- Planned implementation changes
-- Execution notes
-- Task status updates
-- Test-first implementation progress and deviations that are explicitly recorded
-- Targeted clean-code refactors that are necessary to keep the touched area maintainable and aligned with the approved plan
-- Pattern-conforming implementation changes that reflect approved abstraction choices and boundary decisions
-- Graph-supported impact analysis notes or fallback analysis notes when structural context is material to the change
-- Durable code-context artifact updates when execution materially changes the understanding of impact scope
-- Workflow-style parallel execution records when the approved plan explicitly calls for them
-- Evidence of progress and intervention-friendly execution notes
+- 必须产出：
+  - `docs/requests/<request-id>/execution/changelog.md`
+  - 与计划任务对应的代码改动
+  - 更新后的 `plan/task-board.md`
+  - 更新后的 `artifacts/code-context.md`（如结构理解有变化）
+- 最终交付物应包含：
+  - 实现变更
+  - 执行记录
+  - 任务状态更新
+  - TDD 执行证据或合理例外记录
+  - 必要的 clean-code 重构
+  - API / graph / adapter 相关实现与记录
 
-## Forbidden Actions
+## 验收标准
 
-- Inventing new requirements during coding
-- Guessing omitted product behavior that the plan should have defined explicitly
-- Choosing between conflicting spec and plan behavior interpretations without first repairing the artifacts
-- Skipping task tracking
-- Declaring the request done
-- Writing behavior-first implementation for a testable change without recording why TDD was not applicable
-- Treating the spec or plan as optional guidance instead of the implementation contract
-- Leaving behind known misleading names, hidden side effects, or duplicated business rules in the touched area when the current change already depends on understanding or editing that area
-- Inventing a new pattern layer during coding without updating the approved design artifacts
-- Spawning workflow-style parallel execution for trivial or unplanned work
-- Hiding material progress, context switches, or human intervention points outside repository artifacts
+- 已批准的实现任务已完成。
+- `execution/changelog.md` 已记录关键决策与偏差。
+- 对可测试行为，已记录 test-first 执行步骤或合理例外。
+- 改动区域可读性仍然达标，必要的 clean-code 重构已完成或显式记录。
+- 引入的 pattern 仍能回溯到已批准问题陈述。
+- `plan/task-board.md` 已反映完成状态。
+- `state.json.stage=verify`，且保留原有 `loop`。
+- 已留下足够证据，使 `verify` 能立即接续。
 
-## Exit Criteria
+## 安全边界
 
-- Planned implementation work is complete.
-- Major execution decisions and deviations are recorded in `execution/changelog.md`.
-- Test-first execution steps or justified exceptions are recorded for behavior changes.
-- The changed area remains readable enough for review, with any necessary clean-code refactors completed or explicitly tracked in the plan and changelog.
-- Any introduced pattern remains traceable to an approved problem statement and is expressed clearly enough for review to judge whether it earned its complexity.
-- `plan/task-board.md` reflects the completed execution state.
-- `state.json` is updated with `stage` set to `verify` while preserving the existing `loop` object.
-- The stage leaves enough updated evidence that `verify` can re-run immediately in the same workflow loop.
+- 不能发明新需求。
+- 不能猜 plan 未定义的产品行为。
+- 不能在 spec / plan 冲突时擅自选一种解释实现。
+- 不能无批准地本地重写服务端 TS contract types。
+- 不能在无 adapter boundary 的情况下改名非 TS 后端字段。
+- 不能跳过任务跟踪。
+- 不能宣称请求完成。
+- 对可测试行为，不能无说明地跳过 TDD。
+- 不能把 spec / plan 当作可选参考。
+- 不能在已触碰区域保留明显误导命名、隐藏副作用、重复业务规则而不处理。
+- 不能在编码时私自发明新 pattern layer。
+- 不能对 trivial / unplanned work 擅自启用 workflow-style parallel execution。
+- 不能把关键进展与上下文切换藏在仓库工件之外。

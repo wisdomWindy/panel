@@ -1,8 +1,0 @@
-interface:
-  display_name: "AI Workflow Release"
-  short_description: "Subagent for release notes, risk checks, and rollback-aware readiness reviews"
-  brand_color: "#1F6FEB"
-  default_prompt: "Use $ai-workflow-release to assemble release notes, risk checks, and blocker-aware release readiness."
-
-policy:
-  allow_implicit_invocation: true

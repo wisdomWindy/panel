@@ -1,8 +1,0 @@
-interface:
-  display_name: "AI Workflow Orchestrator"
-  short_description: "Main agent that routes work across the AI delivery workflow"
-  brand_color: "#1F6FEB"
-  default_prompt: "Use $ai-workflow-orchestrator to classify this request and dispatch it to the correct AI workflow subagent."
-
-policy:
-  allow_implicit_invocation: true

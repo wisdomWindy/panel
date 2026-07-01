@@ -1,8 +1,0 @@
-interface:
-  display_name: "AI Workflow Bugfix"
-  short_description: "Subagent for defect framing, repair planning, and regression-aware verification"
-  brand_color: "#1F6FEB"
-  default_prompt: "Use $ai-workflow-bugfix to gather bug context, frame root cause, and drive a regression-aware fix."
-
-policy:
-  allow_implicit_invocation: true

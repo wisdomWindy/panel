@@ -23,11 +23,11 @@ It also treats proactive workflow design as a first-class concern:
 
 The canonical request lifecycle is:
 
-`intake -> spec -> plan -> execute -> verify -> review -> complete`
+`intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
 
 For page-oriented requests, insert the optional design stage before spec:
 
-`intake -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
+`intake -> requirement-splitting -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
 
 The lifecycle above is the delivery path. The main `frontend-agent-framework` skill controls that path through a loop orchestrator:
 
@@ -36,6 +36,7 @@ The lifecycle above is the delivery path. The main `frontend-agent-framework` sk
 In this framework:
 
 - `subskills/` own stage execution only
+- `requirement-splitting` is the source-preserving decomposition stage for PRD-driven work and feeds both `page-design` and `spec`
 - the goal contract is established in request/spec artifacts and proved by verification/review artifacts
 - the main skill owns loop control, gate recovery, and rollback routing
 - workflow-style parallelization is optional execution scale, not a second lifecycle and not a default

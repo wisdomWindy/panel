@@ -1,0 +1,7 @@
+interface:
+  display_name: "Backend Agent Framework"
+  short_description: "Default entry skill that routes repository-local backend workflow stages"
+  default_prompt: "Use $backend-agent-framework to classify the request, enforce local workflow gates, and route to the correct stage subskill."
+
+policy:
+  allow_implicit_invocation: true

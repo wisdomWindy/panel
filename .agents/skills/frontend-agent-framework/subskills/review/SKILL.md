@@ -5,88 +5,95 @@ description: Stage subskill for review. Review correctness, standards compliance
 
 # Review Subskill
 
-## Purpose
+## 触发场景
 
-Perform the final review pass against the code, spec, plan, and verification output before completion.
+- 当主 `frontend-agent-framework` 将请求路由到 `stage=review` 时使用。
+- 适用于在 completion 前对代码、spec、plan、verification 输出做最终审查的阶段。
 
-## Use With
-
-Invoke from the main `frontend-agent-framework` skill after routing a request with `stage=review`.
-
-## Read First
-
-- `docs/requests/<request-id>/state.json`
-- `docs/requests/<request-id>/spec/spec.md`
-- `docs/requests/<request-id>/plan/plan.md`
-- `docs/requests/<request-id>/verification/verification.md`
-- `docs/requests/<request-id>/artifacts/code-context.md` when present
-- `../../references/state-machine.md`
-- `../../references/templates/review.md`
-- `../../references/templates/code-context.md`
-- `../../references/policies/api-contracts.md`
-- `../../references/policies/clean-code.md`
-- `../../references/policies/code-graph.md`
-- `../../references/policies/design-patterns.md`
-- `../../references/policies/spec-constraints.md`
-- `../../references/policies/frontend-architecture.md`
-- `../../references/policies/frontend-components.md`
-- `../../references/policies/testing.md`
-
-## Hard Rules
-
-- Read the changed code before reviewing.
-- Write `review/review.md`.
-- Separate findings into blocking issues, non-blocking issues, accepted risks, and follow-up items.
-- Review changed code against the clean-code policy, not just against functional correctness.
-- Review any introduced or modified pattern use against the design-pattern policy, including whether the abstraction was necessary and correctly fitted to the problem.
-- Review the implementation against the spec's declared design constraints instead of treating maintainability and abstraction judgments as free-floating preferences.
-- Review whether the approved spec and approved plan stayed aligned at the same function-complete behavior granularity, and treat material drift as a blocking workflow issue rather than a documentation nit.
-- Write explicit pass or fail conclusions for `clean-code assessment` and `design-pattern assessment`.
-- When the review depends on dependency direction, ownership boundaries, side-effect spread, or actual abstraction fan-out, prefer code graph evidence over impressionistic reasoning.
-- If review extends or contradicts earlier structural understanding, update `artifacts/code-context.md` so the final artifact reflects the current best view of the code structure.
-- Preserve the existing `state.json.loop` object; stage-local state updates must not reset or reinterpret it.
-- If blocking issues remain, record them and hand control back to the main skill so it can route the request back to `execute` with the correct loop re-entry metadata and continue the workflow immediately in the same active run.
-- Do not mark the request complete while blockers remain.
-
-## Required Inputs
+## 必要输入
 
 - `docs/requests/<request-id>/spec/spec.md`
 - `docs/requests/<request-id>/plan/plan.md`
 - `docs/requests/<request-id>/verification/verification.md`
 - `docs/requests/<request-id>/state.json`
+- `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
 
-## Required Artifacts
+## 执行步骤
 
-- `docs/requests/<request-id>/review/review.md`
+1. 先读：
+   - `docs/requests/<request-id>/state.json`
+   - `docs/requests/<request-id>/spec/spec.md`
+   - `docs/requests/<request-id>/plan/plan.md`
+   - `docs/requests/<request-id>/verification/verification.md`
+   - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
+   - `../../references/state-machine.md`
+   - `../../references/templates/review.md`
+   - `../../references/templates/code-context.md`
+   - `../../references/policies/api-contracts.md`
+   - `../../references/policies/clean-code.md`
+   - `../../references/policies/code-graph.md`
+   - `../../references/policies/design-patterns.md`
+   - `../../references/policies/spec-constraints.md`
+   - `../../references/policies/frontend-architecture.md`
+   - `../../references/policies/frontend-components.md`
+   - `../../references/policies/testing.md`
+2. 先读变更后的代码，再开始评审。
+3. 产出 `review/review.md`。
+4. 把评审结论分成：
+   - blocking issues
+   - non-blocking issues
+   - accepted risks
+   - follow-up items
+5. 既看功能正确性，也看 clean-code 合规性。
+6. 检查引入或修改的 pattern 是否真的必要、是否与问题匹配。
+7. 依据 spec 中声明的设计约束审查实现，不做脱离工件的主观审美评审。
+8. 检查 spec 与 plan 是否保持同一 function-complete behavior granularity；若有漂移，按 blocker 处理。
+9. 检查 API 集成是否符合 API contract policy：
+   - contract-source fidelity
+   - type reuse correctness
+   - field-name preservation
+   - adapter-boundary discipline
+   - request-layer ownership
+10. 明确写出：
+   - `clean-code assessment: pass|fail`
+   - `design-pattern assessment: pass|fail`
+11. 如果结论依赖真实依赖方向、ownership boundary、side-effect spread、abstraction fan-out，优先使用 code graph 证据。
+12. 如果 review 扩展或推翻了早先结构理解，更新 `artifacts/code-context.md`。
+13. 保留 `state.json.loop`，不重置、不改写。
+14. 若仍有 blocker，记录后交回主 skill 回流到 `execute`，并在同一 workflow run 中继续。
+15. 在 blocker 未清零前，不允许标记 complete。
 
-## Allowed Outputs
+## 输出格式
 
-- Final review findings
-- Merge readiness judgment
-- Spec-plan alignment findings where behavior granularity drift changed or risked changing implementation meaning
-- Follow-up items that do not block completion
-- Clean-code findings covering naming, responsibility boundaries, duplication, side effects, and control-flow readability
-- Design-pattern findings covering fit, overengineering risk, dependency direction, and whether the abstraction simplified future change
-- Code-graph-backed structural review findings when graph analysis is available
-- Final structural assessment aligned with the durable code-context artifact
-- Explicit pass/fail compliance conclusions for clean-code and design-pattern assessments
-- Blocking findings that can drive the next `execute` pass without extra user restatement
+- 必须产出：
+  - `docs/requests/<request-id>/review/review.md`
+- 最终交付物应包含：
+  - final review findings
+  - merge readiness judgment
+  - spec-plan alignment findings
+  - API integration findings
+  - clean-code findings
+  - design-pattern findings
+  - code-graph-backed structural findings（如适用）
+  - pass/fail compliance conclusions
+  - 可直接驱动下一轮 execute 的 blocker 列表
 
-## Forbidden Actions
+## 验收标准
 
-- Collapsing review into a one-line approval note
-- Ignoring maintainability problems that materially affect readability or safe future change on the grounds that the feature already works
-- Accepting unnecessary pattern layers, fake extensibility, or framework-shaped indirection without checking whether they solve a real problem
-- Treating clean-code or design-pattern compliance as implicit without a written pass/fail judgment
-- Treating material spec-plan granularity drift as harmless when it changes, obscures, or weakens the approved behavior contract
-- Declaring merge readiness when blockers remain
+- `review/review.md` 已存在并按严重级别记录发现项。
+- 已明确说明 changed area 是否仍有 clean-code blocker。
+- 已明确说明 pattern choice 是 justified / overbuilt / unnecessary。
+- `review/review.md` 已明确写出 `clean-code assessment: pass|fail` 与 `design-pattern assessment: pass|fail`。
+- 已明确说明 spec 与 plan 是否保持所需行为颗粒度对齐。
+- 所有 blocker 都已清零，否则必须回流执行。
+- 通过时 `state.json.stage=complete`，且保留原有 `loop`。
 
-## Exit Criteria
+## 安全边界
 
-- `review/review.md` exists and records findings by severity.
-- The review explicitly states whether clean-code blockers remain in the changed area.
-- The review explicitly states whether the introduced pattern choices were justified, overbuilt, or unnecessary.
-- `review/review.md` explicitly states `clean-code assessment: pass|fail` and `design-pattern assessment: pass|fail`.
-- The review explicitly states whether spec and plan remained aligned at the required behavior granularity for the changed scope.
-- No blocking issues remain unresolved.
-- `state.json` is updated with `stage` set to `complete` while preserving the existing `loop` object.
+- 不能把 review 压缩成一句批准语。
+- 不能因为“功能能跑”就忽略严重的可维护性问题。
+- 不能接受没有实际问题支撑的 pattern layer / fake extensibility / framework-shaped indirection。
+- 不能把 clean-code 或 design-pattern 合规性当成默认成立而不写 pass/fail。
+- 不能把 material spec-plan granularity drift 当作无害文档问题。
+- 不能接受无批准 adapter boundary 的 API 集成代码去重复声明服务端 TS 类型或偷偷改写后端字段语义。
+- 在 blocker 未解决前，不能宣称 merge-ready。

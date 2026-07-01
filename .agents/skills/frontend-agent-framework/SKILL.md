@@ -18,7 +18,7 @@ Keep the repository-local workflow in control through one default entry skill th
 - Establish and preserve the request goal contract so "done" is explicit and checkable.
 - Establish the proactive workflow contract: trigger, context, steerability, and handoff.
 - Enforce the canonical lifecycle:
-  `intake -> spec -> plan -> execute -> verify -> review -> complete`
+  `intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
 - Build or recover the active request's lifecycle execution path.
 - Run the loop orchestrator:
   `observe state -> decide next action -> dispatch one stage or gate recovery action -> observe result -> iterate`
@@ -31,6 +31,7 @@ Keep the repository-local workflow in control through one default entry skill th
 - Enforce clean-code discipline so shipped changes remain readable, low-surprise, and maintainable.
 - Enforce design-pattern discipline so abstractions are introduced only when they solve a real change, dependency, or behavior-selection problem.
 - Enforce repository-context discipline by preferring code graph for structural code understanding when existing-code analysis is material to the request.
+- Enforce backend API contract discipline so frontend integration preserves contract sources, type ownership, field semantics, and explicit adapter boundaries.
 
 ## Built-In Constitution
 
@@ -38,11 +39,14 @@ This skill carries its own workflow constitution and does not require `.agents/A
 
 - Default entrypoint: use this skill as the single workflow entrypoint.
 - New requirement: decompose the request into the full lifecycle and start from `intake`.
-- Page-oriented requirement: after `intake`, insert `page-design` before `spec` when layout, styling, or interaction structure is a material part of the request.
+- Page-oriented requirement: after `requirement-splitting`, insert `page-design` before `spec` when layout, styling, or interaction structure is a material part of the request.
+- PRD-driven requirement: after `intake`, always run `requirement-splitting` before `page-design` or `spec`.
 - Defect input: normalize the bug through `bugfix-intake` before entering the standard lifecycle.
 - Existing request: resume from `docs/requests/<request-id>/state.json`, recover the current stage, and continue orchestrating from there.
 - Existing request: preserve or repair `state.json.loop`, resume the active loop, and continue orchestrating from there.
 - Never start coding before a request workspace exists under `docs/requests/<request-id>/`.
+- Never enter `page-design`, `spec`, or `plan` for a PRD-driven request before durable requirement-splitting artifacts exist.
+- Never enter `spec` for a PRD-driven request when any requirement-splitting module that needed Markdown normalization is missing either its raw snapshot or its Markdown-normalized snapshot.
 - Never implement before approved `spec/spec.md` and `plan/plan.md` exist.
 - Never declare work complete before `verification/verification.md` and `review/review.md` both exist and pass.
 - Never declare work complete before `verification/verification.md` explicitly records `spec constraint compliance: pass`.
@@ -81,12 +85,13 @@ Follow this order:
 
 1. Classify whether the request is a new requirement or an in-flight request.
 2. If the input is a defect or bug report, first route it through `bugfix-intake` to create the standard request workspace.
-3. If the request is page-oriented, insert `page-design` between `intake` and `spec`.
-4. Build or recover the lifecycle execution path for `intake -> spec -> plan -> execute -> verify -> review -> complete`.
-5. Validate lifecycle gates against this skill's built-in constitution and `references/state-machine.md`.
-6. Load only the subskill for the current stage.
-7. After the current stage finishes, determine whether the next stage can start immediately or must wait on a gate.
-8. Continue stage-by-stage until the request reaches `complete` or a required gate blocks progress.
+3. If the request is a PRD-driven requirement, route it through `requirement-splitting` after `intake`.
+4. If the request is page-oriented, insert `page-design` between `requirement-splitting` and `spec`.
+5. Build or recover the lifecycle execution path for `intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`.
+6. Validate lifecycle gates against this skill's built-in constitution and `references/state-machine.md`.
+7. Load only the subskill for the current stage.
+8. After the current stage finishes, determine whether the next stage can start immediately or must wait on a gate.
+9. Continue stage-by-stage until the request reaches `complete` or a required gate blocks progress.
 
 This workflow must be executed strictly in the defined lifecycle order.
 Do not skip, merge, reorder, or bypass stages unless the rollback rules explicitly allow it.
@@ -132,6 +137,7 @@ Loop rules:
 
 - Process only one current action per loop iteration.
 - After each completed stage or recovered gate, re-enter the loop and decide again.
+- Treat `requirement-splitting` as a full lifecycle stage with its own exit criteria and loop re-entry, not as an intake footnote.
 - After `execute`, `verify`, or `review`, continue looping immediately unless the request is truly blocked or has reached `complete`.
 - Unless the request is truly `blocked` or has reached `complete`, do not stop the workflow or emit a terminal completion-style response; continue the next loop action in the same active workflow run.
 - The loop stops only when `stage=complete` with `loop.state=complete`, or when a real external blocking gate requires waiting.
@@ -157,6 +163,8 @@ Workflow rules:
 
 - Decompose every request into the full lifecycle stage sequence, even when only one immediate stage is active.
 - Normalize bugfix inputs into the same request workspace structure used by PRD-driven requests.
+- For PRD-driven requirements, force a durable requirement-splitting pass before any design, specification, or planning work begins.
+- Treat requirement splitting as source-preserving normalization: it must split modules and functional units without inventing behavior, implementation, or UX detail that is not grounded in the source.
 - For page-oriented requests, treat page design as a required upstream input to `spec`, not as an implementation detail.
 - Treat lifecycle stages as delivery stages and the loop as control flow; do not invent a second lifecycle.
 - Treat the goal contract as the source of truth for "done"; do not substitute chat satisfaction or elapsed loop count.
@@ -164,6 +172,8 @@ Workflow rules:
 - Execute the current stage completely through its designated subskill before attempting the next stage.
 - After each stage, re-read the request state and evaluate whether the next gate is satisfied.
 - If the next gate is already satisfied, continue automatically to the next stage.
+- For PRD-driven requirements, do not allow `spec` to rediscover modules directly from the raw PRD when `requirement-splitting` artifacts are expected; first repair or regenerate the split artifacts.
+- For PRD-driven requirements, do not allow `spec` to start when a normalized module lacks either the raw snapshot or the Markdown-normalized snapshot; first recover the missing companion artifact and then re-check the gate.
 - If `verify` fails and the failure can be addressed by implementation work defined by the approved spec and plan, route immediately back to `execute` and continue the loop without waiting for a new user prompt.
 - If `review` finds blocking issues that can be addressed by implementation work defined by the approved spec and plan, route immediately back to `execute` and continue the loop without waiting for a new user prompt.
 - If the next gate depends on user approval or an unavailable external resource, stop at that gate and report exactly what is required to continue.
@@ -184,6 +194,7 @@ Workflow rules:
 - Apply `references/policies/design-patterns.md` as a durable rule set for deciding when a pattern is justified, which pattern family fits, and when direct code remains the better choice.
 - Apply `references/policies/spec-constraints.md` as the upstream rule that forces maintainability and abstraction decisions into `spec/spec.md` before planning and coding.
 - Apply `references/policies/code-graph.md` as the rule set for when to use code graph, when to auto-bootstrap it, and when fallback search is acceptable.
+- Apply `references/policies/api-contracts.md` as the rule set for regular API docs, protobuf-backed interfaces, backend-owned TypeScript contract types, and non-TypeScript contract typing.
 
 ## Loop State Contract
 
@@ -239,6 +250,7 @@ Forbidden examples:
 
 - New requirement with a readable PRD document or stable PRD reference: load `subskills/intake/SKILL.md`
 - Bug or defect input with a readable bug report or stable bug reference: load `subskills/bugfix-intake/SKILL.md`
+- Existing PRD-driven request with `stage=requirement-splitting`: load `subskills/requirement-splitting/SKILL.md`
 - Page-oriented request with `stage=page-design`: load `subskills/page-design/SKILL.md`
 - Existing request with `stage=spec`: load `subskills/spec/SKILL.md`
 - Existing request with `stage=plan`: load `subskills/plan/SKILL.md`

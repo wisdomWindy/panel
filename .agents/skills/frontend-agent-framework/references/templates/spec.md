@@ -9,6 +9,7 @@
 
 When `requirements/requirement-map.md` exists, treat it as a required upstream input for PRD-driven requests and preserve its module boundaries, source traceability, and carry-forward checklist in the spec.
 When `design/page-design.md` exists, treat it as a required upstream input and carry its layout, hierarchy, styling, and interaction decisions into the spec instead of redefining them from scratch.
+When `design/architecture-design.md` exists, treat it as a required upstream input and carry its module boundaries, file structure, dependency direction, function structure, data structures, and type decisions into the spec instead of redefining them from scratch.
 The acceptance criteria must function as the request's operational goal contract: concrete, observable, and preferably machine-checkable rather than subjective.
 
 Required sections:
@@ -22,6 +23,7 @@ Required sections:
 - page and module design
 - function-complete behavior breakdown
 - design constraints
+- project bootstrap and scaffold decision
 - change axes and pattern decision
 - code context and impact assumptions
 - API and data contracts
@@ -72,6 +74,18 @@ When applicable, include:
 
 If any material detail is unknown, record it in `spec/clarifications.md` and reference the approved assumption or open question directly from the spec.
 If the source module files already contain explicit fields, columns, interactions, states, or workflow rules, the spec must carry them forward instead of collapsing them into higher-level prose.
+
+## `project bootstrap and scaffold decision`
+
+This section is required when the scoped work starts a project, app, package, or frontend surface from scratch.
+
+At minimum, describe:
+
+- whether a suitable project-type scaffold or starter already exists
+- which scaffold or starter will be used by default
+- if no scaffold will be used, why it is unsuitable, unavailable, or intentionally rejected
+- what approved deviations from the chosen scaffold are allowed during implementation
+- which bootstrap choices are fixed upstream and must not be re-decided in `plan` or `execute`
 
 ## `spec/clarifications.md`
 

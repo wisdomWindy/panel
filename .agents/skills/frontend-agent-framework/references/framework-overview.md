@@ -29,6 +29,14 @@ For page-oriented requests, insert the optional design stage before spec:
 
 `intake -> requirement-splitting -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
 
+For code-architecture-sensitive requests, insert the optional architecture design stage before spec:
+
+`intake -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+
+When a request is both page-oriented and code-architecture-sensitive, the combined design path is:
+
+`intake -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+
 The lifecycle above is the delivery path. The main `frontend-agent-framework` skill controls that path through a loop orchestrator:
 
 `observe state -> decide next action -> dispatch one stage or gate recovery action -> observe result -> iterate`
@@ -36,7 +44,7 @@ The lifecycle above is the delivery path. The main `frontend-agent-framework` sk
 In this framework:
 
 - `subskills/` own stage execution only
-- `requirement-splitting` is the source-preserving decomposition stage for PRD-driven work and feeds both `page-design` and `spec`
+- `requirement-splitting` is the source-preserving decomposition stage for PRD-driven work and feeds `page-design`, `architecture-design`, and `spec`
 - the goal contract is established in request/spec artifacts and proved by verification/review artifacts
 - the main skill owns loop control, gate recovery, and rollback routing
 - workflow-style parallelization is optional execution scale, not a second lifecycle and not a default

@@ -41,7 +41,7 @@ description: Stage subskill for page design. Define page layout, visual hierarch
    - 样式方向
    - 交互骨架
    - 响应式考虑
-5. 设计结果必须足够稳定，使 `spec` 能把它当作上游输入，而不是再重新发明布局决策。
+5. 设计结果必须足够稳定，使 `architecture-design`（如存在）和 `spec` 能把它当作上游输入，而不是再重新发明布局决策。
 6. 必须以 `requirements/requirement-map.md` 和对应模块工件为页面范围来源，不得跳过已经拆分出的页面模块。
 7. 所有设计决策必须写入仓库工件，不保留在聊天上下文里。
 8. 保留 `state.json.loop`，不重置、不改写。

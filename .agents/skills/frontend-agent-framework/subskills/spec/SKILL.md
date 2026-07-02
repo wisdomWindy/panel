@@ -18,6 +18,7 @@ description: Stage subskill for specification. Turn intake artifacts into the fo
 - `docs/requests/<request-id>/state.json`
 - `docs/requests/<request-id>/artifacts/code-context.md`（如需要结构分析）
 - `docs/requests/<request-id>/design/page-design.md`（如存在 page-design 阶段）
+- `docs/requests/<request-id>/design/architecture-design.md`（如存在 architecture-design 阶段）
 
 ## 执行步骤
 
@@ -29,6 +30,7 @@ description: Stage subskill for specification. Turn intake artifacts into the fo
    - `docs/requests/<request-id>/requirements/modules/` 下相关模块文件（如存在）
    - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
    - `docs/requests/<request-id>/design/page-design.md`（如存在）
+   - `docs/requests/<request-id>/design/architecture-design.md`（如存在）
    - `../../references/state-machine.md`
    - `../../references/templates/spec.md`
    - `../../references/templates/code-context.md`
@@ -39,7 +41,7 @@ description: Stage subskill for specification. Turn intake artifacts into the fo
    - `../../references/policies/doc-writing.md`
    - `../../references/policies/frontend-architecture.md`
    - `../../references/policies/spec-constraints.md`
-2. 先消费 intake 工件；对 PRD 驱动需求，必须先消费 `requirements/requirement-map.md` 与对应模块工件；如果存在 page-design，则再把它视为上游输入。
+2. 先消费 intake 工件；对 PRD 驱动需求，必须先消费 `requirements/requirement-map.md` 与对应模块工件；如果存在 `page-design` 或 `architecture-design`，则再把它们视为上游输入。
 3. 把 `artifacts/prd-snapshot.md` 当作结构化抽取来使用；如果它或 requirement-splitting 工件比原始需求源更薄，必须回看原始 PRD/稳定引用。
 4. 产出：
    - `spec/spec.md`
@@ -54,17 +56,23 @@ description: Stage subskill for specification. Turn intake artifacts into the fo
 8. 如果 requirement-splitting 已经按模块拆分了内容，spec 必须逐模块承接这些功能单元，不能重新合并成会让 plan/execute 再次猜测的粗粒度章节。
 9. 如果仍有未知信息，写入 `spec/clarifications.md`，作为显式 clarification 或 approved assumption。
 10. 把可维护性、抽象边界、side effect、duplication ownership、命名与模式决策写成 spec constraints，而不是留给下游凭感觉判断。
-11. 如涉及后端接口：
+11. 如果存在 `architecture-design`，spec 必须承接其中的模块边界、文件结构、依赖方向、函数分层、数据结构与类型策略，不能在 spec 阶段重新发明或悄悄改写。
+12. 如果 scoped work 是从 0 开始搭建项目、应用、包或前端业务面，必须在 spec 中明确脚手架或 starter 决策：
+   - 优先判断是否存在合适的同类型项目脚手架
+   - 有可复用脚手架时，默认复用并写明来源
+   - 不复用时，必须记录不适配、不可用或改造成本不合理的原因
+   - 允许偏离脚手架的范围也要提前写明
+13. 如涉及后端接口：
    - 识别权威 contract source
    - 记录 direct contract consumption 还是 adapter boundary
    - 服务端有 TypeScript 声明则优先复用
    - 非 TS 契约则保留字段名并写成 TS 可用类型
    - protobuf 需说明是复用生成类型还是由 proto 导出前端可用类型
-12. 如涉及既有代码结构调整：
+14. 如涉及既有代码结构调整：
    - 优先用 code graph 识别真实边界、依赖方向和 impact scope
    - 如结构理解加深，更新 `artifacts/code-context.md`
-13. 不写实现代码。
-14. 完成后请求用户审批，再把 `approvals.spec_approved=true` 并切到 `stage=plan`。
+15. 不写实现代码。
+16. 完成后请求用户审批，再把 `approvals.spec_approved=true` 并切到 `stage=plan`。
 
 ## 输出格式
 
@@ -91,6 +99,8 @@ description: Stage subskill for specification. Turn intake artifacts into the fo
 - spec 没有迫使 `plan` 自行补写原本应在 spec 中明确的产品行为。
 - 若上游已有显式字段/列/交互/状态/流程要求，spec 已完整带下。
 - 若存在 requirement-splitting 工件，spec 已完整承接其模块划分与显式行为约束。
+- 若存在 architecture-design 工件，spec 已完整承接其代码架构决策。
+- 若 scoped work 为 greenfield，spec 已明确脚手架或 starter 决策及允许偏离范围。
 - 用户已审批 spec。
 - `state.json.approvals.spec_approved=true`，`state.json.stage=plan`，且保留原有 `loop`。
 

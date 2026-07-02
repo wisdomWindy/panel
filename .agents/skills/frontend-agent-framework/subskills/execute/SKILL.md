@@ -17,6 +17,7 @@ description: Stage subskill for execution. Implement only approved tasks and kee
 - `docs/requests/<request-id>/plan/task-board.md`
 - `docs/requests/<request-id>/state.json`
 - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
+- `docs/requests/<request-id>/design/architecture-design.md`（如存在）
 
 ## 执行步骤
 
@@ -26,6 +27,7 @@ description: Stage subskill for execution. Implement only approved tasks and kee
    - `docs/requests/<request-id>/plan/plan.md`
    - `docs/requests/<request-id>/plan/task-board.md`
    - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
+   - `docs/requests/<request-id>/design/architecture-design.md`（如存在）
    - `../../references/state-machine.md`
    - `../../references/templates/code-context.md`
    - `../../references/policies/api-contracts.md`
@@ -46,22 +48,36 @@ description: Stage subskill for execution. Implement only approved tasks and kee
    - 再写最小通过实现
    - 最后重构并保持测试通过
 8. 实现过程中应用 clean-code 规则和已批准的 pattern 决策。
-9. 对 API 集成工作：
+9. 如果存在 `architecture-design`，把它视为执行期必须遵守的结构输入，包括模块边界、文件结构、代码关系、函数分层、数据结构和类型策略。
+10. 如果实际代码情况证明当前 `architecture-design` 在下列任一方面 materially 不合理、不合适、不可行或与现实冲突，必须停止继续实现并回退到 `architecture-design`，不能在执行阶段临时绕过：
+   - 模块边界
+   - 文件结构
+   - 依赖方向
+   - 函数组织
+   - 数据结构
+   - 类型设计
+11. 发生上述回退时，先把触发证据和实际约束写入 `execution/changelog.md` 与 `artifacts/code-context.md`，再由主 workflow 继续 `architecture-design -> spec -> plan -> execute` 循环，直到架构设计稳定。
+12. 如果 scoped work 为从 0 开始搭建项目、应用、包或前端业务面：
+   - 先按已批准 spec / plan 确认脚手架或 starter 选择
+   - 有合适脚手架时，优先基于该脚手架落地，而不是手写 bootstrap
+   - 只有在 spec / plan 已明确记录脚手架不可用、不适配或改造成本不合理时，才允许自建初始化结构
+   - 对脚手架的裁剪、替换和偏离必须受已批准工件约束，不能在执行时临时发明
+13. 对 API 集成工作：
    - 服务端有 TS contract types 时优先复用
    - 非 TS 契约时保留后端字段名并用 TS 类型表达
    - proto 优先复用生成类型，否则从 proto 导出 TS-facing types
    - request transport / contract handling / semantic normalization 保持在 request layer 或 adapter boundary
-10. 既有代码影响较大时，优先用 code graph 确认 impact scope / callers / ownership boundaries。
-11. 如执行中发现新的结构信息，更新 `artifacts/code-context.md`。
-12. 默认串行执行，除非计划明确标注某些 work unit 可并行。
-13. 持续更新：
+14. 既有代码影响较大时，优先用 code graph 确认 impact scope / callers / ownership boundaries。
+15. 如执行中发现新的结构信息，更新 `artifacts/code-context.md`。
+16. 默认串行执行，除非计划明确标注某些 work unit 可并行。
+17. 持续更新：
    - `execution/changelog.md`
    - `plan/task-board.md`
-14. 保持执行过程可观察、可追问、可重定向。
-15. 保留 `state.json.loop`，不重置、不改写。
-16. 如果需求变化或计划暴露出 gap，立即停下并回退到 `spec` 或 `plan`。
-17. 如果是从 verify / review 失败回流而来，继续当前活动 workflow run，不当作全新任务重来。
-18. 本阶段不宣称完成。
+18. 保持执行过程可观察、可追问、可重定向。
+19. 保留 `state.json.loop`，不重置、不改写。
+20. 如果需求变化或计划暴露出 gap，立即停下并回退到 `spec` 或 `plan`。
+21. 如果是从 verify / review 失败回流而来，继续当前活动 workflow run，不当作全新任务重来。
+22. 本阶段不宣称完成。
 
 ## 输出格式
 
@@ -83,6 +99,8 @@ description: Stage subskill for execution. Implement only approved tasks and kee
 - 已批准的实现任务已完成。
 - `execution/changelog.md` 已记录关键决策与偏差。
 - 对可测试行为，已记录 test-first 执行步骤或合理例外。
+- 若执行期曾发现架构设计与实际代码约束冲突，已留下可驱动 `architecture-design` 修正的证据。
+- 若 scoped work 为 greenfield，执行已按批准工件优先采用对应脚手架或已记录拒绝理由。
 - 改动区域可读性仍然达标，必要的 clean-code 重构已完成或显式记录。
 - 引入的 pattern 仍能回溯到已批准问题陈述。
 - `plan/task-board.md` 已反映完成状态。
@@ -94,8 +112,10 @@ description: Stage subskill for execution. Implement only approved tasks and kee
 - 不能发明新需求。
 - 不能猜 plan 未定义的产品行为。
 - 不能在 spec / plan 冲突时擅自选一种解释实现。
+- 不能在已证明 `architecture-design` 不合理时继续局部打补丁硬做下去。
 - 不能无批准地本地重写服务端 TS contract types。
 - 不能在无 adapter boundary 的情况下改名非 TS 后端字段。
+- 不能在存在合适脚手架且未被上游工件否决的情况下手写 greenfield bootstrap。
 - 不能跳过任务跟踪。
 - 不能宣称请求完成。
 - 对可测试行为，不能无说明地跳过 TDD。

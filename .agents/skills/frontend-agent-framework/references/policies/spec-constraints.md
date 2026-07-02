@@ -47,6 +47,14 @@ This policy defines the design constraints that must be decided or explicitly bo
 - The spec must define any readability guardrails that downstream code should preserve, such as explicit state transitions, limited branching surfaces, or one clear entrypoint per workflow step.
 - When a request can be solved in a simpler direct form, the spec should prefer that and forbid speculative abstraction.
 
+### 7. Project Bootstrap and Scaffold Constraints
+
+- When the scoped work starts a project, app, package, or frontend surface from scratch, the spec must state whether a suitable project-type scaffold or starter already exists.
+- If a suitable scaffold exists, the spec must treat scaffold reuse as the default and record which scaffold will be used.
+- If the work will not use an available scaffold, the spec must record why the scaffold is unsuitable, unavailable, or too costly to adapt.
+- The spec must identify any approved deviations from the chosen scaffold, such as removed modules, replaced libraries, or structure changes that implementation is allowed to make.
+- The spec must not leave greenfield bootstrap strategy implicit for downstream plan or execute to guess.
+
 ## Downstream Contract
 
 - `plan` must turn these spec constraints into concrete tasks, abstraction boundaries, and verification points.

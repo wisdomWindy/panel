@@ -8,6 +8,7 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 - intake
 - requirement-splitting
 - page-design
+- architecture-design
 - spec
 - plan
 - execute
@@ -24,7 +25,8 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 ## Required Gates
 
 - page design artifact before `spec` for page-oriented requests
-- requirement-splitting artifacts before `page-design` or `spec` for PRD-driven requests
+- architecture design artifact before `spec` for code-architecture-sensitive requests
+- requirement-splitting artifacts before `page-design`, `architecture-design`, or `spec` for PRD-driven requests
 - raw snapshot plus Markdown-normalized snapshot before `spec` for every requirement-splitting module that required Markdown normalization
 - `spec_approved` before `plan`
 - `plan_approved` before `execute`
@@ -36,10 +38,11 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 | Current condition | Loop action | Result |
 | --- | --- | --- |
 | Stage exit criteria satisfied and next gate satisfied | advance stage | enter the next lifecycle stage |
-| PRD-driven request has no requirement-splitting artifacts yet | dispatch stage | enter `requirement-splitting` before `page-design` or `spec` |
+| PRD-driven request has no requirement-splitting artifacts yet | dispatch stage | enter `requirement-splitting` before `page-design`, `architecture-design`, or `spec` |
 | PRD-driven request has a normalized module missing either raw or normalized companion snapshot | recover gate | stay before `spec`, restore the missing companion artifact, then re-check the gate |
 | Gate missing but recoverable from repository state, artifacts, or evidence | recover gate | stay in the same lifecycle position, repair the prerequisite, then re-check the gate |
 | Gate missing and depends on user approval or external resource | block | set `loop.state=blocked`, set `loop.pending_gate`, wait for recovery |
+| Execute discovers architecture-design is materially incompatible with actual code constraints or repository reality | re-enter architecture-design | route to `architecture-design`, then continue the same lifecycle run |
 | Verification fails but implementation can continue under the approved plan | re-enter execute | route to `execute` immediately and continue the loop |
 | Review finds blockers but implementation can continue under the approved plan | re-enter execute | route to `execute` immediately and continue the loop |
 | Request reaches completion conditions | complete | set `stage=complete` and `loop.state=complete` |
@@ -55,6 +58,7 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 
 - `resume_request`: re-enter the loop for an in-flight request that already has `state.json`
 - `gate_recovery`: re-enter after a previously blocking gate was satisfied
+- `architecture_design_invalidated`: route back to `architecture-design`
 - `requirement_changed`: route back to `spec` or `plan`
 - `verification_failed`: route back to `execute`
 - `review_blocked`: route back to `execute`
@@ -64,8 +68,10 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 ## Rollback Rules
 
 - Requirement change during execute: back to `spec` or `plan` with `reentry_reason=requirement_changed`
+- Architecture design invalidated during execute: back to `architecture-design` with `reentry_reason=architecture_design_invalidated`
 - If upstream requirement content changes enough to alter module boundaries, back to `requirement-splitting` with `reentry_reason=requirement_changed`
 - Verification failure: back to `execute` with `reentry_reason=verification_failed`
 - Blocking review finding: back to `execute` with `reentry_reason=review_blocked`
+- `execute -> architecture-design -> spec -> plan -> execute` repeats until architecture design is stable against actual code constraints or a real blocking gate is reached
 - `execute -> verify -> execute -> verify` repeats until verification passes or a real blocking gate is reached
 - These rollback paths are same-run loop continuations unless a real blocking gate requires waiting.

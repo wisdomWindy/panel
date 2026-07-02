@@ -63,26 +63,30 @@ description: Stage subskill for planning. Convert the approved spec into executi
    - adapter / mapper
    - UI consumption
    - verification
-13. 服务端有 TS 声明时优先复用；无 TS 声明时，保持服务端字段名并写成 TS 类型；proto 需说明复用生成类型还是从 proto 推导。
-14. 把 clean-code guardrails、pattern decisions、side-effect boundaries、request-layer ownership 写进计划。
-15. 既有代码影响面较大时，优先用 code graph 明确 impact scope，并更新 `artifacts/code-context.md`。
-16. 区分串行任务与可并行任务，仅在确实值得时建议 workflow-style parallel execution。
-17. 如果请求本质是主动式 workflow，写清 trigger / context / observation points / handoff。
-18. `plan/plan.md` 必须使用利于人眼快速扫描的结构：
+13. 如果 scoped work 为从 0 开始搭建项目、应用、包或前端业务面，计划必须把脚手架或 starter 落地拆成显式任务：
+   - 先确认并应用已批准的脚手架选择
+   - 再拆脚手架裁剪、目录调整、依赖替换和初始化代码改造
+   - 若不使用脚手架，必须把自建 bootstrap 的理由和范围写成任务约束
+14. 服务端有 TS 声明时优先复用；无 TS 声明时，保持服务端字段名并写成 TS 类型；proto 需说明复用生成类型还是从 proto 推导。
+15. 把 clean-code guardrails、pattern decisions、side-effect boundaries、request-layer ownership 写进计划。
+16. 既有代码影响面较大时，优先用 code graph 明确 impact scope，并更新 `artifacts/code-context.md`。
+17. 区分串行任务与可并行任务，仅在确实值得时建议 workflow-style parallel execution。
+18. 如果请求本质是主动式 workflow，写清 trigger / context / observation points / handoff。
+19. `plan/plan.md` 必须使用利于人眼快速扫描的结构：
    - 先给全局摘要
    - 再按任务分节
    - 每个任务都用固定小节展示目标、范围、前置条件、交互、状态、风险、测试
    - 避免输出大段连续散文
-19. 每个任务都必须附一个流程图，默认使用 Mermaid，至少覆盖：
+20. 每个任务都必须附一个流程图，默认使用 Mermaid，至少覆盖：
    - 起点
    - 关键步骤
    - 分支判断
    - 成功出口
    - 失败/回退出口
-20. 如果任务很小，也不能省略流程图；可以使用最小闭环流程图，但不能缺失。
-21. 保留 `state.json.loop`，不重置、不改写。
-22. 本阶段不写实现代码。
-23. 完成后请求用户审批，再设置 `approvals.plan_approved=true` 并切到 `stage=execute`。
+21. 如果任务很小，也不能省略流程图；可以使用最小闭环流程图，但不能缺失。
+22. 保留 `state.json.loop`，不重置、不改写。
+23. 本阶段不写实现代码。
+24. 完成后请求用户审批，再设置 `approvals.plan_approved=true` 并切到 `stage=execute`。
 
 ## 输出格式
 
@@ -112,6 +116,7 @@ description: Stage subskill for planning. Convert the approved spec into executi
 - `execute` 无需猜测表单字段、表格列、展示字段、交互效果、loading 结束条件。
 - 所有验收标准都已映射到执行任务和验证任务。
 - API 对接项已写清 contract source、type strategy、adapter boundary、request-layer ownership。
+- 若 scoped work 为 greenfield，计划已把脚手架采用或拒绝及其落地改造拆成显式任务。
 - clean-code / pattern 决策已记录。
 - 串行与可并行任务已区分。
 - 主动式 workflow 的 trigger / context / observation / handoff 已写清（如适用）。

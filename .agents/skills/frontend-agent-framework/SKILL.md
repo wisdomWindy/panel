@@ -19,6 +19,10 @@ Keep the repository-local workflow in control through one default entry skill th
 - Establish the proactive workflow contract: trigger, context, steerability, and handoff.
 - Enforce the canonical lifecycle:
   `intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
+- Enforce the optional architecture-design lifecycle for frontend code-architecture-sensitive requests:
+  `intake -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+- Enforce the combined design lifecycle for requests that are both page-oriented and code-architecture-sensitive:
+  `intake -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
 - Build or recover the active request's lifecycle execution path.
 - Run the loop orchestrator:
   `observe state -> decide next action -> dispatch one stage or gate recovery action -> observe result -> iterate`
@@ -40,19 +44,24 @@ This skill carries its own workflow constitution and does not require `.agents/A
 - Default entrypoint: use this skill as the single workflow entrypoint.
 - New requirement: decompose the request into the full lifecycle and start from `intake`.
 - Page-oriented requirement: after `requirement-splitting`, insert `page-design` before `spec` when layout, styling, or interaction structure is a material part of the request.
-- PRD-driven requirement: after `intake`, always run `requirement-splitting` before `page-design` or `spec`.
+- Code-architecture-sensitive requirement: after `requirement-splitting`, insert `architecture-design` before `spec` when code module design, file structure design, code relationship design, function design, data structure design, or type design is a material part of the request.
+- If a request is both page-oriented and code-architecture-sensitive, run `page-design` before `architecture-design`, then enter `spec`.
+- PRD-driven requirement: after `intake`, always run `requirement-splitting` before `page-design`, `architecture-design`, or `spec`.
 - Defect input: normalize the bug through `bugfix-intake` before entering the standard lifecycle.
 - Existing request: resume from `docs/requests/<request-id>/state.json`, recover the current stage, and continue orchestrating from there.
 - Existing request: preserve or repair `state.json.loop`, resume the active loop, and continue orchestrating from there.
 - Never start coding before a request workspace exists under `docs/requests/<request-id>/`.
-- Never enter `page-design`, `spec`, or `plan` for a PRD-driven request before durable requirement-splitting artifacts exist.
+- Never enter `page-design`, `architecture-design`, `spec`, or `plan` for a PRD-driven request before durable requirement-splitting artifacts exist.
+- Never let code-architecture-sensitive work enter `spec` without a durable `architecture-design` artifact.
 - Never enter `spec` for a PRD-driven request when any requirement-splitting module that needed Markdown normalization is missing either its raw snapshot or its Markdown-normalized snapshot.
 - Never implement before approved `spec/spec.md` and `plan/plan.md` exist.
+- For greenfield work that starts a project, app, package, or frontend surface from scratch, never bypass scaffold selection; prefer the matching project-type scaffold or starter when one exists, and record any justified deviation before implementation.
 - Never declare work complete before `verification/verification.md` and `review/review.md` both exist and pass.
 - Never declare work complete before `verification/verification.md` explicitly records `spec constraint compliance: pass`.
 - Never declare work complete before `review/review.md` explicitly records `clean-code assessment: pass` and `design-pattern assessment: pass`.
 - Never treat loop progress as proof of completion; only the goal contract and verification evidence can prove the request is done.
 - When requirements change, update request artifacts first and roll the request back to `spec` or `plan`.
+- When execution proves the current `architecture-design` decisions are materially unfit for actual code constraints, update request artifacts first and roll the request back to `architecture-design`.
 - The main skill owns lifecycle decomposition, progression control, gate checks, and stage routing.
 - The main skill owns the goal contract and decides whether workflow-style parallel scale is justified.
 - The main skill owns proactive workflow design choices such as trigger shape, context boundary, and human handoff points.
@@ -86,12 +95,17 @@ Follow this order:
 1. Classify whether the request is a new requirement or an in-flight request.
 2. If the input is a defect or bug report, first route it through `bugfix-intake` to create the standard request workspace.
 3. If the request is a PRD-driven requirement, route it through `requirement-splitting` after `intake`.
-4. If the request is page-oriented, insert `page-design` between `requirement-splitting` and `spec`.
-5. Build or recover the lifecycle execution path for `intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`.
-6. Validate lifecycle gates against this skill's built-in constitution and `references/state-machine.md`.
-7. Load only the subskill for the current stage.
-8. After the current stage finishes, determine whether the next stage can start immediately or must wait on a gate.
-9. Continue stage-by-stage until the request reaches `complete` or a required gate blocks progress.
+4. If the request is page-oriented, insert `page-design` between `requirement-splitting` and the next design-or-spec stage.
+5. If the request is code-architecture-sensitive, insert `architecture-design` before `spec`.
+6. Build or recover the lifecycle execution path for:
+   - `intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
+   - `intake -> requirement-splitting -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
+   - `intake -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+   - `intake -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+7. Validate lifecycle gates against this skill's built-in constitution and `references/state-machine.md`.
+8. Load only the subskill for the current stage.
+9. After the current stage finishes, determine whether the next stage can start immediately or must wait on a gate.
+10. Continue stage-by-stage until the request reaches `complete` or a required gate blocks progress.
 
 This workflow must be executed strictly in the defined lifecycle order.
 Do not skip, merge, reorder, or bypass stages unless the rollback rules explicitly allow it.
@@ -166,6 +180,7 @@ Workflow rules:
 - For PRD-driven requirements, force a durable requirement-splitting pass before any design, specification, or planning work begins.
 - Treat requirement splitting as source-preserving normalization: it must split modules and functional units without inventing behavior, implementation, or UX detail that is not grounded in the source.
 - For page-oriented requests, treat page design as a required upstream input to `spec`, not as an implementation detail.
+- For code-architecture-sensitive requests, treat `architecture-design` as a required upstream input to `spec`, not as an implementation detail.
 - Treat lifecycle stages as delivery stages and the loop as control flow; do not invent a second lifecycle.
 - Treat the goal contract as the source of truth for "done"; do not substitute chat satisfaction or elapsed loop count.
 - Treat trigger design as the source of truth for "when should this workflow start"; do not replace it with vague polling or manual intuition when a specific event exists.
@@ -174,6 +189,7 @@ Workflow rules:
 - If the next gate is already satisfied, continue automatically to the next stage.
 - For PRD-driven requirements, do not allow `spec` to rediscover modules directly from the raw PRD when `requirement-splitting` artifacts are expected; first repair or regenerate the split artifacts.
 - For PRD-driven requirements, do not allow `spec` to start when a normalized module lacks either the raw snapshot or the Markdown-normalized snapshot; first recover the missing companion artifact and then re-check the gate.
+- If `execute` discovers that the approved `architecture-design` is materially incompatible with actual code constraints, repository structure, dependency boundaries, function organization, or type/data-shape reality, route immediately back to `architecture-design` and continue the same workflow run through `architecture-design -> spec -> plan -> execute` without waiting for a new user prompt.
 - If `verify` fails and the failure can be addressed by implementation work defined by the approved spec and plan, route immediately back to `execute` and continue the loop without waiting for a new user prompt.
 - If `review` finds blocking issues that can be addressed by implementation work defined by the approved spec and plan, route immediately back to `execute` and continue the loop without waiting for a new user prompt.
 - If the next gate depends on user approval or an unavailable external resource, stop at that gate and report exactly what is required to continue.
@@ -188,6 +204,7 @@ Workflow rules:
 - Treat the approved spec and plan as the authoritative implementation contract for all downstream stages.
 - Require the approved spec and approved plan to stay aligned at the same function-complete behavior granularity for the scoped work; if one artifact is materially coarser, finer, or contradictory, route back to repair the artifacts before downstream execution continues.
 - Require `plan/plan.md` to reach function-complete task decomposition for scoped work so downstream execution does not infer missing fields, columns, interactions, states, or flow steps ad hoc.
+- For greenfield work that starts a project, app, package, or frontend surface from scratch, require the scaffold or starter decision to be made in repository artifacts before implementation; when a suitable project-type scaffold exists, treat it as the default starting point unless the artifacts record why it is unsuitable or unavailable.
 - Do not let execution, verification, or review invent behavior that is not justified by the approved spec and plan.
 - For behavior that can be covered by tests, plan and execute the work using a red -> green -> refactor loop.
 - Apply `references/policies/clean-code.md` as a durable rule set for naming, responsibility boundaries, duplication control, side-effect containment, and maintainability judgment.
@@ -217,7 +234,7 @@ Field rules:
 - `state`: only `running`, `blocked`, or `complete`.
 - `last_completed_stage`: the most recent stage whose exit criteria were fully satisfied.
 - `pending_gate`: the currently blocking gate name, or `null` when no blocking gate is active.
-- `reentry_reason`: only `new_request`, `resume_request`, `gate_recovery`, `requirement_changed`, `verification_failed`, `review_blocked`, or `manual_reopen`.
+- `reentry_reason`: only `new_request`, `resume_request`, `gate_recovery`, `architecture_design_invalidated`, `requirement_changed`, `verification_failed`, `review_blocked`, or `manual_reopen`.
 
 State rules:
 
@@ -252,6 +269,7 @@ Forbidden examples:
 - Bug or defect input with a readable bug report or stable bug reference: load `subskills/bugfix-intake/SKILL.md`
 - Existing PRD-driven request with `stage=requirement-splitting`: load `subskills/requirement-splitting/SKILL.md`
 - Page-oriented request with `stage=page-design`: load `subskills/page-design/SKILL.md`
+- Code-architecture-sensitive request with `stage=architecture-design`: load `subskills/architecture-design/SKILL.md`
 - Existing request with `stage=spec`: load `subskills/spec/SKILL.md`
 - Existing request with `stage=plan`: load `subskills/plan/SKILL.md`
 - Existing request with `stage=execute`: load `subskills/execute/SKILL.md`
@@ -278,12 +296,14 @@ Load only what is needed:
 - Code-context artifact template: `references/templates/code-context.md`
 - Bugfix intake artifact shape: `references/templates/bugfix-intake.md`
 - Page design artifact shape: `references/templates/page-design.md`
+- Architecture design artifact shape: `references/templates/architecture-design.md`
 
 ## Hard Gates
 
 - Never code before the request workspace exists.
 - Never implement before approved spec and plan exist.
 - Never let page-oriented work enter `spec` without a page design artifact when layout, styling, or interaction structure is a material requirement.
+- Never let code-architecture-sensitive work enter `spec` without an architecture design artifact when module boundaries, file structure, code relationships, function structure, data structures, or type strategy materially affect the solution shape.
 - Never declare work complete before verification and review artifacts both exist and pass.
 - Never treat missing compliance verdicts as implied pass results.
 - When requirements change, update request artifacts first and roll the stage back to `spec` or `plan`.
@@ -293,6 +313,8 @@ Load only what is needed:
 - When marking the request `blocked`, `loop.pending_gate` must name the blocking gate and `loop.state` must be `blocked`.
 - Stop only at real blocking gates such as required approval, missing upstream requirement information, or unavailable external dependency needed for the next stage.
 - Never implement behavior that is not defined, clarified, or accepted in the repository spec artifacts.
+- Never hand-roll a greenfield project bootstrap when a suitable project-type scaffold or starter is available unless the approved spec or plan explicitly records why scaffold reuse is unsuitable or unavailable.
+- Never continue `execute` on top of an already-known-invalid `architecture-design` artifact; route back and repair the design first.
 - Never skip test-first execution for testable behavior changes unless the reason is explicitly recorded in repository artifacts.
 - Never allow materially misleading names, hidden side effects, duplicate business rules, or mixed-responsibility structures to pass review as if they were style-only concerns.
 - Never introduce pattern layers, factories, managers, handlers, or indirection objects without a concrete problem statement in the approved spec or plan.
@@ -334,6 +356,7 @@ Stage actions belong only to subskills.
 
 - If a stage uncovers missing product decisions, record them in repository artifacts instead of silently filling the gap.
 - If a requirement changes during execution, stop coding, set loop re-entry reason to `requirement_changed`, and route back to `spec` or `plan`.
+- If execution shows the current `architecture-design` is materially unreasonable, infeasible, or contradicted by actual code constraints, stop coding, set loop re-entry reason to `architecture_design_invalidated`, and route back to `architecture-design`, then continue `architecture-design -> spec -> plan -> execute` in the same active workflow run.
 - If verification fails, set loop re-entry reason to `verification_failed` and route back to `execute`.
 - If review finds blockers, set loop re-entry reason to `review_blocked` and route back to `execute`.
 - After routing back from `verify` or `review`, continue the `execute -> verify` loop in the same active workflow run until verification passes or a real blocking gate is reached.

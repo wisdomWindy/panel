@@ -54,17 +54,29 @@ description: Stage subskill for requirement splitting. Normalize a PRD-driven re
    - 表单/表格/展示/交互/流程内容
    - 下游 `spec` 必须保留的显式约束
    - 是否需要 `page-design`
+   - 是否需要 `architecture-design`
+   - 执行顺序
 13. 在总览工件中写清：
    - 模块清单
    - 模块依赖
    - 哪些模块需要先做 `page-design`
+   - 哪些模块需要先做 `architecture-design`
    - 哪些模块可以直接进入 `spec`
+   - 模块顺序执行次序
 14. 如果源文档存在信息不一致或缺失，记录开放问题；不要靠猜测补全。
-15. 保留 `state.json.loop`，不重置、不改写。
-16. 本阶段不写 `spec/spec.md`，不写实现计划，不写代码。
-17. 完成后把 `stage` 设为：
-   - 需要页面设计的请求：`page-design`
-   - 其他请求：`spec`
+15. 根据拆分结果初始化 `state.json.module_flow`：
+   - `execution_mode=sequential`
+   - `current_module_id` 指向第一个模块
+   - `pending_module_ids` 按执行顺序列出全部模块
+   - `completed_module_ids=[]`
+   - 为每个模块写入 `source_module_path`、`page_design_required`、`architecture_design_required`、`approvals`、`status`
+16. 完成后把第一个模块标记为 `in_progress`，其他模块标记为 `pending`。
+17. 保留 `state.json.loop`，不重置、不改写。
+18. 本阶段不写下游 `spec/plan/execution/verification/review` 工件，不写代码。
+19. 完成后把 `stage` 设为第一个模块的首个必需阶段：
+   - 需要 `page-design`：`page-design`
+   - 否则若需要 `architecture-design`：`architecture-design`
+   - 其他：`spec`
 
 ## 输出格式
 
@@ -77,7 +89,8 @@ description: Stage subskill for requirement splitting. Normalize a PRD-driven re
   - 已归一化的 Markdown 兼容内容
   - source trace 映射
   - 模块依赖关系
-  - page-design 路由判断
+  - page-design / architecture-design 路由判断
+  - 模块顺序执行信息
   - spec carry-forward checklist
   - 开放问题
 
@@ -90,7 +103,9 @@ description: Stage subskill for requirement splitting. Normalize a PRD-driven re
 - 原始内容中的非 Markdown 兼容格式已被转换为 Markdown 可识别格式或等价结构化说明。
 - 显式字段、列、展示、交互、状态、流程要求没有在拆分过程中丢失。
 - 已明确哪些模块或请求需要 `page-design`。
-- `state.json.stage` 已切换到 `page-design` 或 `spec`。
+- 已明确哪些模块需要 `architecture-design`。
+- `state.json.module_flow` 已初始化当前模块、待处理模块和已完成模块队列。
+- `state.json.stage` 已切换到第一个模块的首个下游阶段。
 - `state.json` 保留原有 `loop`。
 
 ## 安全边界

@@ -60,6 +60,7 @@ description: Stage subskill for defect intake. Normalize a Feishu/Lark project d
 11. 在 `request.md` 中写入 bugfix 目标和初始 done signal。
 12. 归一化缺陷内容，输出为下游 `spec/plan` 可消费的标准工件。
 13. 初始化 `state.json.loop`，并把 `stage` 设为 `spec`。
+14. 对 bugfix 请求，将 `state.json.module_flow` 初始化为 `null`；本框架的模块顺序执行仅适用于 requirement-splitting 之后的 PRD 驱动请求。
 
 ## 输出格式
 
@@ -89,6 +90,7 @@ description: Stage subskill for defect intake. Normalize a Feishu/Lark project d
 - 下游标准摘要已写入 `artifacts/prd-snapshot.md`。
 - `state.json.stage=spec`。
 - `state.json.loop` 已按框架规定形状初始化。
+- `state.json.module_flow=null`。
 
 ## 安全边界
 

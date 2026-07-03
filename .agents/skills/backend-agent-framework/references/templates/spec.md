@@ -2,17 +2,18 @@
 
 ## 必需工件路径
 
-- `docs/requests/<request-id>/spec/spec.md`
-- `docs/requests/<request-id>/spec/clarifications.md`
+- `docs/requests/<request-id>/modules/<module-id>/spec/spec.md`
+- `docs/requests/<request-id>/modules/<module-id>/spec/clarifications.md`
 
-## `spec/spec.md`
+## `modules/<module-id>/spec/spec.md`
 
-当 `requirements/requirement-map.md` 存在时，把它视为 PRD 驱动请求的必需上游输入，并在 spec 中保留它的模块边界、来源追踪与承接检查清单。  
-当 `design/architecture-design.md` 存在时，把它视为必需上游输入，并把其中的边界、接口、流程、持久化和一致性决策承接进 spec，而不是重新定义一遍。  
-验收标准必须充当请求的运行级目标合同：具体、可观察，且尽量可机器检查，而不是主观描述。
+当 `requirements/requirement-map.md` 存在时，把它视为 PRD 驱动请求的必需上游输入，并在当前模块 spec 中保留本模块的来源追踪与承接检查清单。  
+当 `modules/<module-id>/design/architecture-design.md` 存在时，把它视为当前模块的必需上游输入，并把其中的边界、接口、流程、持久化和一致性决策承接进 spec。  
+验收标准必须充当当前模块的运行级目标合同：具体、可观察，且尽量可机器检查。
 
 必需章节：
 
+- 模块标识与范围
 - 背景与目标
 - 范围内事项
 - 范围外事项
@@ -36,7 +37,7 @@
 
 ## `接口与数据契约`
 
-对范围内每个关键入站或出站集成，说明：
+对当前模块范围内每个关键入站或出站集成，说明：
 
 - 契约来源
 - 接口用途
@@ -49,16 +50,6 @@
 - 兼容性、迁移、回滚与观测性预期
 - 后端是直接使用该契约，还是通过 adapter 边界接入
 
-## `安全与滥用防控`
-
-关键时说明：
-
-- 认证模型
-- 授权边界
-- secret 与 credential 处理
-- PII 或敏感数据暴露规则
-- replay、滥用或权限提升防护
-
 ## `基础设施依赖策略`
 
 关键时说明：
@@ -69,7 +60,7 @@
 - gRPC 归属、proto 兼容性、deadline 透传、metadata 或鉴权透传，以及错误或流式策略
 - Kubernetes workload 归属、probe 策略、资源策略、config 或 secret 边界、rollout 以及 drain 或 rollback 假设
 
-## `spec/clarifications.md`
+## `modules/<module-id>/spec/clarifications.md`
 
 必需章节：
 

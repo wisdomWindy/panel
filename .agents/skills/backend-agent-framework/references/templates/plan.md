@@ -2,13 +2,14 @@
 
 ## 必需工件路径
 
-- `docs/requests/<request-id>/plan/plan.md`
-- `docs/requests/<request-id>/plan/task-board.md`
+- `docs/requests/<request-id>/modules/<module-id>/plan/plan.md`
+- `docs/requests/<request-id>/modules/<module-id>/plan/task-board.md`
 
-## `plan/plan.md`
+## `modules/<module-id>/plan/plan.md`
 
 必需章节：
 
+- 模块标识与范围
 - 阅读导航
 - 全局摘要
 - 任务拆解
@@ -47,11 +48,10 @@
 - 对 `execute` 的禁止猜测边界
 - 任务流程图
 
-`execute` 默认必须按 `task-board` 连续完成所有已批准且非阻塞任务，不能把单个任务完成视为一次需要人工续跑的自然停点。
+`execute` 默认必须按 `task-board` 连续完成所有已批准且非阻塞任务，不能把单个任务完成视为一次需要人工续跑的自然停点。  
+`plan.md` 只服务当前模块；不能把多个需求模块重新合并为一个共享执行计划。
 
 ### `功能拆解明细`
-
-对于任务涉及的每一个功能单元，必须继续细拆，直到 `execute` 可直接照此实现而不需要补猜需求。
 
 至少覆盖：
 
@@ -66,40 +66,7 @@
 - 安全验证切面
 - 测试切面
 
-### `接口契约与兼容性策略`
-
-如果需求涉及入站或出站契约，至少写清：
-
-- 契约来源
-- 每个接口或事件的用途
-- 版本化或兼容性策略
-- 类型复用或转换方案
-- 是否需要 adapter / mapper
-- 哪些字段语义需要在适配层归一
-- 如果涉及 gRPC，补充 proto/IDL 兼容性、metadata/auth 透传、deadline/timeout、错误码和流式验证面
-- 联调、mock、回归验证分别覆盖哪些接口面
-
-### `发布与灰度计划`
-
-至少写清：
-
-- rollout 策略
-- migration 执行顺序
-- 监控观察窗与成功信号
-- 回滚触发条件
-- 回滚执行人视角步骤
-
-### `基础设施依赖策略`
-
-如果需求涉及 MySQL、Redis、Kafka、gRPC 或 Kubernetes，至少写清：
-
-- MySQL：事务边界、索引与 SQL 风险、migration 演练、回滚限制
-- Redis：key 设计、TTL、失效与一致性策略、热点与降级策略
-- Kafka：topic/key/partition、consumer retry/DLQ、幂等消费、积压与回溯策略
-- gRPC：proto 兼容性、deadline/timeout、metadata/auth 透传、错误码映射、流式语义与取消策略
-- Kubernetes：workload 类型、probe/readiness、资源与扩缩容、config/secret 边界、灰度发布、drain 与回滚策略
-
-## `plan/task-board.md`
+## `modules/<module-id>/plan/task-board.md`
 
 每个任务必需字段：
 

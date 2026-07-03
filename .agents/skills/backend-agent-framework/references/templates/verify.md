@@ -2,13 +2,14 @@
 
 ## 必需工件路径
 
-- `docs/requests/<request-id>/verification/verification.md`
-- `docs/requests/<request-id>/verification/evidence/`
+- `docs/requests/<request-id>/modules/<module-id>/verification/verification.md`
+- `docs/requests/<request-id>/modules/<module-id>/verification/evidence/`
 
-## `verification/verification.md`
+## `modules/<module-id>/verification/verification.md`
 
 必需顶层章节：
 
+- 模块标识与范围
 - 验收项覆盖
 - 规格约束符合性
 - 安全验证

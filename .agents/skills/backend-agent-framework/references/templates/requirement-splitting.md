@@ -4,6 +4,7 @@
 
 - `docs/requests/<request-id>/requirements/requirement-map.md`
 - `docs/requests/<request-id>/requirements/modules/<module-id>.md`
+- `docs/requests/<request-id>/state.json` 中的 `module_execution`
 
 ## `requirements/requirement-map.md`
 
@@ -15,6 +16,7 @@
 - Markdown 归一化说明
 - 模块清单
 - 模块依赖与处理顺序说明
+- 下游模块执行策略
 - architecture-design 候选项
 - spec 承接检查清单
 - 开放问题与未解决歧义
@@ -36,6 +38,8 @@
 - 来源章节映射
 - 一句话范围摘要
 - 在 `spec` 之前是否需要 `architecture-design`
+- 下游入口阶段
+- 下游模块工作区
 - 面向 `spec` 与 `plan` 的下游承接说明
 
 ### `模块依赖与处理顺序说明`
@@ -45,9 +49,15 @@
 - 当来源和依赖已经能推出顺序时，不要把排序留成开放选择题。
 - 除非上游文档明确给出互斥交付阶段，或现有证据无法推出顺序，否则不要让用户在拆分模块之间再选优先级。
 
-### `Markdown 归一化说明`
+### `下游模块执行策略`
 
-记录所有在拆分前需要做格式转换的上游内容。
+这一节必须明确：
+
+- 拆分后的每个模块都会分别经历一次完整下游生命周期：
+  `architecture-design? -> spec -> plan -> execute -> verify -> review`
+- 这些生命周期按模块顺序串行推进，不共享一个总 `plan.md` 或总 `task-board.md`
+- 只有当前模块通过验收后，下一个模块才能开始
+- `state.json.module_execution` 如何映射模块顺序、活动模块和模块工作区
 
 ### `spec 承接检查清单`
 
@@ -72,5 +82,7 @@
 - 接口、事件、数据与流程规则
 - 依赖关系与受影响邻接模块
 - architecture-design 路由决策
+- 下游入口阶段
+- 下游模块工作区
 - 下游 spec 义务
 - 开放问题

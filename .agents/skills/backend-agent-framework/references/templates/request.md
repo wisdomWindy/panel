@@ -6,6 +6,7 @@
 - `docs/requests/<request-id>/state.json`
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
 - PRD 驱动请求在 requirement splitting 之后还需要 `docs/requests/<request-id>/requirements/requirement-map.md`
+- PRD 驱动且已拆分的请求，在下游执行阶段还需要 `docs/requests/<request-id>/modules/<module-id>/...` 模块工作区
 
 ## `request.md`
 
@@ -33,6 +34,7 @@
 - `artifacts`
 - `approvals`
 - `loop`
+- PRD 驱动且已拆分时还需要 `module_execution`
 
 必需结构：
 
@@ -60,6 +62,43 @@
 - `architecture-design`：当修复变更了对外契约形态、服务边界、持久化模型、异步拓扑或跨服务集成边界
 - 否则为 `spec`
 
+对于 PRD 驱动且已完成 requirement splitting 的请求，增加：
+
+```json
+{
+  "module_execution": {
+    "mode": "sequential",
+    "active_module_id": "module-a",
+    "module_order": ["module-a", "module-b"],
+    "pending_modules": ["module-a", "module-b"],
+    "completed_modules": [],
+    "module_states": {
+      "module-a": {
+        "requirement_file": "requirements/modules/module-a.md",
+        "workspace": "modules/module-a",
+        "entry_stage": "architecture-design",
+        "current_stage": "architecture-design",
+        "status": "in_progress"
+      },
+      "module-b": {
+        "requirement_file": "requirements/modules/module-b.md",
+        "workspace": "modules/module-b",
+        "entry_stage": "spec",
+        "current_stage": "pending",
+        "status": "pending"
+      }
+    }
+  }
+}
+```
+
+约束：
+
+- `module_order` 由需求拆分阶段按源文顺序、依赖顺序和发布约束确定。
+- `active_module_id` 指向当前唯一允许进入下游生命周期的模块。
+- 每个模块都必须在自己的 `workspace` 下生成独立的 `design/spec/plan/execution/verification/review/release` 工件。
+- 只有当前模块通过 `review` 与 `release-readiness` 后，才允许切换到下一个模块。
+
 ## `artifacts/prd-snapshot.md`
 
 必需章节：
@@ -71,17 +110,6 @@
 - 相关服务或模块
 - 上游 PRD 中值得关注的开放问题
 
-### `显式行为约束`
-
-如果 PRD 已经明确写出要求，这一节必须保留这些上游显式细节。
-
-至少提取并归一：
-
-- 来源中已存在的接口相关约束
-- 来源中已存在的事件或回调约束
-- 来源中已存在的数据模型或 schema 约束
-- 来源中已存在的流程、重试、超时、幂等、权限、迁移、回滚与观测性规则
-
 ## `requirements/requirement-map.md`
 
 PRD 驱动请求的必需章节：
@@ -91,6 +119,7 @@ PRD 驱动请求的必需章节：
 - 拆分后的模块与功能单元
 - 来源追踪关系
 - 模块依赖
+- 模块串行执行顺序
 - architecture-design 路由提示
 - spec 输入检查清单
 - 开放问题
@@ -107,4 +136,6 @@ PRD 驱动请求的必需章节：
 - 来源中的接口、事件、数据与流程规则
 - spec 必须保留的上游约束
 - 是否需要 architecture-design
+- 下游执行入口阶段
+- 下游模块工作区路径
 - 开放问题

@@ -15,6 +15,7 @@ Required sections:
 - markdown normalization notes
 - module list
 - module dependency and sequencing notes
+- module execution sequence
 - page-design candidates
 - spec carry-forward checklist
 - open questions and unresolved ambiguities
@@ -34,8 +35,11 @@ For each module or functional unit, include:
   - cross-module rule
 - source section mapping
 - one-sentence scope summary
+- execution order
 - whether `page-design` is required before `spec`
+- whether `architecture-design` is required before `spec`
 - downstream consumer notes for `spec` and `plan`
+- downstream run artifact root
 
 ### `markdown normalization notes`
 
@@ -57,6 +61,15 @@ For every split module, explicitly list upstream details that downstream stages 
 - interaction triggers and outcomes
 - loading, empty, error, success, disabled, and visibility rules
 - workflow branches and state transitions
+
+### `module execution sequence`
+
+For split PRD-driven requests, define:
+
+- the exact sequential execution order
+- the first module that should become `state.json.module_flow.current_module_id`
+- whether each module starts at `page-design`, `architecture-design`, or `spec`
+- any strict dependency that prevents a later module from starting before an earlier module passes `review`
 
 ## `requirements/modules/<module-id>.md`
 

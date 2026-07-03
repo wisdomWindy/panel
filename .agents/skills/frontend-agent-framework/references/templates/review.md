@@ -2,12 +2,14 @@
 
 ## Required Artifact Path
 
-- `docs/requests/<request-id>/review/review.md`
+- `docs/requests/<request-id>/review/review.md` for non-split work
+- `docs/requests/<request-id>/module-runs/<module-id>/review/review.md` for split PRD-driven work
 
-## `review/review.md`
+## `review/review.md` or `module-runs/<module-id>/review/review.md`
 
 Required sections:
 
+- delivery unit identifier
 - blocking issues
 - non-blocking issues
 - accepted risks

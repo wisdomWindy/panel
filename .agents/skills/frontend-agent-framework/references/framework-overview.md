@@ -45,6 +45,9 @@ In this framework:
 
 - `subskills/` own stage execution only
 - `requirement-splitting` is the source-preserving decomposition stage for PRD-driven work and feeds `page-design`, `architecture-design`, and `spec`
+- for PRD-driven work that has been split into module files, downstream delivery runs one split module at a time inside the same request
+- each split module must complete its own `page-design? -> architecture-design? -> spec -> plan -> execute -> verify -> review` chain before the next split module starts
+- split-module downstream artifacts live under `docs/requests/<request-id>/module-runs/<module-id>/`
 - the goal contract is established in request/spec artifacts and proved by verification/review artifacts
 - the main skill owns loop control, gate recovery, and rollback routing
 - workflow-style parallelization is optional execution scale, not a second lifecycle and not a default

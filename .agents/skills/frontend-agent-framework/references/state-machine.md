@@ -2,6 +2,7 @@
 
 The lifecycle stage is the delivery state. The loop is the control mechanism that decides how the workflow advances, recovers gates, or re-enters a prior stage.
 The goal contract defines completion. Workflow-style parallelization, when used, only affects execution scale and does not add new states.
+For PRD-driven requests that finished `requirement-splitting`, stages after splitting apply to the active split module identified by `state.json.module_flow.current_module_id`.
 
 ## Stages
 
@@ -24,14 +25,14 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 
 ## Required Gates
 
-- page design artifact before `spec` for page-oriented requests
-- architecture design artifact before `spec` for code-architecture-sensitive requests
+- page design artifact for the active module before `spec` when that module is page-oriented
+- architecture design artifact for the active module before `spec` when that module is code-architecture-sensitive
 - requirement-splitting artifacts before `page-design`, `architecture-design`, or `spec` for PRD-driven requests
 - raw snapshot plus Markdown-normalized snapshot before `spec` for every requirement-splitting module that required Markdown normalization
-- `spec_approved` before `plan`
-- `plan_approved` before `execute`
-- verification artifact before `review`
-- review artifact with no blockers before `complete`
+- approved active-module spec before `plan`
+- approved active-module plan before `execute`
+- active-module verification artifact before `review`
+- active-module review artifact with no blockers before advancing to the next module or `complete`
 
 ## Loop Decision Table
 
@@ -40,6 +41,8 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 | Stage exit criteria satisfied and next gate satisfied | advance stage | enter the next lifecycle stage |
 | PRD-driven request has no requirement-splitting artifacts yet | dispatch stage | enter `requirement-splitting` before `page-design`, `architecture-design`, or `spec` |
 | PRD-driven request has a normalized module missing either raw or normalized companion snapshot | recover gate | stay before `spec`, restore the missing companion artifact, then re-check the gate |
+| Current split module passes `review` and pending split modules remain | advance stage | mark the current module completed, update module queues, promote the next pending module to `current_module_id`, and enter its first required downstream stage |
+| Current split module passes `review` and no pending split modules remain | complete | mark the current module completed, clear `current_module_id`, set `stage=complete`, and set `loop.state=complete` |
 | Gate missing but recoverable from repository state, artifacts, or evidence | recover gate | stay in the same lifecycle position, repair the prerequisite, then re-check the gate |
 | Gate missing and depends on user approval or external resource | block | set `loop.state=blocked`, set `loop.pending_gate`, wait for recovery |
 | Execute discovers architecture-design is materially incompatible with actual code constraints or repository reality | re-enter architecture-design | route to `architecture-design`, then continue the same lifecycle run |
@@ -50,6 +53,7 @@ The goal contract defines completion. Workflow-style parallelization, when used,
 ## Goal and Workflow Constraints
 
 - The request may reach `complete` only when the goal contract is satisfied and verified.
+- For split PRD-driven requests, `complete` additionally requires that every module listed in `state.json.module_flow.modules` has completed `review` successfully.
 - Loop iterations do not themselves prove completion.
 - Workflow-style parallel execution does not create additional lifecycle states or bypass gates.
 - A proactive workflow must declare its trigger, minimum context, and handoff path before the team treats it as reliable automation.

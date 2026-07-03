@@ -2,13 +2,14 @@
 
 ## 必需工件路径
 
-- `docs/requests/<request-id>/plan/plan.md`
-- `docs/requests/<request-id>/plan/task-board.md`
+- 非拆分工作：`docs/requests/<request-id>/plan/plan.md`、`plan/task-board.md`
+- 拆分 PRD 工作：`docs/requests/<request-id>/module-runs/<module-id>/plan/plan.md`、`plan/task-board.md`
 
-## `plan/plan.md`
+## `plan/plan.md` 或 `module-runs/<module-id>/plan/plan.md`
 
 必需章节：
 
+- 交付单元标识
 - 阅读导航
 - 全局摘要
 - 任务拆解
@@ -110,6 +111,12 @@
 - 显隐条件
 - 选项来源或联动关系
 - 校验规则
+- 输入值归一策略（如保留原值、`trim`、其他规范化处理）
+- 纯空格输入如何处理
+- 归一化后为空如何处理
+- 长度校验按原值还是归一化后值计算
+- 前后空白、连续空白、换行、粘贴内容、非法字符的处理口径
+- 校验触发时机与提示时机
 - 提交按钮与触发方式
 - 提交后的成功反馈、失败反馈与 loading 结束条件
 
@@ -163,6 +170,7 @@
 
 - 任何会影响实现正确性的未知项，必须在计划中写成“待确认项”或“已批准假设”，禁止留白。
 - 任何字段、列、交互、状态、流程如果已经在 PRD/spec 中可确定，就必须落进计划，不得省略为“按常规实现”。
+- 对文本输入类控件，凡实现阶段可能自行脑补的隐式输入语义，都必须在计划中落明，尤其是纯空格、归一化空值、长度计算口径、空白字符处理、非法字符处理、校验与提示触发时机。
 - 如果 `requirements/modules/` 已经拆出模块级内容，任务拆解必须显式覆盖每个在范围内的模块，不能跳过任何已拆出的功能单元。
 - 任务拆解、功能拆解明细与流程图三者必须互相一致，不能出现图文不一致或图缺步骤、文缺分支的情况。
 
@@ -197,7 +205,7 @@
 - 哪些错误态、空态、loading 态依赖接口结果驱动
 - 联调、mock、回归验证分别覆盖哪些接口面
 
-## `plan/task-board.md`
+## `plan/task-board.md` 或 `module-runs/<module-id>/plan/task-board.md`
 
 每个任务必需字段：
 

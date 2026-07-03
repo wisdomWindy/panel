@@ -33,6 +33,7 @@ Required fields:
 - `artifacts`
 - `approvals`
 - `loop`
+- `module_flow`（PRD 驱动需求在 requirement-splitting 之后必需）
 
 Required shape:
 
@@ -44,6 +45,7 @@ Required shape:
   "status": "in_progress",
   "artifacts": {},
   "approvals": {},
+  "module_flow": null,
   "loop": {
     "iteration": 1,
     "state": "running",
@@ -56,6 +58,8 @@ Required shape:
 
 For PRD-driven requests, initialize `stage` to `requirement-splitting`.
 For bugfix requests normalized through `bugfix-intake`, initialize `stage` to `spec` unless the main skill explicitly routes the defect through requirement splitting.
+Before `requirement-splitting` finishes, `module_flow` may be `null`.
+After `requirement-splitting` finishes for a PRD-driven request, `module_flow` becomes required.
 
 Loop field rules:
 
@@ -68,6 +72,46 @@ Loop field rules:
 - `reentry_reason` only allows `new_request`, `resume_request`, `gate_recovery`, `requirement_changed`, `verification_failed`, `review_blocked`, or `manual_reopen`
 - `loop.state=complete` requires `stage=complete`
 - `loop.state=blocked` is only for real external blocking gates after internal recovery was attempted
+
+### `module_flow`
+
+Required shape for PRD-driven requests after `requirement-splitting`:
+
+```json
+{
+  "execution_mode": "sequential",
+  "current_module_id": "module-a",
+  "pending_module_ids": ["module-a", "module-b"],
+  "completed_module_ids": [],
+  "modules": {
+    "module-a": {
+      "source_module_path": "requirements/modules/module-a.md",
+      "page_design_required": false,
+      "architecture_design_required": false,
+      "approvals": {
+        "spec_approved": false,
+        "plan_approved": false
+      },
+      "status": "in_progress"
+    }
+  }
+}
+```
+
+Rules:
+
+- `execution_mode` is `sequential` for split PRD-driven requests
+- `current_module_id` is the only module allowed to progress through downstream stages
+- `pending_module_ids` is ordered and includes the active module until it passes `review`
+- `completed_module_ids` stores only modules that already passed `review`
+- `modules.<module-id>.status` only allows `pending`, `in_progress`, `blocked`, or `completed`
+- `modules.<module-id>.page_design_required` and `modules.<module-id>.architecture_design_required` drive downstream stage routing for that module
+- `modules.<module-id>.approvals.spec_approved` and `modules.<module-id>.approvals.plan_approved` are scoped to that module only
+- after a module passes `review`, set its status to `completed` before advancing queue state
+- when pending modules remain after that transition, the next promoted module must be marked `in_progress`
+- when no pending modules remain, set `current_module_id=null`, `stage=complete`, and `loop.state=complete`
+- do not move to the next module until the current module has completed `review` without blockers
+- if module boundaries change materially, regenerate `module_flow` through `requirement-splitting`
 
 ## `artifacts/prd-snapshot.md`
 
@@ -125,6 +169,7 @@ Required sections for PRD-driven requests:
 - split modules and functional units
 - source traceability
 - module dependencies
+- execution sequence
 - page-design routing hint
 - spec input checklist
 - open questions
@@ -135,6 +180,8 @@ Requirements:
 - preserve source wording for each module snapshot instead of paraphrasing away explicit detail
 - for every split module, point back to the matching source section or excerpt anchor
 - explicitly mark whether the module requires page design before spec
+- explicitly mark whether the module requires architecture design before spec
+- define the sequential downstream execution order that the main skill must follow
 - identify upstream details that must be carried into `spec` without loss, including fields, columns, displays, interactions, validations, and state rules
 
 ## `requirements/modules/<module-id>.md`
@@ -150,4 +197,6 @@ Recommended sections for each split module:
 - workflow and state rules from source
 - upstream constraints that spec must preserve
 - page-design need
+- architecture-design need
+- execution order
 - open questions

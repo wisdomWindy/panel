@@ -7,19 +7,14 @@ description: Stage subskill for architecture design. Define backend boundaries, 
 
 ## 触发场景
 
-- 当主 `backend-agent-framework` 在 `requirement-splitting` 之后判断该需求是后端结构型需求时使用。
-- 适用于：
-  - 新增或改造接口面
-  - 服务边界重构
-  - 领域流程或任务编排变更
-  - 持久化模型变化
-  - 消费者、回调、异步工作流、跨服务集成变化
+- 当主 `backend-agent-framework` 在 `requirement-splitting` 之后判断当前活动模块是后端结构型需求时使用。
 
 ## 必要输入
 
 - `docs/requests/<request-id>/request.md`
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
 - `docs/requests/<request-id>/requirements/requirement-map.md`
+- `docs/requests/<request-id>/requirements/modules/<active-module-id>.md`
 - `docs/requests/<request-id>/state.json`
 
 ## 执行步骤
@@ -29,6 +24,7 @@ description: Stage subskill for architecture design. Define backend boundaries, 
    - `docs/requests/<request-id>/request.md`
    - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
    - `docs/requests/<request-id>/requirements/requirement-map.md`
+   - `docs/requests/<request-id>/requirements/modules/<active-module-id>.md`
    - `../../references/framework-overview.md`
    - `../../references/state-machine.md`
    - `../../references/templates/architecture-design.md`
@@ -38,39 +34,29 @@ description: Stage subskill for architecture design. Define backend boundaries, 
    - `../../references/policies/backend-components.md`
    - `../../references/policies/grpc-enterprise.md`
    - `../../references/policies/k8s-enterprise.md`
-2. 只在后端结构型需求中使用本阶段。
-3. 产出 `design/architecture-design.md`。
+2. 从 `state.json.module_execution.active_module_id` 恢复当前活动模块；若不存在，则只对未拆分的单请求流使用请求级兜底。
+3. 仅为当前活动模块产出 `modules/<active-module-id>/design/architecture-design.md`。
 4. 默认使用中文写工件；代码标识、协议名、字段名、错误码、路径等源标识保持原文。
-5. 明确定义：
-   - 职责边界
-   - 接口面
-   - 调用链与执行路径
-   - 领域流程
-   - 数据所有权与持久化边界
-   - 事务/一致性策略
-   - 幂等、重试、超时、失败补偿策略
-   - 观测点与人工干预点
-   - 当涉及 gRPC 时，补充 proto 权威来源、兼容性边界、metadata/auth 透传、deadline/错误码/流式语义
-   - 当涉及 Kubernetes 时，补充 workload 类型、probe/lifecycle、资源与扩缩容、config/secret 边界、rollout/drain/rollback
-6. 设计结果必须足够稳定，使 `spec` 能把它当作上游输入，而不是再重新发明结构决策。
-7. 必须以 `requirements/requirement-map.md` 和对应模块工件为范围来源，不得跳过已经拆分出的后端模块。
-8. 所有设计决策必须写入仓库工件，不保留在聊天上下文里。
+5. 明确定义职责边界、接口面、调用链与执行路径、领域流程、数据所有权、事务/一致性策略、幂等/重试/超时/失败补偿、观测点与人工干预点。
+6. 如涉及 gRPC 或 Kubernetes，补充对应企业级契约与运行时约束。
+7. 设计结果必须足够稳定，使当前模块的 `spec` 能把它当作上游输入。
+8. 必须以 `requirements/requirement-map.md` 与当前活动模块工件为范围来源，不得越权设计尚未轮到的其他模块。
 9. 保留 `state.json.loop`，不重置、不改写。
-10. 本阶段不写代码。
-11. 对于引入或实质改变接口面、服务边界、工作流结构、存储模型、异步拓扑、跨服务交接的需求，不允许跳过本阶段。
+10. 本阶段完成时，更新当前模块的 `module_states.<active-module-id>.current_stage=spec`。
+11. 本阶段不写代码。
 
 ## 输出格式
 
 - 必须产出：
-  - `docs/requests/<request-id>/design/architecture-design.md`
+  - `docs/requests/<request-id>/modules/<active-module-id>/design/architecture-design.md`
 
 ## 验收标准
 
-- `design/architecture-design.md` 已存在。
+- `modules/<active-module-id>/design/architecture-design.md` 已存在。
 - 文档已定义边界、接口面、执行路径、数据所有权、一致性策略、失败处理和观测点。
 - 若涉及 gRPC 或 Kubernetes，文档已定义对应契约边界与运行时架构约束。
 - 所有未决结构问题已记录。
-- `state.json.stage=spec`，且保留原有 `loop`。
+- `state.json.stage=spec`，当前活动模块已切到 `spec`，且保留原有 `loop`。
 
 ## 安全边界
 

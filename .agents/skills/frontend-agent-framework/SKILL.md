@@ -24,6 +24,8 @@ Keep the repository-local workflow in control through one default entry skill th
 - Enforce the combined design lifecycle for requests that are both page-oriented and code-architecture-sensitive:
   `intake -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
 - Build or recover the active request's lifecycle execution path.
+- For PRD-driven requests that were split into module files, enforce sequential module delivery within the same request:
+  one module completes `page-design? -> architecture-design? -> spec -> plan -> execute -> verify -> review` before the next module starts.
 - Run the loop orchestrator:
   `observe state -> decide next action -> dispatch one stage or gate recovery action -> observe result -> iterate`
 - Decide whether workflow-style parallel execution is justified, while keeping it separate from the lifecycle and loop.
@@ -52,13 +54,14 @@ This skill carries its own workflow constitution and does not require `.agents/A
 - Existing request: preserve or repair `state.json.loop`, resume the active loop, and continue orchestrating from there.
 - Never start coding before a request workspace exists under `docs/requests/<request-id>/`.
 - Never enter `page-design`, `architecture-design`, `spec`, or `plan` for a PRD-driven request before durable requirement-splitting artifacts exist.
+- Never let a later split module enter downstream stages while an earlier split module has not yet passed `review`.
 - Never let code-architecture-sensitive work enter `spec` without a durable `architecture-design` artifact.
 - Never enter `spec` for a PRD-driven request when any requirement-splitting module that needed Markdown normalization is missing either its raw snapshot or its Markdown-normalized snapshot.
-- Never implement before approved `spec/spec.md` and `plan/plan.md` exist.
+- Never implement before the active delivery unit's approved spec and plan artifacts exist.
 - For greenfield work that starts a project, app, package, or frontend surface from scratch, never bypass scaffold selection; prefer the matching project-type scaffold or starter when one exists, and record any justified deviation before implementation.
-- Never declare work complete before `verification/verification.md` and `review/review.md` both exist and pass.
-- Never declare work complete before `verification/verification.md` explicitly records `spec constraint compliance: pass`.
-- Never declare work complete before `review/review.md` explicitly records `clean-code assessment: pass` and `design-pattern assessment: pass`.
+- Never declare work complete before the required verification and review artifacts for the active delivery unit exist and pass.
+- Never declare work complete before the required verification artifact explicitly records `spec constraint compliance: pass`.
+- Never declare work complete before the required review artifact explicitly records `clean-code assessment: pass` and `design-pattern assessment: pass`.
 - Never treat loop progress as proof of completion; only the goal contract and verification evidence can prove the request is done.
 - When requirements change, update request artifacts first and roll the request back to `spec` or `plan`.
 - When execution proves the current `architecture-design` decisions are materially unfit for actual code constraints, update request artifacts first and roll the request back to `architecture-design`.
@@ -80,7 +83,8 @@ If a repository also provides `.agents/AGENTS.md`, treat it as an optional local
 - If `.agents/AGENTS.md` exists, read it as a repository-local override layer after reading this skill.
 - For existing work, read `docs/requests/<request-id>/state.json` before choosing a stage.
 - For existing work, require `state.json.loop` to exist; if it is missing or malformed, repair it before continuing.
-- For existing work, recover the current goal contract from `request.md`, `spec/spec.md`, and verification expectations before resuming execution.
+- For existing work, recover the current goal contract from `request.md`, the active delivery unit's spec artifact, and verification expectations before resuming execution.
+- For split PRD-driven work, recover `state.json.module_flow` and `state.json.module_flow.current_module_id` before choosing the next downstream stage.
 - For new work, require a readable PRD document or a stable PRD reference before intake begins.
 - Acceptable new-request inputs include a Feishu/Lark PRD link, a document ID, or a local PRD file path.
 - For bugfix work, accept a readable bug report or a stable bug reference before bugfix intake begins.
@@ -95,17 +99,19 @@ Follow this order:
 1. Classify whether the request is a new requirement or an in-flight request.
 2. If the input is a defect or bug report, first route it through `bugfix-intake` to create the standard request workspace.
 3. If the request is a PRD-driven requirement, route it through `requirement-splitting` after `intake`.
-4. If the request is page-oriented, insert `page-design` between `requirement-splitting` and the next design-or-spec stage.
-5. If the request is code-architecture-sensitive, insert `architecture-design` before `spec`.
-6. Build or recover the lifecycle execution path for:
+4. If `requirement-splitting` produced module files, select exactly one current module from `state.json.module_flow.current_module_id`.
+5. If the current delivery unit is page-oriented, insert `page-design` between the current stage and the next design-or-spec stage.
+6. If the current delivery unit is code-architecture-sensitive, insert `architecture-design` before `spec`.
+7. Build or recover the lifecycle execution path for:
    - `intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
    - `intake -> requirement-splitting -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
    - `intake -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
    - `intake -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
-7. Validate lifecycle gates against this skill's built-in constitution and `references/state-machine.md`.
-8. Load only the subskill for the current stage.
-9. After the current stage finishes, determine whether the next stage can start immediately or must wait on a gate.
-10. Continue stage-by-stage until the request reaches `complete` or a required gate blocks progress.
+8. Validate lifecycle gates against this skill's built-in constitution and `references/state-machine.md`.
+9. Load only the subskill for the current stage.
+10. After the current stage finishes, determine whether the current delivery unit can advance, must roll back, or has completed its closed loop.
+11. If the current split module passed `review`, advance `state.json.module_flow` to the next pending module and enter that module's first required downstream stage.
+12. Continue stage-by-stage until the request reaches `complete` or a required gate blocks progress.
 
 This workflow must be executed strictly in the defined lifecycle order.
 Do not skip, merge, reorder, or bypass stages unless the rollback rules explicitly allow it.
@@ -119,10 +125,11 @@ Every request must have an explicit goal contract. The goal contract defines wha
 Goal rules:
 
 - Capture the initial goal in `request.md` during intake.
-- Refine the goal into observable acceptance criteria in `spec/spec.md`.
-- Translate that goal into execution and verification work in `plan/plan.md` and `verification/verification.md`.
+- Refine the goal into observable acceptance criteria in the active delivery unit's spec artifact.
+- Translate that goal into execution and verification work in the active delivery unit's plan and verification artifacts.
 - If the request only describes a subjective improvement such as "better", "cleaner", or "more elegant", obtain or derive a more checkable completion condition before heavy execution begins.
 - The loop exists to drive work toward the goal contract; the loop itself is not the goal.
+- For split PRD-driven requests, the request goal is complete only after every in-scope module has independently completed its downstream lifecycle and passed review.
 
 ## Proactive Workflow Contract
 
@@ -141,7 +148,7 @@ Workflow contract rules:
 
 The main skill runs a single explicit control loop for the request. The lifecycle stages stay the same; the loop is the control mechanism that advances or re-enters those stages.
 
-1. Observe: read `state.json`, inspect artifacts, approvals, and lifecycle gates.
+1. Observe: read `state.json`, inspect artifacts, approvals, lifecycle gates, and the active delivery unit.
 2. Decide: choose exactly one next action from `dispatch_stage`, `recover_gate`, `request_approval`, `wait_external`, or `complete`.
 3. Dispatch: load only the one subskill that matches the current lifecycle stage when the action is `dispatch_stage`.
 4. Observe result: verify the stage exit criteria or the recovered gate result, then re-check the lifecycle gates.
@@ -152,6 +159,7 @@ Loop rules:
 - Process only one current action per loop iteration.
 - After each completed stage or recovered gate, re-enter the loop and decide again.
 - Treat `requirement-splitting` as a full lifecycle stage with its own exit criteria and loop re-entry, not as an intake footnote.
+- For split PRD-driven requests, treat `review -> next module` as a same-run loop continuation, not as a new request.
 - After `execute`, `verify`, or `review`, continue looping immediately unless the request is truly blocked or has reached `complete`.
 - Unless the request is truly `blocked` or has reached `complete`, do not stop the workflow or emit a terminal completion-style response; continue the next loop action in the same active workflow run.
 - The loop stops only when `stage=complete` with `loop.state=complete`, or when a real external blocking gate requires waiting.
@@ -189,6 +197,7 @@ Workflow rules:
 - If the next gate is already satisfied, continue automatically to the next stage.
 - For PRD-driven requirements, do not allow `spec` to rediscover modules directly from the raw PRD when `requirement-splitting` artifacts are expected; first repair or regenerate the split artifacts.
 - For PRD-driven requirements, do not allow `spec` to start when a normalized module lacks either the raw snapshot or the Markdown-normalized snapshot; first recover the missing companion artifact and then re-check the gate.
+- For PRD-driven requirements with split modules, do not let `spec`, `plan`, `execute`, `verify`, or `review` span multiple modules at once; downstream work must stay scoped to the active module.
 - If `execute` discovers that the approved `architecture-design` is materially incompatible with actual code constraints, repository structure, dependency boundaries, function organization, or type/data-shape reality, route immediately back to `architecture-design` and continue the same workflow run through `architecture-design -> spec -> plan -> execute` without waiting for a new user prompt.
 - If `verify` fails and the failure can be addressed by implementation work defined by the approved spec and plan, route immediately back to `execute` and continue the loop without waiting for a new user prompt.
 - If `review` finds blocking issues that can be addressed by implementation work defined by the approved spec and plan, route immediately back to `execute` and continue the loop without waiting for a new user prompt.
@@ -243,10 +252,28 @@ State rules:
 - `loop.state=complete` is only valid when `stage=complete`.
 - Only the main skill may create, reset, or reinterpret `loop`; stage subskills may preserve it but must not redefine it.
 
+For split PRD-driven requests after `requirement-splitting`, `state.json` must also include `module_flow`.
+
+`module_flow` rules:
+
+- `execution_mode` must be `sequential`
+- `current_module_id` identifies the only split module allowed to progress through downstream stages
+- `pending_module_ids` stays ordered by the planned module delivery sequence
+- `completed_module_ids` contains only modules that already passed `review`
+- each module entry records source module path, page-design need, architecture-design need, and status
+- each module entry also records its own approval state; do not reuse another module's approvals
+- when a module finishes `review` without blockers, set `modules.<current-module-id>.status=completed`
+- then remove that module from `pending_module_ids` and append it to `completed_module_ids`
+- if pending modules remain, promote the next module to `current_module_id`, set `modules.<next-module-id>.status=in_progress`, and set `stage` to that next module's first required downstream stage
+- if no pending modules remain, set `current_module_id=null`, set `stage=complete`, and set `loop.state=complete`
+- `stage=complete` is only valid after `pending_module_ids` is empty
+
 ## Sequential Stage Execution
 
 Execute every stage in full, in order, one at a time.
 At each stage boundary, update `docs/requests/<request-id>/state.json` before entering the next stage, then return to the loop controller.
+
+For split PRD-driven requests, execute every downstream stage for the current module in full before moving to the next module.
 
 1. When a stage starts, complete all required work for that stage through its subskill.
 2. Before advancing, verify that the current stage's exit criteria are fully satisfied.
@@ -255,6 +282,7 @@ At each stage boundary, update `docs/requests/<request-id>/state.json` before en
 5. Never leave a stage partially done and then proceed to a later stage.
 6. If `verify` or `review` sends the request back to `execute`, treat that as an immediate continuation of the same workflow, not as a stopping point.
 7. If `verify` or `review` returns the request to `execute`, continue that re-entry in the same active workflow run unless a real blocking gate interrupts progress.
+8. If the current split module passes `review`, mark it `completed`, update the module queues, then either promote the next pending module or finish the request in the same active workflow run.
 
 Forbidden examples:
 
@@ -262,6 +290,7 @@ Forbidden examples:
 - Writing implementation code while `state.json` still says `spec` or `plan`
 - Skipping the `state.json` update at a stage boundary
 - Resetting or deleting `state.json.loop` inside a stage subskill
+- Writing one split module's implementation while `state.json.module_flow.current_module_id` points to another module
 
 ## Stage Routing
 
@@ -301,7 +330,7 @@ Load only what is needed:
 ## Hard Gates
 
 - Never code before the request workspace exists.
-- Never implement before approved spec and plan exist.
+- Never implement before the active delivery unit's approved spec and plan exist.
 - Never let page-oriented work enter `spec` without a page design artifact when layout, styling, or interaction structure is a material requirement.
 - Never let code-architecture-sensitive work enter `spec` without an architecture design artifact when module boundaries, file structure, code relationships, function structure, data structures, or type strategy materially affect the solution shape.
 - Never declare work complete before verification and review artifacts both exist and pass.
@@ -327,6 +356,7 @@ Load only what is needed:
 
 - Read `docs/requests/<request-id>/state.json` before acting on any existing request.
 - Treat `state.json` as the source of truth for `stage`, approvals, artifact status, and loop metadata.
+- Treat `state.json.module_flow` as the source of truth for which split module is currently active.
 - If `state.json` and filesystem artifacts disagree, repair the state or missing artifacts before continuing.
 - If `loop` is missing on a legacy request, backfill it before continuing the workflow.
 
@@ -356,6 +386,7 @@ Stage actions belong only to subskills.
 
 - If a stage uncovers missing product decisions, record them in repository artifacts instead of silently filling the gap.
 - If a requirement changes during execution, stop coding, set loop re-entry reason to `requirement_changed`, and route back to `spec` or `plan`.
+- If the requirement change alters split-module boundaries or sequencing, route back to `requirement-splitting` and regenerate `module_flow`.
 - If execution shows the current `architecture-design` is materially unreasonable, infeasible, or contradicted by actual code constraints, stop coding, set loop re-entry reason to `architecture_design_invalidated`, and route back to `architecture-design`, then continue `architecture-design -> spec -> plan -> execute` in the same active workflow run.
 - If verification fails, set loop re-entry reason to `verification_failed` and route back to `execute`.
 - If review finds blockers, set loop re-entry reason to `review_blocked` and route back to `execute`.
@@ -374,10 +405,11 @@ Treat a request as complete only after all of the following are true:
 - the goal contract is satisfied by observable results
 - implementation matches the approved plan
 - verification evidence exists for acceptance criteria
-- `verification/verification.md` explicitly records `spec constraint compliance: pass`
+- the required verification artifact explicitly records `spec constraint compliance: pass`
 - review records no unresolved blocking issues
-- `review/review.md` explicitly records `clean-code assessment: pass`
-- `review/review.md` explicitly records `design-pattern assessment: pass`
+- the required review artifact explicitly records `clean-code assessment: pass`
+- the required review artifact explicitly records `design-pattern assessment: pass`
+- when module splitting applies, every module in `state.json.module_flow.modules` is marked `completed`
 - `state.json` is updated to `stage="complete"`
 - `state.json.loop.state` is updated to `complete`
 

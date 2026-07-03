@@ -12,23 +12,23 @@ description: Stage subskill for verification. Validate the implementation agains
 
 ## 必要输入
 
-- `docs/requests/<request-id>/spec/spec.md`
-- `docs/requests/<request-id>/plan/plan.md`
-- `docs/requests/<request-id>/execution/changelog.md`
+- `docs/requests/<request-id>/module-runs/<current-module-id>/spec/spec.md`
+- `docs/requests/<request-id>/module-runs/<current-module-id>/plan/plan.md`
+- `docs/requests/<request-id>/module-runs/<current-module-id>/execution/changelog.md`
 - `docs/requests/<request-id>/state.json`
 
 ## 执行步骤
 
 1. 先读：
    - `docs/requests/<request-id>/state.json`
-   - `docs/requests/<request-id>/spec/spec.md`
-   - `docs/requests/<request-id>/plan/plan.md`
-   - `docs/requests/<request-id>/execution/changelog.md`
+   - `docs/requests/<request-id>/module-runs/<current-module-id>/spec/spec.md`
+   - `docs/requests/<request-id>/module-runs/<current-module-id>/plan/plan.md`
+   - `docs/requests/<request-id>/module-runs/<current-module-id>/execution/changelog.md`
    - `../../references/state-machine.md`
    - `../../references/templates/verify.md`
    - `../../references/policies/testing.md`
    - `../../references/policies/doc-writing.md`
-2. 产出 `verification/verification.md`。
+2. 产出 `module-runs/<current-module-id>/verification/verification.md`。
 3. 将每条 acceptance criterion 映射到：
    - verification method
    - result
@@ -41,7 +41,7 @@ description: Stage subskill for verification. Validate the implementation agains
    - API docs
    - protobuf contracts
    - backend-owned TypeScript declarations
-9. 在 `verification/verification.md` 中写出明确的 `spec constraint compliance` pass/fail。
+9. 在当前模块 `verification/verification.md` 中写出明确的 `spec constraint compliance` pass/fail。
 10. 保留 `state.json.loop`，不重置、不改写。
 11. 若验证失败，明确记录失败原因，交回主 skill 回流到 `execute`，并继续同一 workflow run。
 12. 本阶段不能在没有验证工件的情况下宣称完成。
@@ -49,8 +49,8 @@ description: Stage subskill for verification. Validate the implementation agains
 ## 输出格式
 
 - 必须产出：
-  - `docs/requests/<request-id>/verification/verification.md`
-  - `docs/requests/<request-id>/verification/evidence/` 下的可选证据文件
+  - `docs/requests/<request-id>/module-runs/<current-module-id>/verification/verification.md`
+  - `docs/requests/<request-id>/module-runs/<current-module-id>/verification/evidence/` 下的可选证据文件
 - 最终交付物应包含：
   - acceptance coverage mapping
   - verification evidence
@@ -65,8 +65,8 @@ description: Stage subskill for verification. Validate the implementation agains
 
 - 每条 acceptance criterion 都已被检查。
 - 每个验证项都有附件或引用证据。
-- `verification/verification.md` 已明确写出 spec constraints pass/fail。
-- `verification/verification.md` 已明确写出 spec-plan 粒度对齐结论。
+- 当前模块 `verification/verification.md` 已明确写出 spec constraints pass/fail。
+- 当前模块 `verification/verification.md` 已明确写出 spec-plan 粒度对齐结论。
 - 对可测试行为的 TDD 例外都有明确理由和替代证据。
 - 若存在失败，要么已修复，要么已明确回流执行。
 - 若工作流要求 handoff / downstream-ready result，也已明确验证。

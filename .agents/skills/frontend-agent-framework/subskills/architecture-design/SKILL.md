@@ -21,9 +21,10 @@ description: Stage subskill for code architecture design. Define frontend module
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
 - `docs/requests/<request-id>/requirements/requirement-map.md`
 - `docs/requests/<request-id>/state.json`
-- `docs/requests/<request-id>/design/page-design.md`（如存在）
+- `docs/requests/<request-id>/requirements/modules/<current-module-id>.md`
+- `docs/requests/<request-id>/module-runs/<current-module-id>/design/page-design.md`（如存在）
 - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
-- `docs/requests/<request-id>/execution/changelog.md`（如存在）
+- `docs/requests/<request-id>/module-runs/<current-module-id>/execution/changelog.md`（如存在）
 
 ## 执行步骤
 
@@ -32,9 +33,10 @@ description: Stage subskill for code architecture design. Define frontend module
    - `docs/requests/<request-id>/request.md`
    - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
    - `docs/requests/<request-id>/requirements/requirement-map.md`
-   - `docs/requests/<request-id>/design/page-design.md`（如存在）
+   - `docs/requests/<request-id>/requirements/modules/<current-module-id>.md`
+   - `docs/requests/<request-id>/module-runs/<current-module-id>/design/page-design.md`（如存在）
    - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
-   - `docs/requests/<request-id>/execution/changelog.md`（如存在）
+   - `docs/requests/<request-id>/module-runs/<current-module-id>/execution/changelog.md`（如存在）
    - `../../references/framework-overview.md`
    - `../../references/state-machine.md`
    - `../../references/templates/architecture-design.md`
@@ -46,9 +48,10 @@ description: Stage subskill for code architecture design. Define frontend module
    - `../../references/policies/api-contracts.md`
    - `../../references/policies/code-graph.md`
 2. 只在代码架构敏感型前端需求中使用本阶段。
-3. 产出 `design/architecture-design.md`。
-4. 如果存在 `page-design`，把它视为上游输入，代码架构设计不得和页面结构决策冲突。
-5. 明确定义：
+3. 仅为 `state.json.module_flow.current_module_id` 产出架构设计。
+4. 产出 `module-runs/<current-module-id>/design/architecture-design.md`。
+5. 如果存在当前模块的 `page-design`，把它视为上游输入，代码架构设计不得和页面结构决策冲突。
+6. 明确定义：
    - 模块边界
    - 文件与目录结构
    - 代码关系与依赖方向
@@ -59,20 +62,20 @@ description: Stage subskill for code architecture design. Define frontend module
    - adapter / mapper / request-layer 边界
    - 命名口径与共享抽象约束
    - 需要使用或明确拒绝的 pattern 决策
-6. 如果是 greenfield 场景，代码架构设计必须和已批准的脚手架或 starter 决策保持一致，并明确允许的偏离范围。
-7. 设计结果必须足够稳定，使 `spec` 能把它当作上游输入，而不是在 `spec` 或 `execute` 阶段重新发明模块与类型结构。
-8. 必须以 `requirements/requirement-map.md` 和对应模块工件为范围来源，不得跳过已经拆分出的模块或功能单元。
-9. 如果本阶段是从 `execute` 回退而来，必须优先吸收 `execution/changelog.md` 与 `artifacts/code-context.md` 中记录的实际代码约束、依赖边界和失败证据，修正不合理的架构设计，而不是重复原设计。
-10. 如果既有代码结构影响较大，优先结合 `code-context.md` 或 code graph 结果确认真实依赖边界。
-11. 所有设计决策必须写入仓库工件，不保留在聊天上下文里。
-12. 保留 `state.json.loop`，不重置、不改写。
-13. 本阶段不写代码。
-14. 对于会显著影响模块设计、文件结构、代码关系、函数结构、数据结构或类型设计的需求，不允许跳过本阶段。
+7. 如果是 greenfield 场景，代码架构设计必须和已批准的脚手架或 starter 决策保持一致，并明确允许的偏离范围。
+8. 设计结果必须足够稳定，使当前模块的 `spec` 能把它当作上游输入，而不是在 `spec` 或 `execute` 阶段重新发明模块与类型结构。
+9. 必须以 `requirements/requirement-map.md` 和当前模块工件为范围来源，不得跨模块混写。
+10. 如果本阶段是从 `execute` 回退而来，必须优先吸收当前模块 `execution/changelog.md` 与 `artifacts/code-context.md` 中记录的实际代码约束、依赖边界和失败证据，修正不合理的架构设计，而不是重复原设计。
+11. 如果既有代码结构影响较大，优先结合 `code-context.md` 或 code graph 结果确认真实依赖边界。
+12. 所有设计决策必须写入仓库工件，不保留在聊天上下文里。
+13. 保留 `state.json.loop`，不重置、不改写。
+14. 本阶段不写代码。
+15. 对于会显著影响当前模块设计、文件结构、代码关系、函数结构、数据结构或类型设计的需求，不允许跳过本阶段。
 
 ## 输出格式
 
 - 必须产出：
-  - `docs/requests/<request-id>/design/architecture-design.md`
+  - `docs/requests/<request-id>/module-runs/<current-module-id>/design/architecture-design.md`
 - 最终交付物应至少包含：
   - 模块边界
   - 文件结构
@@ -83,7 +86,7 @@ description: Stage subskill for code architecture design. Define frontend module
 
 ## 验收标准
 
-- `design/architecture-design.md` 已存在。
+- 当前模块 `design/architecture-design.md` 已存在。
 - 文档已定义模块边界、文件结构、依赖方向、职责分层、函数组织、数据结构和类型策略。
 - 若存在 page-design，架构设计已与页面结构决策对齐。
 - 若 scoped work 为 greenfield，架构设计已与脚手架策略对齐并写明允许偏离范围。

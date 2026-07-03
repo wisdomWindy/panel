@@ -19,6 +19,7 @@ description: Stage subskill for page design. Define page layout, visual hierarch
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
 - `docs/requests/<request-id>/requirements/requirement-map.md`
 - `docs/requests/<request-id>/state.json`
+- `docs/requests/<request-id>/requirements/modules/<current-module-id>.md`
 
 ## 执行步骤
 
@@ -27,6 +28,7 @@ description: Stage subskill for page design. Define page layout, visual hierarch
    - `docs/requests/<request-id>/request.md`
    - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
    - `docs/requests/<request-id>/requirements/requirement-map.md`
+   - `docs/requests/<request-id>/requirements/modules/<current-module-id>.md`
    - `../../references/framework-overview.md`
    - `../../references/state-machine.md`
    - `../../references/templates/page-design.md`
@@ -34,24 +36,25 @@ description: Stage subskill for page design. Define page layout, visual hierarch
    - `../../references/policies/frontend-components.md`
    - `../../references/policies/frontend-architecture.md`
 2. 只在页面型需求中使用本阶段。
-3. 产出 `design/page-design.md`。
-4. 明确定义：
+3. 仅为 `state.json.module_flow.current_module_id` 产出页面设计。
+4. 产出 `module-runs/<current-module-id>/design/page-design.md`。
+5. 明确定义：
    - 页面布局结构
    - 区块层级
    - 样式方向
    - 交互骨架
    - 响应式考虑
-5. 设计结果必须足够稳定，使 `architecture-design`（如存在）和 `spec` 能把它当作上游输入，而不是再重新发明布局决策。
-6. 必须以 `requirements/requirement-map.md` 和对应模块工件为页面范围来源，不得跳过已经拆分出的页面模块。
-7. 所有设计决策必须写入仓库工件，不保留在聊天上下文里。
-8. 保留 `state.json.loop`，不重置、不改写。
-9. 本阶段不写代码。
-10. 对于引入或实质改变布局、视觉层级、样式方向、交互组织的页面需求，不允许跳过本阶段。
+6. 设计结果必须足够稳定，使当前模块的 `architecture-design`（如存在）和 `spec` 能把它当作上游输入，而不是再重新发明布局决策。
+7. 必须以 `requirements/requirement-map.md` 和当前模块工件为页面范围来源，不得跨模块混写。
+8. 所有设计决策必须写入仓库工件，不保留在聊天上下文里。
+9. 保留 `state.json.loop`，不重置、不改写。
+10. 本阶段不写代码。
+11. 对于引入或实质改变当前模块布局、视觉层级、样式方向、交互组织的页面需求，不允许跳过本阶段。
 
 ## 输出格式
 
 - 必须产出：
-  - `docs/requests/<request-id>/design/page-design.md`
+  - `docs/requests/<request-id>/module-runs/<current-module-id>/design/page-design.md`
 - 最终交付物应至少包含：
   - 页面布局结构
   - 区块层级
@@ -62,10 +65,10 @@ description: Stage subskill for page design. Define page layout, visual hierarch
 
 ## 验收标准
 
-- `design/page-design.md` 已存在。
+- 当前模块 `design/page-design.md` 已存在。
 - 文档已定义布局、层级、样式方向、交互结构、响应式考虑。
 - 所有未决 UI 问题已记录。
-- `state.json.stage=spec`，且保留原有 `loop`。
+- `state.json.stage` 已切换到当前模块的下一下游阶段，且保留原有 `loop`。
 
 ## 安全边界
 

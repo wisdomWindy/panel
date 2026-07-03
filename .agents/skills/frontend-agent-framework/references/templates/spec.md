@@ -2,18 +2,19 @@
 
 ## Required Artifact Paths
 
-- `docs/requests/<request-id>/spec/spec.md`
-- `docs/requests/<request-id>/spec/clarifications.md`
+- `docs/requests/<request-id>/spec/spec.md` and `spec/clarifications.md` for non-split work
+- `docs/requests/<request-id>/module-runs/<module-id>/spec/spec.md` and `spec/clarifications.md` for split PRD-driven work
 
-## `spec/spec.md`
+## `spec/spec.md` or `module-runs/<module-id>/spec/spec.md`
 
 When `requirements/requirement-map.md` exists, treat it as a required upstream input for PRD-driven requests and preserve its module boundaries, source traceability, and carry-forward checklist in the spec.
-When `design/page-design.md` exists, treat it as a required upstream input and carry its layout, hierarchy, styling, and interaction decisions into the spec instead of redefining them from scratch.
-When `design/architecture-design.md` exists, treat it as a required upstream input and carry its module boundaries, file structure, dependency direction, function structure, data structures, and type decisions into the spec instead of redefining them from scratch.
+When `design/page-design.md` or `module-runs/<module-id>/design/page-design.md` exists, treat it as a required upstream input and carry its layout, hierarchy, styling, and interaction decisions into the spec instead of redefining them from scratch.
+When `design/architecture-design.md` or `module-runs/<module-id>/design/architecture-design.md` exists, treat it as a required upstream input and carry its module boundaries, file structure, dependency direction, function structure, data structures, and type decisions into the spec instead of redefining them from scratch.
 The acceptance criteria must function as the request's operational goal contract: concrete, observable, and preferably machine-checkable rather than subjective.
 
 Required sections:
 
+- delivery unit identifier
 - background and goals
 - in scope
 - out of scope
@@ -66,11 +67,20 @@ At minimum, break down each scoped page, module, panel, drawer, modal, card, for
 
 When applicable, include:
 
-- forms: purpose, field list, required/optional semantics, control expectations, validation expectations, editable/disabled/hidden states, submission behavior, and success/failure/loading outcomes
+- forms: purpose, field list, required/optional semantics, control expectations, validation expectations, editable/disabled/hidden states, submission behavior, success/failure/loading outcomes, and any input-normalization semantics that implementation would otherwise need to guess
 - tables: purpose, column intent, row actions, batch actions, state handling, and display expectations
 - display content: field groups, layout intent, formatting expectations, and visibility rules
 - interactions: trigger, preconditions, UI change, side effect, confirmation, pending/loading behavior, and completion conditions
 - workflows: start, steps, branch conditions, state transitions, retry/rollback path, and handoff points
+
+For text input controls, the spec must not stop at PRD-explicit constraints only. It must explicitly state the effective input semantics whenever implementation would otherwise need to infer them, including when relevant:
+
+- whether values are preserved raw, trimmed, or otherwise normalized
+- how whitespace-only input is handled
+- how values that become empty after normalization are handled
+- whether length validation counts the raw value or the normalized value
+- how leading whitespace, trailing whitespace, consecutive whitespace, line breaks, pasted content, and illegal characters are handled
+- when validation and error presentation are triggered, such as during input, on blur, or on submit
 
 If any material detail is unknown, record it in `spec/clarifications.md` and reference the approved assumption or open question directly from the spec.
 If the source module files already contain explicit fields, columns, interactions, states, or workflow rules, the spec must carry them forward instead of collapsing them into higher-level prose.
@@ -87,7 +97,7 @@ At minimum, describe:
 - what approved deviations from the chosen scaffold are allowed during implementation
 - which bootstrap choices are fixed upstream and must not be re-decided in `plan` or `execute`
 
-## `spec/clarifications.md`
+## `spec/clarifications.md` or `module-runs/<module-id>/spec/clarifications.md`
 
 Required sections:
 

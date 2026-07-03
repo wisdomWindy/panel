@@ -2,12 +2,13 @@
 
 ## 必需工件路径
 
-- `docs/requests/<request-id>/release/release-readiness.md`
+- `docs/requests/<request-id>/modules/<module-id>/release/release-readiness.md`
 
-## `release/release-readiness.md`
+## `modules/<module-id>/release/release-readiness.md`
 
 必需章节：
 
+- 模块标识与范围
 - rollout 策略
 - 迁移顺序
 - 监控观察窗

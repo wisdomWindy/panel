@@ -2,12 +2,13 @@
 
 ## 必需工件路径
 
-- `docs/requests/<request-id>/review/review.md`
+- `docs/requests/<request-id>/modules/<module-id>/review/review.md`
 
-## `review/review.md`
+## `modules/<module-id>/review/review.md`
 
 必需章节：
 
+- 模块标识与范围
 - 阻塞问题
 - 非阻塞问题
 - 已接受风险

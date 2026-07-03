@@ -2,13 +2,14 @@
 
 ## Required Artifact Paths
 
-- `docs/requests/<request-id>/verification/verification.md`
-- `docs/requests/<request-id>/verification/evidence/`
+- `docs/requests/<request-id>/verification/verification.md` and `verification/evidence/` for non-split work
+- `docs/requests/<request-id>/module-runs/<module-id>/verification/verification.md` and `verification/evidence/` for split PRD-driven work
 
-## `verification/verification.md`
+## `verification/verification.md` or `module-runs/<module-id>/verification/verification.md`
 
 Required top-level sections:
 
+- delivery unit identifier
 - acceptance coverage
 - spec constraint compliance
 - summary

@@ -2,12 +2,14 @@
 
 ## Required Artifact Path
 
-- `docs/requests/<request-id>/design/architecture-design.md`
+- `docs/requests/<request-id>/design/architecture-design.md` for non-split work
+- `docs/requests/<request-id>/module-runs/<module-id>/design/architecture-design.md` for split PRD-driven work
 
-## `design/architecture-design.md`
+## `design/architecture-design.md` or `module-runs/<module-id>/design/architecture-design.md`
 
 Required sections:
 
+- delivery unit identifier
 - architecture objective
 - architecture scope and triggers
 - upstream inputs and assumptions

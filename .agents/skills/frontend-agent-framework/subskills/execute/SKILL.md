@@ -12,22 +12,22 @@ description: Stage subskill for execution. Implement only approved tasks and kee
 
 ## 必要输入
 
-- `docs/requests/<request-id>/spec/spec.md`
-- `docs/requests/<request-id>/plan/plan.md`
-- `docs/requests/<request-id>/plan/task-board.md`
+- `docs/requests/<request-id>/module-runs/<current-module-id>/spec/spec.md`
+- `docs/requests/<request-id>/module-runs/<current-module-id>/plan/plan.md`
+- `docs/requests/<request-id>/module-runs/<current-module-id>/plan/task-board.md`
 - `docs/requests/<request-id>/state.json`
 - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
-- `docs/requests/<request-id>/design/architecture-design.md`（如存在）
+- `docs/requests/<request-id>/module-runs/<current-module-id>/design/architecture-design.md`（如存在）
 
 ## 执行步骤
 
 1. 先读：
    - `docs/requests/<request-id>/state.json`
-   - `docs/requests/<request-id>/spec/spec.md`
-   - `docs/requests/<request-id>/plan/plan.md`
-   - `docs/requests/<request-id>/plan/task-board.md`
+   - `docs/requests/<request-id>/module-runs/<current-module-id>/spec/spec.md`
+   - `docs/requests/<request-id>/module-runs/<current-module-id>/plan/plan.md`
+   - `docs/requests/<request-id>/module-runs/<current-module-id>/plan/task-board.md`
    - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
-   - `docs/requests/<request-id>/design/architecture-design.md`（如存在）
+   - `docs/requests/<request-id>/module-runs/<current-module-id>/design/architecture-design.md`（如存在）
    - `../../references/state-machine.md`
    - `../../references/templates/code-context.md`
    - `../../references/policies/api-contracts.md`
@@ -38,7 +38,7 @@ description: Stage subskill for execution. Implement only approved tasks and kee
    - `../../references/policies/frontend-architecture.md`
    - `../../references/policies/frontend-components.md`
    - `../../references/policies/testing.md`
-2. 执行前要求 `approvals.plan_approved=true`。
+2. 执行前要求当前模块 `approvals.plan_approved=true`。
 3. 仅实现已批准任务。
 4. 把 spec 与 plan 视为唯一实现合同。
 5. 如果 plan 缺少关键字段、列、交互、状态或 loading 结束条件，停止执行并回退到 `plan`。
@@ -48,7 +48,7 @@ description: Stage subskill for execution. Implement only approved tasks and kee
    - 再写最小通过实现
    - 最后重构并保持测试通过
 8. 实现过程中应用 clean-code 规则和已批准的 pattern 决策。
-9. 如果存在 `architecture-design`，把它视为执行期必须遵守的结构输入，包括模块边界、文件结构、代码关系、函数分层、数据结构和类型策略。
+9. 如果存在当前模块 `architecture-design`，把它视为执行期必须遵守的结构输入，包括模块边界、文件结构、代码关系、函数分层、数据结构和类型策略。
 10. 如果实际代码情况证明当前 `architecture-design` 在下列任一方面 materially 不合理、不合适、不可行或与现实冲突，必须停止继续实现并回退到 `architecture-design`，不能在执行阶段临时绕过：
    - 模块边界
    - 文件结构
@@ -56,7 +56,7 @@ description: Stage subskill for execution. Implement only approved tasks and kee
    - 函数组织
    - 数据结构
    - 类型设计
-11. 发生上述回退时，先把触发证据和实际约束写入 `execution/changelog.md` 与 `artifacts/code-context.md`，再由主 workflow 继续 `architecture-design -> spec -> plan -> execute` 循环，直到架构设计稳定。
+11. 发生上述回退时，先把触发证据和实际约束写入当前模块 `execution/changelog.md` 与 `artifacts/code-context.md`，再由主 workflow 继续 `architecture-design -> spec -> plan -> execute` 循环，直到架构设计稳定。
 12. 如果 scoped work 为从 0 开始搭建项目、应用、包或前端业务面：
    - 先按已批准 spec / plan 确认脚手架或 starter 选择
    - 有合适脚手架时，优先基于该脚手架落地，而不是手写 bootstrap
@@ -71,8 +71,8 @@ description: Stage subskill for execution. Implement only approved tasks and kee
 15. 如执行中发现新的结构信息，更新 `artifacts/code-context.md`。
 16. 默认串行执行，除非计划明确标注某些 work unit 可并行。
 17. 持续更新：
-   - `execution/changelog.md`
-   - `plan/task-board.md`
+   - 当前模块 `execution/changelog.md`
+   - 当前模块 `plan/task-board.md`
 18. 保持执行过程可观察、可追问、可重定向。
 19. 保留 `state.json.loop`，不重置、不改写。
 20. 如果需求变化或计划暴露出 gap，立即停下并回退到 `spec` 或 `plan`。
@@ -82,9 +82,9 @@ description: Stage subskill for execution. Implement only approved tasks and kee
 ## 输出格式
 
 - 必须产出：
-  - `docs/requests/<request-id>/execution/changelog.md`
+  - `docs/requests/<request-id>/module-runs/<current-module-id>/execution/changelog.md`
   - 与计划任务对应的代码改动
-  - 更新后的 `plan/task-board.md`
+  - 更新后的当前模块 `plan/task-board.md`
   - 更新后的 `artifacts/code-context.md`（如结构理解有变化）
 - 最终交付物应包含：
   - 实现变更
@@ -97,13 +97,13 @@ description: Stage subskill for execution. Implement only approved tasks and kee
 ## 验收标准
 
 - 已批准的实现任务已完成。
-- `execution/changelog.md` 已记录关键决策与偏差。
+- 当前模块 `execution/changelog.md` 已记录关键决策与偏差。
 - 对可测试行为，已记录 test-first 执行步骤或合理例外。
 - 若执行期曾发现架构设计与实际代码约束冲突，已留下可驱动 `architecture-design` 修正的证据。
 - 若 scoped work 为 greenfield，执行已按批准工件优先采用对应脚手架或已记录拒绝理由。
 - 改动区域可读性仍然达标，必要的 clean-code 重构已完成或显式记录。
 - 引入的 pattern 仍能回溯到已批准问题陈述。
-- `plan/task-board.md` 已反映完成状态。
+- 当前模块 `plan/task-board.md` 已反映完成状态。
 - `state.json.stage=verify`，且保留原有 `loop`。
 - 已留下足够证据，使 `verify` 能立即接续。
 

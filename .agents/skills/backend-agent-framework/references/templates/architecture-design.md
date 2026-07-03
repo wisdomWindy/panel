@@ -2,12 +2,15 @@
 
 ## 必需工件路径
 
-- `docs/requests/<request-id>/design/architecture-design.md`
+- `docs/requests/<request-id>/modules/<module-id>/design/architecture-design.md`
 
-## `design/architecture-design.md`
+## `modules/<module-id>/design/architecture-design.md`
 
 必需章节：
 
+- 模块 ID
+- 模块名称
+- 对应需求文件
 - 服务目标
 - 目标调用方或场景
 - 边界图

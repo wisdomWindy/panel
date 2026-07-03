@@ -29,24 +29,13 @@ The lifecycle above is the delivery path. The main `backend-agent-framework` ski
 In this framework:
 
 - `subskills/` own stage execution only
-- `requirement-splitting` is the source-preserving decomposition stage for PRD-driven work and feeds both `architecture-design` and `spec`
+- `requirement-splitting` is the source-preserving decomposition stage for PRD-driven work and feeds ordered per-module downstream execution
 - the goal contract is established in request/spec artifacts and proved by verification/review/release-readiness artifacts
-- the main skill owns loop control, gate recovery, and rollback routing
+- the main skill owns loop control, gate recovery, rollback routing, and module sequencing
 - stage completion should auto-dispatch the next unblocked stage in the same run by default
+- when PRD splitting yields multiple modules, each module gets its own downstream workspace under `docs/requests/<request-id>/modules/<module-id>/`
+- the framework runs one split module through `architecture-design? -> spec -> plan -> execute -> verify -> review` before moving to the next module
 - workflow-style parallelization is optional execution scale, not a second lifecycle and not a default
 - `verify -> execute`, `review -> execute`, and `execute -> spec/plan` are loop re-entry paths, not a second lifecycle
 - `state.json.loop` is the durable loop audit trail for iteration count, blocking gate, and re-entry reason
-
-## Sample Request Reference
-
-The repository includes a finished sample request at:
-
-`docs/requests/prd-material-delivery-config-center/`
-
-Use this sample to understand:
-
-- the expected request directory shape
-- the quality bar for stage artifacts
-- how a request looks after it reaches `complete`
-
-Do not treat the sample as reusable downstream content for a new request.
+- `state.json.module_execution` is the durable ordered queue for split-module downstream execution

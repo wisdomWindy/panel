@@ -37,6 +37,7 @@ description: Stage subskill for review. Review correctness, standards compliance
    - `../../references/policies/frontend-architecture.md`
    - `../../references/policies/frontend-components.md`
    - `../../references/policies/testing.md`
+   - `../../references/policies/typescript-context.md`
 2. 先读变更后的代码，再开始评审。
 3. 产出 `module-runs/<current-module-id>/review/review.md`。
 4. 把评审结论分成：
@@ -57,16 +58,17 @@ description: Stage subskill for review. Review correctness, standards compliance
 10. 明确写出：
    - `clean-code assessment: pass|fail`
    - `design-pattern assessment: pass|fail`
-11. 如果结论依赖真实依赖方向、ownership boundary、side-effect spread、abstraction fan-out，优先使用 code graph 证据。
-12. 如果 review 扩展或推翻了早先结构理解，更新 `artifacts/code-context.md`。
-13. 保留 `state.json.loop`，不重置、不改写。
-14. 若仍有 blocker，记录后交回主 skill 回流到 `execute`，并在同一 workflow run 中继续。
-15. 若当前模块通过 review，必须要求主 skill 执行模块收口状态迁移：
+11. 如 scoped work 涉及 TypeScript 或依赖 TypeScript 声明才能正确实现的 JavaScript，检查实现是否先恢复了 governing `tsconfig` 与相关声明来源，再进行编码与类型决策；把靠猜测 path aliases、ambient globals、generated types 落地的行为视为流程缺陷。
+12. 如果结论依赖真实依赖方向、ownership boundary、side-effect spread、abstraction fan-out，优先使用 code graph 证据。
+13. 如果 review 扩展或推翻了早先结构理解，更新 `artifacts/code-context.md`。
+14. 保留 `state.json.loop`，不重置、不改写。
+15. 若仍有 blocker，记录后交回主 skill 回流到 `execute`，并在同一 workflow run 中继续。
+16. 若当前模块通过 review，必须要求主 skill 执行模块收口状态迁移：
    - 将当前模块标记为 `completed`
    - 更新 `pending_module_ids` 与 `completed_module_ids`
    - 若仍有待处理模块，则提升下一个模块并切到其首个下游阶段
    - 若无待处理模块，则切到 `stage=complete` 且令 `loop.state=complete`
-16. 在 blocker 未清零前，不允许标记 complete。
+17. 在 blocker 未清零前，不允许标记 complete。
 
 ## 输出格式
 
@@ -101,4 +103,5 @@ description: Stage subskill for review. Review correctness, standards compliance
 - 不能把 clean-code 或 design-pattern 合规性当成默认成立而不写 pass/fail。
 - 不能把 material spec-plan granularity drift 当作无害文档问题。
 - 不能接受无批准 adapter boundary 的 API 集成代码去重复声明服务端 TS 类型或偷偷改写后端字段语义。
+- 不能接受 TypeScript 相关实现建立在未确认 `tsconfig`、未确认声明来源、或全靠猜测的 alias / global / generated-type 假设之上。
 - 在 blocker 未解决前，不能宣称 merge-ready。

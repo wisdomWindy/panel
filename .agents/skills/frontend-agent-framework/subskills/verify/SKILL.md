@@ -28,6 +28,7 @@ description: Stage subskill for verification. Validate the implementation agains
    - `../../references/templates/verify.md`
    - `../../references/policies/testing.md`
    - `../../references/policies/doc-writing.md`
+   - `../../references/policies/typescript-context.md`
 2. 产出 `module-runs/<current-module-id>/verification/verification.md`。
 3. 将每条 acceptance criterion 映射到：
    - verification method
@@ -41,10 +42,11 @@ description: Stage subskill for verification. Validate the implementation agains
    - API docs
    - protobuf contracts
    - backend-owned TypeScript declarations
-9. 在当前模块 `verification/verification.md` 中写出明确的 `spec constraint compliance` pass/fail。
-10. 保留 `state.json.loop`，不重置、不改写。
-11. 若验证失败，明确记录失败原因，交回主 skill 回流到 `execute`，并继续同一 workflow run。
-12. 本阶段不能在没有验证工件的情况下宣称完成。
+9. 如 scoped work 涉及 TypeScript 或依赖 TypeScript 声明才能正确实现的 JavaScript，验证实现是否遵守 governing `tsconfig` 与已确认的相关声明来源，尤其是 alias resolution、ambient types、generated contracts 与 strictness-sensitive assumptions。
+10. 在当前模块 `verification/verification.md` 中写出明确的 `spec constraint compliance` pass/fail。
+11. 保留 `state.json.loop`，不重置、不改写。
+12. 若验证失败，明确记录失败原因，交回主 skill 回流到 `execute`，并继续同一 workflow run。
+13. 本阶段不能在没有验证工件的情况下宣称完成。
 
 ## 输出格式
 

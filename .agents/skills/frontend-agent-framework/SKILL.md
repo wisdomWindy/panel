@@ -38,6 +38,7 @@ Keep the repository-local workflow in control through one default entry skill th
 - Enforce design-pattern discipline so abstractions are introduced only when they solve a real change, dependency, or behavior-selection problem.
 - Enforce repository-context discipline by preferring code graph for structural code understanding when existing-code analysis is material to the request.
 - Enforce backend API contract discipline so frontend integration preserves contract sources, type ownership, field semantics, and explicit adapter boundaries.
+- Enforce TypeScript context discipline so TS-affecting work reads the governing `tsconfig` and relevant declaration sources before coding, without falling into repository-wide declaration-file sweeps.
 
 ## Built-In Constitution
 
@@ -58,6 +59,7 @@ This skill carries its own workflow constitution and does not require `.agents/A
 - Never let code-architecture-sensitive work enter `spec` without a durable `architecture-design` artifact.
 - Never enter `spec` for a PRD-driven request when any requirement-splitting module that needed Markdown normalization is missing either its raw snapshot or its Markdown-normalized snapshot.
 - Never implement before the active delivery unit's approved spec and plan artifacts exist.
+- Never implement TypeScript-affecting code before recovering the governing `tsconfig` and the declaration or generated type sources that materially affect the scoped files.
 - For greenfield work that starts a project, app, package, or frontend surface from scratch, never bypass scaffold selection; prefer the matching project-type scaffold or starter when one exists, and record any justified deviation before implementation.
 - Never declare work complete before the required verification and review artifacts for the active delivery unit exist and pass.
 - Never declare work complete before the required verification artifact explicitly records `spec constraint compliance: pass`.
@@ -90,6 +92,7 @@ If a repository also provides `.agents/AGENTS.md`, treat it as an optional local
 - For bugfix work, accept a readable bug report or a stable bug reference before bugfix intake begins.
 - Acceptable bugfix inputs include a Feishu/Lark project key plus defect/work item ID, a defect detail link, an exported defect document, or a local bug report file path.
 - When a stable Feishu/Lark defect reference is provided and compatible tools exist, prefer automatic defect retrieval before asking the user for manual restatement.
+- For TypeScript-affecting work, identify the governing `tsconfig` chain and the relevant declaration sources before making stage decisions that depend on type, alias, ambient-global, or generated-contract understanding.
 - Do not create downstream artifacts before intake is complete.
 
 ## Dispatch Model
@@ -221,6 +224,7 @@ Workflow rules:
 - Apply `references/policies/spec-constraints.md` as the upstream rule that forces maintainability and abstraction decisions into `spec/spec.md` before planning and coding.
 - Apply `references/policies/code-graph.md` as the rule set for when to use code graph, when to auto-bootstrap it, and when fallback search is acceptable.
 - Apply `references/policies/api-contracts.md` as the rule set for regular API docs, protobuf-backed interfaces, backend-owned TypeScript contract types, and non-TypeScript contract typing.
+- Apply `references/policies/typescript-context.md` as the rule set for recovering governing `tsconfig` context and scoped declaration sources before TypeScript-affecting implementation.
 
 ## Loop State Contract
 
@@ -320,6 +324,7 @@ Load only what is needed:
 - Design-pattern decision policy: `references/policies/design-patterns.md`
 - Spec constraint policy: `references/policies/spec-constraints.md`
 - Code-graph policy: `references/policies/code-graph.md`
+- TypeScript context policy: `references/policies/typescript-context.md`
 - Pattern catalog: `references/patterns/*.md`
 - Artifact shape requirements: `references/templates/*.md`
 - Code-context artifact template: `references/templates/code-context.md`
@@ -342,6 +347,7 @@ Load only what is needed:
 - When marking the request `blocked`, `loop.pending_gate` must name the blocking gate and `loop.state` must be `blocked`.
 - Stop only at real blocking gates such as required approval, missing upstream requirement information, or unavailable external dependency needed for the next stage.
 - Never implement behavior that is not defined, clarified, or accepted in the repository spec artifacts.
+- Never guess a TypeScript target file's active compiler context, path aliases, visible ambient declarations, or generated contract types when the scoped work depends on them; recover that context first.
 - Never hand-roll a greenfield project bootstrap when a suitable project-type scaffold or starter is available unless the approved spec or plan explicitly records why scaffold reuse is unsuitable or unavailable.
 - Never continue `execute` on top of an already-known-invalid `architecture-design` artifact; route back and repair the design first.
 - Never skip test-first execution for testable behavior changes unless the reason is explicitly recorded in repository artifacts.

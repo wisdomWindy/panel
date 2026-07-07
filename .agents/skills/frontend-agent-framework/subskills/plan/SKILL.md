@@ -37,6 +37,7 @@ description: Stage subskill for planning. Convert the approved spec into executi
    - `../../references/policies/clean-code.md`
    - `../../references/policies/spec-constraints.md`
    - `../../references/policies/testing.md`
+   - `../../references/policies/typescript-context.md`
 2. 进入本阶段前，要求当前模块 `approvals.spec_approved=true`。
 3. 产出：
    - `module-runs/<current-module-id>/plan/plan.md`
@@ -76,25 +77,31 @@ description: Stage subskill for planning. Convert the approved spec into executi
    - 再拆脚手架裁剪、目录调整、依赖替换和初始化代码改造
    - 若不使用脚手架，必须把自建 bootstrap 的理由和范围写成任务约束
 15. 服务端有 TS 声明时优先复用；无 TS 声明时，保持服务端字段名并写成 TS 类型；proto 需说明复用生成类型还是从 proto 推导。
-16. 把 clean-code guardrails、pattern decisions、side-effect boundaries、request-layer ownership 写进计划。
-17. 既有代码影响面较大时，优先用 code graph 明确 impact scope，并更新 `artifacts/code-context.md`。
-18. 区分串行任务与可并行任务，仅在确实值得时建议 workflow-style parallel execution。
-19. 如果请求本质是主动式 workflow，写清 trigger / context / observation points / handoff。
-20. 当前模块 `plan/plan.md` 必须使用利于人眼快速扫描的结构：
+16. 如 scoped work 涉及 TypeScript 或依赖 TypeScript 声明才能正确实现的 JavaScript，计划必须显式拆出：
+   - 读取 governing `tsconfig` 与必要的 extends 链
+   - 识别影响当前改动的 compiler options 与 alias / global / module-resolution 约束
+   - 读取与当前作用域相关的声明或生成类型来源
+   - 基于这些约束实施改动与验证
+   不得把“全量扫所有 `.d.ts`”写成默认动作。
+17. 把 clean-code guardrails、pattern decisions、side-effect boundaries、request-layer ownership 写进计划。
+18. 既有代码影响面较大时，优先用 code graph 明确 impact scope，并更新 `artifacts/code-context.md`。
+19. 区分串行任务与可并行任务，仅在确实值得时建议 workflow-style parallel execution。
+20. 如果请求本质是主动式 workflow，写清 trigger / context / observation points / handoff。
+21. 当前模块 `plan/plan.md` 必须使用利于人眼快速扫描的结构：
    - 先给全局摘要
    - 再按任务分节
    - 每个任务都用固定小节展示目标、范围、前置条件、交互、状态、风险、测试
    - 避免输出大段连续散文
-21. 每个任务都必须附一个流程图，默认使用 Mermaid，至少覆盖：
+22. 每个任务都必须附一个流程图，默认使用 Mermaid，至少覆盖：
    - 起点
    - 关键步骤
    - 分支判断
    - 成功出口
    - 失败/回退出口
-22. 如果任务很小，也不能省略流程图；可以使用最小闭环流程图，但不能缺失。
-23. 保留 `state.json.loop`，不重置、不改写。
-24. 本阶段不写实现代码。
-25. 完成后请求用户审批，再设置当前模块 `approvals.plan_approved=true` 并切到 `stage=execute`。
+23. 如果任务很小，也不能省略流程图；可以使用最小闭环流程图，但不能缺失。
+24. 保留 `state.json.loop`，不重置、不改写。
+25. 本阶段不写实现代码。
+26. 完成后请求用户审批，再设置当前模块 `approvals.plan_approved=true` 并切到 `stage=execute`。
 
 ## 输出格式
 

@@ -38,6 +38,7 @@ description: Stage subskill for execution. Implement only approved tasks and kee
    - `../../references/policies/frontend-architecture.md`
    - `../../references/policies/frontend-components.md`
    - `../../references/policies/testing.md`
+   - `../../references/policies/typescript-context.md`
 2. 执行前要求当前模块 `approvals.plan_approved=true`。
 3. 仅实现已批准任务。
 4. 把 spec 与 plan 视为唯一实现合同。
@@ -62,22 +63,29 @@ description: Stage subskill for execution. Implement only approved tasks and kee
    - 有合适脚手架时，优先基于该脚手架落地，而不是手写 bootstrap
    - 只有在 spec / plan 已明确记录脚手架不可用、不适配或改造成本不合理时，才允许自建初始化结构
    - 对脚手架的裁剪、替换和偏离必须受已批准工件约束，不能在执行时临时发明
-13. 对 API 集成工作：
+13. 如果 scoped work 涉及 TypeScript 或依赖 TypeScript 声明才能正确实现的 JavaScript：
+   - 先读取当前目标文件所在作用域的 governing `tsconfig`
+   - 如存在直接 extends 链，继续读取所有会 materially 影响当前目标文件的上游 `tsconfig`
+   - 提取并理解当前改动实际需要的 compiler context，例如路径别名、ambient globals、JSX runtime、strictness、module resolution、generated type visibility
+   - 仅读取与当前改动闭包相关的声明或生成类型来源，例如直接导入类型、package-local `.d.ts`、env shim、backend-owned contract types、proto 生成类型
+   - 不要为了“保险”全量扫描仓库所有 `.d.ts` 或 types 文件
+   - 如果仍无法确认当前目标文件实际受哪套 `tsconfig` 或类型来源约束，停止编码，先补上下文
+14. 对 API 集成工作：
    - 服务端有 TS contract types 时优先复用
    - 非 TS 契约时保留后端字段名并用 TS 类型表达
    - proto 优先复用生成类型，否则从 proto 导出 TS-facing types
    - request transport / contract handling / semantic normalization 保持在 request layer 或 adapter boundary
-14. 既有代码影响较大时，优先用 code graph 确认 impact scope / callers / ownership boundaries。
-15. 如执行中发现新的结构信息，更新 `artifacts/code-context.md`。
-16. 默认串行执行，除非计划明确标注某些 work unit 可并行。
-17. 持续更新：
+15. 既有代码影响较大时，优先用 code graph 确认 impact scope / callers / ownership boundaries。
+16. 如执行中发现新的结构信息，更新 `artifacts/code-context.md`。
+17. 默认串行执行，除非计划明确标注某些 work unit 可并行。
+18. 持续更新：
    - 当前模块 `execution/changelog.md`
    - 当前模块 `plan/task-board.md`
-18. 保持执行过程可观察、可追问、可重定向。
-19. 保留 `state.json.loop`，不重置、不改写。
-20. 如果需求变化或计划暴露出 gap，立即停下并回退到 `spec` 或 `plan`。
-21. 如果是从 verify / review 失败回流而来，继续当前活动 workflow run，不当作全新任务重来。
-22. 本阶段不宣称完成。
+19. 保持执行过程可观察、可追问、可重定向。
+20. 保留 `state.json.loop`，不重置、不改写。
+21. 如果需求变化或计划暴露出 gap，立即停下并回退到 `spec` 或 `plan`。
+22. 如果是从 verify / review 失败回流而来，继续当前活动 workflow run，不当作全新任务重来。
+23. 本阶段不宣称完成。
 
 ## 输出格式
 
@@ -115,6 +123,8 @@ description: Stage subskill for execution. Implement only approved tasks and kee
 - 不能在已证明 `architecture-design` 不合理时继续局部打补丁硬做下去。
 - 不能无批准地本地重写服务端 TS contract types。
 - 不能在无 adapter boundary 的情况下改名非 TS 后端字段。
+- 不能在未读取 governing `tsconfig` 与相关声明来源的情况下猜路径别名、全局类型、JSX 设定、module resolution 或现有 contract types。
+- 不能把“先把全仓 `.d.ts` 都读一遍”当作默认 TypeScript 上下文恢复策略。
 - 不能在存在合适脚手架且未被上游工件否决的情况下手写 greenfield bootstrap。
 - 不能跳过任务跟踪。
 - 不能宣称请求完成。

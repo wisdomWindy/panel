@@ -42,6 +42,7 @@ description: Stage subskill for specification. Turn intake artifacts into the fo
    - `../../references/policies/doc-writing.md`
    - `../../references/policies/frontend-architecture.md`
    - `../../references/policies/spec-constraints.md`
+   - `../../references/policies/typescript-context.md`
 2. 先消费 intake 工件；对 PRD 驱动需求，必须先消费 `requirements/requirement-map.md` 与当前模块工件；如果存在当前模块的 `page-design` 或 `architecture-design`，则再把它们视为上游输入。
 3. 把 `artifacts/prd-snapshot.md` 当作结构化抽取来使用；如果它或 requirement-splitting 工件比原始需求源更薄，必须回看原始 PRD/稳定引用。
 4. 产出：
@@ -76,11 +77,16 @@ description: Stage subskill for specification. Turn intake artifacts into the fo
    - 服务端有 TypeScript 声明则优先复用
    - 非 TS 契约则保留字段名并写成 TS 可用类型
    - protobuf 需说明是复用生成类型还是由 proto 导出前端可用类型
-15. 如涉及既有代码结构调整：
+15. 如 scoped work 涉及 TypeScript 或依赖 TypeScript 声明才能正确实现的 JavaScript，spec 必须记录：
+   - 哪个 `tsconfig` 实际 governs 当前作用域文件
+   - 哪些 compiler options 会 materially 影响实现或类型理解，例如路径别名、ambient globals、JSX runtime、strictness、module resolution
+   - 哪些声明或生成类型来源属于当前改动必须读取的闭包范围
+   - 明确禁止把“后面执行时再猜 tsconfig / 再扫全仓 `.d.ts`”当作实现策略
+16. 如涉及既有代码结构调整：
    - 优先用 code graph 识别真实边界、依赖方向和 impact scope
    - 如结构理解加深，更新 `artifacts/code-context.md`
-16. 不写实现代码。
-17. 完成后请求用户审批，再把当前模块 `approvals.spec_approved=true` 并切到 `stage=plan`。
+17. 不写实现代码。
+18. 完成后请求用户审批，再把当前模块 `approvals.spec_approved=true` 并切到 `stage=plan`。
 
 ## 输出格式
 

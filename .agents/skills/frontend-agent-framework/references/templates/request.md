@@ -5,6 +5,7 @@
 - `docs/requests/<request-id>/request.md`
 - `docs/requests/<request-id>/state.json`
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+- `docs/requests/<request-id>/analysis/requirement-analysis.md` for PRD-driven requests after requirement analysis
 - `docs/requests/<request-id>/requirements/requirement-map.md` for PRD-driven requests after requirement splitting
 
 ## `request.md`
@@ -41,7 +42,7 @@ Required shape:
 {
   "request_id": "...",
   "source": {},
-  "stage": "requirement-splitting",
+  "stage": "requirement-analysis",
   "status": "in_progress",
   "artifacts": {},
   "approvals": {},
@@ -56,8 +57,9 @@ Required shape:
 }
 ```
 
-For PRD-driven requests, initialize `stage` to `requirement-splitting`.
+For PRD-driven requests, initialize `stage` to `requirement-analysis`.
 For bugfix requests normalized through `bugfix-intake`, initialize `stage` to `spec` unless the main skill explicitly routes the defect through requirement splitting.
+Before `requirement-analysis` finishes, no requirement-analysis artifact is assumed.
 Before `requirement-splitting` finishes, `module_flow` may be `null`.
 After `requirement-splitting` finishes for a PRD-driven request, `module_flow` becomes required.
 

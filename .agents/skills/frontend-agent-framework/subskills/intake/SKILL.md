@@ -39,8 +39,8 @@ description: Stage subskill for intake. Create the request workspace from the up
 7. 如果 PRD 已明确给出字段、表格、展示、交互、校验、loading、流程分支等细节，必须将这些显式约束规范化写入 `artifacts/prd-snapshot.md`。
 8. 如果 PRD 本身结构不一致或信息不完整，区分“已确认事实”和“开放问题”，不要混成模糊总结。
 9. 初始化 `state.json.loop`，并把 `stage` 设为：
-   - PRD 驱动需求：`requirement-splitting`
-10. 对 PRD 驱动需求，将 `state.json.module_flow` 初始化为 `null`，由 `requirement-splitting` 负责补全顺序执行队列。
+   - PRD 驱动需求：`requirement-analysis`
+10. 对 PRD 驱动需求，将 `state.json.module_flow` 初始化为 `null`；先由 `requirement-analysis` 固化范围、风险与拆分依据，再由 `requirement-splitting` 负责补全顺序执行队列。
 11. 参考样例 `docs/requests/prd-material-delivery-config-center/` 时，只复用结构和质量基线：
    - 可参考目录结构
    - 必须重写 `README.md`、`request.md`、`state.json`、`artifacts/prd-snapshot.md`
@@ -66,9 +66,9 @@ description: Stage subskill for intake. Create the request workspace from the up
 - `artifacts/prd-snapshot.md` 已生成。
 - `artifacts/prd-snapshot.md` 没有把上游明确行为约束压缩成过粗摘要。
 - `state.json` 已初始化完成，且：
-  - PRD 驱动需求进入 `requirement-splitting`
+  - PRD 驱动需求进入 `requirement-analysis`
 - `state.json.loop` 已按框架规定形状初始化。
-- `state.json.module_flow=null`，等待 `requirement-splitting` 生成模块顺序执行状态。
+- `state.json.module_flow=null`，等待 `requirement-analysis` 与 `requirement-splitting` 继续生成下游状态。
 
 ## 安全边界
 

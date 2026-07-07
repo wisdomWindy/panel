@@ -18,11 +18,13 @@ Keep the repository-local workflow in control through one default entry skill th
 - Establish and preserve the request goal contract so "done" is explicit and checkable.
 - Establish the proactive workflow contract: trigger, context, steerability, and handoff.
 - Enforce the canonical lifecycle:
-  `intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
+  `intake -> requirement-analysis -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
+- Enforce the optional page-design lifecycle for page-oriented requests:
+  `intake -> requirement-analysis -> requirement-splitting -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
 - Enforce the optional architecture-design lifecycle for frontend code-architecture-sensitive requests:
-  `intake -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+  `intake -> requirement-analysis -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
 - Enforce the combined design lifecycle for requests that are both page-oriented and code-architecture-sensitive:
-  `intake -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+  `intake -> requirement-analysis -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
 - Build or recover the active request's lifecycle execution path.
 - For PRD-driven requests that were split into module files, enforce sequential module delivery within the same request:
   one module completes `page-design? -> architecture-design? -> spec -> plan -> execute -> verify -> review` before the next module starts.
@@ -46,14 +48,16 @@ This skill carries its own workflow constitution and does not require `.agents/A
 
 - Default entrypoint: use this skill as the single workflow entrypoint.
 - New requirement: decompose the request into the full lifecycle and start from `intake`.
+- PRD-driven requirement: after `intake`, always run `requirement-analysis` before `requirement-splitting`.
 - Page-oriented requirement: after `requirement-splitting`, insert `page-design` before `spec` when layout, styling, or interaction structure is a material part of the request.
 - Code-architecture-sensitive requirement: after `requirement-splitting`, insert `architecture-design` before `spec` when code module design, file structure design, code relationship design, function design, data structure design, or type design is a material part of the request.
 - If a request is both page-oriented and code-architecture-sensitive, run `page-design` before `architecture-design`, then enter `spec`.
-- PRD-driven requirement: after `intake`, always run `requirement-splitting` before `page-design`, `architecture-design`, or `spec`.
+- PRD-driven requirement: after `requirement-analysis`, always run `requirement-splitting` before `page-design`, `architecture-design`, or `spec`.
 - Defect input: normalize the bug through `bugfix-intake` before entering the standard lifecycle.
 - Existing request: resume from `docs/requests/<request-id>/state.json`, recover the current stage, and continue orchestrating from there.
 - Existing request: preserve or repair `state.json.loop`, resume the active loop, and continue orchestrating from there.
 - Never start coding before a request workspace exists under `docs/requests/<request-id>/`.
+- Never enter `requirement-splitting` for a PRD-driven request before a durable `requirement-analysis` artifact exists.
 - Never enter `page-design`, `architecture-design`, `spec`, or `plan` for a PRD-driven request before durable requirement-splitting artifacts exist.
 - Never let a later split module enter downstream stages while an earlier split module has not yet passed `review`.
 - Never let code-architecture-sensitive work enter `spec` without a durable `architecture-design` artifact.
@@ -101,20 +105,21 @@ Follow this order:
 
 1. Classify whether the request is a new requirement or an in-flight request.
 2. If the input is a defect or bug report, first route it through `bugfix-intake` to create the standard request workspace.
-3. If the request is a PRD-driven requirement, route it through `requirement-splitting` after `intake`.
-4. If `requirement-splitting` produced module files, select exactly one current module from `state.json.module_flow.current_module_id`.
-5. If the current delivery unit is page-oriented, insert `page-design` between the current stage and the next design-or-spec stage.
-6. If the current delivery unit is code-architecture-sensitive, insert `architecture-design` before `spec`.
-7. Build or recover the lifecycle execution path for:
-   - `intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
-   - `intake -> requirement-splitting -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
-   - `intake -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
-   - `intake -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
-8. Validate lifecycle gates against this skill's built-in constitution and `references/state-machine.md`.
-9. Load only the subskill for the current stage.
-10. After the current stage finishes, determine whether the current delivery unit can advance, must roll back, or has completed its closed loop.
-11. If the current split module passed `review`, advance `state.json.module_flow` to the next pending module and enter that module's first required downstream stage.
-12. Continue stage-by-stage until the request reaches `complete` or a required gate blocks progress.
+3. If the request is a PRD-driven requirement, route it through `requirement-analysis` after `intake`.
+4. After `requirement-analysis`, route the same PRD-driven request through `requirement-splitting`.
+5. If `requirement-splitting` produced module files, select exactly one current module from `state.json.module_flow.current_module_id`.
+6. If the current delivery unit is page-oriented, insert `page-design` between the current stage and the next design-or-spec stage.
+7. If the current delivery unit is code-architecture-sensitive, insert `architecture-design` before `spec`.
+8. Build or recover the lifecycle execution path for:
+   - `intake -> requirement-analysis -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
+   - `intake -> requirement-analysis -> requirement-splitting -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
+   - `intake -> requirement-analysis -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+   - `intake -> requirement-analysis -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+9. Validate lifecycle gates against this skill's built-in constitution and `references/state-machine.md`.
+10. Load only the subskill for the current stage.
+11. After the current stage finishes, determine whether the current delivery unit can advance, must roll back, or has completed its closed loop.
+12. If the current split module passed `review`, advance `state.json.module_flow` to the next pending module and enter that module's first required downstream stage.
+13. Continue stage-by-stage until the request reaches `complete` or a required gate blocks progress.
 
 This workflow must be executed strictly in the defined lifecycle order.
 Do not skip, merge, reorder, or bypass stages unless the rollback rules explicitly allow it.
@@ -161,7 +166,7 @@ Loop rules:
 
 - Process only one current action per loop iteration.
 - After each completed stage or recovered gate, re-enter the loop and decide again.
-- Treat `requirement-splitting` as a full lifecycle stage with its own exit criteria and loop re-entry, not as an intake footnote.
+- Treat `requirement-analysis` and `requirement-splitting` as full lifecycle stages with their own exit criteria and loop re-entry, not as intake footnotes.
 - For split PRD-driven requests, treat `review -> next module` as a same-run loop continuation, not as a new request.
 - After `execute`, `verify`, or `review`, continue looping immediately unless the request is truly blocked or has reached `complete`.
 - Unless the request is truly `blocked` or has reached `complete`, do not stop the workflow or emit a terminal completion-style response; continue the next loop action in the same active workflow run.
@@ -188,7 +193,8 @@ Workflow rules:
 
 - Decompose every request into the full lifecycle stage sequence, even when only one immediate stage is active.
 - Normalize bugfix inputs into the same request workspace structure used by PRD-driven requests.
-- For PRD-driven requirements, force a durable requirement-splitting pass before any design, specification, or planning work begins.
+- For PRD-driven requirements, force a durable `requirement-analysis -> requirement-splitting` pass before any design, specification, or planning work begins.
+- Treat requirement analysis as the explicit需求理解阶段: it must fix scope, non-goals, ambiguity visibility, dependency awareness, and splitting rationale before module decomposition begins.
 - Treat requirement splitting as source-preserving normalization: it must split modules and functional units without inventing behavior, implementation, or UX detail that is not grounded in the source.
 - For page-oriented requests, treat page design as a required upstream input to `spec`, not as an implementation detail.
 - For code-architecture-sensitive requests, treat `architecture-design` as a required upstream input to `spec`, not as an implementation detail.
@@ -199,6 +205,7 @@ Workflow rules:
 - After each stage, re-read the request state and evaluate whether the next gate is satisfied.
 - If the next gate is already satisfied, continue automatically to the next stage.
 - For PRD-driven requirements, do not allow `spec` to rediscover modules directly from the raw PRD when `requirement-splitting` artifacts are expected; first repair or regenerate the split artifacts.
+- For PRD-driven requirements, do not let `requirement-splitting` silently invent scope, non-goals, or splitting rationale that should already have been fixed in `requirement-analysis`; first repair or regenerate the analysis artifact.
 - For PRD-driven requirements, do not allow `spec` to start when a normalized module lacks either the raw snapshot or the Markdown-normalized snapshot; first recover the missing companion artifact and then re-check the gate.
 - For PRD-driven requirements with split modules, do not let `spec`, `plan`, `execute`, `verify`, or `review` span multiple modules at once; downstream work must stay scoped to the active module.
 - If `execute` discovers that the approved `architecture-design` is materially incompatible with actual code constraints, repository structure, dependency boundaries, function organization, or type/data-shape reality, route immediately back to `architecture-design` and continue the same workflow run through `architecture-design -> spec -> plan -> execute` without waiting for a new user prompt.
@@ -300,6 +307,7 @@ Forbidden examples:
 
 - New requirement with a readable PRD document or stable PRD reference: load `subskills/intake/SKILL.md`
 - Bug or defect input with a readable bug report or stable bug reference: load `subskills/bugfix-intake/SKILL.md`
+- Existing PRD-driven request with `stage=requirement-analysis`: load `subskills/requirement-analysis/SKILL.md`
 - Existing PRD-driven request with `stage=requirement-splitting`: load `subskills/requirement-splitting/SKILL.md`
 - Page-oriented request with `stage=page-design`: load `subskills/page-design/SKILL.md`
 - Code-architecture-sensitive request with `stage=architecture-design`: load `subskills/architecture-design/SKILL.md`
@@ -327,6 +335,7 @@ Load only what is needed:
 - TypeScript context policy: `references/policies/typescript-context.md`
 - Pattern catalog: `references/patterns/*.md`
 - Artifact shape requirements: `references/templates/*.md`
+- Requirement analysis artifact shape: `references/templates/requirement-analysis.md`
 - Code-context artifact template: `references/templates/code-context.md`
 - Bugfix intake artifact shape: `references/templates/bugfix-intake.md`
 - Page design artifact shape: `references/templates/page-design.md`
@@ -335,6 +344,7 @@ Load only what is needed:
 ## Hard Gates
 
 - Never code before the request workspace exists.
+- Never let a PRD-driven request enter `requirement-splitting` without a requirement-analysis artifact that fixes scope, non-goals, visible ambiguities, and splitting rationale.
 - Never implement before the active delivery unit's approved spec and plan exist.
 - Never let page-oriented work enter `spec` without a page design artifact when layout, styling, or interaction structure is a material requirement.
 - Never let code-architecture-sensitive work enter `spec` without an architecture design artifact when module boundaries, file structure, code relationships, function structure, data structures, or type strategy materially affect the solution shape.
@@ -392,6 +402,7 @@ Stage actions belong only to subskills.
 
 - If a stage uncovers missing product decisions, record them in repository artifacts instead of silently filling the gap.
 - If a requirement changes during execution, stop coding, set loop re-entry reason to `requirement_changed`, and route back to `spec` or `plan`.
+- If upstream requirement meaning changes enough to alter request scope, non-goals, key dependencies, or the basis for splitting, route back to `requirement-analysis` before continuing toward `requirement-splitting` or downstream stages.
 - If the requirement change alters split-module boundaries or sequencing, route back to `requirement-splitting` and regenerate `module_flow`.
 - If execution shows the current `architecture-design` is materially unreasonable, infeasible, or contradicted by actual code constraints, stop coding, set loop re-entry reason to `architecture_design_invalidated`, and route back to `architecture-design`, then continue `architecture-design -> spec -> plan -> execute` in the same active workflow run.
 - If verification fails, set loop re-entry reason to `verification_failed` and route back to `execute`.

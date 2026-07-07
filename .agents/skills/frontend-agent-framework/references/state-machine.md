@@ -7,6 +7,7 @@ For PRD-driven requests that finished `requirement-splitting`, stages after spli
 ## Stages
 
 - intake
+- requirement-analysis
 - requirement-splitting
 - page-design
 - architecture-design
@@ -25,6 +26,7 @@ For PRD-driven requests that finished `requirement-splitting`, stages after spli
 
 ## Required Gates
 
+- requirement-analysis artifact before `requirement-splitting` for PRD-driven requests
 - page design artifact for the active module before `spec` when that module is page-oriented
 - architecture design artifact for the active module before `spec` when that module is code-architecture-sensitive
 - requirement-splitting artifacts before `page-design`, `architecture-design`, or `spec` for PRD-driven requests
@@ -39,6 +41,7 @@ For PRD-driven requests that finished `requirement-splitting`, stages after spli
 | Current condition | Loop action | Result |
 | --- | --- | --- |
 | Stage exit criteria satisfied and next gate satisfied | advance stage | enter the next lifecycle stage |
+| PRD-driven request has no requirement-analysis artifact yet | dispatch stage | enter `requirement-analysis` after `intake` and before `requirement-splitting` |
 | PRD-driven request has no requirement-splitting artifacts yet | dispatch stage | enter `requirement-splitting` before `page-design`, `architecture-design`, or `spec` |
 | PRD-driven request has a normalized module missing either raw or normalized companion snapshot | recover gate | stay before `spec`, restore the missing companion artifact, then re-check the gate |
 | Current split module passes `review` and pending split modules remain | advance stage | mark the current module completed, update module queues, promote the next pending module to `current_module_id`, and enter its first required downstream stage |
@@ -73,6 +76,7 @@ For PRD-driven requests that finished `requirement-splitting`, stages after spli
 
 - Requirement change during execute: back to `spec` or `plan` with `reentry_reason=requirement_changed`
 - Architecture design invalidated during execute: back to `architecture-design` with `reentry_reason=architecture_design_invalidated`
+- If upstream requirement content changes enough to alter request scope, non-goals, major dependencies, or the splitting basis, back to `requirement-analysis` with `reentry_reason=requirement_changed`
 - If upstream requirement content changes enough to alter module boundaries, back to `requirement-splitting` with `reentry_reason=requirement_changed`
 - Verification failure: back to `execute` with `reentry_reason=verification_failed`
 - Blocking review finding: back to `execute` with `reentry_reason=review_blocked`

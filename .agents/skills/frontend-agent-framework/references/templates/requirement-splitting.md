@@ -2,6 +2,7 @@
 
 ## Required Artifact Paths
 
+- `docs/requests/<request-id>/analysis/requirement-analysis.md`
 - `docs/requests/<request-id>/requirements/requirement-map.md`
 - `docs/requests/<request-id>/requirements/modules/<module-id>.md`
 
@@ -10,6 +11,7 @@
 Required sections:
 
 - request summary
+- analysis carry-forward
 - splitting principles
 - source inventory
 - markdown normalization notes
@@ -19,6 +21,16 @@ Required sections:
 - page-design candidates
 - spec carry-forward checklist
 - open questions and unresolved ambiguities
+
+### `analysis carry-forward`
+
+Document what the preceding `requirement-analysis` stage fixed as upstream constraints for splitting, including:
+
+- confirmed scope
+- non-goals
+- ambiguity notes that still remain open
+- dependencies that affect module boundaries
+- any request-level routing or sequencing signal that splitting must preserve
 
 ### `module list`
 

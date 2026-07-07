@@ -23,19 +23,19 @@ It also treats proactive workflow design as a first-class concern:
 
 The canonical request lifecycle is:
 
-`intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
+`intake -> requirement-analysis -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
 
 For page-oriented requests, insert the optional design stage before spec:
 
-`intake -> requirement-splitting -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
+`intake -> requirement-analysis -> requirement-splitting -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
 
 For code-architecture-sensitive requests, insert the optional architecture design stage before spec:
 
-`intake -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+`intake -> requirement-analysis -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
 
 When a request is both page-oriented and code-architecture-sensitive, the combined design path is:
 
-`intake -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+`intake -> requirement-analysis -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
 
 The lifecycle above is the delivery path. The main `frontend-agent-framework` skill controls that path through a loop orchestrator:
 
@@ -44,6 +44,7 @@ The lifecycle above is the delivery path. The main `frontend-agent-framework` sk
 In this framework:
 
 - `subskills/` own stage execution only
+- `requirement-analysis` is the explicit需求理解阶段 for PRD-driven work and fixes scope, non-goals, ambiguity, risk, and splitting strategy before decomposition begins
 - `requirement-splitting` is the source-preserving decomposition stage for PRD-driven work and feeds `page-design`, `architecture-design`, and `spec`
 - for PRD-driven work that has been split into module files, downstream delivery runs one split module at a time inside the same request
 - each split module must complete its own `page-design? -> architecture-design? -> spec -> plan -> execute -> verify -> review` chain before the next split module starts

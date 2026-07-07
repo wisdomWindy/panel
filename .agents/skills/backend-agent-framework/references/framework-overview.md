@@ -16,11 +16,11 @@ This framework separates three independent control dimensions:
 
 The canonical request lifecycle is:
 
-`intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
+`intake -> requirement-analysis -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
 
 For backend-structural requests, insert the optional design stage before spec:
 
-`intake -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+`intake -> requirement-analysis -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
 
 The lifecycle above is the delivery path. The main `backend-agent-framework` skill controls that path through a loop orchestrator:
 
@@ -29,6 +29,7 @@ The lifecycle above is the delivery path. The main `backend-agent-framework` ski
 In this framework:
 
 - `subskills/` own stage execution only
+- `requirement-analysis` is the durable analysis stage for PRD-driven work and captures scope, ambiguities, hidden constraints, and split strategy before decomposition
 - `requirement-splitting` is the source-preserving decomposition stage for PRD-driven work and feeds ordered per-module downstream execution
 - the goal contract is established in request/spec artifacts and proved by verification/review/release-readiness artifacts
 - the main skill owns loop control, gate recovery, rollback routing, and module sequencing

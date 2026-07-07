@@ -13,6 +13,7 @@ description: Stage subskill for planning. Convert the approved backend spec into
 
 - `docs/requests/<request-id>/modules/<active-module-id>/spec/spec.md`
 - `docs/requests/<request-id>/modules/<active-module-id>/spec/clarifications.md`
+- `docs/requests/<request-id>/requirements/requirement-analysis.md`（如存在）
 - `docs/requests/<request-id>/requirements/requirement-map.md`（如存在）
 - `docs/requests/<request-id>/requirements/modules/<active-module-id>.md`（如存在）
 - `docs/requests/<request-id>/state.json`
@@ -24,6 +25,7 @@ description: Stage subskill for planning. Convert the approved backend spec into
    - `docs/requests/<request-id>/state.json`
    - `docs/requests/<request-id>/modules/<active-module-id>/spec/spec.md`
    - `docs/requests/<request-id>/modules/<active-module-id>/spec/clarifications.md`
+   - `docs/requests/<request-id>/requirements/requirement-analysis.md`（如存在）
    - `docs/requests/<request-id>/requirements/requirement-map.md`（如存在）
    - `docs/requests/<request-id>/requirements/modules/<active-module-id>.md`（如存在）
    - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）

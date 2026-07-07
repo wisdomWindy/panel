@@ -5,6 +5,7 @@
 - `docs/requests/<request-id>/request.md`
 - `docs/requests/<request-id>/state.json`
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+- PRD 驱动请求在 requirement analysis 之后还需要 `docs/requests/<request-id>/requirements/requirement-analysis.md`
 - PRD 驱动请求在 requirement splitting 之后还需要 `docs/requests/<request-id>/requirements/requirement-map.md`
 - PRD 驱动且已拆分的请求，在下游执行阶段还需要 `docs/requests/<request-id>/modules/<module-id>/...` 模块工作区
 
@@ -42,7 +43,7 @@
 {
   "request_id": "...",
   "source": {},
-  "stage": "requirement-splitting",
+  "stage": "requirement-analysis",
   "status": "in_progress",
   "artifacts": {},
   "approvals": {},
@@ -56,7 +57,7 @@
 }
 ```
 
-对于 PRD 驱动请求，初始化 `stage` 为 `requirement-splitting`。  
+对于 PRD 驱动请求，初始化 `stage` 为 `requirement-analysis`。  
 对于经 `bugfix-intake` 归一化的 bugfix 请求，初始化 `stage` 为：
 
 - `architecture-design`：当修复变更了对外契约形态、服务边界、持久化模型、异步拓扑或跨服务集成边界
@@ -123,6 +124,21 @@ PRD 驱动请求的必需章节：
 - architecture-design 路由提示
 - spec 输入检查清单
 - 开放问题
+
+## `requirements/requirement-analysis.md`
+
+PRD 驱动请求的必需章节：
+
+- 需求目标与业务价值
+- 范围内事项
+- 范围外事项
+- 关键参与者与调用方
+- 显式约束归纳
+- 隐含约束与假设
+- 核心流程与状态分析
+- 风险、歧义与待确认项
+- 拆分策略与建议拆分轴
+- requirement-splitting 输入检查清单
 
 ## `requirements/modules/<module-id>.md`
 

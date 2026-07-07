@@ -13,6 +13,7 @@ description: Stage subskill for architecture design. Define backend boundaries, 
 
 - `docs/requests/<request-id>/request.md`
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+- `docs/requests/<request-id>/requirements/requirement-analysis.md`
 - `docs/requests/<request-id>/requirements/requirement-map.md`
 - `docs/requests/<request-id>/requirements/modules/<active-module-id>.md`
 - `docs/requests/<request-id>/state.json`
@@ -23,6 +24,7 @@ description: Stage subskill for architecture design. Define backend boundaries, 
    - `docs/requests/<request-id>/state.json`
    - `docs/requests/<request-id>/request.md`
    - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+   - `docs/requests/<request-id>/requirements/requirement-analysis.md`
    - `docs/requests/<request-id>/requirements/requirement-map.md`
    - `docs/requests/<request-id>/requirements/modules/<active-module-id>.md`
    - `../../references/framework-overview.md`
@@ -40,7 +42,7 @@ description: Stage subskill for architecture design. Define backend boundaries, 
 5. 明确定义职责边界、接口面、调用链与执行路径、领域流程、数据所有权、事务/一致性策略、幂等/重试/超时/失败补偿、观测点与人工干预点。
 6. 如涉及 gRPC 或 Kubernetes，补充对应企业级契约与运行时约束。
 7. 设计结果必须足够稳定，使当前模块的 `spec` 能把它当作上游输入。
-8. 必须以 `requirements/requirement-map.md` 与当前活动模块工件为范围来源，不得越权设计尚未轮到的其他模块。
+8. 必须以 `requirements/requirement-analysis.md`、`requirements/requirement-map.md` 与当前活动模块工件为范围来源，不得越权设计尚未轮到的其他模块。
 9. 保留 `state.json.loop`，不重置、不改写。
 10. 本阶段完成时，更新当前模块的 `module_states.<active-module-id>.current_stage=spec`。
 11. 本阶段不写代码。

@@ -7,6 +7,7 @@
 
 ## `modules/<module-id>/spec/spec.md`
 
+当 `requirements/requirement-analysis.md` 存在时，把它视为 PRD 驱动请求的上游分析基线，并承接其中的范围边界、隐含约束、关键歧义结论与拆分策略。  
 当 `requirements/requirement-map.md` 存在时，把它视为 PRD 驱动请求的必需上游输入，并在当前模块 spec 中保留本模块的来源追踪与承接检查清单。  
 当 `modules/<module-id>/design/architecture-design.md` 存在时，把它视为当前模块的必需上游输入，并把其中的边界、接口、流程、持久化和一致性决策承接进 spec。  
 验收标准必须充当当前模块的运行级目标合同：具体、可观察，且尽量可机器检查。

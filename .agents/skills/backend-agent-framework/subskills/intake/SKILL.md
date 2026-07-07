@@ -26,6 +26,7 @@ description: Stage subskill for intake. Create the request workspace from the up
    - `../../references/state-machine.md`
    - `../../references/authoring-guide.md`
    - `../../references/templates/request.md`
+   - `../../references/templates/requirement-analysis.md`
 2. 读取 PRD 文档或解析稳定 PRD 引用，再开始创建下游工件。
 3. 创建 `docs/requests/<request-id>/` 作为标准请求工作区。
 4. 只写 intake 阶段工件，不写 `spec/spec.md`，不写实现代码。
@@ -39,7 +40,7 @@ description: Stage subskill for intake. Create the request workspace from the up
 7. 在 `artifacts/prd-snapshot.md` 中做结构化提取，而不是薄摘要。
 8. 如果 PRD 已明确给出接口、状态机、任务流程、字段约束、错误码、权限、幂等、回调、迁移、回滚、观测要求，必须将这些显式约束规范化写入 `artifacts/prd-snapshot.md`。
 9. 如果 PRD 本身结构不一致或信息不完整，区分“已确认事实”和“开放问题”，不要混成模糊总结。
-10. 初始化 `state.json.loop`，并把 `stage` 设为 `requirement-splitting`。
+10. 初始化 `state.json.loop`，并把 `stage` 设为 `requirement-analysis`。
 11. 参考样例 `docs/requests/prd-material-delivery-config-center/` 时，只复用结构和质量基线，不得沿用样例中的业务内容。
 
 ## 输出格式
@@ -56,7 +57,7 @@ description: Stage subskill for intake. Create the request workspace from the up
 - `request.md` 已记录明确目标、初始 done signal、触发条件、最小上下文、人工交接点。
 - `artifacts/prd-snapshot.md` 已生成。
 - `artifacts/prd-snapshot.md` 没有把上游明确行为约束压缩成过粗摘要。
-- `state.json.stage=requirement-splitting`。
+- `state.json.stage=requirement-analysis`。
 - `state.json.loop` 已按框架规定形状初始化。
 
 ## 安全边界

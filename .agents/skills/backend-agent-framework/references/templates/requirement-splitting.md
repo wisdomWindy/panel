@@ -2,6 +2,7 @@
 
 ## 必需工件路径
 
+- `docs/requests/<request-id>/requirements/requirement-analysis.md`
 - `docs/requests/<request-id>/requirements/requirement-map.md`
 - `docs/requests/<request-id>/requirements/modules/<module-id>.md`
 - `docs/requests/<request-id>/state.json` 中的 `module_execution`
@@ -10,6 +11,7 @@
 
 必需章节：
 
+- 需求分析摘要
 - 请求摘要
 - 拆分原则
 - 来源清单
@@ -67,6 +69,15 @@
 - 事件载荷与投递规则
 - 数据字段与 schema 约束
 - 重试、超时、幂等、权限、迁移、回滚与观测性规则
+
+### `需求分析摘要`
+
+这一节必须承接 `requirements/requirement-analysis.md` 的关键结论，至少包括：
+
+- 范围边界
+- 关键歧义是否已降到可拆分程度
+- 推荐拆分轴
+- 不能拆散的语义边界
 
 ## `requirements/modules/<module-id>.md`
 

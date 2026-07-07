@@ -13,6 +13,7 @@ description: Stage subskill for specification. Turn intake artifacts into the fo
 
 - `docs/requests/<request-id>/request.md`
 - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+- `docs/requests/<request-id>/requirements/requirement-analysis.md`（PRD 驱动需求必需）
 - `docs/requests/<request-id>/requirements/requirement-map.md`（PRD 驱动需求必需）
 - `docs/requests/<request-id>/requirements/modules/<active-module-id>.md`（PRD 驱动拆分模块必需）
 - `docs/requests/<request-id>/state.json`
@@ -25,6 +26,7 @@ description: Stage subskill for specification. Turn intake artifacts into the fo
    - `docs/requests/<request-id>/state.json`
    - `docs/requests/<request-id>/request.md`
    - `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+   - `docs/requests/<request-id>/requirements/requirement-analysis.md`
    - `docs/requests/<request-id>/requirements/requirement-map.md`
    - `docs/requests/<request-id>/requirements/modules/<active-module-id>.md`
    - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
@@ -46,7 +48,7 @@ description: Stage subskill for specification. Turn intake artifacts into the fo
    - `../../references/policies/grpc-enterprise.md`
    - `../../references/policies/k8s-enterprise.md`
 2. 从 `state.json.module_execution.active_module_id` 恢复当前活动模块；若不存在，则只对未拆分的单请求流使用请求级兜底。
-3. 对 PRD 驱动需求，必须先消费 `requirements/requirement-map.md` 与当前模块工件；如果当前模块存在 architecture-design，则再把它视为上游输入。
+3. 对 PRD 驱动需求，必须先消费 `requirements/requirement-analysis.md`、`requirements/requirement-map.md` 与当前模块工件；如果当前模块存在 architecture-design，则再把它视为上游输入。
 4. 仅为当前活动模块产出：
    - `modules/<active-module-id>/spec/spec.md`
    - `modules/<active-module-id>/spec/clarifications.md`
@@ -73,7 +75,7 @@ description: Stage subskill for specification. Turn intake artifacts into the fo
 - spec 已记录责任边界、side effect、复杂度边界、模式决策、安全约束与发布/回滚约束。
 - 若使用 MySQL、Redis、Kafka、gRPC 或 Kubernetes，spec 已记录对应企业级架构与运行约束。
 - `modules/<active-module-id>/spec/clarifications.md` 已记录开放问题与已定决策。
-- 若存在 requirement-splitting 或当前模块 architecture-design 工件，spec 已完整承接其显式行为约束。
+- 若存在 requirement-analysis、requirement-splitting 或当前模块 architecture-design 工件，spec 已完整承接其显式行为约束。
 - spec 已被隐式或显式审批。
 - `state.json.approvals.spec_approved=true`，`state.json.stage=plan`，当前活动模块已切到 `plan`，且保留原有 `loop`。
 

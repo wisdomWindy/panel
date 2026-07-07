@@ -20,9 +20,9 @@ Keep the repository-local backend workflow in control through one default entry 
 - Enforce full-scope delivery by default: requirement splitting is for decomposition and ordered execution, not for handing priority selection back to the user.
 - Enforce autonomous progression by default: once a request enters the lifecycle, continue through every non-blocked stage in the same active run.
 - Enforce the canonical lifecycle:
-  `intake -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
+  `intake -> requirement-analysis -> requirement-splitting -> spec -> plan -> execute -> verify -> review -> complete`
 - Enforce the optional structure-design lifecycle for backend-structural requests:
-  `intake -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+  `intake -> requirement-analysis -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
 - For PRD-driven requests, convert split requirement modules into ordered downstream execution units and run them sequentially.
 - Run the loop orchestrator:
   `observe state -> decide next action -> dispatch one stage or gate recovery action -> observe result -> iterate`
@@ -38,13 +38,14 @@ This skill carries its own workflow constitution and does not require `.agents/A
 - Default entrypoint: use this skill as the single workflow entrypoint.
 - New requirement: decompose the request into the full lifecycle and start from `intake`.
 - Backend-structural requirement: after `requirement-splitting`, insert `architecture-design` before `spec` when interface surfaces, service boundaries, workflow orchestration, persistence models, async topology, or cross-service integration shape is a material part of the request.
-- PRD-driven requirement: after `intake`, always run `requirement-splitting` before `architecture-design` or `spec`.
+- PRD-driven requirement: after `intake`, always run `requirement-analysis`, then `requirement-splitting`, before `architecture-design` or `spec`.
 - PRD-driven requirement: unless the source itself defines phases, milestones, or optional scope branches, treat all in-scope modules as one ordered queue of downstream module lifecycles and execute them from first to last without asking the user to reprioritize.
 - Default approval mode: `spec` and `plan` approvals are implicit inside the same active workflow run unless the user explicitly asks for a checkpoint or a real blocking decision remains unresolved.
 - Defect input: normalize the bug through `bugfix-intake`, then route it to `architecture-design` or `spec` based on whether the fix changes backend structure.
 - Existing request: resume from `docs/requests/<request-id>/state.json`, recover the current stage, and continue orchestrating from there.
 - Existing PRD-driven split request: preserve or repair `state.json.module_execution`, recover `active_module_id`, and continue the current module lifecycle before advancing to the next module.
 - Never start coding before a request workspace exists under `docs/requests/<request-id>/`.
+- Never enter `requirement-splitting` for a PRD-driven request before durable requirement-analysis artifacts exist.
 - Never enter `architecture-design`, `spec`, or `plan` for a PRD-driven request before durable requirement-splitting artifacts exist.
 - Never implement a split module before that module's approved `modules/<module-id>/spec/spec.md` and `modules/<module-id>/plan/plan.md` exist.
 - Never declare a split module complete before that module's `verification/verification.md`, `review/review.md`, and `release/release-readiness.md` all exist and pass.
@@ -55,7 +56,7 @@ This skill carries its own workflow constitution and does not require `.agents/A
 - Never treat loop progress as proof of completion.
 - Never stop merely because one task, one module, or one stage summary was completed when the next lifecycle action is already known and unblocked.
 - Never turn module decomposition into a new prioritization question unless the source explicitly offers mutually exclusive rollout choices or a real blocking ambiguity prevents ordering.
-- When requirements change, update request artifacts first and roll the request back to `spec`, `plan`, or `requirement-splitting`.
+- When requirements change, update request artifacts first and roll the request back to `spec`, `plan`, `requirement-splitting`, or `requirement-analysis`.
 - The main skill owns lifecycle decomposition, progression control, gate checks, and stage routing.
 - Stage subskills own stage-local execution rules only.
 - Policy and template material lives under `references/` and is loaded on demand.
@@ -80,22 +81,23 @@ Follow this order:
 
 1. Classify whether the request is a new requirement, a bugfix, or an in-flight request.
 2. If the input is a defect or bug report, first route it through `bugfix-intake`.
-3. If the request is a PRD-driven requirement, route it through `requirement-splitting` after `intake`.
-4. If the request is backend-structural, insert `architecture-design` between `requirement-splitting` and `spec`.
-5. Build or recover the lifecycle execution path:
+3. If the request is a PRD-driven requirement, route it through `requirement-analysis` after `intake`.
+4. After requirement analysis, route PRD-driven work through `requirement-splitting`.
+5. If the request is backend-structural, insert `architecture-design` between `requirement-splitting` and `spec`.
+6. Build or recover the lifecycle execution path:
    - bugfix or non-split work:
      `intake|bugfix-intake -> architecture-design? -> spec -> plan -> execute -> verify -> review -> complete`
    - PRD-driven split work:
-     `intake -> requirement-splitting -> [module-1 full lifecycle] -> [module-2 full lifecycle] -> ... -> complete`
-6. For PRD-driven split work, initialize or recover `state.json.module_execution`:
+     `intake -> requirement-analysis -> requirement-splitting -> [module-1 full lifecycle] -> [module-2 full lifecycle] -> ... -> complete`
+7. For PRD-driven split work, initialize or recover `state.json.module_execution`:
    - choose deterministic `module_order`
    - choose `active_module_id`
    - map each module to its downstream entry stage: `architecture-design` or `spec`
    - keep downstream artifacts isolated under `docs/requests/<request-id>/modules/<module-id>/`
-7. Validate lifecycle gates against this skill's built-in constitution and `references/state-machine.md`.
-8. Load only the subskill for the current stage.
-9. After the current stage finishes, determine whether the next stage of the active module can start immediately, whether the module should advance to its next stage, or whether control should move to the next module.
-10. Continue stage-by-stage in the same active run until the active module and then the whole request reach `complete`, or a required gate truly blocks progress.
+8. Validate lifecycle gates against this skill's built-in constitution and `references/state-machine.md`.
+9. Load only the subskill for the current stage.
+10. After the current stage finishes, determine whether the next stage of the active module can start immediately, whether the module should advance to its next stage, or whether control should move to the next module.
+11. Continue stage-by-stage in the same active run until the active module and then the whole request reach `complete`, or a required gate truly blocks progress.
 
 When requirement splitting yields multiple modules or functional units, do not collapse them back into one shared downstream `spec/plan/execute` track. Execute `模块 A` full lifecycle, then `模块 B` full lifecycle, and continue in dependency-aware source order until all modules are accepted.
 
@@ -133,6 +135,7 @@ Loop rules:
 - Process only one current action per loop iteration.
 - After each completed stage or recovered gate, re-enter the loop and decide again.
 - After each completed stage, prefer immediate dispatch of the next unblocked stage over returning control to the user.
+- Treat `requirement-analysis` as a full lifecycle stage with its own exit criteria and loop re-entry.
 - Treat `requirement-splitting` as a full lifecycle stage with its own exit criteria and loop re-entry.
 - For split work, treat review pass on the active module as a module-boundary event: if more modules remain, immediately advance `active_module_id` and enter that next module's entry stage.
 - After `execute`, `verify`, or `review`, continue looping immediately unless the request is truly blocked or has reached `complete`.
@@ -145,6 +148,7 @@ For PRD-driven split requests, downstream execution is module-scoped and sequent
 
 - Top-level request artifacts remain under `docs/requests/<request-id>/`.
 - Requirement artifacts remain under:
+  - `docs/requests/<request-id>/requirements/requirement-analysis.md`
   - `docs/requests/<request-id>/requirements/requirement-map.md`
   - `docs/requests/<request-id>/requirements/modules/<module-id>.md`
 - Each split module gets its own downstream workspace:
@@ -157,6 +161,7 @@ For PRD-driven split requests, downstream execution is module-scoped and sequent
   - `docs/requests/<request-id>/modules/<module-id>/release/release-readiness.md`
 - `state.json.stage` always reflects the current stage of `module_execution.active_module_id`.
 - `state.json.module_execution` records module order, active module, completed modules, and each module's entry stage and current downstream status.
+- `requirement-analysis` creates the durable analysis baseline for scope, ambiguity, and split strategy.
 - `requirement-splitting` creates the module queue.
 - `review` on the active module advances to the next module automatically when the current module passes.
 - The full request reaches `complete` only when `completed_modules` covers every ordered module.
@@ -175,6 +180,7 @@ Workflow-style parallelization is optional horizontal scale.
 - Decompose every request into the full lifecycle stage sequence, even when only one immediate stage is active.
 - Normalize bugfix inputs into the same request workspace structure used by PRD-driven requests.
 - For PRD-driven requirements, force a durable requirement-splitting pass before any design, specification, or planning work begins.
+- For PRD-driven requirements, force a durable requirement-analysis pass before requirement-splitting so the source scope, hidden constraints, ambiguity set, and split axis are explicit.
 - Treat requirement splitting as source-preserving normalization.
 - After requirement splitting, derive a deterministic downstream ordering from source order, dependency order, and rollout constraints.
 - After requirement splitting, run one module through `architecture-design? -> spec -> plan -> execute -> verify -> review` to acceptance before starting the next module.
@@ -246,6 +252,7 @@ Execute every stage in full, in order, one at a time.
 
 - New requirement with a readable PRD document or stable PRD reference: load `subskills/intake/SKILL.md`
 - Bug or defect input with a readable bug report or stable bug reference: load `subskills/bugfix-intake/SKILL.md`
+- Existing PRD-driven request with `stage=requirement-analysis`: load `subskills/requirement-analysis/SKILL.md`
 - Existing PRD-driven request with `stage=requirement-splitting`: load `subskills/requirement-splitting/SKILL.md`
 - Existing request with `stage=architecture-design`: load `subskills/architecture-design/SKILL.md` for `module_execution.active_module_id` when present
 - Existing request with `stage=spec`: load `subskills/spec/SKILL.md` for `module_execution.active_module_id` when present

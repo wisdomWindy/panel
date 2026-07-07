@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Bilibili 直播助手 Monorepo",
   "private": true,
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "pnpm --filter @monorepo/bilibili-live-tool dev",
     "build": "pnpm --filter @monorepo/bilibili-live-tool build",

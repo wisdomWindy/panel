@@ -9,14 +9,28 @@
 Required sections:
 
 - analysis summary
+- source inventory and reading stance
 - confirmed scope
 - out-of-scope and non-goals
+- confirmed decisions and invariants
+- system boundaries and ownership
 - source-backed behavior inventory
 - workflow and dependency assessment
 - ambiguity and clarification register
 - risk and constraint assessment
+- blocker classification and handling stance
 - splitting strategy
 - downstream stage signals
+
+### `source inventory and reading stance`
+
+Document:
+
+- the raw requirement source used as the primary authority
+- referenced documents, tables, prototypes, forms, API docs, or local files that materially affect scope
+- repository or project baseline documents read for boundary judgment
+- the precedence rule when multiple sources conflict
+- any unread sources, why they were not read, and what remains unconfirmed because of that
 
 ### `confirmed scope`
 
@@ -46,6 +60,26 @@ Preserve the major behavior clusters already present in the source, including wh
 
 Do not rewrite explicit upstream behavior into abstract summaries that would force downstream stages to rediscover the source.
 
+### `confirmed decisions and invariants`
+
+Document:
+
+- product or requirement decisions that are already fixed upstream
+- confirmed constraints that later `spec` must not silently reopen
+- requirement-level invariants such as release scope, role policy, mode coverage, or source-of-truth rules
+
+Do not mix confirmed decisions with open questions.
+
+### `system boundaries and ownership`
+
+Document:
+
+- which systems, repositories, services, or databases directly own the scoped work
+- which systems are read-only references, external dependencies, or reused existing capabilities
+- cross-system boundaries that downstream design must preserve
+
+If the request spans multiple projects or systems, this section is required.
+
 ### `workflow and dependency assessment`
 
 Document:
@@ -74,6 +108,16 @@ Document:
 - likely regression-sensitive neighbors
 - source constraints that narrow implementation freedom
 - delivery risks that may influence splitting or later design stages
+
+### `blocker classification and handling stance`
+
+Classify unresolved items into:
+
+- `业务阻塞`: missing decisions that block `spec` because they affect flow, data model, permissions, state machine, audit rules, or ownership boundaries
+- `外部接口待补`: external API, topic, auth, or field details that may be deferred only when requirement meaning is already stable and downstream can reserve adapters / config / DTO boundaries
+- `非阻塞`: items that do not block mainline `spec` drafting and may be resolved in design or pre-implementation
+
+Do not collapse all unresolved items into one generic TODO list.
 
 ### `splitting strategy`
 

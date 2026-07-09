@@ -20,8 +20,10 @@ Required sections:
 - out of scope
 - trigger and start conditions
 - requirement split summary
+- user intent contract
 - user flow
 - page and module design
+- frontend styling constraints
 - function-complete behavior breakdown
 - design constraints
 - project bootstrap and scaffold decision
@@ -33,6 +35,21 @@ Required sections:
 - acceptance criteria
 - human review and handoff
 - risks
+
+## `user intent contract`
+
+Required when the request or requirement-analysis artifact contains intent that can be superficially satisfied.
+
+Document:
+
+- literal request
+- practical goal
+- success criteria
+- forbidden interpretations
+- acceptable approaches
+- verification and review checks
+
+Do not leave practical intent as chat-only context.
 
 ## `API and data contracts`
 
@@ -84,6 +101,18 @@ For text input controls, the spec must not stop at PRD-explicit constraints only
 
 If any material detail is unknown, record it in `spec/clarifications.md` and reference the approved assumption or open question directly from the spec.
 If the source module files already contain explicit fields, columns, interactions, states, or workflow rules, the spec must carry them forward instead of collapsing them into higher-level prose.
+
+## `frontend styling constraints`
+
+This section is required when the scoped work adds or changes authored styling.
+
+At minimum, describe:
+
+- styling must use Tailwind CSS-style utility classes
+- no new scoped CSS, CSS modules, Sass/Less blocks, inline style objects, or non-utility semantic class names may be used for authored styling
+- `class`, `className`, and class-binding values must stay reviewable inline and must not exceed the project's normal formatter line width or require multi-line wrapping
+- overlong class values must not be moved into constants, maps, computed properties, helper functions, or imported variables
+- conditional class bindings may only express small state toggles; long base styles must be reduced, split into smaller markup, or moved into a smaller component boundary
 
 ## `project bootstrap and scaffold decision`
 

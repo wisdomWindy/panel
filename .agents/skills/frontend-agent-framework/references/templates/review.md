@@ -14,15 +14,33 @@ Required sections:
 - non-blocking issues
 - accepted risks
 - follow-up items
+- user intent assessment
 - clean-code assessment
+- frontend styling assessment
 - design-pattern assessment
 - code-context structural assessment
 - merge readiness summary
+
+`user intent assessment` is required when the spec contains a user intent contract. It must include:
+
+- result (`pass` or `fail`)
+- literal request compliance
+- practical goal compliance
+- forbidden interpretations found or ruled out
+- required follow-up if failed
 
 `clean-code assessment` must include:
 
 - result (`pass` or `fail`)
 - key findings
+- required follow-up if failed
+
+`frontend styling assessment` is required when the scoped work adds or changes authored styling. It must include:
+
+- result (`pass` or `fail`)
+- Tailwind CSS-style utility class conformance
+- class length and inline reviewability findings
+- findings for any constants, maps, computed properties, helpers, or imported variables that hide overlong class values
 - required follow-up if failed
 
 `design-pattern assessment` must include:

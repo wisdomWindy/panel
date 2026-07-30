@@ -1,0 +1,119 @@
+# Constraint Model Policy
+
+Use this policy when adding, changing, verifying, or reviewing frontend-agent-framework constraints.
+
+The goal is to keep the framework strict without making every rule appear in every file.
+
+For policy discovery, stage-specific loading, and ownership routing, read `policy-index.md` first. This file owns gate semantics, verdict registration, conflict resolution, and constraint update discipline.
+
+## Constraint Layers
+
+- Main skill owns lifecycle routing, hard-gate categories, state transitions, completion criteria, and policy loading.
+- `policy-index.md` owns policy discovery, policy ownership routing, and stage-specific policy loading.
+- Policy files own durable rule definitions and conflict-resolution logic.
+- `workflow-efficiency.md` owns speed profile, context budget, compact artifact density, and safe parallelism; it may narrow process depth but must not remove applicable quality verdicts.
+- Template files own artifact shape, required sections, required fields, and verdict names.
+- Stage subskills own stage-local procedure, inputs, outputs, rollback triggers, and stage-specific checks.
+- Memory records recent decisions only; it is not an authoritative policy source.
+
+Do not copy a full policy into the main skill, templates, and subskills. Keep the full rule in its policy file, then reference it from the stages that must apply it.
+
+## Allowed Redundancy
+
+Some repetition is intentional and required:
+
+- Main skill may state non-bypassable gates as short anchors.
+- Templates may require the artifact sections or pass/fail verdicts needed by downstream stages.
+- Subskills may restate the minimum stage-local action needed to produce or check those sections.
+- Review and verify may both mention the same verdict because verification proves behavior and review assesses risk.
+
+## Disallowed Redundancy
+
+Avoid these patterns:
+
+- Repeating the same policy paragraphs verbatim across main skill, templates, and subskills.
+- Defining the same threshold in multiple places, such as class length, use-site count, or approval criteria.
+- Maintaining separate pass/fail lists that can drift from the completion rule.
+- Adding a new rule directly to `execute` without adding its spec, plan, verify, and review path.
+- Adding a new review blocker without defining where upstream artifacts record the decision.
+- Mixing workflow routing rules with code-quality rules in the same policy.
+
+## Constraint Families
+
+Use these families to decide where a new rule belongs. Use `policy-index.md` for the concrete policy file and stage-loading route.
+
+- Lifecycle and state: main skill, state-machine, relevant subskill transition steps.
+- Self-healing loop: self-healing-loop, state-machine, execute / verify / review transition steps.
+- Source and intent: source-grounding, user-intent, requirement-analysis / intake / bugfix-intake.
+- Existing-code modification: change-chain and removal-cleanup rules in templates and execute / verify / review.
+- Code quality: clean-code, production-code-quality, functional-programming, design-patterns, expert-frontend-engineering.
+- Architecture: frontend-architecture, architecture-design, code-context.
+- Styling and components: ui-ux-design, frontend-components, vue-component-extraction, page-design, spec / plan / execute / verify / review.
+- Project bootstrap: project-scaffold, intake / requirement-analysis / spec / plan / execute / verify / review.
+- API and types: api-contracts, typescript-context, spec / plan / execute / verify / review.
+
+If a rule spans multiple families, put the detailed definition in the most specific policy and add only cross-family hooks elsewhere.
+
+## Verdict Registry
+
+Completion requires these verdicts when applicable:
+
+- Always required in verification: `spec constraint compliance: pass`, `source grounding compliance: pass`, `design-pattern compliance: pass`.
+- Always required in review: `clean-code assessment: pass`, `source grounding assessment: pass`, `design-pattern assessment: pass`.
+- Required after implementation begins: `self-healing loop compliance: pass`, `self-healing loop assessment: pass`.
+- Required when the spec contains a user intent contract: `user intent compliance: pass`, `user intent assessment: pass`.
+- Required when modifying or removing existing code: `change-chain integrity: pass`, `change-chain integrity assessment: pass`.
+- Required when removing calls, requests, branches, fields, controls, or side effects: `removal cleanup compliance: pass`, `removal cleanup assessment: pass`.
+- Required when adding or changing production code: `production code quality compliance: pass`, `production code quality assessment: pass`.
+- Required when adding or changing production code: `code review checklist assessment: pass`.
+- Required when changing production code, tests, mocks, contracts, or generated-facing files: `human review readiness compliance: pass`, `human review readiness assessment: pass`.
+- Required when adding or changing user-facing frontend behavior, state flow, data flow, component composition, frontend architecture, or production integration: `expert frontend engineering compliance: pass`, `expert frontend engineering assessment: pass`.
+- Required when touching displayed fields, table columns, detail fields, links, tags, status labels, jump targets, date/time fields, or highlighted fields: `field display semantics compliance: pass`, `field display semantics assessment: pass`.
+- Required when touching transformations, rules, payloads, state derivation, adapters, mappers, or side-effect orchestration: `functional-programming compliance: pass`, `functional-programming assessment: pass`.
+- Required when an architecture-design artifact exists, or when scoped work changes module boundaries, ownership, data/state topology, dependency direction, extension seams, migration paths, or frontend architecture: `frontend architecture quality compliance: pass`, `frontend architecture quality assessment: pass`.
+- Required when touching repeated semantic logic or shared abstraction decisions: `architecture reuse compliance: pass`, `architecture reuse assessment: pass`.
+- Required when adding or changing authored styling: `frontend styling compliance: pass`, `frontend styling assessment: pass`.
+- Required when touching backend integration: `API contract conformance: pass`, `API contract assessment: pass`.
+- Required when TypeScript context affects correctness: `TypeScript context compliance: pass`, `TypeScript context assessment: pass`.
+- Required when creating, initializing, or starting a project, app, package, frontend surface, micro frontend, component library, SDK package, or buildable frontend entry: `project scaffold compliance: pass`, `project scaffold assessment: pass`.
+
+Do not add a new verdict without updating the relevant template, subskill, completion rule, and this registry.
+
+## Conflict Resolution
+
+When constraints appear to conflict:
+
+- User-confirmed source and repository-local AGENTS constraints can narrow implementation choices but must not weaken this framework's built-in gates.
+- Source-grounding blocks implementation scope expansion even if a code-quality policy suggests an improvement.
+- Source-grounding uses a closed-world scope: code facts, tests, neighboring modules, design systems, and quality policies can constrain implementation but cannot authorize new product-facing or business-semantic content. Such content requires an original source reference or explicit human confirmation, and post-hoc artifact edits cannot legitimize code written first.
+- User intent blocks technically compliant work that relocates complexity, risk, ambiguity, or responsibility.
+- Architecture reuse can require extraction only after Anti-DRY criteria pass; wrong abstraction is a blocker.
+- Frontend architecture quality can reject code that is locally correct but has unclear ownership, reversed dependencies, duplicated writable state, DTO leakage, unjustified extension seams, unowned compatibility paths, or unverifiable architecture boundaries.
+- Locality-first can block file extraction even when a helper is pure or makes an owning file shorter; a single-caller helper needs an approved boundary reason before it becomes a separate file.
+- Vue component extraction requires a concrete UI / business boundary: repeated same-semantics UI, cohesive business section, interaction lifecycle, slot / composition variation, styling readability, focused test surface, or unavoidable page readability pressure. A one-caller pass-through component or a generic wrapper is a wrong abstraction.
+- Design-pattern discipline requires pattern-fit evaluation for every delivery unit, but direct code remains valid when the artifact records why pattern candidates are heavier than the current problem.
+- Workflow efficiency can choose compact artifacts, scoped reads, scoped checks, and fast paths for low-risk work, but it cannot override source grounding, business-logic completeness, approval gates, verification, review, or any applicable verdict in this registry.
+- Self-healing loop controls completion after implementation begins: a delivery unit cannot complete while framework-recoverable requirement mismatch, logic, syntax/type, runtime, code organization, maintainability, or technical-debt blockers remain. Fixable blockers must re-enter the owning stage instead of being handed back to the user.
+- Human-review-readiness can reject technically correct code when the diff is unreviewable, unrelated changes are mixed in, local conventions were ignored, or evidence is insufficient for a reviewer to trust the change.
+- Production-code-quality sets baseline implementation discipline; functional-programming provides the detailed rule for transformations and side-effect boundaries.
+- Code-review checklist assessment is planned before execution, followed during execution, and finalized in review for robustness, maintainability, performance / memory, and technology-stack anchoring; it can fail code that otherwise passes implementation-level policies when reviewer-facing production risks remain or when execute did not follow the approved plan contract.
+- Expert-frontend-engineering coordinates end-to-end frontend concerns across state ownership, async correctness, interaction resilience, performance boundaries, evolution safety, and evidence. It should reference specific policies instead of duplicating them.
+- Field display semantics are owned by `expert-frontend-engineering.md` for business-visible behavior and by `frontend-components.md` for visual-state styling mechanics. Generic formatter use or interaction-only affordance cannot override source-grounded field contracts.
+- UI-UX-design owns page-design quality, user journey, information architecture, visual hierarchy, interaction confidence, responsive usability, accessibility design inputs, and UX risk. Frontend-components owns styling mechanics; vue-component-extraction owns Vue SFC extraction criteria and props / emits / slots boundaries; production-code-quality owns boundary UI states.
+- Project-scaffold owns greenfield scaffold discovery and bootstrap decisions. It can block execution when scaffold candidates are unknown, when a suitable scaffold was bypassed, or when hand-written bootstrap appears without an approved rejection decision.
+- API-contracts and TypeScript-context own contract/type sources; production-code-quality owns local type precision and null/failure handling.
+
+If a conflict materially changes behavior, scope, data semantics, API meaning, permissions, or user intent, roll back to the front-loaded confirmation gate instead of resolving it in `execute`.
+
+## Update Procedure
+
+When adding or changing a constraint:
+
+1. Identify the owning constraint family.
+2. Check `policy-index.md` for the owning policy and stage-loading route.
+3. Update the owning policy first.
+4. Add only required artifact fields to templates.
+5. Add only stage-local procedure and blockers to subskills.
+6. Add or update verdicts only through the registry.
+7. Keep the main skill limited to routing, gate categories, policy references, and completion.
+8. Validate the skill and verify global sync if installed globally.

@@ -13,12 +13,29 @@
 - 阅读导航
 - 全局摘要
 - 用户意图合同承接（如适用）
+- 来源锚定与禁止扩展边界
+- 业务功能需求点与业务逻辑明细
+- 字段展示语义与交互视觉状态合同
+- 执行效率与上下文预算
+- 自愈闭环计划
+- 执行可用性合同
 - 任务拆解
 - 功能拆解明细
 - 项目脚手架与初始化策略（greenfield 适用）
 - API 对接与类型策略
 - 依赖关系
+- 变更链路审查（修改或移除既有代码适用）
 - 整洁性与复杂度控制
+- 局部性与文件抽取决策
+- Vue 组件抽取决策（如适用）
+- 前端专家级工程约束（如适用）
+- 前端架构质量约束（如适用）
+- 生产代码质量约束（如适用）
+- 代码评审预检合同（生产代码改动适用）
+- 人工评审可通过性约束（代码改动适用）
+- 前端架构质量计划（如适用）
+- 架构复用与公共逻辑抽取（如适用）
+- 函数式编程约束（如适用）
 - Tailwind 样式约束（如适用）
 - 模式决策与替代方案
 - 代码上下文与影响范围
@@ -58,6 +75,21 @@
 - 最大风险点
 - 实施前必须满足的前置条件
 
+### `自愈闭环计划`
+
+实现开始后必需。
+
+至少写清：
+
+- execute 后必须进入 `verify -> review`，不能由用户承担缺陷发现责任
+- verification commands / scoped checks / manual checks
+- review 必查缺陷类别：requirement-mismatch、plan-gap、architecture-gap、logic-error、syntax-type-error、runtime-error、code-organization-error、maintainability-error、technical-debt-blocker
+- 每类 blocker 的默认回流目标：`execute`、`plan`、`spec`、`architecture-design` 或前置确认门
+- bounded-loop 限制：单交付单元 self-healing iteration `<= 7`，同一 blocker 同一 owning stage 连续失败 `<= 2`，同一 blocker 总失败 `<= 3`
+- no-progress 停止条件：本轮没有新证据、新修复、更窄诊断或升级时必须 blocked
+- 修复后必须复查的证据：测试、类型 / lint / build、功能链路、diff、依赖闭包、可维护性与技术债
+- completion 条件：`self-healing loop compliance: pass`、`self-healing loop assessment: pass`、remaining blockers 为 `none`
+
 ### `用户意图合同承接`
 
 当 spec 包含 user intent contract 时，至少写清：
@@ -69,6 +101,90 @@
 - 哪些任务负责落实 intent compliance
 - 哪些验证项负责证明没有把复杂度、风险、歧义或责任转移到别处
 
+### `来源锚定与禁止扩展边界`
+
+至少写清：
+
+- 本计划使用的权威来源：已审批 spec、clarifications、requirement-analysis、requirement-splitting、设计工件、代码事实或确认决定
+- 每个任务对应的 spec 条目和来源锚定标签
+- 每个任务允许新增或修改的 product-content allowlist 条目；纯技术任务必须明确写 `product-content delta: none`
+- 哪些内容是 `missing-source`，不能进入执行任务
+- 哪些相邻模块行为、样例内容、常规做法或偏好实现明确不纳入本次计划
+- 如果任务包含 `source-derived` 内容，为什么它不会创造新业务行为、字段、状态、交互、校验、API 或验收标准
+- `code-fact-backed` 任务约束了什么技术选择，以及为什么没有借代码事实新增产品可见内容或业务语义
+
+计划不得把未在 spec 中批准的内容写成执行任务。
+计划不得把 downstream artifact 的自引用当作来源；每个 product-content allowlist 条目必须保持到需求原文或人工确认记录的完整链路。
+
+### `业务功能需求点与业务逻辑明细`
+
+plan 必须先把业务功能需求点和业务逻辑写清，再拆实现任务。至少写清：
+
+- 业务功能点清单：每个功能点的业务目标、使用角色、业务对象、触发入口、前置条件、成功结果、失败结果和验收标准
+- 业务术语定义：本计划中出现的状态、类型、枚举、动作、权限、角色、字段、金额、时间、阈值、开关等业务名词的含义
+- 业务规则：每条规则的条件、判断顺序、优先级、输入、输出、默认行为、异常行为和不可做事项
+- 分支与状态流转：所有可能分支、状态变化、状态来源、状态终点、回退路径、重试路径、取消路径和不可达状态
+- 字段与数据语义：字段来源、业务含义、合法值、空值语义、默认值、回填规则、展示规则、提交规则、适配 / 归一位置
+- 字段展示语义：每个 touched 展示字段的显示类别、格式精度、空值展示、是否可点击、默认视觉状态、hover / focus / active / visited / disabled 状态和验证方式
+- 校验与错误口径：校验触发时机、校验条件、错误文案、阻断提交条件、服务端错误如何映射到前端状态
+- 权限与可见性：哪些角色或状态下可见、可编辑、可点击、禁用、隐藏、只读、需要二次确认
+- 跨字段 / 跨步骤依赖：字段联动、步骤依赖、接口依赖、状态依赖和业务互斥关系
+- 业务验收映射：每个业务规则和分支对应的验证方式，不能只验证 happy path
+
+如果业务逻辑无法从 approved spec、确认决定或代码事实中确定，必须回退到 spec 或前置确认 gate，不能在 plan 中用“按业务规则”“按原逻辑”“按现有逻辑”代替明确定义。
+
+### `字段展示语义与交互视觉状态合同`
+
+当计划触碰展示字段、表格列、详情字段、链接、标签、状态色或跳转字段时必需。
+
+本节目标是先证明业务语义，再选择展示和交互；下面的字段类别只是分析提示，不是固定实现规则。
+
+至少写清：
+
+- touched 字段 / 列清单
+- 每个字段的来源、PRD 标签 / 文案、所在业务区块、用户动作、上下游数据含义、代码事实、业务含义、显示类别和显示格式
+- 每个技术形态相似的字段都要逐项说明业务含义；时间、金额、状态、链接、标签、id、布尔值等都不能只凭类型或字段名套用统一展示方式
+- 每个需要精度或视觉差异的字段，都要说明该精度 / 视觉状态为什么符合当前业务语义
+- 是否允许复用现有 formatter；如允许，写明 formatter 名称和为什么精度匹配；如不允许，写明禁止使用的通用 formatter
+- 空值、非法值、未知值展示
+- 链接 / 跳转字段的可点击条件、点击结果、默认态、hover、focus、active、visited、disabled、权限拒绝状态
+- source 要求“高亮 / 强调 / 可点击 / 跳转”的字段，其强调是默认业务状态、交互状态还是二者都有；只有 source / 上下文证明强调只属于交互反馈时，才允许把它规划为 interaction-only
+- 每个字段对应的验证任务和 review 检查点
+
+不能把语义不同的字段统一写成“格式化时间 / 按链接样式 / 按常规 hover”；必须说明该展示方式为什么符合需求文档的业务语义。
+
+### `执行效率与上下文预算`
+
+至少写清：
+
+- 当前 `speed_profile`：`S0 trivial` / `S1 local` / `S2 scoped` / `S3 broad`
+- 为什么这是最低安全档位
+- 本阶段采用 `compact` 还是 `full` artifact density
+- execute 需要读取的最小上下文闭包：目标文件、直接调用方、相关测试、必要 API / TS / adapter / store / helper 来源
+- 不需要读取或扫描的范围，以及不需要的原因
+- 触发升级 profile 的信号：API / 状态 / 权限 / adapter / 删除闭包 / 共享逻辑 / 跨模块影响扩大
+- 验证命令范围：scoped 命令、全量命令、未运行原因和替代证据策略
+
+提速只能减少无关读取、重复文档和过宽命令，不能减少业务逻辑明细、适用质量合同、验证或 review。
+
+### `执行可用性合同`
+
+plan 必须证明 execute 可以直接按计划实施，不需要补猜。至少写清：
+
+- 可执行性结论：`ready for execute` 或 `not ready for execute`
+- 精确范围：本次做什么、不做什么、哪些是已批准的纯技术假设、哪些是 blocker；纯技术假设必须可逆、非用户可见且不改变任何业务或数据语义
+- 业务可执行性：每个业务功能点、业务规则、业务分支、字段语义、状态流转、权限 / 可见性规则是否已完整定义
+- 展示可执行性：每个 touched 展示字段的格式精度、空值、可点击性、默认视觉状态和交互视觉状态是否已完整定义
+- 效率可执行性：`speed_profile` 是否足以覆盖影响面，execute 是否有明确的最小上下文闭包和 profile 升级条件
+- 文件与符号：目标文件、目标组件、函数、hook / composable、store、request module、adapter / mapper、测试、mock、契约或生成类型可见文件
+- 数据合同：相关 type / interface、请求 payload、响应字段、form model、view model、字段映射、`null` / `undefined` 语义和归一化边界
+- 状态与流程：入口、触发、状态 owner、loading 起止、成功、失败、重试、取消、disabled、空态、错误态、权限态和回滚路径
+- 实现顺序：必须串行的步骤、可并行步骤、前置条件、完成条件、失败回退条件
+- 依赖与清理：import / export、调用方、下游消费者、副作用、helper owner、删除闭包和测试适配
+- 验证合同：具体测试、类型检查、lint、手工验证、证据路径、未运行命令原因和替代验证
+
+如果任一项无法从 approved spec、确认决定或代码事实中确定，不能把 plan 标记为 `ready for execute`。
+
 ### `任务拆解`
 
 每个任务至少写清：
@@ -76,11 +192,19 @@
 - 任务 ID 与任务名称
 - 任务目标
 - 关联规格区域
+- 来源锚定标签与来源引用
+- 本任务承接的业务功能点、业务规则和业务分支
+- 本任务的 execute-readiness：是否可直接执行、缺口为 none 或具体 blocker
+- 本任务的 speed profile / context budget：需要读取哪些文件和证据，哪些范围不读
+- 本任务会编辑 / 新增 / 删除 / 保留的文件和符号
 - 受影响页面、模块、弹窗、抽屉、卡片、区块或流程节点
+- 本任务涉及的展示字段、格式精度、formatter 选择、链接 / 高亮视觉状态和禁止猜测边界
 - 串行/并行属性
 - 前置条件与完成条件
 - 对 `execute` 的禁止猜测边界
+- 对 `execute` 的禁止扩展边界：不能从常规做法、相邻模块、样例内容或个人偏好新增范围
 - 对 `execute` 的用户意图与禁止解释约束（如适用）
+- 对 `execute` 的变更前链路审查和变更后链路复查要求（修改或移除既有代码时适用）
 - 任务流程图
 
 推荐任务小节结构：
@@ -92,6 +216,8 @@
 - 实现子项
 - 交互与状态约束
 - API 与数据约束
+- 架构复用与公共 owner 约束
+- 函数式边界与副作用边界
 - 测试与验证要点
 - 风险与回退
 - Mermaid 流程图
@@ -142,7 +268,9 @@
 - 每列列名
 - 每列字段来源
 - 每列展示格式
+- 每列展示精度及其业务依据；时间相关列必须说明它代表业务日期、发生时刻、截止时间、剩余时间、时间段、相对时间或其他领域语义
 - 空值展示规则
+- 链接、跳转或高亮 / 强调列的业务目的，以及默认态、hover、focus、active、visited、disabled 状态
 - 行内操作
 - 批量操作
 - 排序/筛选/分页/滚动规则（如有）
@@ -154,7 +282,9 @@
 - 展示字段清单
 - 字段分组或布局方式
 - 每个字段展示格式
+- 每个字段展示精度和 formatter 选择，并说明该选择如何匹配字段业务语义
 - 空值展示规则
+- 链接或高亮 / 强调字段的业务目的，以及强调落在默认态、hover 态或其他状态的依据
 - 显隐条件
 - 是否只读、可折叠、可跳转或可复制
 
@@ -182,12 +312,23 @@
 
 补充要求：
 
-- 任何会影响实现正确性的未知项，必须在计划中写成“待确认项”或“已批准假设”，禁止留白。
+- 每个任务必须能回溯到已审批 spec 的具体条目；没有来源锚定的任务不得进入 `task-board`。
+- 每个任务必须声明预期 product-content delta，并逐项引用 spec allowlist；未声明或超出 allowlist 的产品内容不得进入 `task-board`。
+- `missing-source`、开放问题或需要确认的内容只能作为阻塞、待确认、外部接口待补或非范围记录，不能包装成实现子项。
+- 任何会影响实现正确性的未知项，必须在计划中写成“待确认项”；只有可逆、非用户可见且不改变任何业务、数据、交互、校验、权限、文案或 API 语义的技术选择，才能写成“已批准的纯技术假设”。
 - 任何字段、列、交互、状态、流程如果已经在 PRD/spec 中可确定，就必须落进计划，不得省略为“按常规实现”。
+- 任何业务可见字段或交互状态如果已经在 PRD/spec 中可确定，就必须落进计划，不得省略为“按通用格式化”“按链接样式”“按常规 hover”。
 - 对文本输入类控件，凡实现阶段可能自行脑补的隐式输入语义，都必须在计划中落明，尤其是纯空格、归一化空值、长度计算口径、空白字符处理、非法字符处理、校验与提示触发时机。
+- 如任务修改或移除既有代码，必须写明操作前需要审查的完整功能链路、文件引用关系、调用方、副作用、下游消费者和邻近影响面；同时写明操作后如何复查链路正常、无缺少必要环节、无残留多余环节。
+- 如任务移除调用、请求、分支、字段、控件或副作用，必须写明删除依赖闭包清理项：import、helper、constant、type、request wrapper、state、computed、watch、test、mock、comment；保留 helper 时必须写明真实生产调用方。仅测试文件引用待改或待删代码时视为空引用，必须把测试列为适配项。
+- 如任务涉及业务规则、校验、筛选排序、payload 构造、状态派生、adapter / mapper / `fromDetail` 转换，必须写明纯函数边界、不可变输入、副作用边界、语义归一层级和验证方式。
+- 如任务涉及可能重复的业务规则、校验、筛选排序、option 构造、权限判断、payload 构造、状态派生、状态映射、adapter / mapper / `fromDetail` 转换或 helper 逻辑，必须写明复用候选扫描结果、抽取 / 复用 / 保持分离 / 暂缓决策、公共 owner、调用方迁移、测试适配和行为等价验证。
+- 如任务新增或移动 helper、hook、mapper、adapter、constant group 或 utility file，必须写明真实生产调用方数量、locality decision、是否同文件就近放置，以及任何单独文件的已批准边界理由。一个页面、一个真实生产调用方的函数默认不得规划为独立文件。
+- 如任务涉及可能重复的逻辑，必须先写明 Anti-DRY 矩阵结果：业务语义、分层、真实生产使用点数量、变化稳定性、变因数量；不能只因代码相似就抽取。
 - 如涉及新增或修改样式，必须写明只允许使用 Tailwind CSS-style utility classes；`class` / `className` / class binding 值不得超过项目 formatter 正常行宽或依赖多行包裹；不得用常量、map、computed、helper 或 import 变量隐藏过长 class 值；过长时必须拆分结构、提取更小组件或降低样式复杂度。
 - 如果 `requirements/modules/` 已经拆出模块级内容，任务拆解必须显式覆盖每个在范围内的模块，不能跳过任何已拆出的功能单元。
 - 任务拆解、功能拆解明细与流程图三者必须互相一致，不能出现图文不一致或图缺步骤、文缺分支的情况。
+- `S0` / `S1` 计划可以使用紧凑表达，但必须保留所有适用合同；不适用章节写成 `不适用：<reason>`，不要展开模板化空话。
 
 ### `项目脚手架与初始化策略`
 
@@ -195,10 +336,13 @@
 
 - 是否存在合适的同类型项目脚手架或 starter
 - 计划采用的脚手架来源
+- 初始化命令、复制策略、生成器入口或 starter 获取方式
 - 为什么它适合当前项目类型
 - 若不采用脚手架，拒绝原因是什么
+- 候选发现证据来自哪些来源；不能只写“无脚手架”
 - 脚手架初始化之后需要继续裁剪、替换或补齐的改造项
 - 哪些 bootstrap 决策在执行阶段不得重新发明
+- 验证任务：生成结构、依赖、配置、脚本、目录、入口文件、样式方案、请求层和测试配置是否符合脚手架决策及允许偏离范围
 
 ### `API 对接与类型策略`
 
@@ -220,6 +364,160 @@
 - 哪些错误态、空态、loading 态依赖接口结果驱动
 - 联调、mock、回归验证分别覆盖哪些接口面
 
+### `函数式编程约束`
+
+当任务涉及业务规则、校验、筛选排序、分组、payload 构造、状态派生、详情到表单回填、接口数据到视图模型转换、adapter / mapper 归一时，至少写清：
+
+- 哪些逻辑必须是纯函数或纯 mapper
+- 哪些输入必须按不可变数据处理
+- 哪些副作用只能出现在 request layer、event handler、store action、command function 或 lifecycle boundary
+- 哪些数据语义归一必须在 adapter / mapper / `fromDetail` 完成
+- 哪些 derived state 不应重复保存成 writable state
+- 哪些测试或验证覆盖纯函数、转换链路和副作用边界
+- 是否禁止引入函数式工具库、过度 currying、point-free 或长 reducer chain
+
+### `模式决策与替代方案`
+
+每个交付单元和每个会改变代码结构或行为选择方式的任务都必须写清 pattern-fit decision，即使最终选择 direct code。
+
+至少写清：
+
+- 任务或功能单元
+- 候选信号：选择逻辑、适配边界、创建逻辑、流程编排、副作用协调、状态分支、树结构、访问控制、缓存、懒加载、请求去重、横切关注点
+- 决策深度：Level 0 direct code、Level 1 local lightweight shape、Level 2 reused / formalized project pattern、Level 3 structural pattern introduction
+- 选择结果：`direct code` / `reuse existing pattern` / `adapt lightweight pattern` / `introduce pattern`
+- 对应模式族或项目既有模式；无模式时写 `none`
+- 执行形态：函数、对象映射、strategy map、adapter、command record、pipeline、facade、proxy、hook / composable、component boundary 或其他
+- 前端语法形态：function、typed record、discriminated union、object map、hook / composable、component boundary、store action、request module、adapter / mapper、higher-order function，或有批准理由的 class
+- 被触发但拒绝的候选模式和理由
+- 为什么该选择是最轻、最可读、最符合当前变化轴的方案
+- execute 不得现场改用的模式或抽象
+
+小需求、局部修改和 bugfix 不得省略本节。它们可以选择 Level 0 direct code；当没有真实模式信号时，只需记录无结构性变化轴、无适配 / 选择 / 编排 / 副作用协调 / 跨文件协作问题，以及 direct code 为什么最安全。不得机械枚举所有未触发模式。
+
+### `Vue 组件抽取决策`
+
+当任务新增、移动、拆分或复用 Vue SFC / page-local component / shared component 时，至少写清：
+
+- 候选组件名和 owning page / feature
+- 决策：`extract` / `reuse existing` / `keep inline` / `defer`
+- 真实生产调用方数量：`1`、`2+ 同语义` 或 `2+ 不同语义`；测试、story、示例和假想未来调用方不计入
+- 抽取触发条件：`2+ 同语义` 真实生产使用，或单调用方例外中的一个：内聚业务区块、交互生命周期边界、slot / composition 变化点、独立测试面、页面可读性边界、项目约定边界
+- 不抽取阻断条件：一次性 markup、单调用方透传组件、泛 wrapper、后端 DTO / form model 透传、宽 optional props、业务语义不同、隐藏简单本地规则、prop / emit 链比原本更长、只为了让文件变短
+- 抽取前后状态 owner
+- props 合同、emits 合同、slot 使用理由
+- adapter / mapper / `fromDetail` 数据归一边界
+- Tailwind class 长度和结构拆分影响
+- 测试 / 验证方式
+- 为什么该决策比 same-file markup 或 same-file local section 更清晰
+
+禁止让 execute 现场决定是否抽 Vue 组件。禁止用“组件化更好”“页面太长”“以后可能复用”作为唯一理由；单调用方组件必须写明具体例外，否则计划为 `keep inline`。
+
+### `生产代码质量约束`
+
+当任务添加或修改生产代码时，至少写清：
+
+- 类型契约先行：需要新增、复用或收窄的 `type` / `interface`，以及是否需要 branded type 或等价名义区分
+- fail-fast 处理：异常、空值、非法值、超时、请求失败、部分成功和不可能状态的显式处理方式
+- 严格空值语义：`null` 与 `undefined` 的区别，`??` / `?.` 的防御位置，以及不能用展示兜底替代校验的位置
+- 可维护性优先：默认采用最可读写法；如引入 memoization、cache、debounce、throttle、virtualization、`useMemo` / `useCallback` / computed caching，必须写明真实性能或引用稳定性理由
+- 纯函数优先：确定性规则、校验、转换、format、payload builder、状态派生优先纯函数和不可变数据；引入 class 必须有已批准理由
+- 命名检查：布尔变量使用 `is` / `has` / `should` / `can`，props 回调用 `on`，内部事件处理用 `handle`，普通函数动词精准
+- no magic variables：helper 输入来自参数、依赖注入或明确本地闭包；真实配置常量集中到最窄稳定 owner，禁止为隐藏一次性值或过长 class 创建常量
+- 边界 UI 状态：列表空状态、异步 loading 状态、表单输入错误状态及其结束条件
+
+### `代码评审预检合同`
+
+当任务添加或修改生产代码时，plan 必须先按人工 code-review 视角预审，并把结论转成 execute 必须遵守的实现合同，至少写清：
+
+- 健壮性合同：哪些外部数据、接口响应、路由参数、存储值、组件 props、表单输入或第三方返回值需要可选链 / 判空 / 合法性保护；哪些 API 调用需要异常捕获、rejected promise 处理和错误边界
+- 可维护性合同：哪些函数存在超过 150 行或混合职责风险；如何拆分 orchestration、request、transform、render、side effect、validation；哪些魔法数字需要提取为具备语义的最窄 owner 常量，哪些一次性显然数字保持内联
+- 性能与内存合同：是否涉及 resize、scroll、input、mousemove、drag、轮询、订阅、watcher、effect 等高频事件；是否需要 debounce / throttle / cancellation / dedupe / no-optimization；副作用、订阅、定时器、监听器、请求取消句柄和外部资源如何 cleanup / dispose / unmount
+- 项目规范一致性合同：必须遵守的组件库、样式方案、目录结构、import alias / 相对路径方式、状态管理、请求封装、框架和库选择；禁止 execute 擅自替换技术栈、组件库、样式方案、目录引用方式或引入未批准框架 / 库
+- review 阶段只需核验实现是否兑现上述合同；如果 execute 发现合同缺项，必须回退到 plan，不得现场猜测
+
+### `人工评审可通过性约束`
+
+当任务会修改生产代码、测试、mock、接口契约或生成类型可见文件时，至少写清：
+
+- 本任务允许改动的文件、符号和行为范围
+- 明确不在本次改动范围内的文件、行为、重构或格式化
+- 需要遵守的局部项目惯例：组件组织、hook / composable、request、store、adapter、测试、命名、错误处理
+- 每个非显然 diff hunk 应映射到哪个任务、来源或清理要求
+- 每个新增字段、文案、控件、交互、状态、默认值、校验、权限、跳转、API / payload 语义、状态映射、埋点或验收行为应映射到哪个 product-content allowlist 条目
+- execute 结束前必须做 pre-review self-check：无无关改动、无调试代码、无 dead code、无 stale comment、无未使用 import / export、无未适配测试、无隐藏风险转移
+- 需要给 reviewer 的证据：测试 / 类型检查 / lint / 手工验证命令，或不能执行时的原因和替代检查
+
+### `前端专家级工程约束`
+
+当任务新增或修改用户可见行为、状态流、数据流、组件组合、前端架构或生产集成时，至少写清：
+
+- 用户旅程完整性：入口、前置条件、可见状态、成功、失败、重试、取消、交接
+- 状态所有权：source state、derived state、form state、server state、route state、cache state、持久化边界
+- 数据生命周期：backend DTO、adapter / mapper、view model、form model、payload、response handling
+- 异步正确性：loading owner、请求去重、取消、过期响应、竞态语义、幂等、重试
+- 交互韧性：键盘、焦点、语义控件、disabled、破坏性确认、权限拒绝、可行动反馈
+- 性能与渲染边界：render scope、大列表策略、昂贵派生、bundle 影响、响应式 fan-out 风险
+- 演进安全：扩展缝、兼容边界、feature flag / migration 需要、回滚面、清理触发器
+- 可测试与可诊断证据：纯逻辑、组件交互、集成缝、错误上下文、验证证据
+
+如存在 `page-design`，plan 必须额外承接 UI / UX design contract：
+
+- 用户旅程、信息架构、视觉层级、状态反馈、响应式、可访问性和 UX 风险分别映射到哪些实现任务
+- 哪些设计决策必须在模板 / 组件 / class / 状态 / 文案 / 交互中体现
+- 哪些体验风险需要验证或人工走查证据
+- 不允许 execute 只实现字段和接口而丢失 page-design 的体验合同
+
+### `前端架构质量计划`
+
+当 spec 或 architecture-design 包含 frontend architecture quality constraints 时，至少写清：
+
+- architecture decision ids 对应的执行任务
+- ownership map 落地任务：page orchestration、business rules、form model、view model、request、adapter、state、permission、side-effect owner
+- state topology 落地任务：writable state、derived state、async state、cleanup、cancellation、stale response、synchronization
+- data lifecycle 落地任务：DTO -> adapter / mapper -> view model / domain model -> form model / props -> payload
+- dependency rule matrix 落地任务：allowed imports、forbidden imports、public APIs、private symbols、cycle check
+- extension seams / rejected future-proofing 的执行边界
+- complexity budget 检查任务：新增文件、公开 API、间接层级、响应式 fan-out、迁移范围
+- migration / compatibility / fallback cleanup trigger 的执行与验证任务
+- `frontend architecture quality compliance` 验证命令、代码检查或手工证据
+
+禁止把 ownership、state/data topology、dependency matrix、extension seam、complexity budget 留给 execute 自行判断。
+
+### `架构复用与公共逻辑抽取`
+
+当 spec 或 architecture-design 包含复用候选时，至少写清：
+
+- 哪些候选需要抽取或复用已有公共逻辑
+- 哪些候选保持分离，以及真实语义差异或依赖风险
+- 哪些候选因不足三处稳定生产使用、变化点不确定、跨层依赖、变因超过三个或业务语义不同而刻意不抽
+- 每个候选属于技术/基础设施共性、业务/领域共性、UI/设计系统共性还是配置/常量共性
+- 公共函数 / hook / mapper / adapter 的目标 owner 和文件路径
+- 公开 API、输入输出、类型来源和副作用边界
+- 通过参数、依赖注入、getter、策略对象、adapter 或薄封装传入业务差异的方案
+- 需要迁移的生产调用方、测试、mock、import / export
+- 行为等价验证方式
+- 新晋升 shared API 的 JSDoc `@see` / `@example` 标注任务，广泛共享 helper 至少覆盖三个代表场景或说明真实场景不足
+- 如果暂缓，说明为什么不在当前 approved change chain 内安全
+
+禁止把“不同模块”作为不抽取的唯一理由。也禁止把“两处相似代码”直接当作必须抽取的理由。
+
+### `变更链路审查`
+
+当任务修改或移除既有代码时，至少写清：
+
+- 变更目标属于哪条功能链路
+- 用户入口或内部触发入口
+- 涉及的页面、组件、hook、store、service、adapter、helper、request wrapper
+- 涉及的 import / export、调用方、消费者、事件、computed、watch、测试、mock
+- 涉及的状态流转、副作用、请求、下游 UI 或数据消费者
+- 哪些环节由本次变更 owning，哪些只是邻近影响面
+- 哪些测试文件引用了待改或待删代码，以及这些测试如何更新、替换或删除
+- 测试引用不能作为生产代码保留依据；真实调用方必须来自生产链路
+- 修改或移除前必须确认的链路证据
+- 修改或移除后必须复查的链路证据
+- 判定链路干净的标准：不缺少必要环节、不保留多余环节、无重复路径、无冲突路径、无孤立符号、无未授权邻近功能影响
+
 ## `plan/task-board.md` 或 `module-runs/<module-id>/plan/task-board.md`
 
 每个任务必需字段：
@@ -227,16 +525,28 @@
 - 任务 ID
 - 任务名称
 - 状态
+- execute-readiness 状态
 - 执行模式（串行 / 可并行）
 - 执行人或执行说明
 - 触发/前置条件
 - 关联规格区域
+- 业务功能点 / 业务规则 ID
 - 覆盖功能单元
 - 页面/模块/容器范围
+- 目标文件与符号
 - 整洁性约束或注意点
+- 前端专家级工程约束（如适用）
+- 生产代码质量约束（如适用）
+- 代码评审预检合同（生产代码改动适用）
+- 函数式编程约束或副作用边界（如适用）
+- 架构复用或公共逻辑抽取任务（如适用）
+- 变更链路审查要求（修改或移除既有代码时适用）
+- 测试适配要求（测试引用待改或待删代码时适用）
 - 模式约束或抽象边界
 - 代码上下文或影响面备注
+- speed profile / context budget
 - 关键交互与状态约束
+- 来源锚定标签与来源引用
 - API 契约来源与类型策略
 - 测试切入点
-- 待确认项或已批准假设
+- 待确认项或已批准的纯技术假设；不得包含产品可见内容或业务语义

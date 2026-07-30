@@ -8,9 +8,10 @@
 ## `spec/spec.md` or `module-runs/<module-id>/spec/spec.md`
 
 When `requirements/requirement-map.md` exists, treat it as a required upstream input for PRD-driven requests and preserve its module boundaries, source traceability, and carry-forward checklist in the spec.
-When `design/page-design.md` or `module-runs/<module-id>/design/page-design.md` exists, treat it as a required upstream input and carry its layout, hierarchy, styling, and interaction decisions into the spec instead of redefining them from scratch.
-When `design/architecture-design.md` or `module-runs/<module-id>/design/architecture-design.md` exists, treat it as a required upstream input and carry its module boundaries, file structure, dependency direction, function structure, data structures, and type decisions into the spec instead of redefining them from scratch.
+When `design/page-design.md` or `module-runs/<module-id>/design/page-design.md` exists, treat it as a required upstream input and carry its user journey, information architecture, layout, visual hierarchy, styling, feedback-state, responsive, accessibility, and interaction decisions into the spec instead of redefining them from scratch.
+`architecture-design` runs after framework-approved spec. Do not treat `design/architecture-design.md` as a normal upstream input to spec; if a later architecture pass proves the spec behavior or scope is wrong, roll back to spec and repair it explicitly.
 The acceptance criteria must function as the request's operational goal contract: concrete, observable, and preferably machine-checkable rather than subjective.
+The spec must not expand source material. Every material behavior, field, interaction, state rule, API contract, dependency, acceptance criterion, and implementation constraint must be source-backed, code-fact-backed, confirmed, or safely source-derived.
 
 Required sections:
 
@@ -20,21 +21,50 @@ Required sections:
 - out of scope
 - trigger and start conditions
 - requirement split summary
+- source grounding and traceability
+- workflow efficiency profile
+- self-healing completion bar
 - user intent contract
 - user flow
 - page and module design
+- UI / UX design contract
 - frontend styling constraints
+- field display semantics and interaction visual-state contracts
 - function-complete behavior breakdown
+- expert frontend engineering constraints
+- frontend architecture design routing inputs
+- production code quality constraints
+- human review readiness constraints
+- functional-programming constraints
+- architecture reuse and shared ownership constraints
+- locality and file-extraction constraints
+- Vue component extraction constraints
 - design constraints
 - project bootstrap and scaffold decision
 - change axes and pattern decision
 - code context and impact assumptions
 - API and data contracts
+- frontend / server responsibility boundary
 - context and dependency sources
 - edge cases
 - acceptance criteria
 - human review and handoff
 - risks
+
+## `self-healing completion bar`
+
+Required after implementation will add, change, or remove code.
+
+Document:
+
+- requirement consistency checks required before completion
+- business logic checks for conditions, fields, permissions, state transitions, validation, adapters, payloads, and display states
+- syntax / type / lint / build checks or justified substitute evidence
+- runtime safety checks for nullability, async errors, loading/error/empty states, cleanup, races, and stale responses
+- code organization checks for imports, exports, callers, tests, mocks, helper locality, component boundaries, and dependency cleanup
+- maintainability checks for naming, function responsibility, constants, readable transformations, side-effect boundaries, and reviewer readability
+- technical-debt blockers that must be fixed in-scope instead of deferred
+- completion requirement: `self-healing loop compliance: pass`, `self-healing loop assessment: pass`, and remaining blockers `none`
 
 ## `user intent contract`
 
@@ -50,6 +80,43 @@ Document:
 - verification and review checks
 
 Do not leave practical intent as chat-only context.
+
+## `source grounding and traceability`
+
+For each material spec item, record:
+
+- spec item
+- grounding label: `source-backed`, `code-fact-backed`, `confirmed-decision`, or safe `source-derived`
+- whether the item is product-facing or business-semantic
+- exact original requirement wording and section, code fact, or confirmation owner
+- upstream requirement-analysis or requirement-splitting reference when applicable
+- downstream plan obligation
+
+Rules:
+
+- Do not write `missing-source` items as approved behavior.
+- Do not turn adjacent modules, sample request content, or conventions into requirements without confirmation.
+- A product-facing or business-semantic item is approvable only when its authorizing label is `source-backed` or `confirmed-decision`; `code-fact-backed` and `source-derived` may only constrain its implementation.
+- A reference to requirement-analysis, requirement-splitting, page-design, or another downstream artifact is insufficient unless that artifact retains an exact trace to the original requirement or confirmation record.
+- `source-derived` items must explain why every plausible interpretation leads to the same spec, plan, implementation, and verification result.
+- If the source is missing for material behavior, put it in `spec/clarifications.md` and roll back to the front-loaded confirmation gate when it affects scope, behavior, data semantics, permissions, state flow, frontend/server responsibility, API contract meaning, validation, acceptance, or user intent.
+- Include a closed-world product content allowlist covering every approved field, copy item, control, interaction, state, default, validation, permission, navigation target, API / payload semantic, status mapping, analytics event, and acceptance behavior. Anything absent is forbidden from implementation until upstream confirmation.
+
+## `workflow efficiency profile`
+
+Document:
+
+- current `speed_profile.level`
+- why this is the lowest safe profile for the delivery unit
+- whether spec uses compact or full artifact density
+- context breadth allowed downstream
+- conditions that must upgrade the profile before implementation continues
+
+Rules:
+
+- Compact spec is allowed for `S0` / `S1`, but required sections remain present.
+- Non-applicable sections should be concise `不适用：<reason>` entries instead of repeated policy prose.
+- Compact spec must still preserve source grounding, business behavior, pattern decision, applicable quality constraints, and verification obligations.
 
 ## `API and data contracts`
 
@@ -76,6 +143,234 @@ Typing rules that the spec must preserve:
 - if the backend does not provide TypeScript declarations, preserve backend field names and express field types using valid TypeScript types
 - if the source contract is protobuf, state whether generated types already exist or whether TypeScript-facing types will be derived from protobuf definitions
 
+## `frontend / server responsibility boundary`
+
+Required when requirement analysis or requirement splitting identified server-owned work, shared contract work, or external-interface pending items.
+
+Document:
+
+- frontend-owned tasks this spec is allowed to implement
+- server-owned tasks this spec depends on but must not implement
+- shared API / DTO / enum / error-code / permission / workflow-state contract obligations
+- external-interface pending items and whether they block frontend implementation
+- adapter / mapper / fromDetail boundaries used to isolate frontend semantics from backend contract semantics
+
+Do not convert server-owned responsibilities into frontend implementation requirements. If the frontend can only proceed with a mock, adapter placeholder, feature flag, or assumption, state that explicitly.
+
+## `functional-programming constraints`
+
+Required when the scoped work includes business rules, validation, filtering, sorting, grouping, payload building, detail-to-form mapping, adapter / mapper normalization, view-model construction, or state derivation.
+
+Document:
+
+- rules and transformations that should be pure functions
+- data inputs that must be treated as immutable, such as props, backend DTOs, store snapshots, function arguments, and adapter inputs
+- approved side-effect boundaries, such as request layer, command function, event handler, store action, or lifecycle hook
+- semantic normalization boundaries, especially adapter / mapper / `fromDetail`
+- derived state that should not be duplicated as writable state
+- whether functional utility libraries or higher-order abstractions are rejected or approved
+
+## `expert frontend engineering constraints`
+
+Required when the scoped work adds or changes user-facing frontend behavior, state flow, data flow, component composition, frontend architecture, or production integration.
+
+Document:
+
+- end-to-end user journey: entrypoints, preconditions, visible states, success, failure, retry, cancellation, and handoff
+- business-visible display semantics: field-level display format, precision, empty-state copy, link affordance, highlight persistence, and visual-state contract
+- state ownership: source state, derived state, form state, server state, route state, cache state, and persistence boundaries
+- data lifecycle: backend DTO, adapter / mapper, view model, form model, payload, and response handling
+- async correctness: loading owner, dedupe, cancellation, stale response handling, race semantics, idempotency, and retry semantics
+- interaction resilience: keyboard, focus, semantic controls, disabled states, destructive confirmations, permission-denied behavior, and actionable feedback
+- performance and rendering boundary: render scope, large-list strategy, expensive derivation, bundle impact, and reactive fan-out risk
+- evolution safety: extension seams, compatibility boundary, feature flag or migration need, rollback surface, and cleanup trigger
+- testability and observability: deterministic units, component interaction coverage, integration seams, useful errors, and debuggable evidence
+
+## `production code quality constraints`
+
+Required when the scoped work adds or changes production code.
+
+Document the required pre-code reasoning order and the concrete constraints that downstream `plan`, `execute`, `verify`, and `review` must enforce:
+
+- type-first contract: data `type` / `interface` ownership, backend type reuse, branded type or equivalent nominal distinction for confusable identifiers when useful, and forbidden broad typing such as unapproved `any`
+- fail-fast and clear handling: explicit handling for abnormal, empty, nullable, invalid, timeout, rejected, partial-success, and impossible states
+- strict null handling: where `null` and `undefined` have distinct semantics, where `??` / `?.` are appropriate, and where validation must not be replaced by fallback display logic
+- maintainability before micro-optimization: readable implementation preference and any approved reason for memoization, caching, debounce, throttle, virtualization, `useMemo`, `useCallback`, computed caching, or watcher-based optimization
+- pure functions over classes: deterministic business rules, validators, formatters, transformers, payload builders, status mappers, and state derivation should prefer pure functions and immutable data unless a framework or lifecycle reason justifies a class
+- naming and expression rules: booleans use `is` / `has` / `should` / `can`; props callbacks use `on`; internal event handlers use `handle`; data functions use precise verbs such as `get` / `fetch` / `set` / `update` / `transform` / `format` / `check` / `validate`
+- no magic variables: helper inputs must come from parameters, dependency injection, or clearly owned local closure state; real configuration constants must live under the narrowest stable domain owner
+- boundary UI states: lists need empty state, async operations need loading state, and form inputs need visible error state with concrete copy when the scoped work touches those surfaces
+
+Do not let this section duplicate the functional-programming section. This section owns production-code quality gates; the functional-programming section owns transformation purity, immutability, and side-effect placement in detail.
+
+## `field display semantics and interaction visual-state contracts`
+
+Required when the scoped work adds, changes, displays, or reuses business-visible fields, table columns, detail fields, cards, links, tags, status labels, or jump targets.
+
+This section is about interpreting business meaning first. The categories below are prompts for analysis, not fixed formatting rules.
+
+For each touched field or column, document:
+
+- field / column id and source field
+- source wording, label, surrounding section, user action, workflow step, API / DTO meaning, and code facts used to infer business meaning
+- business meaning in the current feature, not just raw type or field name
+- semantic display role using the project's domain language, with optional diagnostic tags only when useful; examples include business date, event moment, deadline, remaining duration, status badge, navigational affordance, or domain-specific emphasis
+- exact display expression and precision, described from business meaning first; concrete format strings are allowed only after the source or approved code facts justify them
+- empty / invalid / unknown value display
+- whether the field is clickable or navigational
+- default visual state
+- hover, focus, active, visited, disabled, and permission-denied states when material
+- whether highlight is persistent by default or only an interaction state
+- accepted formatter / helper / component to use, or explicit instruction to avoid a generic formatter
+- verification evidence required downstream
+
+Rules:
+
+- Do not infer one display rule from raw type, field name, component default, or neighboring-module habit. First prove the business meaning from source and code facts.
+- Do not infer one format for fields that only look technically similar. Temporal fields, amounts, statuses, links, tags, ids, and booleans can all represent different business concepts that require different presentation or behavior.
+- If the source says a clickable field or link must be highlighted, emphasized, called out, or made visually distinct, determine from the source context whether that is a default business state, an interaction state, or both; do not assume interaction-only styling because the element is clickable.
+- Interaction feedback such as hover may be added only after the default business state is understood; it cannot replace a source-required business emphasis unless source context proves the emphasis exists only during interaction.
+- If the source does not provide enough precision or visual-state information and the distinction changes user-visible behavior, write a clarification and route back to the front-loaded confirmation gate instead of guessing.
+
+## `human review readiness constraints`
+
+Required when the scoped work changes production code, tests, mocks, contracts, or generated-facing files.
+
+Document:
+
+- local conventions that implementation must follow, including nearby component, hook / composable, request, store, adapter, naming, test, and error-handling patterns
+- expected diff scope and files that are allowed to change
+- files or behaviors explicitly not in scope
+- review-sensitive risks, such as large diff, touched shared code, migration, compatibility, request side effects, state ownership, or test adaptation
+- required self-review evidence before verification: changed hunks mapped to plan tasks, unrelated changes ruled out, debug/dead/stale artifacts removed, and verification commands or fallback checks recorded
+- reviewer-readable explanation needed for non-obvious changes
+
+## `architecture reuse and shared ownership constraints`
+
+Required when the scoped work touches business rules, validation, filtering, sorting, grouping, option building, permission checks, payload construction, status mapping, adapter / mapper normalization, view-model construction, helper logic, or state derivation.
+
+Document:
+
+- existing equivalent production logic found in the scoped feature chain or nearby domain modules
+- Anti-DRY decision matrix result, including business semantics, layer, production use-site count, change stability, and variation axes
+- shared logic owner: existing helper, new domain helper, hook, mapper, adapter, or explicit local owner
+- extraction / reuse / keep-separate / defer decision for each candidate
+- reason for keeping separate when logic appears similar
+- commonality classification: technical / infrastructure, business / domain, UI / design-system, or configuration / constants
+- dependency direction and why the chosen owner does not create cycles or reverse feature ownership
+- public API shape for shared functions or hooks
+- dependency injection, strategy, getter, adapter, or thin-wrapper boundary for business-specific variation
+- migration scope for in-scope callers
+- behavior-equivalence verification required downstream
+- JSDoc traceability requirement for promoted shared APIs, including `@see` or representative `@example` references
+
+## `frontend architecture design routing inputs`
+
+Required when scoped work changes frontend architecture, module boundaries, ownership, state flow, data flow, dependency direction, extension seams, migration paths, public APIs, shared abstractions, or cross-file collaboration.
+
+Document:
+
+- `architecture-design_required: true`
+- behavior, fields, interactions, state rules, API contracts, permissions, validation, and acceptance criteria that architecture-design must not change
+- architecture-sensitive questions that need final design: business capability owner, module boundary, ownership map, state topology, data lifecycle, dependency rule matrix, extension seams, complexity budget, migration / compatibility / fallback cleanup triggers, shared abstraction ownership, public APIs, and file locality
+- source-grounded code facts or scoped code-context evidence that architecture-design must consider
+- conditions that require architecture-design to roll back to `spec`, such as changed behavior, changed scope, changed acceptance criteria, or changed data/API semantics
+- verification needed later for `frontend architecture quality compliance`
+
+Rules:
+
+- Do not use this section to make final architecture decisions that belong to `architecture-design`.
+- Do not let downstream architecture alter source-grounded behavior or data semantics without rolling back to spec.
+- Do not omit the architecture-design routing signal when module boundaries, ownership, state/data topology, dependency direction, shared abstraction, or extension seam decisions are material.
+
+## `locality and file-extraction constraints`
+
+Required when the scoped work adds or moves helpers, hooks, mappers, adapters, constants, utilities, or feature-local modules.
+
+Document:
+
+- proposed helper / hook / mapper / utility name
+- owning page, component, hook, adapter, or service
+- real production caller count
+- decision: same-file local helper, feature-local private file, shared owner, or no extraction
+- approved reason for any separate file
+- why same-file locality is insufficient when there is only one real production caller
+
+Rules:
+
+- Single-page, single-caller logic defaults to same-file local helper.
+- A separate file requires a concrete boundary reason: multiple production owners, adapter/service/request layer, cohesive component or hook lifecycle, independent test surface, framework-required module shape, generated/contract isolation, or unavoidable file-size/readability pressure.
+- Do not approve one-function modules, local catch-all `utils.ts` / `helpers.ts`, or single-caller mapper files only to shorten the owning page or prepare for hypothetical reuse.
+
+## `Vue component extraction constraints`
+
+Required when Vue SFCs, page-local components, shared components, props / emits boundaries, slots, or component splitting decisions are added or changed.
+
+For each candidate, document:
+
+- candidate name and owning page / feature
+- decision: `extract`, `reuse existing`, `keep inline`, or `defer`
+- concrete extraction trigger or non-extraction blocker from `vue-component-extraction.md`
+- real production caller count: `1`, `2+ same semantics`, or `2+ different semantics`
+- if caller count is `1`, the exact approved single-caller exception: cohesive business section, interaction lifecycle boundary, slot / composition boundary, focused test boundary, page readability boundary, or project convention boundary
+- state owner before and after extraction
+- props contract, including whether inputs are view-model fields rather than backend DTO passthrough
+- emits contract, including which user intention each event represents
+- slot usage, if any, and why props are not enough
+- data normalization boundary, especially adapter / mapper / `fromDetail`
+- styling / Tailwind class-length impact
+- test or verification surface
+- why the decision is better than same-file markup or a same-file local section
+
+Rules:
+
+- Extract when the component owns a real UI / business concept and satisfies the `vue-component-extraction.md` decision algorithm: `2+` real same-semantics production callers, or one approved single-caller exception.
+- Keep inline when the candidate is one-off markup, one-caller pass-through, generic wrapper, DTO / form-model passthrough, broad optional-prop interface, different business semantics, simple local rule, longer prop / emit chain, or extraction only to make the file shorter.
+- Do not move adapter, request, permission, business normalization, or cross-section orchestration into a presentational Vue component.
+
+## `change axes and pattern decision`
+
+Required for every delivery unit, including small changes, local modifications, and bug fixes.
+
+Document:
+
+- scoped behavior or structure being changed
+- pattern candidate signals found or ruled out:
+  - selection by type, state, role, environment, feature flag, permission, or provider
+  - contract or shape adaptation
+  - creation logic or provider selection
+  - ordered workflow, validation, fallback, upload, submit, or request pipeline
+  - side-effect coordination, notification, analytics, retry, caching, tracing, or permission wrapping
+  - state-dependent behavior spreading across conditionals
+  - tree or nested structure handling
+  - access control, lazy loading, cache, request dedupe, or expensive object access
+- existing project pattern or local convention to preserve
+- decision depth: Level 0 direct code, Level 1 local lightweight shape, Level 2 reused / formalized project pattern, or Level 3 structural pattern introduction
+- selected decision: `direct code`, `reuse existing pattern`, `adapt lightweight pattern`, or `introduce pattern`
+- selected pattern family or `none`
+- frontend syntax shape: function, object map, typed record, discriminated union, hook / composable, component boundary, store action, request module, adapter / mapper, higher-order function, or justified class
+- triggered rejected alternatives and why they are heavier, less local, less readable, or unsupported by current variation
+- downstream verification or review signal that would prove the decision is still fitting
+
+Rules:
+
+- Direct code is a valid decision, not an omitted decision.
+- If Level 0 direct code is selected and no pattern signal exists, record the no-signal rationale briefly. Do not enumerate every untriggered pattern family.
+- If direct code is selected despite a real pattern signal, explain why only the triggered candidate families or project patterns are not the lightest useful fit for the current change.
+- If a pattern is selected, prefer JavaScript/frontend-native shapes such as functions, object maps, strategy maps, command records, adapters, hooks, composables, components, or small modules before class hierarchies.
+- The implementation shape must match the frontend stack: React should favor props, composition, hooks, reducers, refs, context when needed, and event handlers; Vue should favor props / emits, slots, composables, refs / computed, stores, directives, and SFC boundaries.
+- Do not use backend-style class hierarchies, abstract base classes, one-method interfaces, managers, factories, or handlers unless the existing project convention and approved boundary reason both justify them.
+- Do not introduce a named pattern layer for hypothetical future variants.
+
+Rules:
+
+- Behavior-preserving extraction based on duplicated production code facts is allowed as an architecture improvement when it is inside the approved change chain and passes the Anti-DRY abstraction matrix.
+- Do not introduce user-visible behavior changes under the cover of refactoring.
+- Do not defer an approved safe extraction merely because the duplicate appears in another module.
+- Do not extract when similarity is only syntactic, when semantics differ, when layers differ, when fewer than three stable production use sites exist without an approved exception, or when variation axes exceed the benefit of abstraction.
+- Do not create broad generic `utils` modules when a domain-specific owner is clearer.
+- Do not make shared code depend on feature-module private entities, environment side effects, or broad merged interfaces.
+
 ## `function-complete behavior breakdown`
 
 This section is required whenever the scoped work includes concrete frontend behavior. Describe the same behavior granularity that downstream `plan` must preserve.
@@ -99,8 +394,26 @@ For text input controls, the spec must not stop at PRD-explicit constraints only
 - how leading whitespace, trailing whitespace, consecutive whitespace, line breaks, pasted content, and illegal characters are handled
 - when validation and error presentation are triggered, such as during input, on blur, or on submit
 
-If any material detail is unknown, record it in `spec/clarifications.md` and reference the approved assumption or open question directly from the spec.
+If any material product or business detail is unknown, record it in `spec/clarifications.md` as `missing-source` and return it to the front-loaded confirmation gate. Framework assumptions are allowed only for reversible, non-user-visible technical choices that preserve all approved semantics.
 If the source module files already contain explicit fields, columns, interactions, states, or workflow rules, the spec must carry them forward instead of collapsing them into higher-level prose.
+If a detail is not in source, code facts, or confirmed decisions, the spec must not invent it to make the behavior look complete.
+
+## `UI / UX design contract`
+
+Required when `page-design` exists or when the scoped work materially changes user-facing layout, visual hierarchy, interaction structure, feedback states, responsive behavior, or accessibility.
+
+Carry forward the approved page-design decisions without re-solving them in spec. At minimum, document:
+
+- user journey: role, entrypoint, task intent, primary decision, primary action, completion signal, and recovery path
+- information architecture: page regions, business grouping, reading order, operation order, progressive disclosure, and cross-section dependencies
+- visual hierarchy: primary content, primary action, secondary action, destructive action, metadata, warning, status, empty-space, density, and emphasis rules
+- interaction confidence: disabled reason, confirmation, cancellation, retry, loading ownership, success feedback, failure recovery, dirty state, focus restoration, and keyboard path when material
+- feedback state contract: empty, filtered empty, loading, section loading, error, permission, readonly, validation, success, stale data, and pending async states that implementation must preserve
+- UX writing stance: empty-state guidance, validation specificity, system failure message, success next step, destructive warning, and disabled / permission-denied explanation
+- responsive and accessibility contract: overflow behavior, toolbar wrapping, table scroll, modal / drawer sizing, touch target risk, color contrast risk, non-color-only signaling, semantic control choice, focus order, and error association
+- UX risk controls: likely user mistakes, overload points, hidden dependencies, irreversible actions, ambiguous labels, scanability risks, and approved mitigations
+
+Do not use this section to add new product behavior, fields, actions, permissions, validation rules, or acceptance criteria beyond source authority. If better UX requires such a decision, record it in `spec/clarifications.md` and route to the front-loaded confirmation gate when it affects visible behavior or acceptance.
 
 ## `frontend styling constraints`
 
@@ -120,11 +433,17 @@ This section is required when the scoped work starts a project, app, package, or
 
 At minimum, describe:
 
+- scaffold-sensitive source signal and exact source wording
+- candidate discovery locations checked: source-stated starter, repository docs, package scripts, monorepo generators, same-type sibling apps / packages, team templates, and external framework scaffold only when allowed
+- candidate scaffolds / starters and match rationale
+- rejected candidates and concrete rejection reasons
 - whether a suitable project-type scaffold or starter already exists
 - which scaffold or starter will be used by default
 - if no scaffold will be used, why it is unsuitable, unavailable, or intentionally rejected
 - what approved deviations from the chosen scaffold are allowed during implementation
 - which bootstrap choices are fixed upstream and must not be re-decided in `plan` or `execute`
+
+Spec approval must fail when scaffold candidates are unknown, candidate discovery scope is missing, or scaffold rejection is only justified by convenience.
 
 ## `spec/clarifications.md` or `module-runs/<module-id>/spec/clarifications.md`
 
@@ -134,3 +453,4 @@ Required sections:
 - answer
 - final decision
 - affected spec area
+- grounding status and required source

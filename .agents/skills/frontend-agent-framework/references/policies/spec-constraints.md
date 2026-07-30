@@ -6,7 +6,8 @@ This policy defines the design constraints that must be decided or explicitly bo
 
 ## Core Rule
 
-- Treat clean-code and design-pattern decisions as spec-level constraints whenever they materially affect module boundaries, behavior variation, dependency direction, side-effect placement, or future extension safety.
+- Treat clean-code, functional-programming, and design-pattern decisions as spec-level constraints whenever they materially affect module boundaries, data transformation ownership, behavior variation, dependency direction, side-effect placement, or future extension safety.
+- Every delivery unit must record a pattern-fit decision in the spec, even when the decision is direct code and no named pattern is introduced.
 
 ## Required Spec Constraint Categories
 
@@ -14,6 +15,7 @@ This policy defines the design constraints that must be decided or explicitly bo
 
 - The spec must state the intended responsibility split for the main changed modules, components, hooks, services, or utilities.
 - The spec must identify boundaries that must stay explicit, such as page orchestration vs business logic, UI rendering vs data shaping, command logic vs side effects, adapter boundary vs raw upstream contract.
+- The spec must state locality decisions for new helpers, hooks, mappers, constants, and utility files. Single-page, single-caller logic defaults to same-file local helpers unless the spec records a concrete boundary reason for a new file.
 - If the request touches an already tangled area, the spec must say whether the change is allowed to preserve the existing structure temporarily or must improve the boundary as part of the work.
 
 ### 2. Naming and Domain Language Constraints
@@ -21,6 +23,13 @@ This policy defines the design constraints that must be decided or explicitly bo
 - The spec must capture important domain terms and any names that must remain stable for user-facing semantics, business concepts, or cross-module understanding.
 - If the current code uses misleading vocabulary that would affect the new work, the spec must call that out as a refactor requirement or accepted limitation.
 - This does not require the spec to micro-name every symbol, but it must define the terminology that downstream implementation should preserve.
+
+### 2.1 Field Display Semantics Constraints
+
+- The spec must define field-level display semantics for every touched business-visible field, not only the data type. The contract must include source wording, PRD label, surrounding workflow, code facts, business meaning, display precision, empty-state copy, interaction affordance, and verification expectation.
+- The implementation choice must be derived from business meaning. Technical categories such as timestamp, string, enum, URL, id, boolean, amount, status, tag, or link are diagnostic prompts, not implementation rules; generic formatters or component defaults must not be applied merely because values look technically similar.
+- Link, navigation, highlighted, emphasized, status, and tag fields must define visual states from business intent before styling. If a source says a field should be visually emphasized, determine whether that emphasis is a default business state, an interaction state, or both; do not assume interaction-only styling because the field is clickable.
+- If business meaning, precision, or visual state cannot be recovered from source, code facts, or confirmed decisions, the spec must record a clarification and roll back to the front-loaded confirmation gate when the distinction changes user-visible behavior.
 
 ### 3. Duplication and Rule Ownership Constraints
 
@@ -33,11 +42,15 @@ This policy defines the design constraints that must be decided or explicitly bo
 - The spec must state where important side effects belong: API calls, persistence, analytics, subscriptions, cache writes, global coordination, or cross-module notifications.
 - The spec must identify dependencies that should be adapted, wrapped, isolated, or kept out of view-level code.
 - If a feature depends on hidden shared state or event fan-out, the spec must make that explicit instead of letting implementation discover it accidentally.
+- The spec must identify deterministic business rules, validators, data mappers, payload builders, and view-model transformations that should remain pure and side-effect-free.
+- The spec must state which data inputs are treated as immutable, especially props, backend DTOs, shared store snapshots, and adapter inputs.
 
 ### 5. Variation and Pattern Constraints
 
 - The spec must identify real variation axes such as behavior by type, state, role, environment, provider, or workflow stage.
 - The spec must state whether each major variation axis should use direct branching, remain intentionally simple, or be isolated by an approved pattern family.
+- The spec must evaluate pattern candidates for small changes, local modifications, and bug fixes, including adaptation, strategy selection, state-dependent behavior, command/action sequencing, pipelines, notification fan-out, wrappers, facades, proxies, tree handling, and construction complexity.
+- If direct code is selected, the spec must record why it is clearer than a pattern for the current change.
 - If a named pattern is justified, the spec must record the problem being solved, the pattern family, and what simpler alternative was rejected.
 - If a named pattern is not justified, the spec should say so explicitly when that decision avoids future overengineering.
 
@@ -46,20 +59,23 @@ This policy defines the design constraints that must be decided or explicitly bo
 - The spec must identify parts of the request where control flow, state transitions, or orchestration could become hard to read.
 - The spec must define any readability guardrails that downstream code should preserve, such as explicit state transitions, limited branching surfaces, or one clear entrypoint per workflow step.
 - When a request can be solved in a simpler direct form, the spec should prefer that and forbid speculative abstraction.
+- When a helper would have only one real production caller, the spec should prefer colocation and forbid standalone helper files unless a clear readability, lifecycle, adapter/service, framework, generated-code, or testing boundary is approved.
 
 ### 7. Project Bootstrap and Scaffold Constraints
 
 - When the scoped work starts a project, app, package, or frontend surface from scratch, the spec must state whether a suitable project-type scaffold or starter already exists.
+- The spec must use `project-scaffold.md` discovery evidence before making this decision: source-stated starter, repository docs / scripts / monorepo generators, same-type sibling apps / packages, team templates, and only then external framework scaffold when allowed.
 - If a suitable scaffold exists, the spec must treat scaffold reuse as the default and record which scaffold will be used.
 - If the work will not use an available scaffold, the spec must record why the scaffold is unsuitable, unavailable, or too costly to adapt.
 - The spec must identify any approved deviations from the chosen scaffold, such as removed modules, replaced libraries, or structure changes that implementation is allowed to make.
 - The spec must not leave greenfield bootstrap strategy implicit for downstream plan or execute to guess.
+- Spec approval must fail if scaffold candidates are unknown, discovery scope is not recorded, or rejection reasons are vague.
 
 ## Downstream Contract
 
 - `plan` must turn these spec constraints into concrete tasks, abstraction boundaries, and verification points.
 - `execute` must implement within these constraints instead of inventing a different design shape.
-- `review` must judge code against these declared constraints, not against vague taste alone.
+- `verify` and `review` must judge code against these declared constraints, including field display semantics, interaction visual states, and functional-programming boundaries where applicable, not against vague taste alone.
 
 ## Non-Goals
 

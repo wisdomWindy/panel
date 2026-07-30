@@ -29,13 +29,12 @@ For page-oriented requests, insert the optional design stage before spec:
 
 `intake -> requirement-analysis -> requirement-splitting -> page-design -> spec -> plan -> execute -> verify -> review -> complete`
 
-For code-architecture-sensitive requests, insert the optional architecture design stage before spec:
+For code-architecture-sensitive requests, insert the optional architecture design stage after spec and before plan:
 
-`intake -> requirement-analysis -> requirement-splitting -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+`intake -> requirement-analysis -> requirement-splitting -> spec -> architecture-design -> plan -> execute -> verify -> review -> complete`
 
 When a request is both page-oriented and code-architecture-sensitive, the combined design path is:
-
-`intake -> requirement-analysis -> requirement-splitting -> page-design -> architecture-design -> spec -> plan -> execute -> verify -> review -> complete`
+`intake -> requirement-analysis -> requirement-splitting -> page-design -> spec -> architecture-design -> plan -> execute -> verify -> review -> complete`
 
 The lifecycle above is the delivery path. The main `frontend-agent-framework` skill controls that path through a loop orchestrator:
 
@@ -45,11 +44,21 @@ In this framework:
 
 - `subskills/` own stage execution only
 - `requirement-analysis` is the explicit需求理解阶段 for PRD-driven work and fixes scope, non-goals, ambiguity, risk, and splitting strategy before decomposition begins
-- `requirement-splitting` is the source-preserving decomposition stage for PRD-driven work and feeds `page-design`, `architecture-design`, and `spec`
+- `requirement-analysis` is also the front-loaded human-confirmation stage for PRD-driven work: needs, questions, rules, ambiguous content, fuzzy content, and product decisions that require a person must be resolved, blocked, or explicitly classified there before downstream automatic approval begins
+- `requirement-analysis` is the source-grounding gate: it separates source-backed facts, code-fact-backed constraints, confirmed decisions, safe source-derived consequences, missing-source items, and out-of-scope adjacent ideas before downstream artifacts can use them
+- `requirement-splitting` is the source-preserving decomposition stage for PRD-driven work and feeds `page-design`, `spec`, and the architecture-design routing signal
 - for PRD-driven work that has been split into module files, downstream delivery runs one split module at a time inside the same request
-- each split module must complete its own `page-design? -> architecture-design? -> spec -> plan -> execute -> verify -> review` chain before the next split module starts
+- each split module must complete its own `page-design? -> spec -> architecture-design? -> plan -> execute -> verify -> review` chain before the next split module starts
+- repeated semantic logic is architecture-sensitive: when scoped work touches duplicated production rules, validation, adapter / mapper normalization, payload construction, option building, permission checks, state derivation, status mapping, or helper behavior, the workflow must decide shared ownership before implementation
+- `architecture-design` consumes the framework-approved spec, then records reuse candidates and extract / reuse / keep-separate / defer decisions; safe duplicated semantic rules should be owned once instead of copied locally before planning
 - split-module downstream artifacts live under `docs/requests/<request-id>/module-runs/<module-id>/`
+- direct-change, bugfix, and other non-split downstream delivery uses the same `page-design? -> spec -> architecture-design? -> plan -> execute -> verify -> review` chain at request level
+- direct-change, bugfix, and other non-split downstream artifacts live directly under `docs/requests/<request-id>/design|spec|plan|execution|verification|review`
+- direct-change and bugfix work use `intake` or `bugfix-intake` as their source-normalization and human-confirmation gate before request-level downstream stages
+- `spec` and `plan` approval flags are set by framework automatic approval checks, not by user approval prompts
+- `spec` and `plan` automatic approval must reject ungrounded behavior, tasks, or acceptance criteria instead of filling missing details from convention, sample content, neighboring modules, or preferred design taste
 - the goal contract is established in request/spec artifacts and proved by verification/review artifacts
+- completion can require `architecture reuse compliance: pass` and `architecture reuse assessment: pass` when shared extraction or repeated semantic logic is relevant
 - the main skill owns loop control, gate recovery, and rollback routing
 - workflow-style parallelization is optional execution scale, not a second lifecycle and not a default
 - proactive workflows must make trigger, context, steerability, and handoff explicit in repository artifacts

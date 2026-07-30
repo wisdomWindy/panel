@@ -4,7 +4,7 @@
 
 - `docs/requests/<request-id>/request.md`
 - `docs/requests/<request-id>/state.json`
-- `docs/requests/<request-id>/artifacts/prd-snapshot.md`
+- `docs/requests/<request-id>/artifacts/prd-snapshot.md` as the normalized source snapshot for PRD-driven, direct-change, and bugfix work
 - `docs/requests/<request-id>/analysis/requirement-analysis.md` for PRD-driven requests after requirement analysis
 - `docs/requests/<request-id>/requirements/requirement-map.md` for PRD-driven requests after requirement splitting
 
@@ -13,7 +13,7 @@
 Required sections:
 
 - request identifier
-- source link
+- source link or direct user instruction reference
 - business summary
 - goal statement
 - initial done signal
@@ -33,6 +33,7 @@ Required fields:
 - `status`
 - `artifacts`
 - `approvals`
+- `speed_profile`
 - `loop`
 - `module_flow`（PRD 驱动需求在 requirement-splitting 之后必需）
 
@@ -45,7 +46,16 @@ Required shape:
   "stage": "requirement-analysis",
   "status": "in_progress",
   "artifacts": {},
-  "approvals": {},
+  "approvals": {
+    "spec_approved": false,
+    "plan_approved": false
+  },
+  "speed_profile": {
+    "level": "S1 local",
+    "reason": "...",
+    "context_budget": "scoped",
+    "artifact_density": "compact"
+  },
   "module_flow": null,
   "loop": {
     "iteration": 1,
@@ -58,10 +68,27 @@ Required shape:
 ```
 
 For PRD-driven requests, initialize `stage` to `requirement-analysis`.
+For direct-change requests normalized through `intake`, initialize `stage` to the first request-level downstream stage: `page-design` when page design is required, otherwise `spec`. Code architecture design, when required, runs after framework-approved `spec` and before `plan`.
 For bugfix requests normalized through `bugfix-intake`, initialize `stage` to `spec` unless the main skill explicitly routes the defect through requirement splitting.
 Before `requirement-analysis` finishes, no requirement-analysis artifact is assumed.
 Before `requirement-splitting` finishes, `module_flow` may be `null`.
 After `requirement-splitting` finishes for a PRD-driven request, `module_flow` becomes required.
+For direct-change, bugfix, and other non-split requests, keep `module_flow=null` and use top-level `approvals.spec_approved` and `approvals.plan_approved`.
+Approval fields are automatic framework gates:
+
+- `spec_approved=true` means the framework accepted the active delivery unit's spec against templates, policies, source traceability, scope alignment, and state-machine gates.
+- `plan_approved=true` means the framework accepted the active delivery unit's plan against the framework-approved spec, templates, policies, task completeness, verification strategy, and state-machine gates.
+- `spec` and `plan` stages must not use user approval prompts to set these flags.
+- Human-confirmed needs, questions, rules, and product decisions must be resolved or blocked in `requirement-analysis`, `intake`, or `bugfix-intake` before downstream authoring.
+
+Speed profile fields:
+
+- `level` only allows `S0 trivial`, `S1 local`, `S2 scoped`, or `S3 broad`
+- `reason` records why this is the lowest safe profile
+- `context_budget` records whether downstream context should be `narrow`, `scoped`, or `full`
+- `artifact_density` records whether downstream artifacts should be `compact` or `full`
+- `S0` / `S1` may use compact artifacts with required sections present and non-applicable sections written as concise `不适用：<reason>`
+- If later evidence shows broader impact, update `speed_profile` upward and record the reason; never lower quality gates for speed
 
 Loop field rules:
 
@@ -71,7 +98,7 @@ Loop field rules:
 - `state` only allows `running`, `blocked`, or `complete`
 - `last_completed_stage` stores the most recent fully completed lifecycle stage, or `null`
 - `pending_gate` stores the active blocking gate name, or `null`
-- `reentry_reason` only allows `new_request`, `resume_request`, `gate_recovery`, `requirement_changed`, `verification_failed`, `review_blocked`, or `manual_reopen`
+- `reentry_reason` only allows `new_request`, `resume_request`, `gate_recovery`, `architecture_design_invalidated`, `requirement_changed`, `verification_failed`, `review_blocked`, or `manual_reopen`
 - `loop.state=complete` requires `stage=complete`
 - `loop.state=blocked` is only for real external blocking gates after internal recovery was attempted
 
@@ -108,24 +135,77 @@ Rules:
 - `completed_module_ids` stores only modules that already passed `review`
 - `modules.<module-id>.status` only allows `pending`, `in_progress`, `blocked`, or `completed`
 - `modules.<module-id>.page_design_required` and `modules.<module-id>.architecture_design_required` drive downstream stage routing for that module
-- `modules.<module-id>.approvals.spec_approved` and `modules.<module-id>.approvals.plan_approved` are scoped to that module only
+- `modules.<module-id>.approvals.spec_approved` and `modules.<module-id>.approvals.plan_approved` are scoped to that module only and are set by framework automatic approval, not by user approval at `spec` or `plan`
 - after a module passes `review`, set its status to `completed` before advancing queue state
 - when pending modules remain after that transition, the next promoted module must be marked `in_progress`
 - when no pending modules remain, set `current_module_id=null`, `stage=complete`, and `loop.state=complete`
 - do not move to the next module until the current module has completed `review` without blockers
 - if module boundaries change materially, regenerate `module_flow` through `requirement-splitting`
 
+### Non-split delivery unit
+
+For direct-change, bugfix, and other non-split requests:
+
+- `module_flow` remains `null`
+- direct-change requests must record why PRD-only requirement analysis and requirement splitting are not needed
+- downstream artifacts use request-level paths:
+  - `design/page-design.md`
+  - `design/architecture-design.md`
+  - `spec/spec.md`
+  - `spec/clarifications.md`
+  - `plan/plan.md`
+  - `plan/task-board.md`
+  - `execution/changelog.md`
+  - `verification/verification.md`
+  - `review/review.md`
+- approval gates use top-level `approvals.spec_approved` and `approvals.plan_approved`, set by framework automatic approval
+- after request-level `review` passes, set `stage=complete` and `loop.state=complete`
+
 ## `artifacts/prd-snapshot.md`
+
+For direct-change requests, this artifact is still named `prd-snapshot.md` for compatibility, but it acts as a normalized source snapshot of the user's direct instruction and repository context.
 
 Required sections:
 
+- verbatim source evidence index
 - source summary
 - key business goals
+- greenfield scaffold sensitivity
 - explicit behavior constraints
+- closed-world product scope allowlist
 - forms, tables, displays, and interactions extracted from source
 - workflow and state rules extracted from source
 - relevant modules or pages
-- notable open questions from the upstream PRD
+- notable open questions from the upstream PRD or direct instruction
+
+### `verbatim source evidence index`
+
+Preserve exact requirement excerpts or stable section anchors for every material product-facing or business-semantic item. Normalized summaries are navigation aids only and must not become independent authority.
+
+For direct-change requests, quote the user's active instruction verbatim and distinguish it from repository observations. For retrieved PRDs, preserve document section identifiers and exact excerpts sufficient to audit downstream claims.
+
+### `closed-world product scope allowlist`
+
+For direct-change requests, list every product-facing or business-semantic addition or modification authorized by the user's exact instruction. Anything not listed is `missing-source` or `out-of-scope`; repository code and neighboring behavior cannot add entries.
+
+For PRD-driven requests, record an intake-level preliminary list without extending it. `requirement-analysis` must validate and replace it with the durable closed-world allowlist before downstream design or spec.
+
+### `greenfield scaffold sensitivity`
+
+Required when the source creates, initializes, or starts from scratch a project, app, package, frontend surface, micro frontend, component library, SDK package, or buildable frontend entry.
+
+Document:
+
+- `greenfield_scaffold_sensitive`: `true`
+- exact source wording that triggered scaffold sensitivity
+- project type and target surface
+- known framework, build tool, routing, state, styling, component library, request layer, deployment, workspace, package, and ownership constraints
+- source-stated scaffold, starter, generator, template, sibling app, or monorepo command if any
+- missing scaffold information that must be discovered before `spec`
+- candidate discovery scope: docs, package scripts, monorepo config, existing sibling apps / packages, templates, generators, or team commands
+- human confirmation needed if multiple candidates have materially different stack, deployment, or maintenance consequences
+
+If no greenfield signal exists, write `不适用：not a project/app/package/frontend-surface creation request`.
 
 ### `explicit behavior constraints`
 
@@ -141,6 +221,7 @@ At minimum, extract and normalize:
 - workflow steps, branches, and state-transition rules already present in the source
 
 Do not replace explicit upstream detail with vague summaries such as "contains a form" or "supports table operations" when the source already names the fields, columns, actions, validations, or state rules.
+Do not add a plausible field, state, copy item, interaction, default, validation, permission, navigation target, API semantic, or feedback behavior when the source does not state it. Record the absence instead.
 
 ### `forms, tables, displays, and interactions extracted from source`
 
@@ -182,7 +263,7 @@ Requirements:
 - preserve source wording for each module snapshot instead of paraphrasing away explicit detail
 - for every split module, point back to the matching source section or excerpt anchor
 - explicitly mark whether the module requires page design before spec
-- explicitly mark whether the module requires architecture design before spec
+- explicitly mark whether the module requires architecture design after spec and before plan
 - define the sequential downstream execution order that the main skill must follow
 - identify upstream details that must be carried into `spec` without loss, including fields, columns, displays, interactions, validations, and state rules
 

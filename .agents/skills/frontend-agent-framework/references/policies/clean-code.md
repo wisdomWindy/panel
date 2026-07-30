@@ -10,10 +10,20 @@ This policy defines durable clean-code standards for frontend work. Apply it dur
 - Use the approved spec and plan to decide what behavior should exist; use this policy to decide how that behavior should be expressed in code.
 - Escalate to a blocking issue when the implementation materially harms readability, change safety, or future extension cost.
 - Do not use this policy to force speculative abstraction, cosmetic churn, or refactors that are unrelated to the approved request.
+- Before modifying or removing existing code, inspect the affected feature flow, file reference relationships, callers, side effects, and downstream consumers so the change is made against the whole owned chain instead of a single visible line.
+- After modifying or removing existing code, re-check the changed chain for missing required links, orphan links, stale callers, stale side effects, and collateral impact on neighboring features.
+- When removing behavior, remove the now-unused dependency closure owned by that behavior: imports, helper functions, constants, types, request wrappers, reactive state, computed values, watchers, tests, mocks, and comments that no longer serve another caller.
+- Test-file imports or references to code that the approved request changes or removes are empty references for production ownership decisions. Update, replace, or remove the tests to fit the approved behavior instead of retaining obsolete production code for test compatibility.
 
 ## Severity Guide
 
 - Blocking: misleading names, hidden side effects, duplicate business rules that can drift, oversized mixed-responsibility modules, ambiguous control flow, or code structure that makes planned verification unreliable.
+- Blocking: existing-code modification or removal performed without enough feature-flow and reference-chain analysis to prove what the touched code owns and what other features may be affected.
+- Blocking: post-change chain validation finds a missing required step, orphan reference, stale caller, obsolete side effect, or extra code path that no longer has a real owner.
+- Blocking: deleted behavior that leaves unused imports, dead helpers, orphan request wrappers, stale constants, obsolete computed/watch state, or comments/tests that describe behavior no longer present.
+- Blocking: production code retained solely because test files still import or reference it after the approved behavior requires that code to change or be removed.
+- Blocking: newly introduced constants that add indirection without carrying domain meaning, enforcing a constraint, preserving a required snapshot, materially simplifying a complex expression, or serving real reuse.
+- Blocking: extracting a function, hook, mapper, constant group, or helper into a new standalone file when it has only one real production owner and no approved boundary reason; this is needless indirection, not architecture.
 - Non-blocking: local naming improvements, light extraction opportunities, optional polish, or cleanup that improves clarity but is not required for safe delivery.
 
 ## Principles
@@ -59,6 +69,7 @@ This policy defines durable clean-code standards for frontend work. Apply it dur
 - Apply when a function both computes and mutates, both validates and performs I/O, or both reads and silently rewrites shared state.
 - Side effects are acceptable when the unit exists to perform them, but they must be easy to locate and reason about.
 - Hidden side effects inside apparently pure helpers are blocking because they make debugging and review unreliable.
+- Prefer pure helpers for deterministic transformations and rule checks. If a helper mutates state or performs I/O, it must be named and placed as an explicit command/effect boundary.
 
 ### 7. Errors and Edge Cases Must Stay Readable
 
@@ -88,19 +99,65 @@ This policy defines durable clean-code standards for frontend work. Apply it dur
 - Prefer small opportunistic improvements tied to the changed area: remove dead code, tighten names, collapse duplication, add missing test clarity, and isolate risky branches.
 - Do not turn the request into a broad cleanup campaign that obscures delivery progress or expands scope beyond the approved plan.
 
+### 11. Removal Changes Must Close Their Dependency Trail
+
+- When a request removes a call, action, branch, request, field, UI control, or side effect, trace every symbol that existed only to support that removed behavior.
+- Remove unused imports, helper functions, local constants, enums, types, request wrappers, composables, computed values, watchers, refs, state fields, tests, mocks, and comments that become dead after the behavior is removed.
+- Before leaving execution, search changed files and direct helper modules for the removed symbol names and helper names to prove no orphan references or orphan definitions remain.
+- Keep shared helpers only when another real production caller still uses them. If the helper is retained, the execution or review evidence must identify that remaining production caller.
+- Test-only references are not real callers for retaining removed or replaced production code. If only tests still reference the target, treat that as a test adaptation task, not as evidence the production symbol is still owned.
+- Do not keep dead helper code as a potential future reuse point. Future reuse is not a current owner.
+
+### 12. Modification And Removal Must Preserve The Whole Chain
+
+- For any existing-code modification or removal, identify the functional chain before editing: user entrypoint, component or hook path, state ownership, request or adapter boundary, helper layer, emitted side effects, and downstream UI or data consumers.
+- Identify the file and symbol reference chain before editing: imports, exports, callers, direct consumers, event handlers, watchers, computed values, tests, mocks, and configuration references that participate in the behavior.
+- Separate production ownership references from test-only references. Tests prove expected behavior; they do not own production symbols that the request explicitly changes or removes.
+- Modify or remove code at the owning layer of the behavior. Do not patch only the visible symptom while leaving the real owner, adapter, state transition, or side effect inconsistent.
+- After editing, re-run a chain check across changed files and directly related helper modules to prove the remaining flow is coherent end to end.
+- The final chain must be clean: no missing required step, no stale unused step, no duplicate replacement path, no orphan helper, no stale import, no obsolete state, no hidden side effect, and no unreviewed impact on neighboring features.
+
+### 13. Constants Must Earn Their Indirection
+
+- Declare a constant only when its name carries stable domain meaning, centralizes a rule or configuration value, preserves an intentionally shared or time-sensitive snapshot, improves a genuinely complex expression, or serves multiple real uses.
+- Keep an obvious single-use literal or expression inline when extracting it would only make the reader jump to another name and location.
+- Do not extract one-off strings, numbers, booleans, template fragments, object or array literals, simple property access, or a trivial expression into a constant whose name merely restates the value or the next operation.
+- Do not create module-level or exported constants for hypothetical reuse. Their scope must match current ownership and current callers; prefer a local binding when only one function or component owns the value.
+- Reuse an existing domain constant when it represents the same rule. Do not create a synonym constant or a pass-through alias solely to avoid using the existing name directly.
+- Local `const` bindings remain appropriate when they capture a meaningful intermediate result, avoid repeated or expensive evaluation, preserve one evaluation of a non-deterministic or stateful read, enable type narrowing, or make multi-step control flow materially clearer.
+- Judge the declaration by whether removing it would lose meaning, correctness, or real duplication control. If removal only eliminates a name and leaves equally readable code, keep the value inline.
+
+### 14. File Extraction Must Earn Its Boundary
+
+- Keep single-use page-owned helpers colocated with the page, component, hook, or adapter that owns them by default.
+- Do not create a new `utils.ts`, `helpers.ts`, mapper file, hook file, constant file, or one-function module only because a function exists, is pure, or makes the page file shorter.
+- A separate file is justified only when it provides a real boundary: multiple real production owners, an approved shared abstraction, a request/service/adapter layer, a cohesive business component or hook with its own lifecycle, independent deterministic testing for complex logic, framework-required module shape, generated/contract code, or a file-size/readability problem that cannot be solved by same-file local helpers.
+- When a helper has exactly one production caller, prefer a same-file local function near the owning flow. If it is large, first consider splitting the page into cohesive sections or local private helpers before creating an exported utility.
+- If a single-use helper is extracted for an approved non-reuse reason, keep it under the narrow owning feature directory, do not export it through shared barrels, and record why same-file locality was worse.
+- Review the import path cost: if the reader must jump to another file to understand a short or page-specific rule, the extraction probably made the code worse.
+
 ## Review Triggers
 
 Treat the following as explicit clean-code review checks:
 
 - Does each changed unit have a clear purpose and readable name?
 - Is business logic duplicated in multiple places?
+- Was the affected feature flow and file reference chain reviewed before modifying or removing existing code?
+- After the change, is the chain still coherent end to end, with no missing required link and no stale extra link?
+- Did any removed behavior leave unused imports, orphan helpers, stale request wrappers, obsolete state, or comments/tests for behavior that no longer exists?
+- Was any production code kept only because tests referenced it? If yes, that is a defect; adapt the tests instead.
 - Are side effects obvious and placed in the right layer?
 - Does the control flow read clearly from top to bottom?
+- Does every new constant provide domain meaning, a correctness constraint, a necessary snapshot, meaningful simplification, or real reuse instead of merely renaming a one-off value?
+- Does every new file-level helper extraction have more than one real production owner or an approved boundary reason?
+- Would colocating a single-use helper in the owning page/component make the code easier to read than a new import?
 - Did the change add flags, branches, or parameters that indicate a missing abstraction?
 - Did the change improve or degrade the immediate area it touched?
 
 ## Non-Goals
 
 - This policy does not define whitespace, lint, or formatter preferences.
+- This policy does not ban `const` or require repeated evaluation; it rejects declarations whose only effect is unnecessary indirection.
 - This policy does not require refactoring unrelated files for aesthetic consistency.
 - This policy does not justify bypassing the approved spec, plan, or verification flow.
+- This policy does not ban all file extraction; it requires file boundaries to improve ownership, testability, lifecycle separation, or real reuse.

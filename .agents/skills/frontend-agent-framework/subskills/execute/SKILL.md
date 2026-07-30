@@ -1,6 +1,6 @@
 ---
 name: frontend-agent-framework-execute
-description: Stage subskill for execution. Implement only approved tasks and keep execution records aligned with the plan.
+description: Stage subskill for execution. Implement only framework-approved tasks and keep execution records aligned with the plan.
 ---
 
 # Execute Subskill
@@ -8,135 +8,299 @@ description: Stage subskill for execution. Implement only approved tasks and kee
 ## 触发场景
 
 - 当主 `frontend-agent-framework` 将请求路由到 `stage=execute` 时使用。
-- 适用于按已批准 spec 和 plan 落地代码实现的阶段。
+- 适用于按已通过 framework 自动审批的 spec 和 plan 落地代码实现的阶段。
 
 ## 必要输入
 
-- `docs/requests/<request-id>/module-runs/<current-module-id>/spec/spec.md`
-- `docs/requests/<request-id>/module-runs/<current-module-id>/plan/plan.md`
-- `docs/requests/<request-id>/module-runs/<current-module-id>/plan/task-board.md`
+- 当前交付单元的 `spec/spec.md`
+- 当前交付单元的 `plan/plan.md`
+- 当前交付单元的 `plan/task-board.md`
 - `docs/requests/<request-id>/state.json`
 - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
-- `docs/requests/<request-id>/module-runs/<current-module-id>/design/architecture-design.md`（如存在）
+- 当前交付单元的 `design/architecture-design.md`（如存在）
+
+当前交付单元路径规则：
+
+- 拆分 PRD 模块：`docs/requests/<request-id>/module-runs/<current-module-id>/`
+- direct-change、bugfix 或非拆分请求：`docs/requests/<request-id>/`
 
 ## 执行步骤
 
 1. 先读：
    - `docs/requests/<request-id>/state.json`
-   - `docs/requests/<request-id>/module-runs/<current-module-id>/spec/spec.md`
-   - `docs/requests/<request-id>/module-runs/<current-module-id>/plan/plan.md`
-   - `docs/requests/<request-id>/module-runs/<current-module-id>/plan/task-board.md`
+   - 当前交付单元的 `spec/spec.md`
+   - 当前交付单元的 `plan/plan.md`
+   - 当前交付单元的 `plan/task-board.md`
    - `docs/requests/<request-id>/artifacts/code-context.md`（如存在）
-   - `docs/requests/<request-id>/module-runs/<current-module-id>/design/architecture-design.md`（如存在）
+   - 当前交付单元的 `design/architecture-design.md`（如存在）
    - `../../references/state-machine.md`
+   - `../../references/templates/execution.md`
    - `../../references/templates/code-context.md`
-   - `../../references/policies/api-contracts.md`
-   - `../../references/policies/clean-code.md`
-   - `../../references/policies/code-graph.md`
-   - `../../references/policies/design-patterns.md`
-   - `../../references/policies/spec-constraints.md`
-   - `../../references/policies/frontend-architecture.md`
-   - `../../references/policies/frontend-components.md`
-   - `../../references/policies/testing.md`
-   - `../../references/policies/typescript-context.md`
-   - `../../references/policies/user-intent.md`
-2. 执行前要求当前模块 `approvals.plan_approved=true`。
-3. 仅实现已批准任务。
+   - `../../references/policies/policy-index.md`
+   - 按 `policy-index.md` 的 `execute` 阶段映射读取本次 scoped work 适用的 policy 文件；默认至少读取 `source-grounding.md`、`clean-code.md`、`self-healing-loop.md`；生产代码改动默认读取 `code-review-checklist.md`；如果存在架构设计工件或 plan 包含 frontend architecture quality constraints，读取 `frontend-architecture.md`；如果 plan 引用了 execute-readiness 或 plan executable contract，读取 `plan-executable-contract.md`；如需选择上下文或命令范围，读取 `workflow-efficiency.md`
+2. 执行前要求当前交付单元 plan 已通过 framework 自动审批：
+   - 拆分 PRD 模块：`state.json.module_flow.modules.<current-module-id>.approvals.plan_approved=true`
+   - direct-change、bugfix 或非拆分请求：`state.json.approvals.plan_approved=true`
+   - 如果本次从 verify / review 回流，先读取失败项、defect class、owning stage 与需复查证据；只修复批准范围内的 blocker，不做无关重构。
+3. 仅实现已通过 framework 自动审批的任务。
+   - 按 `state.json.speed_profile` 控制上下文范围：`S0` / `S1` 只读取目标闭包内文件、直接调用方、相关测试和必要契约；`S2` / `S3` 才扩大结构扫描。若发现实际影响超出 profile，先更新工件并回退到 `plan`。
 4. 把 spec 与 plan 视为唯一实现合同。
-5. 如果 plan 缺少关键字段、列、交互、状态或 loading 结束条件，停止执行并回退到 `plan`。
-6. 如果 spec 与 plan 在行为颗粒度或产品含义上冲突，停止执行并回退修复工件。
-7. 如果 spec / plan 包含 user intent contract，执行必须同时满足 literal request 与 practical goal；不得采用 forbidden interpretations，不得把复杂度、风险、歧义或责任转移到未检查位置。
-8. 对可测试行为按 red -> green -> refactor 执行：
+5. 只实现带 source-grounding 标签并已进入 framework-approved plan 的任务。写入代码前先核对任务的 product-content delta；写入后从实际 diff 逐项建立 introduced-content provenance ledger，枚举新增或修改的字段、文案、控件、交互、分支、状态、默认值、校验、权限、导航、API / payload 语义、状态映射、埋点和验收行为，并映射到 plan allowlist 与需求原文或人工确认。纯技术 hunk 必须标记 `product-content delta: none` 并引用技术约束或清理义务。
+   如果执行中发现无来源行为、超出 allowlist 的内容、相邻模块扩展、样例内容扩展或常规做法扩展，先移除该内容或停止并回退到 `plan` / 前置确认 gate。禁止代码写完后修改上游工件来补造来源。
+6. 如果 plan 缺少业务功能点、业务规则、条件分支、字段语义、权限 / 可见性、校验口径、错误文案、关键字段、列、交互、状态、loading 结束条件、展示字段格式精度或交互视觉状态，停止执行并回退到 `plan`。
+   同样，如果 plan 没有明确目标文件、目标符号、数据合同、状态流、实现顺序、清理对象或验证命令，停止执行并回退到 `plan`，不能边写边补猜。
+7. 如果 spec 与 plan 在行为颗粒度或产品含义上冲突，停止执行并回退修复工件。
+8. 如果 spec / plan 包含 user intent contract，执行必须同时满足 literal request 与 practical goal；不得采用 forbidden interpretations，不得把复杂度、风险、歧义或责任转移到未检查位置。
+9. 修改或移除既有代码前，必须先审查本次变更涉及的完整功能链路与文件引用关系：
+   - 功能入口、组件 / hook / store / service / adapter / helper 链路
+   - import / export、调用方、消费者、事件、watch / computed、测试与 mock
+   - 请求、副作用、状态流转、下游 UI 或数据消费者
+   - 当前变更 owner 与邻近影响面
+   - 测试文件引用只作为测试适配面，不作为保留待改 / 待删生产代码的真实 owner
+   如果无法确认链路 owner 或影响范围，先补 `artifacts/code-context.md` 或回退到 `plan`，不能直接编辑。
+10. 如果任务是移除调用、请求、分支、字段、控件或副作用，必须追踪并清理该行为独占的依赖闭包：
+   - import / export
+   - helper function / constant / enum / type
+   - request wrapper / composable / adapter
+   - ref / reactive state / computed / watch
+   - tests / mocks / comments
+   对保留的 helper 必须确认仍存在真实生产调用方，不能因为“以后可能复用”或“测试还引用”保留死代码；仅测试引用视为空引用，必须修改或删除测试来适配需求。
+11. 修改或移除既有代码后，必须复查操作后的链路是否正常：
+   - 必要入口、状态流、请求、adapter、helper、UI 消费链路没有缺环
+   - 被移除行为没有残留多余 import、helper、状态、副作用、测试、mock 或注释
+   - 测试文件已按新行为更新、替换或删除，没有用旧测试引用反向保留生产代码
+   - 替代实现没有形成重复路径、冲突路径或隐藏副作用
+   - 邻近功能没有被未授权影响
+12. 对可测试行为按 red -> green -> refactor 执行：
    - 先写失败测试
    - 再写最小通过实现
    - 最后重构并保持测试通过
-9. 实现过程中应用 clean-code 规则和已批准的 pattern 决策。
-10. 实现新增或修改样式时，严格应用 frontend-components policy：
+13. 实现过程中应用 production-code-quality、clean-code、functional-programming 规则和已批准的 pattern 决策。声明常量时必须先确认它至少承载稳定业务语义、集中规则或配置、必要快照、复杂表达式简化或真实复用之一：
+   - 单次使用且显而易见的字符串、数字、布尔值、模板片段、对象 / 数组字面量、简单属性访问或简单表达式应保持内联，不能声明一个只复述值或下一步操作的常量
+   - 不得为了假想复用创建模块级或导出常量，也不得给已有领域常量再声明同义或透传别名
+   - 仅当前函数或组件拥有的值优先保持局部；只有存在真实跨作用域 owner 或调用方时才扩大常量作用域
+   - 为避免重复或昂贵求值、固定非确定性 / 有状态读取的一次结果、支持类型收窄或显著改善多步控制流而声明的局部 `const` 可以保留
+   同样，新增独立文件前必须确认该文件边界已经在 spec / plan 中批准：
+   - 单页面、单真实生产调用方的函数、mapper、helper、constant group 默认保持在 owning page / component / hook 内作为 local helper
+   - 不得仅因为函数是纯函数、页面文件变短、命名更整齐或未来可能复用，就创建一个单函数文件、局部 `utils.ts`、局部 `helpers.ts` 或只被一个页面 import 的 mapper 文件
+   - 若确需为单调用方创建独立文件，必须在执行记录中说明已批准的边界理由：adapter / service / request 层、独立生命周期、独立测试面、框架模块约束、生成 / 合同隔离，或同文件可读性已无法接受
+14. 写任何生产代码前，必须按 production-code-quality policy 完成并落实以下顺序：
+   - type-first：先新增、复用或收窄精确 `type` / `interface`，再写依赖这些数据的实现；对容易混淆的 ID / token 使用 branded type 或等价名义区分（如项目类型体系支持且收益明确）
+   - fail-fast：显式处理异常、空值、非法值、超时、请求失败、部分成功和不可能状态；不得吞错、忽略 rejected promise 或用默认成功掩盖失败
+   - strict null：明确区分 `null` 与 `undefined`，在业务逻辑层使用 `??` / `?.` 防御，但不能用它们替代必需校验或契约修复
+   - maintainability first：默认采用最清晰写法；只有计划或代码事实证明需要时，才引入 memoization、cache、debounce、throttle、virtualization、`useMemo` / `useCallback`、computed caching 或 watcher 优化，并记录依赖合理性
+   - pure functions over classes：确定性规则、校验、转换、format、payload builder、状态派生优先纯函数和不可变数据；class 只在已批准的框架、生命周期、封装状态或多态场景使用
+   - naming：布尔值必须用 `is` / `has` / `should` / `can` 开头；props 回调必须用 `on` 前缀；内部事件处理必须用 `handle` 前缀；普通函数必须使用精准动词
+   - no magic variables：helper 不得隐式读取无关模块状态、路由、store、ambient mutable state 或请求上下文；输入必须来自参数、依赖注入或明确本地闭包
+   - boundary UI states：触碰列表时实现空状态，触碰异步操作时实现 loading 状态，触碰表单输入时实现错误状态和具体错误文案
+   同时必须兑现 plan 中的 code-review checklist contract：
+   - 不得遗漏 plan 已列出的外部数据判空 / 可选链 / 合法性保护和 API 异常处理
+   - 不得保留 plan 已识别的超过 150 行或混合职责函数风险；按计划拆分职责
+   - 不得遗漏 plan 已列出的高频事件 debounce / throttle / cancellation / dedupe / no-optimization 决策
+   - 不得遗漏订阅、定时器、监听器、watcher、effect、请求取消句柄或外部资源的 cleanup / dispose / unmount
+   - 不得偏离 plan 锚定的组件库、样式方案、目录结构、import alias / 相对路径、状态管理、请求封装、框架或库选择
+   - 如果 plan 没有定义上述合同但生产代码改动需要它，停止并回退到 `plan`，不能现场猜测
+15. 对业务规则、校验、筛选排序、payload 构造、状态派生、adapter / mapper / `fromDetail` 转换，优先实现为可测试的纯函数或纯转换步骤：
+   - 不直接 mutate props、backend DTO、共享 store snapshot、函数参数或导入常量
+   - 请求、导航、写状态、缓存、埋点等副作用只能放在明确 command / action / request / lifecycle 边界
+   - 纯 helper 不得隐藏 I/O、状态写入、导航、缓存、埋点或请求调用
+   - adapter / mapper / `fromDetail` 负责数据语义归一；component `computed` 只承载视图局部派生，不能补做数据语义修正
+   - 避免为了“函数式”写出难读的 point-free、过度 currying、过长 reducer chain 或未经批准的函数式工具库抽象
+16. 执行必须遵守 spec / plan 的 pattern-fit decision：
+   - 如果批准的是 direct code，保持直接实现，不得现场加入 adapter / strategy / command / facade / proxy / manager 等新模式层。
+   - 如果批准复用既有模式，沿用项目现有形态，不得创建平行新抽象。
+   - 如果批准轻量模式，优先使用函数、对象映射、strategy map、adapter function、command record、pipeline、hook / composable 或小模块，不得升级成更重的类层次或框架。
+   - 所有 pattern 实现必须符合当前前端栈语法特点，优先使用 TypeScript 类型、discriminated union、typed record、函数、闭包、hook / composable、组件边界、store action、request module、adapter / mapper 或 higher-order function。
+   - 不得把前端 pattern 落成 Java / C# 式 abstract class、one-method interface、manager、factory、handler 或 class hierarchy，除非 spec / plan 已批准项目惯例、生命周期、多态或依赖边界理由。
+   - 如果执行中发现新的选择逻辑、适配边界、流程编排、副作用协调、状态分支、树结构、访问控制、缓存、懒加载、请求去重或横切关注点，先回退到 `spec` 或 `plan` 补 pattern-fit decision，不能现场发明模式。
+   - 如果执行中发现新的 Vue 组件抽取候选或发现已批准抽取 / 不抽取决策不符合实际代码，先回退到 `spec` 或 `plan` 补 `vue-component-extraction.md` 决策，不能现场拆 SFC 或合并组件。
+   - 实现 Vue 组件抽取时，必须按计划落实真实生产调用方数量、`2+ 同语义`或单调用方例外、props / emits / slots、状态 owner、数据归一边界、Tailwind class 边界和验证面；不得抽出单调用方透传组件、泛 wrapper、DTO / form-model passthrough 组件、prop / emit 链更长的组件，或只为缩短文件 / 隐藏长 class 的组件。
+17. 如 scoped work 新增或修改用户可见行为、状态流、数据流、组件组合、前端架构或生产集成，必须按 expert-frontend-engineering policy 落地：
+   - 保持用户旅程从入口到成功/失败/重试/取消/交接完整
+   - 如存在 page-design，必须落实其 UI / UX design contract：用户旅程、信息架构、视觉层级、交互优先级、状态反馈、响应式、可访问性和 UX 风险控制；合同缺失或实际代码无法落地时回退到 page-design / spec / plan，不能现场凭感觉设计
+   - 按 spec / plan 逐字段落实业务展示语义、格式和精度；不能因为字段类型或字段名相似，就把业务含义不同的字段交给同一个通用 formatter
+   - 按 spec / plan 落实链接、跳转字段和高亮 / 强调字段的业务目的、默认态、hover、focus、active、visited、disabled；不能把业务强调降级成组件默认 hover 效果
+   - 明确 source state、derived state、form state、server state、route state、cache state、持久化边界各自 owner
+   - backend DTO 到 adapter / mapper、view model、form model、payload、response handling 的数据生命周期保持清晰
+   - 对重叠请求处理 loading owner、去重、取消、过期响应、竞态、幂等和重试语义
+   - 对 touched dialog / drawer / form / table / menu / custom control 保持键盘、焦点、语义控件、disabled、确认、权限和反馈可用
+   - 优先减少 render scope、state fan-out 和数据量，再使用 memoization、cache、debounce、throttle 或 virtualization
+   - 对 migration、兼容边界、回滚面、清理触发器或双路径行为按计划记录 owner
+18. 如果 plan 包含 architecture reuse 或 shared extraction 任务，必须按计划抽取或复用公共逻辑：
+   - 先确认 Anti-DRY 矩阵已通过或保持分离 / 暂缓理由已批准
+   - 先确认共性分类、目标 shared owner、依赖方向、公开 API、输入输出和类型来源
+   - 使用参数、依赖注入、getter、config、HOF、strategy object、adapter 或薄封装传入业务差异，不能在 shared 内硬编码业务字段
+   - 迁移所有 in-scope 生产调用方
+   - 删除被替代的重复实现、旧 import / export、测试和 mock 残留
+   - 保持共享逻辑为纯函数或明确边界模块，不在纯 helper 中隐藏副作用
+   - 不在 shared helper 中导入业务模块私有 entity / interface，不直接调用 `localStorage`、`window.location`、`fetch`、router、store 或 analytics
+   - 不为复用创建大 union type、全可选 mega-interface 或 catch-all `shared/utils/index.ts`
+   - 为新晋升 shared API 添加 JSDoc `@see` / `@example` traceability；广泛共享 helper 至少覆盖三个代表场景或说明真实场景不足
+   - 记录行为等价验证证据
+   如果执行中发现新的重复语义逻辑或发现计划中的“不抽取”理由不成立，必须回退到 `architecture-design` 或 `plan`，不能继续复制。
+19. 实现新增或修改样式时，严格应用 frontend-components policy：
    - authored styling 只使用 Tailwind CSS-style utility classes
    - 不新增 scoped CSS、CSS modules、Sass/Less、inline style object 或非 utility semantic class 作为样式方案
    - `class` / `className` / class binding 值必须保持模板内可读，不超过项目 formatter 正常行宽或依赖多行包裹
    - 不得把过长 class 值移入常量、map、computed、helper 或 import 变量来绕过长度限制
    - 如 class 值过长，拆分 markup、提取更小组件或降低样式复杂度
-11. 如果存在当前模块 `architecture-design`，把它视为执行期必须遵守的结构输入，包括模块边界、文件结构、代码关系、函数分层、数据结构和类型策略。
-12. 如果实际代码情况证明当前 `architecture-design` 在下列任一方面 materially 不合理、不合适、不可行或与现实冲突，必须停止继续实现并回退到 `architecture-design`，不能在执行阶段临时绕过：
+   - 对 source 要求强调的可点击字段，样式必须体现该强调在业务上的状态位置；hover / focus 只能作为补充交互反馈，不能替代业务语义要求的默认态强调
+20. 如果存在当前交付单元 `architecture-design`，把它视为执行期必须遵守的结构输入，包括模块边界、文件结构、代码关系、函数分层、数据结构、类型策略、复用候选、公共抽象决策、business capability owner、ownership map、state topology、data lifecycle、dependency rule matrix、extension seams、complexity budget 和 migration cleanup triggers。
+   如 spec / plan 包含 frontend architecture quality constraints，必须逐项落实：
+   - 业务能力 owner 和模块边界必须和已批准工件一致，不能为了局部方便把业务规则塞回 page container 或展示组件。
+   - page orchestration、business rules、form model、view model、request transport、adapter normalization、server/client/route state、permissions、side effects 必须有清晰 owner。
+   - 每个业务 state 只能有一个 writable owner；derived state 只能从源状态计算，除非已批准同步 / 缓存模型。
+   - DTO 语义必须在 adapter / mapper / `fromDetail` 等适配层归一，再进入 view model、form model、props 或 payload；不得在 template、watch、computed 或展示 fallback 中临时修正数据语义。
+   - import 必须遵守 dependency rule matrix；不得引入 forbidden import、私有符号泄漏、反向依赖或隐藏循环。
+   - extension seam 只能按已批准真实变化轴落地；不得现场新增 registry、manager、factory、plugin-like 机制或 speculative future-proofing。
+   - complexity budget 必须被执行；超过新增文件、公开 API、间接层级、响应式 fan-out 或迁移范围预算时，停止并回退到 `architecture-design` 或 `plan`。
+   - migration、compatibility、fallback、feature flag 或 dual-path 必须有 owner、cleanup trigger 和 rollback 面；不能留下无主临时路径。
+21. 如果实际代码情况证明当前 `architecture-design` 在下列任一方面 materially 不合理、不合适、不可行或与现实冲突，必须停止继续实现并回退到 `architecture-design`，不能在执行阶段临时绕过：
    - 模块边界
    - 文件结构
    - 依赖方向
    - 函数组织
    - 数据结构
    - 类型设计
-13. 发生上述回退时，先把触发证据和实际约束写入当前模块 `execution/changelog.md` 与 `artifacts/code-context.md`，再由主 workflow 继续 `architecture-design -> spec -> plan -> execute` 循环，直到架构设计稳定。
-14. 如果 scoped work 为从 0 开始搭建项目、应用、包或前端业务面：
-   - 先按已批准 spec / plan 确认脚手架或 starter 选择
+   - 复用候选与公共抽象 owner
+   - ownership map
+   - state topology
+   - data lifecycle
+   - dependency rule matrix
+   - extension seams
+   - complexity budget
+   - migration cleanup trigger
+22. 发生上述回退时，先把触发证据和实际约束写入当前交付单元 `execution/changelog.md` 与 `artifacts/code-context.md`，再由主 workflow 继续 `architecture-design -> plan -> execute` 循环，直到架构设计稳定；如果修正会改变行为、scope、acceptance criteria、字段语义、权限语义、API 语义或 source-grounded spec meaning，必须先回退到 `spec` 修复行为合同。
+23. 如果 scoped work 为从 0 开始搭建项目、应用、包或前端业务面：
+   - 先按已通过 framework 自动审批的 spec / plan 确认脚手架或 starter 选择
+   - spec / plan 必须包含候选发现证据、选定脚手架或 starter、拒绝候选理由、初始化命令 / 复制策略和允许偏离范围；缺任一项时回退到 spec / plan
    - 有合适脚手架时，优先基于该脚手架落地，而不是手写 bootstrap
    - 只有在 spec / plan 已明确记录脚手架不可用、不适配或改造成本不合理时，才允许自建初始化结构
    - 对脚手架的裁剪、替换和偏离必须受已批准工件约束，不能在执行时临时发明
-15. 如果 scoped work 涉及 TypeScript 或依赖 TypeScript 声明才能正确实现的 JavaScript：
+24. 如果 scoped work 涉及 TypeScript 或依赖 TypeScript 声明才能正确实现的 JavaScript：
    - 先读取当前目标文件所在作用域的 governing `tsconfig`
    - 如存在直接 extends 链，继续读取所有会 materially 影响当前目标文件的上游 `tsconfig`
    - 提取并理解当前改动实际需要的 compiler context，例如路径别名、ambient globals、JSX runtime、strictness、module resolution、generated type visibility
    - 仅读取与当前改动闭包相关的声明或生成类型来源，例如直接导入类型、package-local `.d.ts`、env shim、backend-owned contract types、proto 生成类型
    - 不要为了“保险”全量扫描仓库所有 `.d.ts` 或 types 文件
    - 如果仍无法确认当前目标文件实际受哪套 `tsconfig` 或类型来源约束，停止编码，先补上下文
-16. 对 API 集成工作：
+25. 对 API 集成工作：
    - 服务端有 TS contract types 时优先复用
    - 非 TS 契约时保留后端字段名并用 TS 类型表达
    - proto 优先复用生成类型，否则从 proto 导出 TS-facing types
    - request transport / contract handling / semantic normalization 保持在 request layer 或 adapter boundary
-17. 既有代码影响较大时，优先用 code graph 确认 impact scope / callers / ownership boundaries。
-18. 如执行中发现新的结构信息，更新 `artifacts/code-context.md`。
-19. 默认串行执行，除非计划明确标注某些 work unit 可并行。
-20. 持续更新：
-   - 当前模块 `execution/changelog.md`
-   - 当前模块 `plan/task-board.md`
-21. 保持执行过程可观察、可追问、可重定向。
-22. 保留 `state.json.loop`，不重置、不改写。
-23. 如果需求变化或计划暴露出 gap，立即停下并回退到 `spec` 或 `plan`。
-24. 如果是从 verify / review 失败回流而来，继续当前活动 workflow run，不当作全新任务重来。
-25. 本阶段不宣称完成。
+26. 既有代码影响较大时，优先用 code graph 确认 impact scope / callers / ownership boundaries。
+27. 如执行中发现新的结构信息，更新 `artifacts/code-context.md`。
+28. 对任何修改生产代码、测试、mock、契约或生成类型可见文件的任务，离开执行阶段前必须做 human-review-readiness pre-review self-check：
+   - 每个 changed hunk 都能映射到已批准任务、删除清理、测试适配或来源锚定行为
+   - 无无关改动、宽泛格式化、顺手重构或未批准重命名
+   - 已遵守相邻代码的组件、hook / composable、request、store、adapter、测试、命名和错误处理惯例
+   - 无 debug log、commented-out code、stale TODO、临时变量名、dead code、unused import / export、orphan helper、stale mock、stale test 或过期注释
+   - 执行记录包含 reviewer 可复查的测试、类型检查、lint、手工验证、未运行命令原因和剩余风险
+29. 对互不依赖的只读上下文收集、搜索和验证命令可并行；不要并行编辑同一文件或同一工件。
+30. 默认串行执行，除非计划明确标注某些 work unit 可并行。
+31. 持续更新：
+   - 当前交付单元 `execution/changelog.md`
+   - 当前交付单元 `plan/task-board.md`
+32. 保持执行过程可观察、可追问、可重定向。
+33. 保留 `state.json.loop`，不重置、不改写。
+34. 如果需求变化或计划暴露出 gap，立即停下并回退到 `spec` 或 `plan`。
+35. 如果是从 verify / review 失败回流而来，继续当前活动 workflow run，不当作全新任务重来。
+36. 本阶段不宣称完成。
 
 ## 输出格式
 
 - 必须产出：
-  - `docs/requests/<request-id>/module-runs/<current-module-id>/execution/changelog.md`
+  - 当前交付单元的 `execution/changelog.md`
   - 与计划任务对应的代码改动
-  - 更新后的当前模块 `plan/task-board.md`
+  - 更新后的当前交付单元 `plan/task-board.md`
   - 更新后的 `artifacts/code-context.md`（如结构理解有变化）
 - 最终交付物应包含：
   - 实现变更
   - 执行记录
   - 任务状态更新
+  - 修改或移除既有代码时的变更前链路审查与变更后链路复查记录
+  - expert-frontend-engineering 执行记录（如适用）
+  - frontend architecture quality 执行记录（如适用）
+  - production-code-quality 执行记录（如适用）
+  - code-review checklist contract 执行记录（生产代码改动适用）
+  - human-review-readiness pre-review self-check 记录（代码改动适用）
   - TDD 执行证据或合理例外记录
   - 必要的 clean-code 重构
+  - architecture reuse / shared extraction 执行记录（如适用）
+  - functional-programming 边界执行记录（如适用）
   - API / graph / adapter 相关实现与记录
 
 ## 验收标准
 
-- 已批准的实现任务已完成。
+- 已通过 framework 自动审批的实现任务已完成。
+- 执行上下文与命令范围符合 `speed_profile`，没有为小改动做无关仓库级探索，也没有因提速遗漏必要影响面。
+- 没有实现 plan 之外或缺少 source-grounding 标签的行为。
+- `execution/changelog.md` 已包含基于实际 diff 的 introduced-content provenance ledger；所有产品可见内容和业务语义均逐项映射到需求原文或人工确认，技术 hunk 明确为 `product-content delta: none`，不存在事后补来源。
+- plan 的 execute-readiness 合同已被兑现；没有靠猜测补齐业务功能点、业务规则、字段语义、权限 / 可见性、校验口径、错误文案、文件、符号、接口、状态、步骤、异常分支、清理对象或验证命令。
 - 如存在 user intent contract，执行结果同时满足 literal request 与 practical goal，且没有采用 forbidden interpretations。
-- 当前模块 `execution/changelog.md` 已记录关键决策与偏差。
+- 如添加或修改生产代码，已按 type-first、fail-fast、strict null、maintainability-first、pure functions over classes、naming、no magic variables、boundary UI states 规则落实并记录。
+- 如添加或修改生产代码，已按 plan 的 code-review checklist contract 落实健壮性、可维护性、性能与内存、项目规范一致性，并记录任何回退到 plan 的缺口。
+- 如修改生产代码、测试、mock、契约或生成类型可见文件，已执行 human-review-readiness self-check，diff scoped、无无关改动、无调试 / 死代码 / stale artifacts，且证据足以支撑人工评审。
+- 如新增或修改用户可见行为、状态流、数据流、组件组合、前端架构或生产集成，已按 expert frontend engineering 约束落实并记录。
+- 如触碰展示字段、日期 / 时间字段、链接字段或高亮字段，已按 spec / plan 落实字段级业务语义、展示精度和视觉状态；没有用字段类型相似、通用 formatter、通用 link 样式或组件默认 hover 代替需求语义。
+- 如存在 architecture-design 或 frontend architecture quality constraints，已落实并记录业务能力 owner、ownership map、state topology、data lifecycle、dependency rule matrix、extension seams、complexity budget、migration cleanup trigger；没有 DTO 语义泄漏、重复 writable state、反向依赖、无真实变化轴扩展缝或无主临时路径。
+- 如果修改或移除了既有代码，已审查完整功能链路、文件引用关系、调用方、副作用与影响面，并在操作后复查链路正常、无缺环、无多余环节。
+- 如果任务移除了行为，已清理该行为独占的 import、helper、常量、类型、请求封装、状态、测试、mock 和注释；保留项都有真实生产调用方。
+- 如果测试文件引用待改或待删代码，已将测试作为适配对象更新、替换或删除；没有把测试引用当作生产代码保留依据。
+- 当前交付单元 `execution/changelog.md` 已记录关键决策与偏差。
+- 当前交付单元 `execution/changelog.md` 已记录 self-healing iteration、回流来源（如有）、修复的 defect class、changed files / symbols、风险点、未解决项和下一步验证重点。
 - 对可测试行为，已记录 test-first 执行步骤或合理例外。
+- 如存在规则、校验、转换、状态派生或 payload 构造，已按计划落实纯函数、不可变数据和显式副作用边界，或记录了合理例外。
+- 如存在 architecture reuse / shared extraction 任务，已按计划抽取或复用公共逻辑，迁移 in-scope 调用方，并删除重复旧路径或记录保持分离的真实差异。
+- 如执行了公共抽取，已按 Anti-DRY 矩阵、共性分类、依赖注入 / 策略边界、JSDoc traceability 和反模式红线落地。
 - 若执行期曾发现架构设计与实际代码约束冲突，已留下可驱动 `architecture-design` 修正的证据。
-- 若 scoped work 为 greenfield，执行已按批准工件优先采用对应脚手架或已记录拒绝理由。
+- 当前交付单元 `execution/changelog.md` 已包含 `frontend architecture quality execution notes`（如适用），足以让 verify / review 检查架构边界，而不是只验证 happy path。
+- 若 scoped work 为 greenfield，执行已按批准工件优先采用对应脚手架或已记录候选发现证据、拒绝理由和允许偏离范围。
 - 如涉及样式变更，执行结果遵守 Tailwind CSS-style utility class、class 值长度、禁止隐藏过长 class 字符串的约束。
+- 新增常量均能说明其业务语义、约束、必要快照、可读性收益或真实复用价值；不存在只给一次性显然值换名的无意义常量。
+- 新增独立 helper / mapper / hook / utility 文件均能说明多个真实生产调用方或已批准边界理由；不存在单页面单调用方函数被无理由外置。
 - 改动区域可读性仍然达标，必要的 clean-code 重构已完成或显式记录。
-- 引入的 pattern 仍能回溯到已批准问题陈述。
-- 当前模块 `plan/task-board.md` 已反映完成状态。
-- `state.json.stage=verify`，且保留原有 `loop`。
+- pattern-fit decision 已按 spec / plan 落地；direct code 没有被现场升级成未批准模式，已批准模式没有被降级或替换。
+- Vue 组件抽取 / 保持内联决策已按 spec / plan 落地；没有现场新增未批准组件边界，也没有抽出无真实边界的透传组件、单调用方无例外组件、泛 wrapper、DTO / form-model passthrough 组件或只为隐藏长 class 的组件。
+- pattern 实现形态符合当前前端栈语法特点，没有无批准地引入后端式 class hierarchy、manager、factory、handler 或 one-method wrapper ceremony。
+- 当前交付单元 `plan/task-board.md` 已反映完成状态。
+- `state.json.stage=verify`，且保留原有 `loop`；如果本次修复了 verify / review blocker，必须继续同一 workflow run 进入 verify / review 复查，不能把复查责任交给用户。
 - 已留下足够证据，使 `verify` 能立即接续。
 
 ## 安全边界
 
 - 不能发明新需求。
+- 不能在修复 verify / review blocker 后停下等待用户复查；必须进入 verify / review 自愈闭环。
+- 不能实现没有来源锚定、未进入 framework-approved plan 的行为。
+- 不能把代码事实、测试、相邻模块、组件惯例或质量政策当成新增产品内容的授权；不能在实现后修改 spec / plan 为已写代码补造依据。
 - 不能猜 plan 未定义的产品行为。
+- 不能猜 plan 未定义的字段业务含义、展示格式、展示精度、强调目的或交互态；不能用通用 formatter、通用 link 样式或相邻模块习惯替代 spec / plan。
+- 不能猜 plan 未定义的业务功能点、业务规则、条件分支、字段语义、权限 / 可见性、校验口径、错误文案、文件、符号、数据结构、接口字段、状态流、异常分支、清理对象、样式方案或验证命令。
 - 不能用表面满足字面要求的方式规避用户真实意图。
+- 不能在未审查完整功能链路、文件引用关系、调用方、副作用和影响面的情况下修改或移除既有代码。
+- 不能在修改或移除后跳过链路复查，或保留缺少 owner 的多余环节。
+- 不能因为测试文件仍引用待改或待删代码而保留生产代码；测试引用视为空引用，应修改测试适配需求。
+- 不能只删除调用点却留下该调用独占的 helper、import、request wrapper、状态或测试注释。
 - 不能在 spec / plan 冲突时擅自选一种解释实现。
+- 不能在未先明确类型契约、失败处理、严格空值语义、命名规则、配置常量归属、性能取舍和边界 UI 状态的情况下写生产代码。
+- 不能在 plan 缺少 code-review checklist contract 时继续写生产代码；不能绕过 plan 中关于外部数据判空、API 异常处理、巨型函数拆分、魔法数字、高频事件、cleanup 和技术栈锚定的约束。
+- 不能实现局部正确但端到端用户旅程、状态生命周期、异步竞态、交互韧性、演进安全或测试证据不完整的前端改动。
+- 不能实现局部能显示但业务展示语义错误的前端改动，例如把业务含义不同的字段套用同一套展示策略，或把需求中的业务强调误做成单纯的交互态反馈。
+- 不能实现局部正确但业务能力 owner、ownership map、state topology、data lifecycle、dependency rule matrix、extension seams、complexity budget 或 migration cleanup trigger 不清楚的前端架构改动。
+- 不能让 backend DTO 语义泄漏到 component、template、watch、computed 或展示兜底；接口返回值与表单控件语义不一致时，必须在 adapter / mapper / `fromDetail` 等数据适配层归一。
+- 不能新增反向依赖、私有符号泄漏、隐藏循环、重复 writable state、无真实变化轴扩展缝，或没有 owner / cleanup trigger 的兼容路径。
+- 不能吞错、忽略 promise rejected、用默认成功掩盖失败，或把 `null` / `undefined` 语义混成一个展示兜底。
+- 不能使用不合规布尔命名、props 回调命名、内部事件处理命名或模糊函数动词。
+- 不能让 helper 隐式依赖未声明的外部上下文；真实配置常量必须归属到最窄稳定 owner。
+- 不能无真实性能或引用稳定性理由引入 memoization、cache、debounce、throttle、virtualization、`useMemo` / `useCallback`、computed caching 或 watcher 优化。
+- 不能在 touched list / async operation / form input 中遗漏空状态、loading 状态或具体错误状态。
 - 不能在已证明 `architecture-design` 不合理时继续局部打补丁硬做下去。
 - 不能无批准地本地重写服务端 TS contract types。
 - 不能在无 adapter boundary 的情况下改名非 TS 后端字段。
 - 不能在未读取 governing `tsconfig` 与相关声明来源的情况下猜路径别名、全局类型、JSX 设定、module resolution 或现有 contract types。
 - 不能把“先把全仓 `.d.ts` 都读一遍”当作默认 TypeScript 上下文恢复策略。
-- 不能在存在合适脚手架且未被上游工件否决的情况下手写 greenfield bootstrap。
+- 不能在脚手架候选未知、发现范围缺失、存在合适脚手架且未被上游工件否决、或拒绝理由不充分的情况下手写 greenfield bootstrap。
 - 不能用 scoped CSS、CSS modules、Sass/Less、inline style object 或非 utility semantic class 承载 authored styling。
 - 不能保留过长 `class` / `className` / class binding 值，也不能用常量、map、computed、helper 或 import 变量隐藏过长 class 值。
 - 不能跳过任务跟踪。
@@ -144,6 +308,22 @@ description: Stage subskill for execution. Implement only approved tasks and kee
 - 对可测试行为，不能无说明地跳过 TDD。
 - 不能把 spec / plan 当作可选参考。
 - 不能在已触碰区域保留明显误导命名、隐藏副作用、重复业务规则而不处理。
+- 不能声明只复述单次使用字面量、简单属性访问或简单表达式的无意义常量，也不能以假想复用为由扩大常量作用域或导出常量。
+- 不能把只有一个页面、一个真实生产调用方的函数抽成独立文件，除非 spec / plan 已批准具体边界收益并在执行记录中说明。
+- 不能用单函数文件、局部 `utils.ts`、局部 `helpers.ts`、单调用方 mapper 文件制造阅读跳转成本。
+- 不能在纯 helper 中隐藏请求、状态写入、导航、缓存、埋点或其他副作用。
+- 不能通过 mutate props、backend DTO、共享 store snapshot、函数参数或导入常量来完成数据转换。
+- 不能把本应属于 adapter / mapper / `fromDetail` 的数据语义归一挪到 computed、watch 或模板兜底中。
 - 不能在编码时私自发明新 pattern layer。
+- 不能在编码时私自抽取 Vue 组件；新增或移动 Vue SFC 必须已有 spec / plan 的具体抽取条件和接口边界。
+- 不能因为执行中发现模式候选信号就现场套模式；必须回退到 spec / plan 记录 pattern-fit decision。
+- 不能把前端设计模式机械实现成后端式 class hierarchy、abstract base、manager、factory、handler 或 one-method class wrapper。
+- 不能绕过已批准的 direct-code 决策引入 manager、strategy、adapter、facade、proxy、command 等抽象层。
+- 不能在已发现同一语义规则的情况下继续复制局部实现，除非 plan 或 architecture-design 已批准保持分离。
+- 不能把公共逻辑抽成没有清晰领域 owner 的 dumping-ground utility。
+- 不能因为两处代码相似就现场抽取；未通过 Anti-DRY 矩阵时必须保留重复或回退修正架构设计。
+- 不能在 shared code 中硬编码业务字段、导入 feature module 私有 entity、直接读写环境副作用，或为复用合并接口。
+- 不能抽取后留下重复旧路径、未迁移调用方或行为等价未验证的共享逻辑。
 - 不能对 trivial / unplanned work 擅自启用 workflow-style parallel execution。
 - 不能把关键进展与上下文切换藏在仓库工件之外。
+- 不能在未执行 pre-review self-check 的情况下进入 verify；不能把有无关改动、格式化噪音、debug code、dead code、stale tests、unused exports 或证据不足的 diff 交给人工评审。

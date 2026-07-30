@@ -8,6 +8,7 @@ This policy defines durable component and interaction standards for frontend imp
 
 - Prefer established templates and existing shared components before building page-local variants.
 - Keep component names and responsibilities explicit.
+- For Vue SFC extraction / keep-inline decisions, use `vue-component-extraction.md`; this policy owns general component consistency and styling mechanics only.
 - Keep form, list, modal, and drawer patterns consistent within the product.
 - Avoid inline styling when a shared style system or utility class can express the same intent.
 - Author new or changed styles only with Tailwind CSS-style utility classes.
@@ -15,6 +16,7 @@ This policy defines durable component and interaction standards for frontend imp
 - Keep `class`, `className`, and framework class-binding values short enough to review inline. A class value that exceeds the project's normal formatter line width or requires multi-line wrapping is too long.
 - Do not move an overlong utility class value into constants, maps, computed properties, helper functions, or imported variables to bypass the class-length rule.
 - Conditional class bindings are allowed only for small state toggles. If the base utility list is long, reduce the styling, split the markup, or extract a smaller component boundary instead of hiding the class string elsewhere.
+- Preserve source-approved visual state semantics for clickable, navigational, status, tag, highlighted, emphasized, or callout fields. Default, hover, focus, active, visited, and disabled states are separate contracts; do not replace business-required emphasis with component-default hover utility classes.
 - Maintain responsive and accessible interaction baselines for user-facing flows.
 
 ## Non-Goals

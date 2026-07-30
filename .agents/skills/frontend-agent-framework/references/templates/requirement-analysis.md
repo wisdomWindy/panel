@@ -11,15 +11,20 @@ Required sections:
 - analysis summary
 - user intent contract
 - source inventory and reading stance
+- source grounding matrix
+- closed-world product scope allowlist
+- greenfield scaffold and bootstrap analysis
 - confirmed scope
 - out-of-scope and non-goals
 - confirmed decisions and invariants
 - system boundaries and ownership
+- frontend and server responsibility split
 - source-backed behavior inventory
 - developer-facing behavior details
 - implicit requirements and hidden assumptions
 - workflow and dependency assessment
 - ambiguity and clarification register
+- human confirmation decisions
 - risk and constraint assessment
 - blocker classification and handling stance
 - confirmation-reduction notes
@@ -29,6 +34,10 @@ Required sections:
 The artifact must be written as a developer-facing requirement refinement, not a source summary.
 It should preserve enough field, state, workflow, permission, dependency, failure, and risk detail that downstream developers can draft `spec` with fewer product follow-up questions.
 Reducing follow-up questions means exposing hidden or unclear points concretely; it does not mean deleting uncertain content.
+Human confirmation must be front-loaded here: downstream `spec` and `plan` approval is automatic framework approval, so needs, questions, rules, ambiguous content, fuzzy content, and product decisions that require a person must be resolved, blocked, or explicitly classified before leaving requirement analysis.
+Source grounding must also be front-loaded here: material behavior, field, interaction, state rule, API contract, dependency, task basis, and acceptance basis must be classified before downstream stages use them.
+Business-semantic interpretation must start here. When a source describes displayed fields, table columns, detail blocks, links, tags, status labels, jump targets, emphasis, or other business-visible affordances, record what each item means in the workflow before downstream stages choose formatting, precision, component behavior, or styling.
+Greenfield scaffold interpretation must also start here for PRD-driven project / app / package / frontend-surface creation. Do not wait until `spec` or `execute` to discover whether an approved scaffold or starter exists.
 
 ### `user intent contract`
 
@@ -53,6 +62,73 @@ Document:
 - the precedence rule when multiple sources conflict
 - any unread sources, why they were not read, and what remains unconfirmed because of that
 
+### `source grounding matrix`
+
+Document the authority basis for every material requirement element.
+
+Use these labels:
+
+- `source-backed`: directly stated in an authoritative source
+- `code-fact-backed`: a technical constraint, compatibility obligation, dependency cleanup, or behavior-preserving fact required by scoped repository code; it cannot authorize new product-facing or business-semantic content
+- `confirmed-decision`: explicitly confirmed and recorded
+- `source-derived`: a narrow consequence of a source-backed item where every plausible interpretation leads to the same downstream result
+- `missing-source`: not supported enough to define behavior
+- `out-of-scope`: adjacent or tempting work that must not be silently absorbed
+
+For each item, record:
+
+- item
+- grounding label
+- exact source reference, code fact, or confirmation owner
+- source clue or quoted source fragment when useful
+- downstream handling
+- whether it can enter `requirement-splitting`, `spec`, and `plan`
+
+Rules:
+
+- Only `source-backed`, `code-fact-backed`, `confirmed-decision`, and safe `source-derived` items may drive downstream work, but new product-facing or business-semantic content specifically requires `source-backed` or `confirmed-decision` authority.
+- `source-derived` cannot introduce new fields, states, interactions, validations, API requirements, acceptance criteria, modules, or product semantics.
+- `code-fact-backed` cannot promote existing neighboring behavior, tests, defaults, copy, validation, or component conventions into current product scope.
+- `missing-source` items must become clarifications, blockers, external-interface pending items, or non-scope notes.
+- `out-of-scope` items must be listed explicitly when they are likely to be inferred from adjacent modules, conventions, or sample content.
+- Do not use general convention, neighboring modules, or preferred implementation style as source authority for new scope.
+
+### `closed-world product scope allowlist`
+
+List every product-facing or business-semantic item that downstream implementation may add or change, including fields, copy, controls, interactions, states, defaults, validation, permissions, navigation, API or payload semantics, status mappings, analytics, and acceptance behavior.
+
+For each item, record:
+
+- item identifier and category
+- exact requirement wording and source section, or explicit confirmation owner and record
+- authorized behavior and boundaries
+- nearby or conventional alternatives that are not authorized
+- downstream module or delivery unit
+
+Anything absent from this allowlist is not approved product content. If implementation would need it, classify it as `missing-source` and return to the human-confirmation gate instead of inferring it from code or convention.
+
+### `greenfield scaffold and bootstrap analysis`
+
+Required when the request creates, initializes, or starts from scratch a project, app, package, frontend surface, micro frontend, component library, SDK package, or buildable frontend entry.
+
+Document:
+
+- scaffold-sensitive source signal and exact source wording
+- project type, target runtime, workspace / package owner, framework constraints, build tool, deployment target, routing model, state management, component library, styling scheme, request layer, and test expectations when known
+- source-stated scaffold, starter, generator, template, sibling app, or monorepo command
+- scaffold discovery evidence from repository docs, root instructions, package scripts, monorepo config, templates, generators, and existing sibling apps / packages
+- candidate list with match rationale and risks
+- candidates rejected with concrete reasons
+- whether multiple viable candidates require human confirmation
+- downstream decision owner: can enter `spec`, must confirm first, or external information pending
+
+Rules:
+
+- A matching repository / team scaffold or sibling app baseline is the default starting point.
+- No scaffold found must list where discovery looked; absence cannot be assumed.
+- Do not let `spec`, `plan`, or `execute` hand-write bootstrap while scaffold candidates are unknown.
+- If using a scaffold would introduce product behavior or stack choices not in source, record the needed confirmation instead of silently adopting it.
+
 ### `confirmed scope`
 
 Document:
@@ -68,6 +144,7 @@ Document:
 - adjacent asks that are not part of the current request
 - tempting cleanup or redesign directions that must not be silently absorbed downstream
 - assumptions that are intentionally not being promoted into scope
+- adjacent module behavior, sample-request behavior, or conventional behavior that must not be imported without confirmation
 
 ### `source-backed behavior inventory`
 
@@ -83,6 +160,26 @@ Do not rewrite explicit upstream behavior into abstract summaries that would for
 
 When the source contains tables, state enums, permission matrices, interface fields, acceptance bullets, or flow diagrams, preserve their execution-relevant detail as tables or structured lists.
 Do not collapse them into generic sentences such as "support list management", "support audit", or "support synchronization".
+
+### `business-semantic field and interaction inventory`
+
+Required when the source touches displayed fields, table columns, detail fields, cards, links, tags, status labels, jump targets, emphasis, visual distinction, or other business-visible affordances.
+
+For each material item, document:
+
+- source item: field, column, label, UI copy, business term, interaction, or affordance
+- authorizing source evidence: exact requirement wording, surrounding section, workflow step, user action, acceptance bullet, or explicit confirmation record; API / DTO clues and scoped code facts may support interpretation but cannot independently authorize the user-visible consequence
+- business meaning: what the item means in this feature's business process, not just its raw data type, field name, or neighboring implementation pattern
+- user-visible consequence: what the meaning implies for display precision, empty / invalid / unknown value behavior, clickability, emphasis, and default / interaction / disabled / permission states
+- certainty: `confirmed`, `source-derived-safe`, `ambiguous`, `missing-source`, or `external-interface-pending`
+- downstream handling: can enter `spec`, must become a clarification, must be blocked for human confirmation, or must be kept out of scope
+
+Rules:
+
+- Do not mechanically map raw field types to generic display decisions. A timestamp, string, enum, URL, id, or boolean can carry different business meanings in different workflows.
+- Do not mechanically copy a neighboring component's formatter, link style, status color, or interaction state unless source evidence proves the business meaning is the same.
+- Common past failures include applying one generic display strategy to fields with different business meanings, or turning source-required business emphasis into interaction-only styling. Treat these only as examples of semantic mismatch, not as fixed rule categories.
+- If the business meaning cannot be recovered and the distinction affects visible behavior or acceptance, leave requirement analysis through the human-confirmation path rather than letting `spec`, `plan`, or `execute` guess.
 
 ### `developer-facing behavior details`
 
@@ -113,6 +210,7 @@ For each item, document:
 - handling: how downstream stages should carry it without silently inventing behavior
 
 Do not use this section to invent business behavior. Use it to make uncertainty and implications visible.
+Do not promote an implicit item into confirmed scope unless the source clue has only one downstream-safe interpretation; otherwise classify it as `missing-source`, `业务阻塞`, `外部接口待补`, or `非阻塞`.
 
 ### `confirmed decisions and invariants`
 
@@ -134,6 +232,21 @@ Document:
 
 If the request spans multiple projects or systems, this section is required.
 
+### `frontend and server responsibility split`
+
+Required when the request touches data, APIs, permissions, backend validation, persistence, state machines, audit, async jobs, callbacks, synchronization, or cross-system behavior.
+
+Document:
+
+- frontend-owned work: pages, interactions, display, form semantics, UI validation, request consumption, adapter / mapper / fromDetail normalization, loading / empty / error handling, local state, and regression surface
+- server-owned work: APIs, fields, DTOs, permission checks, persistence, backend validation, state transitions, audit logs, async jobs, callbacks, synchronization, and data source ownership
+- shared contract work: API shape, DTO fields, enum domains, error codes, permission semantics, workflow states, pagination, nullability, default values, and generated or backend-owned types
+- dependency status for each server-owned item: confirmed, external-interface pending, business-blocking, or non-blocking
+- frontend continuation stance: can proceed with existing contract, can proceed behind adapter / mock / config / feature flag, or must stop until backend decision exists
+
+Do not turn server-owned responsibilities into frontend implementation tasks just to keep the frontend plan moving.
+Do not push frontend-owned display, interaction, adapter, or semantic-normalization work to the server unless the source explicitly makes it server-owned.
+
 ### `workflow and dependency assessment`
 
 Document:
@@ -150,11 +263,37 @@ Document:
 - source contradictions
 - missing decisions
 - unclear boundaries
+- ambiguous wording or behavior with more than one plausible interpretation
+- fuzzy requirements that lack measurable standards, concrete scope, or acceptance criteria
 - questions that must remain visible to downstream stages
 
 Do not guess missing business semantics just to make the analysis read cleanly.
 Do not remove ambiguous content to make the artifact look more certain.
-Every ambiguity should include why it matters to development and which downstream module or artifact must carry it.
+Every ambiguity or fuzzy item should include why it matters to development, what decision is missing, who should confirm it, and whether it blocks downstream automatic `spec` / `plan` approval.
+If ambiguous or fuzzy content affects scope, core behavior, data semantics, permissions, state flow, frontend/server responsibility, API contract meaning, validation rules, acceptance criteria, or user intent, it requires human confirmation and blocks leaving requirement analysis until resolved or explicitly classified.
+
+### `human confirmation decisions`
+
+Document every need, question, rule, ambiguous content, fuzzy content, or product decision that would otherwise require human confirmation after requirement analysis.
+
+For each item, record:
+
+- item
+- ambiguity / fuzziness type when applicable
+- possible interpretations or missing measurable standard when applicable
+- why it requires or does not require human confirmation
+- confirmation owner when applicable
+- resolved decision, blocking status, or non-blocking rationale
+- downstream artifact that must carry the decision
+- whether the item permits downstream automatic `spec` / `plan` approval
+
+Rules:
+
+- If the item affects scope, core behavior, data semantics, permissions, state flow, frontend/server responsibility, API contract meaning, validation rules, acceptance criteria, or user intent and is unresolved, it blocks leaving requirement analysis.
+- Ambiguous or fuzzy content cannot be downgraded to a non-blocking item unless the artifact explains why every plausible interpretation would produce the same downstream spec, plan, implementation, and verification result.
+- If the item is external-interface detail but requirement meaning is stable, classify it as `外部接口待补` and state the adapter / mock / config / DTO boundary that permits downstream work.
+- If the item is non-blocking, explain why it does not affect downstream automatic approval.
+- Do not defer human confirmation to `spec` or `plan` approval prompts.
 
 ### `risk and constraint assessment`
 
@@ -193,6 +332,8 @@ Document how this analysis reduces product follow-up during development:
 - concrete hidden questions that have been surfaced instead of left implicit
 - areas where developers can proceed using a stated adapter / config / DTO boundary
 - areas where developers must stop for product or external-system confirmation
+- confirmation decisions that make downstream automatic `spec` and `plan` approval safe
+- frontend-owned versus server-owned work that downstream stages must not merge or silently swap
 - source-backed risk checks that must become acceptance or regression coverage later
 
 This is not a summary section. It is a handoff checklist for the next stage.

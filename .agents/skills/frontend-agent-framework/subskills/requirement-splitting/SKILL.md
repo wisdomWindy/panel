@@ -31,9 +31,10 @@ description: Stage subskill for requirement splitting. Normalize a PRD-driven re
    - `../../references/templates/request.md`
    - `../../references/templates/requirement-analysis.md`
    - `../../references/templates/requirement-splitting.md`
-   - `../../references/policies/doc-writing.md`
+   - `../../references/policies/policy-index.md`
+   - 按 `policy-index.md` 的 `requirement-splitting` 阶段映射读取本次需求适用的 policy 文件；默认至少读取 `source-grounding.md`、`doc-writing.md`
 2. 仅用于 PRD 驱动需求；bugfix 输入默认不走本阶段，除非主 skill 明确把缺陷提升为等价需求拆分问题。
-3. 先消费 `requirement-analysis` 工件，把其中确认过的范围、非目标、依赖、风险、歧义和拆分依据视为本阶段上游输入，而不是重新从零发明拆分逻辑。
+3. 先消费 `requirement-analysis` 工件，把其中确认过的范围、非目标、source-grounding matrix、前端 / 服务端职责拆分、依赖、风险、歧义和拆分依据视为本阶段上游输入，而不是重新从零发明拆分逻辑。
 4. 在正式拆分前，先检查原始内容里是否存在 Markdown 不能稳定表达或下游 `.md` 工件不易识别的格式。
 5. 如果存在非 Markdown 兼容格式，先做最小必要的 Markdown 归一化，再开始拆分，例如：
    - 非标准表格、截图表格、富文本栅格转成 Markdown 表格
@@ -53,7 +54,9 @@ description: Stage subskill for requirement splitting. Normalize a PRD-driven re
 12. 如果原始文档中同一模块的信息分散在多个章节，允许汇总到一个模块工件中，但必须保留来源映射。
 13. 对每个模块明确：
    - 模块边界
+   - source-grounding labels and source references
    - 业务目标
+   - 前端职责、服务端职责、共享契约和外部接口待补项
    - 用户可见行为
    - 表单/表格/展示/交互/流程内容
    - 下游 `spec` 必须保留的显式约束
@@ -64,10 +67,10 @@ description: Stage subskill for requirement splitting. Normalize a PRD-driven re
    - 模块清单
    - 模块依赖
    - 哪些模块需要先做 `page-design`
-   - 哪些模块需要先做 `architecture-design`
-   - 哪些模块可以直接进入 `spec`
+   - 哪些模块在 framework-approved `spec` 后需要 `architecture-design`
+   - 哪些模块可以在 `spec` 后直接进入 `plan`
    - 模块顺序执行次序
-15. 如果源文档存在信息不一致或缺失，记录开放问题；不要靠猜测补全。
+15. 将 requirement-analysis 的 closed-world product scope allowlist 按模块原样分配并保留需求原文或人工确认引用；不能在拆分时新增产品内容、改写授权范围或用代码事实补产品语义。如果源文档存在信息不一致、缺失或没有来源支撑的相邻扩展，记录开放问题、missing-source 或 out-of-scope；不要靠猜测补全。
 16. 根据拆分结果初始化 `state.json.module_flow`：
    - `execution_mode=sequential`
    - `current_module_id` 指向第一个模块
@@ -79,8 +82,8 @@ description: Stage subskill for requirement splitting. Normalize a PRD-driven re
 19. 本阶段不写下游 `spec/plan/execution/verification/review` 工件，不写代码。
 20. 完成后把 `stage` 设为第一个模块的首个必需阶段：
    - 需要 `page-design`：`page-design`
-   - 否则若需要 `architecture-design`：`architecture-design`
    - 其他：`spec`
+   - `architecture_design_required` 只影响该模块 framework-approved `spec` 之后是否进入 `architecture-design`，不能让模块跳过 `spec` 直接进入 `architecture-design`
 
 ## 输出格式
 
@@ -90,9 +93,11 @@ description: Stage subskill for requirement splitting. Normalize a PRD-driven re
 - 最终交付物应包含：
   - 需求拆分总览
   - requirement-analysis 承接结果
+  - 前端 / 服务端职责拆分承接结果
   - 模块级原始内容快照
   - 已归一化的 Markdown 兼容内容
   - source trace 映射
+  - source grounding 承接
   - 模块依赖关系
   - page-design / architecture-design 路由判断
   - 模块顺序执行信息
@@ -103,13 +108,15 @@ description: Stage subskill for requirement splitting. Normalize a PRD-driven re
 
 - `requirements/requirement-map.md` 已存在。
 - 已为范围内模块生成模块工件。
-- requirement-analysis 中确认的范围、非目标、依赖与拆分依据已被承接，而不是被本阶段忽略。
+- requirement-analysis 中确认的范围、非目标、前端 / 服务端职责拆分、依赖与拆分依据已被承接，而不是被本阶段忽略。
 - 每个模块工件都能回溯到原始需求文档对应内容。
+- 每个模块工件都承接 requirement-analysis 的来源锚定标签，没有把 missing-source 或 out-of-scope 内容拆成下游模块范围。
+- 每个模块工件都承接属于本模块的 closed-world product scope allowlist，且每项仍可直接追溯到需求原文或人工确认。
 - 每个发生过格式归一化的模块都同时保留了原始内容快照与 Markdown 归一化副本。
 - 原始内容中的非 Markdown 兼容格式已被转换为 Markdown 可识别格式或等价结构化说明。
 - 显式字段、列、展示、交互、状态、流程要求没有在拆分过程中丢失。
 - 已明确哪些模块或请求需要 `page-design`。
-- 已明确哪些模块需要 `architecture-design`。
+- 已明确哪些模块在 framework-approved `spec` 后、`plan` 前需要 `architecture-design`。
 - `state.json.module_flow` 已初始化当前模块、待处理模块和已完成模块队列。
 - `state.json.stage` 已切换到第一个模块的首个下游阶段。
 - `state.json` 保留原有 `loop`。
@@ -117,8 +124,10 @@ description: Stage subskill for requirement splitting. Normalize a PRD-driven re
 ## 安全边界
 
 - 不能发明需求文档中不存在的新行为。
+- 不能从相邻模块、样例内容、通用惯例或偏好设计中拆出新模块或新行为。
 - 不能在本阶段写 spec、plan 或代码。
 - 不能绕过 `requirement-analysis` 重新凭印象定义范围、非目标或拆分依据。
+- 不能在拆分时把 requirement-analysis 已确认的服务端职责改写成前端实现任务，或把前端职责改写成服务端待办。
 - 不能把多个模块压成导致下游遗漏的笼统摘要。
 - 不能借格式归一化之名改写原始业务语义。
 - 不能只保留 Markdown 归一化结果而删除原始内容快照。

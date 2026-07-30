@@ -14,6 +14,7 @@ Required sections:
 - analysis carry-forward
 - splitting principles
 - source inventory
+- source grounding carry-forward
 - markdown normalization notes
 - module list
 - module dependency and sequencing notes
@@ -28,6 +29,7 @@ Document what the preceding `requirement-analysis` stage fixed as upstream const
 
 - confirmed scope
 - non-goals
+- frontend / server responsibility split
 - ambiguity notes that still remain open
 - dependencies that affect module boundaries
 - any request-level routing or sequencing signal that splitting must preserve
@@ -46,12 +48,30 @@ For each module or functional unit, include:
   - interaction flow
   - cross-module rule
 - source section mapping
+- grounding labels inherited from requirement analysis
 - one-sentence scope summary
 - execution order
 - whether `page-design` is required before `spec`
-- whether `architecture-design` is required before `spec`
+- whether `architecture-design` is required after `spec` and before `plan`
 - downstream consumer notes for `spec` and `plan`
+- frontend-owned work, server-owned work, shared contract work, and external-interface pending items inherited from requirement analysis
 - downstream run artifact root
+
+### `source grounding carry-forward`
+
+Document how splitting preserves the requirement-analysis source grounding matrix.
+
+For each module, list:
+
+- source-backed items carried into the module
+- code-fact-backed constraints carried into the module
+- confirmed decisions carried into the module
+- safe source-derived consequences carried into the module
+- closed-world product scope allowlist items assigned to the module, each retaining its exact original requirement or confirmation reference
+- missing-source items that remain blocked, external-interface pending, or non-blocking
+- out-of-scope adjacent ideas that must not enter this module
+
+Do not split a new module, behavior, field, interaction, or acceptance obligation solely from convention, neighboring-module similarity, or preferred design structure.
 
 ### `markdown normalization notes`
 
@@ -73,6 +93,7 @@ For every split module, explicitly list upstream details that downstream stages 
 - interaction triggers and outcomes
 - loading, empty, error, success, disabled, and visibility rules
 - workflow branches and state transitions
+- frontend / server responsibility boundary and API / DTO / permission / state contract obligations
 
 ### `module execution sequence`
 
@@ -80,7 +101,7 @@ For split PRD-driven requests, define:
 
 - the exact sequential execution order
 - the first module that should become `state.json.module_flow.current_module_id`
-- whether each module starts at `page-design`, `architecture-design`, or `spec`
+- whether each module starts at `page-design` or `spec`; `architecture-design`, when required, runs after that module's framework-approved `spec` and before `plan`
 - any strict dependency that prevents a later module from starting before an earlier module passes `review`
 
 ## `requirements/modules/<module-id>.md`
@@ -92,11 +113,13 @@ Required sections:
 - source snapshot
 - markdown-normalized snapshot
 - source-trace references
+- source grounding
 - business intent
 - user-visible scope
 - forms, tables, displays, and interactions
 - workflow and state rules
 - dependencies and impacted neighbors
+- frontend / server responsibility boundary
 - page-design routing decision
 - downstream spec obligations
 - open questions
@@ -119,3 +142,9 @@ Rules:
 - prefer Markdown tables, images, links, headings, and bullet lists
 - when exact visual structure cannot be preserved, provide an equivalent structured textual representation and record that fallback explicitly
 - this section is a companion copy for downstream consumption, not a replacement for the raw snapshot
+
+### `source grounding`
+
+For this module, list every material carried-forward item with its grounding label and source reference.
+
+Downstream `spec` may only use items labeled `source-backed`, `code-fact-backed`, `confirmed-decision`, or safe `source-derived`. New product-facing or business-semantic content must also appear in the module's closed-world product scope allowlist with an exact original requirement or confirmation reference.

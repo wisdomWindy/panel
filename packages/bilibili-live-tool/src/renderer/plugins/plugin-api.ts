@@ -8,7 +8,6 @@ import {
   DanmakuEvent,
   GiftEvent,
   CaptainEvent,
-  DanmakuOptions,
   EffectDefinition,
   MenuItemDefinition,
   SettingPanelDefinition,
@@ -30,7 +29,6 @@ export class PluginAPIImpl implements PluginAPI {
   private cleanupFunctions: Set<() => void> = new Set();
 
   // 外部依赖（需要注入）
-  private danmakuService: any;
   private configStore: any;
   private effectManager: any;
   private uiRegistry: any;
@@ -39,7 +37,6 @@ export class PluginAPIImpl implements PluginAPI {
     pluginId: string,
     permissions: PluginPermission[],
     dependencies: {
-      danmakuService?: any;
       configStore?: any;
       effectManager?: any;
       uiRegistry?: any;
@@ -47,7 +44,6 @@ export class PluginAPIImpl implements PluginAPI {
   ) {
     this.pluginId = pluginId;
     this.permissions = new Set(permissions);
-    this.danmakuService = dependencies.danmakuService;
     this.configStore = dependencies.configStore;
     this.effectManager = dependencies.effectManager;
     this.uiRegistry = dependencies.uiRegistry;
@@ -59,24 +55,6 @@ export class PluginAPIImpl implements PluginAPI {
   private checkPermission(permission: PluginPermission): void {
     if (!this.permissions.has(permission)) {
       throw new Error(`插件 ${this.pluginId} 未声明 ${permission} 权限`);
-    }
-  }
-
-  /**
-   * 发送弹幕
-   */
-  async sendDanmaku(content: string, options?: DanmakuOptions): Promise<void> {
-    this.checkPermission('danmaku');
-
-    if (!this.danmakuService) {
-      throw new Error('弹幕服务不可用');
-    }
-
-    try {
-      await this.danmakuService.sendDanmaku(content, options);
-    } catch (error) {
-      this.log('error', `发送弹幕失败: ${error}`);
-      throw error;
     }
   }
 
@@ -382,7 +360,6 @@ export function createPluginAPI(
   pluginId: string,
   permissions: PluginPermission[],
   dependencies: {
-    danmakuService?: any;
     configStore?: any;
     effectManager?: any;
     uiRegistry?: any;

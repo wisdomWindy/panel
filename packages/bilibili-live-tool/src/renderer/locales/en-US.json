@@ -5,7 +5,6 @@
   "nav": {
     "dashboard": "Dashboard",
     "connection": "Connection",
-    "danmakuPool": "Danmaku Pool",
     "danmakuList": "Danmaku List",
     "giftList": "Gift List",
     "settings": "Settings",
@@ -44,28 +43,6 @@
     "color": "Color",
     "language": "Language"
   },
-  "danmaku": {
-    "pool": "Danmaku Pool",
-    "list": "Danmaku List",
-    "content": "Content",
-    "sendInterval": "Send Interval",
-    "triggerWord": "Trigger Word",
-    "timed": "Timed",
-    "random": "Random",
-    "trigger": "Trigger",
-    "variableReplacement": "Variable Replacement",
-    "sendFrequency": "Send Frequency",
-    "autoSend": "Auto Send",
-    "running": "Running",
-    "stopped": "Stopped",
-    "todaySent": "Today Sent",
-    "sendSuccessRate": "Success Rate",
-    "lastSent": "Last Sent",
-    "none": "None",
-    "placeholder": "Enter danmaku content",
-    "intervalPlaceholder": "Interval (ms)",
-    "triggerPlaceholder": "Trigger keyword"
-  },
   "effect": {
     "captainEffect": "Captain Effect",
     "firstCaptain": "First Captain",
@@ -92,7 +69,6 @@
     "apiKey": "API Key",
     "personality": "Personality",
     "contextWindow": "Context Window",
-    "sendCooldown": "Send Cooldown",
     "sensitiveFilter": "Sensitive Word Filter",
     "provider": "Provider",
     "endpoint": "Custom Endpoint",
@@ -100,7 +76,6 @@
     "responseStyle": "Response Style",
     "maxTokens": "Max Tokens",
     "temperature": "Temperature",
-    "minInterval": "Min Interval",
     "enabled": "Enable AI",
     "notConfigured": "API Key not configured"
   },
@@ -112,11 +87,9 @@
     "onlineCount": "Online",
     "danmakuCount": "Danmaku Count",
     "giftCount": "Gift Count",
-    "danmakuStats": "Danmaku Stats",
     "giftStats": "Gift Stats",
     "totalValue": "Total Value",
     "maxValue": "Max Value",
-    "thankSent": "Thanks Sent",
     "giftType": "Gift Type",
     "silverCoin": "Silver Coin",
     "recentActivity": "Recent Activity",
@@ -148,7 +121,6 @@
   "connection": {
     "title": "Connection",
     "roomId": "Room ID",
-    "cookie": "Cookie",
     "autoReconnect": "Auto Reconnect",
     "connect": "Connect",
     "disconnect": "Disconnect",
@@ -157,19 +129,15 @@
     "disconnected": "Disconnected",
     "roomName": "Room Name",
     "ownerName": "Owner",
-    "roomIdPlaceholder": "Enter room ID",
-    "cookiePlaceholder": "Enter Bilibili Cookie"
+    "roomIdPlaceholder": "Enter room ID"
   },
   "settings": {
     "title": "Settings",
     "language": "Language",
     "languageSettings": "Language Settings",
     "connection": "Connection Settings",
-    "danmaku": "Danmaku Settings",
-    "autoSend": "Auto Send",
     "filter": "Filter Settings",
     "log": "Log Settings",
-    "roles": "Role Replies",
     "update": "Update Settings",
     "plugins": "Plugin Management",
     "recording": "Recording Settings",
@@ -187,7 +155,6 @@
     "theme": "Theme",
     "about": "About",
     "general": "General",
-    "danmakuSettings": "Danmaku Settings",
     "effectSettings": "Effect Settings",
     "aiSettings": "AI Settings",
     "autoStart": "Auto Start",
@@ -223,13 +190,10 @@
   },
   "gift": {
     "title": "Gift List",
-    "thankRule": "Gift Thank Rules",
     "giftId": "Gift ID",
     "giftName": "Gift Name",
-    "thankMessage": "Thank Message",
     "comboEnabled": "Combo Enabled",
-    "comboInterval": "Combo Interval",
-    "noRules": "No thank rules"
+    "comboInterval": "Combo Interval"
   },
   "recording": {
     "title": "Recording",

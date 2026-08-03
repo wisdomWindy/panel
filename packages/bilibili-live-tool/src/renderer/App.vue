@@ -8,7 +8,6 @@ import { elementPlusLocale } from '@/i18n-runtime';
 import {
   House,
   Connection,
-  ChatDotRound,
   Document,
   Present,
   Setting,
@@ -135,10 +134,6 @@ onUnmounted(() => {
               <el-menu-item index="/connection">
                 <el-icon><Connection /></el-icon>
                 <span>{{ t('nav.connection') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/danmaku-pool">
-                <el-icon><ChatDotRound /></el-icon>
-                <span>{{ t('nav.danmakuPool') }}</span>
               </el-menu-item>
               <el-menu-item index="/danmaku-list">
                 <el-icon><Document /></el-icon>

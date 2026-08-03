@@ -10,18 +10,6 @@ import type {
   RecordingConfig
 } from '../renderer/modules/recording/types.js';
 
-interface DanmakuPoolItem {
-  id: number;
-  content: string;
-  type: 'timed' | 'random' | 'trigger';
-  triggerWord?: string;
-  enabled: boolean;
-  priority: number;
-  interval?: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 interface Gift {
   id: string;
   giftId: string;
@@ -68,7 +56,6 @@ interface SoundLog {
 }
 
 interface AppData {
-  danmakuPool: DanmakuPoolItem[];
   gifts: Gift[];
   captains: CaptainInfo[];
   logs: LogEntry[];
@@ -78,10 +65,6 @@ interface AppData {
   soundLogs: SoundLog[];
   config: {
     roomId: number;
-    csrfToken: string;
-    minSendInterval: number;
-    enableAutoSend: boolean;
-    autoSendInterval: number;
     enableSensitiveWordFilter: boolean;
     sensitiveWords: string[];
     replaceChar: string;
@@ -93,8 +76,86 @@ interface AppData {
     aiModel: string;
     aiApiKey: string;
     aiContextWindow: number;
-    aiMinInterval: number;
     recording: RecordingConfig;
+  };
+}
+
+const DEFAULT_APP_CONFIG: AppData['config'] = {
+  roomId: 0,
+  enableSensitiveWordFilter: true,
+  sensitiveWords: ['脏话', '广告'],
+  replaceChar: '*',
+  enableLog: true,
+  maxLogEntries: 1000,
+  enableEffects: true,
+  effectVolume: 0.7,
+  enableAI: false,
+  aiModel: 'gpt-3.5-turbo',
+  aiApiKey: '',
+  aiContextWindow: 10,
+  recording: {
+    enabled: false,
+    autoStart: false,
+    format: 'mp4',
+    quality: 'original',
+    segmentSize: 0,
+    segmentDuration: 0,
+    outputPath: '',
+    maxStorageSize: 0,
+    autoCleanup: false,
+    cleanupDays: 30,
+    highlightEnabled: true,
+    highlightConfig: {
+      danmakuThreshold: 30,
+      danmakuWindow: 10,
+      giftValueThreshold: 100,
+      captainTrigger: true,
+      clipDuration: 30,
+      beforeSeconds: 15,
+      afterSeconds: 15,
+      cooldownSeconds: 10
+    }
+  }
+};
+
+function mergeAppDataConfig(
+  current: AppData['config'],
+  updates: unknown
+): AppData['config'] {
+  if (!updates || typeof updates !== 'object') {
+    return current;
+  }
+
+  const source = updates as Record<string, unknown>;
+  const readString = (key: keyof AppData['config'], fallback: string) =>
+    typeof source[key] === 'string' ? source[key] : fallback;
+  const readNumber = (key: keyof AppData['config'], fallback: number) =>
+    typeof source[key] === 'number' ? source[key] : fallback;
+  const readBoolean = (key: keyof AppData['config'], fallback: boolean) =>
+    typeof source[key] === 'boolean' ? source[key] : fallback;
+
+  return {
+    roomId: readNumber('roomId', current.roomId),
+    enableSensitiveWordFilter: readBoolean(
+      'enableSensitiveWordFilter',
+      current.enableSensitiveWordFilter
+    ),
+    sensitiveWords: Array.isArray(source.sensitiveWords)
+      ? source.sensitiveWords.filter((word): word is string => typeof word === 'string')
+      : current.sensitiveWords,
+    replaceChar: readString('replaceChar', current.replaceChar),
+    enableLog: readBoolean('enableLog', current.enableLog),
+    maxLogEntries: readNumber('maxLogEntries', current.maxLogEntries),
+    enableEffects: readBoolean('enableEffects', current.enableEffects),
+    effectVolume: readNumber('effectVolume', current.effectVolume),
+    enableAI: readBoolean('enableAI', current.enableAI),
+    aiModel: readString('aiModel', current.aiModel),
+    aiApiKey: readString('aiApiKey', current.aiApiKey),
+    aiContextWindow: readNumber('aiContextWindow', current.aiContextWindow),
+    recording:
+      source.recording && typeof source.recording === 'object'
+        ? { ...current.recording, ...(source.recording as Partial<RecordingConfig>) }
+        : current.recording
   };
 }
 
@@ -112,7 +173,6 @@ export class MainDatabaseService {
 
     this.store = new Store({
       defaults: {
-        danmakuPool: [],
         gifts: [],
         captains: [],
         logs: [],
@@ -120,48 +180,7 @@ export class MainDatabaseService {
         highlights: [],
         giftSounds: [],
         soundLogs: [],
-        config: {
-          roomId: 0,
-          csrfToken: '',
-          minSendInterval: 3000,
-          enableAutoSend: false,
-          autoSendInterval: 5000,
-          enableSensitiveWordFilter: true,
-          sensitiveWords: ['脏话', '广告'],
-          replaceChar: '*',
-          enableLog: true,
-          maxLogEntries: 1000,
-          enableEffects: true,
-          effectVolume: 0.7,
-          enableAI: false,
-          aiModel: 'gpt-3.5-turbo',
-          aiApiKey: '',
-          aiContextWindow: 10,
-          aiMinInterval: 30,
-          recording: {
-            enabled: false,
-            autoStart: false,
-            format: 'mp4',
-            quality: 'original',
-            segmentSize: 0,
-            segmentDuration: 0,
-            outputPath: '',
-            maxStorageSize: 0,
-            autoCleanup: false,
-            cleanupDays: 30,
-            highlightEnabled: true,
-            highlightConfig: {
-              danmakuThreshold: 30,
-              danmakuWindow: 10,
-              giftValueThreshold: 100,
-              captainTrigger: true,
-              clipDuration: 30,
-              beforeSeconds: 15,
-              afterSeconds: 15,
-              cooldownSeconds: 10
-            }
-          }
-        }
+        config: DEFAULT_APP_CONFIG
       }
     });
 
@@ -171,37 +190,6 @@ export class MainDatabaseService {
   private ensureInitialized(): void {
     if (!this.initialized || !this.store) {
       throw new Error('Database not initialized. Call initialize() first.');
-    }
-  }
-
-  // ===== 弹幕池操作 =====
-  getDanmakuPool(): DanmakuPoolItem[] {
-    this.ensureInitialized();
-    return this.store.get('danmakuPool', []) as DanmakuPoolItem[];
-  }
-
-  setDanmakuPool(pool: DanmakuPoolItem[]): void {
-    this.ensureInitialized();
-    this.store.set('danmakuPool', pool);
-  }
-
-  addDanmakuToPool(item: DanmakuPoolItem): void {
-    const pool = this.getDanmakuPool();
-    pool.push(item);
-    this.setDanmakuPool(pool);
-  }
-
-  removeDanmakuFromPool(id: number): void {
-    const pool = this.getDanmakuPool().filter(item => item.id !== id);
-    this.setDanmakuPool(pool);
-  }
-
-  updateDanmakuPoolItem(id: number, updates: Partial<DanmakuPoolItem>): void {
-    const pool = this.getDanmakuPool();
-    const index = pool.findIndex(item => item.id === id);
-    if (index !== -1) {
-      pool[index] = { ...pool[index], ...updates, updatedAt: new Date() };
-      this.setDanmakuPool(pool);
     }
   }
 
@@ -256,13 +244,12 @@ export class MainDatabaseService {
   // ===== 配置 =====
   getConfig(): AppData['config'] {
     this.ensureInitialized();
-    return this.store.get('config') as AppData['config'];
+    return mergeAppDataConfig(DEFAULT_APP_CONFIG, this.store.get('config'));
   }
 
   setConfig(config: Partial<AppData['config']>): void {
     this.ensureInitialized();
-    const currentConfig = this.getConfig();
-    this.store.set('config', { ...currentConfig, ...config });
+    this.store.set('config', mergeAppDataConfig(this.getConfig(), config));
   }
 
   // ===== 录制配置 =====

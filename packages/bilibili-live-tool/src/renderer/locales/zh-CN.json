@@ -5,7 +5,6 @@
   "nav": {
     "dashboard": "仪表盘",
     "connection": "连接配置",
-    "danmakuPool": "弹幕池管理",
     "danmakuList": "弹幕列表",
     "giftList": "礼物列表",
     "settings": "设置",
@@ -44,28 +43,6 @@
     "color": "颜色",
     "language": "语言"
   },
-  "danmaku": {
-    "pool": "弹幕池",
-    "list": "弹幕列表",
-    "content": "弹幕内容",
-    "sendInterval": "发送间隔",
-    "triggerWord": "触发词",
-    "timed": "定时发送",
-    "random": "随机发送",
-    "trigger": "触发词发送",
-    "variableReplacement": "变量替换",
-    "sendFrequency": "发送频率",
-    "autoSend": "自动发送",
-    "running": "运行中",
-    "stopped": "已停止",
-    "todaySent": "今日发送",
-    "sendSuccessRate": "发送成功率",
-    "lastSent": "最后发送",
-    "none": "无",
-    "placeholder": "请输入弹幕内容",
-    "intervalPlaceholder": "发送间隔（毫秒）",
-    "triggerPlaceholder": "触发关键词"
-  },
   "effect": {
     "captainEffect": "上舰特效",
     "firstCaptain": "初次上舰",
@@ -92,7 +69,6 @@
     "apiKey": "API Key",
     "personality": "人设选择",
     "contextWindow": "上下文窗口",
-    "sendCooldown": "发送冷却",
     "sensitiveFilter": "敏感词过滤",
     "provider": "服务商",
     "endpoint": "自定义端点",
@@ -100,7 +76,6 @@
     "responseStyle": "回复风格",
     "maxTokens": "最大 Token 数",
     "temperature": "温度",
-    "minInterval": "最小发送间隔",
     "enabled": "启用 AI",
     "notConfigured": "未配置 API Key"
   },
@@ -112,11 +87,9 @@
     "onlineCount": "在线人数",
     "danmakuCount": "弹幕总数",
     "giftCount": "礼物总数",
-    "danmakuStats": "弹幕统计",
     "giftStats": "礼物统计",
     "totalValue": "总价值",
     "maxValue": "最高价值",
-    "thankSent": "感谢发送",
     "giftType": "礼物类型",
     "silverCoin": "银瓜子",
     "recentActivity": "最近活动",
@@ -148,7 +121,6 @@
   "connection": {
     "title": "连接配置",
     "roomId": "房间号",
-    "cookie": "Cookie",
     "autoReconnect": "自动重连",
     "connect": "连接",
     "disconnect": "断开连接",
@@ -157,19 +129,15 @@
     "disconnected": "未连接",
     "roomName": "直播间名称",
     "ownerName": "主播名称",
-    "roomIdPlaceholder": "请输入直播间号",
-    "cookiePlaceholder": "请输入 Bilibili Cookie"
+    "roomIdPlaceholder": "请输入直播间号"
   },
   "settings": {
     "title": "设置",
     "language": "语言",
     "languageSettings": "语言设置",
     "connection": "连接设置",
-    "danmaku": "弹幕设置",
-    "autoSend": "自动发送",
     "filter": "过滤设置",
     "log": "日志设置",
-    "roles": "角色回复设置",
     "update": "更新设置",
     "plugins": "插件管理",
     "recording": "录制设置",
@@ -187,7 +155,6 @@
     "theme": "主题",
     "about": "关于",
     "general": "常规设置",
-    "danmakuSettings": "弹幕设置",
     "effectSettings": "特效设置",
     "aiSettings": "AI 设置",
     "autoStart": "开机自启",
@@ -223,13 +190,10 @@
   },
   "gift": {
     "title": "礼物列表",
-    "thankRule": "礼物感谢规则",
     "giftId": "礼物ID",
     "giftName": "礼物名称",
-    "thankMessage": "感谢语",
     "comboEnabled": "连击启用",
-    "comboInterval": "连击间隔",
-    "noRules": "暂无礼物感谢规则"
+    "comboInterval": "连击间隔"
   },
   "recording": {
     "title": "录制管理",

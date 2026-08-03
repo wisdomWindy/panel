@@ -2,11 +2,9 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
-  Connection, ChatDotRound, Timer, Filter, Document,
-  UserFilled, Bell, Setting, VideoCamera
+  Connection, Filter, Document, Bell, Setting, VideoCamera
 } from '@element-plus/icons-vue';
 import { useConfigStore } from '../../stores/config';
-import { getDanmakuService } from '../../services/danmaku-service';
 import { showSuccess } from '../../utils/ui';
 import {
   buildSettingsExportConfig,
@@ -14,8 +12,6 @@ import {
 } from './utils/config-io.js';
 
 import ConnectionSettings from './components/ConnectionSettings.vue';
-import DanmakuSettings from './components/DanmakuSettings.vue';
-import AutoSendSettings from './components/AutoSendSettings.vue';
 import FilterSettings from './components/FilterSettings.vue';
 import LogSettings from './components/LogSettings.vue';
 import UpdateSettings from './components/UpdateSettings.vue';
@@ -26,9 +22,7 @@ import ASRSettings from './components/ASRSettings.vue';
 import AISettings from './components/AISettings.vue';
 import ModerationSettings from './components/ModerationSettings.vue';
 import RecordingSettings from './components/RecordingSettings.vue';
-import RoleSettings from './components/RoleSettings.vue';
 
-const danmakuService = getDanmakuService();
 const configStore = useConfigStore();
 const { t } = useI18n();
 
@@ -38,8 +32,6 @@ const importConfig = ref('');
 
 // 子组件引用
 const connectionRef = ref<InstanceType<typeof ConnectionSettings>>();
-const danmakuRef = ref<InstanceType<typeof DanmakuSettings>>();
-const autoRef = ref<InstanceType<typeof AutoSendSettings>>();
 const filterRef = ref<InstanceType<typeof FilterSettings>>();
 const logRef = ref<InstanceType<typeof LogSettings>>();
 const updateRef = ref<InstanceType<typeof UpdateSettings>>();
@@ -51,11 +43,8 @@ const moderationRef = ref<InstanceType<typeof ModerationSettings>>();
 const tabTitle = computed(() => {
   const titles: Record<string, string> = {
     connection: t('settings.connection'),
-    danmaku: t('settings.danmaku'),
-    auto: t('settings.autoSend'),
     filter: t('settings.filter'),
     log: t('settings.log'),
-    roles: t('settings.roles'),
     update: t('settings.update'),
     plugins: t('settings.plugins'),
     recording: t('settings.recording'),
@@ -76,14 +65,6 @@ function handleSave() {
   // 收集所有子组件的值并保存
   if (connectionRef.value) {
     configStore.updateConfig(connectionRef.value.getValues());
-  }
-  if (danmakuRef.value) {
-    const values = danmakuRef.value.getValues();
-    configStore.updateConfig(values);
-    danmakuService.updateMinInterval(values.minSendInterval);
-  }
-  if (autoRef.value) {
-    configStore.updateConfig(autoRef.value.getValues());
   }
   if (filterRef.value) {
     configStore.updateConfig(filterRef.value.getValues());
@@ -123,8 +104,6 @@ function handleExport() {
     core: {
       ...configStore.config,
       ...connectionRef.value?.getValues(),
-      ...danmakuRef.value?.getValues(),
-      ...autoRef.value?.getValues(),
       ...filterRef.value?.getValues(),
       ...logRef.value?.getValues(),
       ...updateRef.value?.getValues()
@@ -163,9 +142,6 @@ function confirmImport() {
 
     if (patches.core) {
       configStore.updateConfig(patches.core);
-      if (typeof patches.core.minSendInterval === 'number') {
-        danmakuService.updateMinInterval(patches.core.minSendInterval);
-      }
     }
     if (patches.recording) {
       void recordingStore.updateConfig(patches.recording);
@@ -214,21 +190,9 @@ import { ElMessage } from 'element-plus';
               <el-icon><Connection /></el-icon>
               <span>{{ t('settings.connection') }}</span>
             </el-menu-item>
-            <el-menu-item index="danmaku">
-              <el-icon><ChatDotRound /></el-icon>
-              <span>{{ t('settings.danmaku') }}</span>
-            </el-menu-item>
-            <el-menu-item index="auto">
-              <el-icon><Timer /></el-icon>
-              <span>{{ t('settings.autoSend') }}</span>
-            </el-menu-item>
             <el-menu-item index="filter">
               <el-icon><Filter /></el-icon>
               <span>{{ t('settings.filter') }}</span>
-            </el-menu-item>
-            <el-menu-item index="roles">
-              <el-icon><UserFilled /></el-icon>
-              <span>{{ t('settings.roles') }}</span>
             </el-menu-item>
             <el-menu-item index="log">
               <el-icon><Document /></el-icon>
@@ -278,17 +242,8 @@ import { ElMessage } from 'element-plus';
           <div v-show="activeTab === 'connection'">
             <ConnectionSettings ref="connectionRef" />
           </div>
-          <div v-show="activeTab === 'danmaku'">
-            <DanmakuSettings ref="danmakuRef" />
-          </div>
-          <div v-show="activeTab === 'auto'">
-            <AutoSendSettings ref="autoRef" />
-          </div>
           <div v-show="activeTab === 'filter'">
             <FilterSettings ref="filterRef" />
-          </div>
-          <div v-show="activeTab === 'roles'">
-            <RoleSettings />
           </div>
           <div v-show="activeTab === 'log'">
             <LogSettings ref="logRef" />

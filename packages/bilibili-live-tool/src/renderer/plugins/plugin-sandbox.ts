@@ -74,7 +74,6 @@ export class PluginSandbox {
 
     // 根据权限添加 API
     if (this.permissions.has('danmaku')) {
-      env.sendDanmaku = this.api.sendDanmaku.bind(this.api);
       env.onDanmaku = this.api.onDanmaku.bind(this.api);
     }
 

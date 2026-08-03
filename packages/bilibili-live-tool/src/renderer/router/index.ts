@@ -22,12 +22,6 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '连接配置' }
   },
   {
-    path: '/danmaku-pool',
-    name: 'DanmakuPool',
-    component: () => import('@/views/danmaku-pool/index.vue'),
-    meta: { title: '弹幕池管理' }
-  },
-  {
     path: '/danmaku-list',
     name: 'DanmakuList',
     component: () => import('@/views/danmaku-list/index.vue'),

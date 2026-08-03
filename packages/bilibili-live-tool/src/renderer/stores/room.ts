@@ -12,8 +12,6 @@ export const useRoomStore = defineStore('room', () => {
   const roomInfo = ref<RoomInfo | null>(null);
   const code = ref<string>('');       // 主播身份码
   const appId = ref<number>(0);       // 应用 ID
-  const cookie = ref<string>('');
-  const csrfToken = ref<string>('');
   const uid = ref<number>(0);
   const onlineCount = ref<number>(0);
 
@@ -34,19 +32,6 @@ export const useRoomStore = defineStore('room', () => {
     if (info) {
       onlineCount.value = info.onlineCount;
     }
-  }
-
-  function setCookie(newCookie: string) {
-    cookie.value = newCookie;
-    // 自动提取 CSRF token
-    const match = newCookie.match(/bili_jct=([^;]+)/);
-    if (match) {
-      csrfToken.value = match[1];
-    }
-  }
-
-  function setCsrfToken(token: string) {
-    csrfToken.value = token;
   }
 
   function setUid(newUid: number) {
@@ -77,8 +62,6 @@ export const useRoomStore = defineStore('room', () => {
       roomInfo: roomInfo.value,
       code: code.value,
       appId: appId.value,
-      cookie: cookie.value,
-      csrfToken: csrfToken.value,
       uid: uid.value,
       onlineCount: onlineCount.value
     };
@@ -89,8 +72,6 @@ export const useRoomStore = defineStore('room', () => {
     roomInfo.value = state.roomInfo;
     code.value = state.code;
     appId.value = state.appId;
-    cookie.value = state.cookie;
-    csrfToken.value = state.csrfToken;
     uid.value = state.uid;
     onlineCount.value = state.onlineCount;
   }
@@ -101,8 +82,6 @@ export const useRoomStore = defineStore('room', () => {
     roomInfo,
     code,
     appId,
-    cookie,
-    csrfToken,
     uid,
     onlineCount,
 
@@ -116,8 +95,6 @@ export const useRoomStore = defineStore('room', () => {
     // Actions
     setStatus,
     setRoomInfo,
-    setCookie,
-    setCsrfToken,
     setUid,
     setOnlineCount,
     setCode,

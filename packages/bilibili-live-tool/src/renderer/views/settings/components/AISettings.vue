@@ -14,9 +14,6 @@ const form = reactive({
   systemPrompt: aiStore.config.personality?.systemPrompt || '',
   contextWindow: aiStore.config.contextWindow || 10,
   maxResponseLength: aiStore.config.maxResponseLength || 100,
-  minInterval: aiStore.config.minInterval || 10,
-  replyToQuestions: aiStore.config.replyToQuestions ?? true,
-  replyToMentions: aiStore.config.replyToMentions ?? true,
   sensitiveWordsFilter: aiStore.config.sensitiveWordsFilter ?? true
 });
 
@@ -38,9 +35,6 @@ function getValues() {
     },
     contextWindow: form.contextWindow,
     maxResponseLength: form.maxResponseLength,
-    minInterval: form.minInterval,
-    replyToQuestions: form.replyToQuestions,
-    replyToMentions: form.replyToMentions,
     sensitiveWordsFilter: form.sensitiveWordsFilter
   };
 }
@@ -52,7 +46,6 @@ defineExpose({ getValues });
   <el-form :model="form" label-width="150px">
     <el-form-item label="启用 AI 对话">
       <el-switch v-model="form.enabled" />
-      <span class="ml-2 text-gray-500">开启后 AI 将自动回复弹幕</span>
     </el-form-item>
     <el-form-item label="AI 提供商">
       <el-select v-model="form.provider">
@@ -109,18 +102,6 @@ defineExpose({ getValues });
     <el-form-item label="最大回复长度">
       <el-input-number v-model="form.maxResponseLength" :min="50" :max="500" />
       <span class="ml-2">字符</span>
-    </el-form-item>
-    <el-form-item label="发送间隔">
-      <el-input-number v-model="form.minInterval" :min="5" :max="60" />
-      <span class="ml-2">秒</span>
-    </el-form-item>
-    <el-form-item label="回复问题">
-      <el-switch v-model="form.replyToQuestions" />
-      <span class="ml-2 text-gray-500">自动回复观众提问</span>
-    </el-form-item>
-    <el-form-item label="回复 @">
-      <el-switch v-model="form.replyToMentions" />
-      <span class="ml-2 text-gray-500">自动回复 @ 消息</span>
     </el-form-item>
     <el-form-item label="敏感词过滤">
       <el-switch v-model="form.sensitiveWordsFilter" />

@@ -35,9 +35,7 @@ export class DanmakuService {
       accessKeyId: this.configStore.config.accessKeyId,
       accessKeySecret: this.configStore.config.accessKeySecret,
       appId: this.configStore.config.appId,
-      code: this.roomStore.code,
-      minInterval: this.configStore.config.minSendInterval,
-      csrfToken: this.roomStore.csrfToken
+      code: this.roomStore.code
     });
 
     this.setupEventHandlers();
@@ -113,24 +111,6 @@ export class DanmakuService {
       }
     });
 
-    // 弹幕池更新
-    this.manager.on('poolUpdated', (pool) => {
-      databaseService.setDanmakuPool(pool).catch((err) => console.error('Failed to save danmaku pool:', err));
-    });
-
-    // 弹幕发送成功
-    this.manager.on('danmakuSent', (_data: { content: string; timestamp: number }) => {
-      this.danmakuStore.recordSentTime();
-      this.danmakuStore.incrementSentCount();
-      ElMessage.success('弹幕发送成功');
-    });
-
-    // 弹幕发送失败
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.manager.on('danmakuFailed', (_data: any) => {
-      this.danmakuStore.incrementFailedCount();
-      ElMessage.error('发送失败');
-    });
 
     // 错误处理
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -142,13 +122,6 @@ export class DanmakuService {
     this.manager.on('spamDetected', (data: { userId: string; content: string; timestamp: number }) => {
       this.manager.addToBlacklist(data.userId, data.userId, `自动禁言：刷屏 (${data.content})`, 5);
       ElMessage.warning(`用户 ${data.userId} 因刷屏被自动禁言 5 分钟`);
-    });
-
-    // 感谢弹幕计数
-    this.manager.on('danmakuSent', (data: { content: string; timestamp: number }) => {
-      if (data.content.includes('感谢') || data.content.includes('谢谢')) {
-        this.danmakuStore.incrementThankCount();
-      }
     });
 
     // 自动录制事件处理
@@ -197,9 +170,7 @@ export class DanmakuService {
         accessKeyId: this.configStore.config.accessKeyId,
         accessKeySecret: this.configStore.config.accessKeySecret,
         appId: this.configStore.config.appId,
-        code: this.roomStore.code,
-        minInterval: this.configStore.config.minSendInterval,
-        csrfToken: this.roomStore.csrfToken
+        code: this.roomStore.code
       });
       this.setupEventHandlers();
 
@@ -220,65 +191,6 @@ export class DanmakuService {
     ElMessage.info('已断开连接');
   }
 
-  /**
-   * 发送弹幕
-   */
-  async sendDanmaku(content: string): Promise<void> {
-    await this.manager.sendDanmaku(content);
-  }
-
-  /**
-   * 添加弹幕到池
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addToPool(item: any): void {
-    const poolItem = this.manager.addToPool(item);
-    this.danmakuStore.danmakuPool.push({
-      ...poolItem,
-      interval: poolItem.interval || 5000
-    });
-  }
-
-  /**
-   * 从池移除弹幕
-   */
-  removeFromPool(id: number): void {
-    this.manager.removeFromPool(id);
-    this.danmakuStore.removePoolItem(id);
-  }
-
-  /**
-   * 更新弹幕池项
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  updatePoolItem(id: number, updates: any): void {
-    this.manager.updatePoolItem(id, updates);
-    this.danmakuStore.updatePoolItem(id, updates);
-  }
-
-  /**
-   * 启动自动发送
-   */
-  startAutoSend(interval: number = 5000): void {
-    this.manager.startAutoSend(interval);
-    this.danmakuStore.setAutoSending(true);
-    this.danmakuStore.setAutoSendInterval(interval);
-  }
-
-  /**
-   * 停止自动发送
-   */
-  stopAutoSend(): void {
-    this.manager.stopAutoSend();
-    this.danmakuStore.setAutoSending(false);
-  }
-
-  /**
-   * 更新最小发送间隔
-   */
-  updateMinInterval(interval: number): void {
-    this.manager.setMinInterval(interval);
-  }
 
   /**
    * 获取连接状态
@@ -294,19 +206,6 @@ export class DanmakuService {
     return this.roomStore.roomInfo;
   }
 
-  /**
-   * 获取弹幕池
-   */
-  get danmakuPool() {
-    return this.danmakuStore.danmakuPool;
-  }
-
-  /**
-   * 获取自动发送状态
-   */
-  get isAutoSending() {
-    return this.danmakuStore.isAutoSending;
-  }
 }
 
 let _instance: DanmakuService | null = null;

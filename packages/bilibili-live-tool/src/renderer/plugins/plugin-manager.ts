@@ -22,7 +22,6 @@ interface PluginManagerConfig {
   pluginDir: string;
   appVersion: string;
   dependencies: {
-    danmakuService?: any;
     configStore?: any;
     effectManager?: any;
     uiRegistry?: any;

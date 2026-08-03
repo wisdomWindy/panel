@@ -17,13 +17,6 @@ export interface AppConfig {
   maxReconnectAttempts: number;
   heartbeatInterval: number;
 
-  // 弹幕发送配置
-  minSendInterval: number;
-  enableAutoSend: boolean;
-  autoSendInterval: number;
-  enableTriggerReply: boolean;
-  enableGiftThank: boolean;
-
   // 自动录制配置
   enableAutoRecord: boolean;
 
@@ -48,6 +41,54 @@ export interface AppConfig {
   analyticsEnabled: boolean;
 }
 
+function mergeAppConfig(current: AppConfig, updates: unknown): AppConfig {
+  if (!updates || typeof updates !== 'object') {
+    return current;
+  }
+
+  const source = updates as Record<string, unknown>;
+  const readString = (key: keyof AppConfig, fallback: string) =>
+    typeof source[key] === 'string' ? source[key] : fallback;
+  const readNumber = (key: keyof AppConfig, fallback: number) =>
+    typeof source[key] === 'number' ? source[key] : fallback;
+  const readBoolean = (key: keyof AppConfig, fallback: boolean) =>
+    typeof source[key] === 'boolean' ? source[key] : fallback;
+  const theme = source.theme;
+  const language = source.language;
+  const logLevel = source.logLevel;
+
+  return {
+    accessKeyId: readString('accessKeyId', current.accessKeyId),
+    accessKeySecret: readString('accessKeySecret', current.accessKeySecret),
+    appId: readNumber('appId', current.appId),
+    autoReconnect: readBoolean('autoReconnect', current.autoReconnect),
+    reconnectInterval: readNumber('reconnectInterval', current.reconnectInterval),
+    maxReconnectAttempts: readNumber('maxReconnectAttempts', current.maxReconnectAttempts),
+    heartbeatInterval: readNumber('heartbeatInterval', current.heartbeatInterval),
+    enableAutoRecord: readBoolean('enableAutoRecord', current.enableAutoRecord),
+    enableSensitiveWordFilter: readBoolean(
+      'enableSensitiveWordFilter',
+      current.enableSensitiveWordFilter
+    ),
+    sensitiveWords: Array.isArray(source.sensitiveWords)
+      ? source.sensitiveWords.filter((word): word is string => typeof word === 'string')
+      : current.sensitiveWords,
+    replaceChar: readString('replaceChar', current.replaceChar),
+    theme: theme === 'light' || theme === 'dark' || theme === 'auto' ? theme : current.theme,
+    language: language === 'zh-CN' || language === 'en-US' ? language : current.language,
+    fontSize: readNumber('fontSize', current.fontSize),
+    enableNotifications: readBoolean('enableNotifications', current.enableNotifications),
+    enableLog: readBoolean('enableLog', current.enableLog),
+    logLevel:
+      logLevel === 'debug' || logLevel === 'info' || logLevel === 'warn' || logLevel === 'error'
+        ? logLevel
+        : current.logLevel,
+    maxLogLines: readNumber('maxLogLines', current.maxLogLines),
+    checkUpdates: readBoolean('checkUpdates', current.checkUpdates),
+    analyticsEnabled: readBoolean('analyticsEnabled', current.analyticsEnabled)
+  };
+}
+
 export const useConfigStore = defineStore('config', () => {
   // State
   const config = ref<AppConfig>({
@@ -61,13 +102,6 @@ export const useConfigStore = defineStore('config', () => {
     reconnectInterval: 3000,
     maxReconnectAttempts: 10,
     heartbeatInterval: 30,
-
-    // 弹幕发送配置
-    minSendInterval: 3000,
-    enableAutoSend: false,
-    autoSendInterval: 5000,
-    enableTriggerReply: true,
-    enableGiftThank: true,
 
     // 自动录制配置
     enableAutoRecord: false,
@@ -94,11 +128,8 @@ export const useConfigStore = defineStore('config', () => {
   });
 
   // Actions
-  function updateConfig(updates: Partial<AppConfig>) {
-    config.value = {
-      ...config.value,
-      ...updates
-    };
+  function updateConfig(updates: Partial<AppConfig> | Record<string, unknown>) {
+    config.value = mergeAppConfig(config.value, updates);
     saveConfig();
   }
 
@@ -111,11 +142,6 @@ export const useConfigStore = defineStore('config', () => {
       reconnectInterval: 3000,
       maxReconnectAttempts: 10,
       heartbeatInterval: 30,
-      minSendInterval: 3000,
-      enableAutoSend: false,
-      autoSendInterval: 5000,
-      enableTriggerReply: true,
-      enableGiftThank: true,
       enableAutoRecord: false,
       enableSensitiveWordFilter: true,
       sensitiveWords: [],
@@ -145,11 +171,7 @@ export const useConfigStore = defineStore('config', () => {
     try {
       const saved = localStorage.getItem('bilibili-live-config');
       if (saved) {
-        const parsed = JSON.parse(saved);
-        config.value = {
-          ...config.value,
-          ...parsed
-        };
+        config.value = mergeAppConfig(config.value, JSON.parse(saved));
       }
     } catch (error) {
       console.error('Failed to load config:', error);
@@ -178,7 +200,7 @@ export const useConfigStore = defineStore('config', () => {
   }
 
   function importConfig(newConfig: AppConfig) {
-    config.value = { ...newConfig };
+    config.value = mergeAppConfig(config.value, newConfig);
     saveConfig();
   }
 

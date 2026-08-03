@@ -9,12 +9,82 @@ import type { AIConfig, AIResponse, AIStatus, AIError, ChatMessage } from '../mo
 import { DEFAULT_AI_CONFIG, PRESET_PERSONALITIES } from '../modules/ai/types.js';
 import { getLLMService } from '../services/llm-service.js';
 import { useChatContext } from '../composables/useChatContext.js';
-import { useReplyLogic } from '../composables/useReplyLogic.js';
+
+function mergeAIConfig(current: AIConfig, updates: unknown): AIConfig {
+  if (!updates || typeof updates !== 'object') {
+    return current;
+  }
+
+  const source = updates as Record<string, unknown>;
+  const personalitySource =
+    source.personality && typeof source.personality === 'object'
+      ? (source.personality as Record<string, unknown>)
+      : {};
+  const provider = source.provider;
+  const tone = personalitySource.tone;
+  const responseStyle = personalitySource.responseStyle;
+  const readString = (key: keyof AIConfig, fallback: string) =>
+    typeof source[key] === 'string' ? source[key] : fallback;
+  const readNumber = (key: keyof AIConfig, fallback: number) =>
+    typeof source[key] === 'number' ? source[key] : fallback;
+
+  return {
+    enabled: typeof source.enabled === 'boolean' ? source.enabled : current.enabled,
+    provider:
+      provider === 'openai' ||
+      provider === 'claude' ||
+      provider === 'ollama' ||
+      provider === 'custom'
+        ? provider
+        : current.provider,
+    apiKey: readString('apiKey', current.apiKey),
+    model: readString('model', current.model),
+    endpoint: readString('endpoint', current.endpoint),
+    personality: {
+      name:
+        typeof personalitySource.name === 'string'
+          ? personalitySource.name
+          : current.personality.name,
+      tone:
+        tone === 'humorous' ||
+        tone === 'gentle' ||
+        tone === 'professional' ||
+        tone === 'anime' ||
+        tone === 'custom' ||
+        tone === 'friendly'
+          ? tone
+          : current.personality.tone,
+      responseStyle:
+        responseStyle === 'casual' ||
+        responseStyle === 'formal' ||
+        responseStyle === 'friendly' ||
+        responseStyle === 'custom'
+          ? responseStyle
+          : current.personality.responseStyle,
+      systemPrompt:
+        typeof personalitySource.systemPrompt === 'string'
+          ? personalitySource.systemPrompt
+          : current.personality.systemPrompt,
+      examples: Array.isArray(personalitySource.examples)
+        ? personalitySource.examples.filter(
+            (example): example is string => typeof example === 'string'
+          )
+        : current.personality.examples
+    },
+    contextWindow: readNumber('contextWindow', current.contextWindow),
+    maxTokens: readNumber('maxTokens', current.maxTokens),
+    temperature: readNumber('temperature', current.temperature),
+    maxResponseLength: readNumber('maxResponseLength', current.maxResponseLength),
+    sensitiveWordsFilter:
+      typeof source.sensitiveWordsFilter === 'boolean'
+        ? source.sensitiveWordsFilter
+        : current.sensitiveWordsFilter
+  };
+}
 
 export const useAIStore = defineStore('ai', () => {
   const llmService = getLLMService();
   const chatContext = useChatContext();
-  const replyLogic = useReplyLogic();
 
   // State
   const config = ref<AIConfig>({ ...DEFAULT_AI_CONFIG });
@@ -23,7 +93,6 @@ export const useAIStore = defineStore('ai', () => {
   const recentResponses = ref<AIResponse[]>([]);
   const lastError = ref<AIError | null>(null);
   const totalTokensUsed = ref<number>(0);
-  const lastReplyTime = ref<number>(0);
 
   // Getters
   const isEnabled = computed(() => config.value.enabled);
@@ -31,9 +100,9 @@ export const useAIStore = defineStore('ai', () => {
   const isGenerating = computed(() => status.value === 'generating');
 
   // Actions
-  function updateConfig(updates: Partial<AIConfig>): void {
-    config.value = { ...config.value, ...updates };
-    llmService.updateConfig(updates);
+  function updateConfig(updates: Partial<AIConfig> | Record<string, unknown>): void {
+    config.value = mergeAIConfig(config.value, updates);
+    llmService.updateConfig(config.value);
     saveConfig();
   }
 
@@ -45,32 +114,6 @@ export const useAIStore = defineStore('ai', () => {
     const personality = PRESET_PERSONALITIES[personalityKey];
     if (personality) {
       updateConfig({ personality });
-    }
-  }
-
-  async function handleDanmaku(username: string, content: string): Promise<void> {
-    if (!config.value.enabled || !config.value.autoReply) return;
-    if (!replyLogic.shouldReply(content, config.value)) return;
-    if (!replyLogic.checkCooldown(lastReplyTime.value, config.value.minInterval)) return;
-
-    chatContext.addToContext({
-      role: 'user',
-      content: `${username}: ${content}`,
-      timestamp: Date.now(),
-      username
-    });
-
-    try {
-      const response = await generateReply();
-      if (response.shouldSend) {
-        lastReplyTime.value = Date.now();
-        addResponse(response);
-      }
-    } catch (error) {
-      lastError.value = {
-        code: 'generate-failed',
-        message: (error as Error).message
-      };
     }
   }
 
@@ -98,11 +141,10 @@ export const useAIStore = defineStore('ai', () => {
       });
 
       const latency = Date.now() - startTime;
-      const replyText = replyLogic.truncateReply(response.content.trim(), config.value.maxResponseLength);
+      const replyText = response.content.trim().slice(0, config.value.maxResponseLength);
 
       const aiResponse: AIResponse = {
         text: replyText,
-        shouldSend: true,
         confidence: 0.8,
         tokensUsed: response.usage.totalTokens,
         latency
@@ -174,8 +216,7 @@ export const useAIStore = defineStore('ai', () => {
     try {
       const saved = localStorage.getItem('ai-config');
       if (saved) {
-        const parsed = JSON.parse(saved);
-        config.value = { ...DEFAULT_AI_CONFIG, ...parsed };
+        config.value = mergeAIConfig(DEFAULT_AI_CONFIG, JSON.parse(saved));
       }
     } catch (error) {
       console.error('Failed to load AI config:', error);
@@ -197,7 +238,6 @@ export const useAIStore = defineStore('ai', () => {
     updateConfig,
     toggleEnabled,
     setPersonality,
-    handleDanmaku,
     generateReply,
     addResponse,
     clearResponses,

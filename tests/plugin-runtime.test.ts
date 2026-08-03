@@ -5,7 +5,7 @@ import {
   resolvePluginInstallTarget,
   toPluginDirectoryPath,
   createPluginRuntimeState
-} from '../src/renderer/plugins/runtime/helpers.ts';
+} from '../packages/bilibili-live-tool/src/renderer/plugins/runtime/helpers.ts';
 
 test('resolvePluginInstallTarget uses manifest id as installed directory id', () => {
   const result = resolvePluginInstallTarget('/tmp/external-plugin', {

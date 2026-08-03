@@ -10,7 +10,6 @@ const roomStore = useRoomStore();
 const configStore = useConfigStore();
 
 const form = reactive({
-  cookie: '',
   autoReconnect: configStore.config.autoReconnect,
   reconnectInterval: configStore.config.reconnectInterval,
   maxReconnectAttempts: configStore.config.maxReconnectAttempts
@@ -50,15 +49,6 @@ async function handleDisconnect() {
       </template>
 
       <el-form :model="form" label-width="140px">
-        <el-form-item label="Cookie">
-          <el-input
-            v-model="form.cookie"
-            type="textarea"
-            :rows="6"
-            placeholder="请输入 Cookie（可选，用于发送弹幕）"
-          />
-        </el-form-item>
-
         <el-form-item label="自动重连">
           <el-switch v-model="form.autoReconnect" />
         </el-form-item>
@@ -111,9 +101,6 @@ async function handleDisconnect() {
         </el-descriptions-item>
         <el-descriptions-item label="用户ID">
           {{ roomStore.uid || '未登录' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="CSRF Token">
-          {{ roomStore.csrfToken ? '已设置' : '未设置' }}
         </el-descriptions-item>
       </el-descriptions>
     </el-card>

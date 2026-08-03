@@ -8,8 +8,6 @@ import { GridComponent, TitleComponent, TooltipComponent } from 'echarts/compone
 import { CanvasRenderer } from 'echarts/renderers';
 import { useRoomStore } from '../../stores/room';
 import { useDanmakuStore } from '../../stores/danmaku';
-import { getDanmakuService } from '../../services/danmaku-service';
-const danmakuService = getDanmakuService();
 import StatCard from './components/StatCard.vue';
 import Leaderboard from './components/Leaderboard.vue';
 
@@ -53,7 +51,6 @@ const giftTypes = computed(() => {
 
 const recentActivities = computed(() => {
   const recentDanmaku = danmakuStore.danmakuList
-    .filter(d => d.type !== 'sent')
     .slice(0, 5)
     .map(d => ({
       type: 'danmaku' as const,
@@ -263,32 +260,14 @@ onUnmounted(() => {
     </el-row>
 
     <el-row :gutter="20" class="mt-4">
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <span>{{ t('dashboard.danmakuStats') }}</span>
-          </template>
-          <div class="grid grid-cols-2 gap-6">
-            <StatCard :label="t('danmaku.todaySent')" :value="danmakuStore.sentTodayCount.toString()" />
-            <StatCard :label="t('danmaku.sendSuccessRate')" :value="danmakuStore.sendSuccessRate + '%'" />
-            <StatCard :label="t('danmaku.lastSent')" :value="danmakuStore.lastSentTime ? formatTime(danmakuStore.lastSentTime) : t('danmaku.none')" />
-            <StatCard :label="t('danmaku.autoSend')">
-              <el-tag :type="danmakuService.isAutoSending ? 'success' : 'info'">
-                {{ danmakuService.isAutoSending ? t('danmaku.running') : t('danmaku.stopped') }}
-              </el-tag>
-            </StatCard>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="12">
+      <el-col :span="24">
         <el-card>
           <template #header>
             <span>{{ t('dashboard.giftStats') }}</span>
           </template>
-          <div class="grid grid-cols-2 gap-5">
+          <div class="grid grid-cols-3 gap-5">
             <StatCard :label="t('dashboard.totalValue')" :value="`${totalValue} ${t('dashboard.silverCoin')}`" />
             <StatCard :label="t('dashboard.maxValue')" :value="`${maxValue} ${t('dashboard.silverCoin')}`" />
-            <StatCard :label="t('dashboard.thankSent')" :value="danmakuStore.thankSentCount.toString()" />
             <StatCard :label="t('dashboard.giftType')" :value="giftTypes" />
           </div>
         </el-card>

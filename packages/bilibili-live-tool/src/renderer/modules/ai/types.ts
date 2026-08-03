@@ -17,12 +17,8 @@ export interface AIConfig {
   contextWindow: number;  // 上下文弹幕数量
   maxTokens: number;  // 最大生成 token 数
   temperature: number;  // 温度参数 (0-2)
-  minInterval: number;  // 最小发送间隔（秒）
   maxResponseLength: number;  // 最大回复长度（字符）
   sensitiveWordsFilter: boolean;  // 是否过滤敏感词
-  autoReply: boolean;  // 是否自动回复
-  replyToQuestions: boolean;  // 是否回复问题
-  replyToMentions: boolean;  // 是否回复 @
 }
 
 // AI 人设配置
@@ -45,7 +41,6 @@ export interface ChatMessage {
 // AI 回复结果
 export interface AIResponse {
   text: string;
-  shouldSend: boolean;
   confidence: number;
   tokensUsed: number;
   latency: number;
@@ -98,12 +93,8 @@ export const DEFAULT_AI_CONFIG: AIConfig = {
   contextWindow: 10,
   maxTokens: 150,
   temperature: 0.7,
-  minInterval: 10,
   maxResponseLength: 100,
-  sensitiveWordsFilter: true,
-  autoReply: true,
-  replyToQuestions: true,
-  replyToMentions: true
+  sensitiveWordsFilter: true
 };
 
 // 预设人设

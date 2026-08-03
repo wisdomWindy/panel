@@ -4,7 +4,7 @@
  */
 
 import { Logger } from '../modules/utils/logger';
-import { DanmakuPoolItem, Gift, CaptainInfo, LogEntry } from '../modules/danmaku/types';
+import { Gift, CaptainInfo, LogEntry } from '../modules/danmaku/types';
 import { EffectConfig } from '../modules/effects/types';
 
 interface GiftSoundConfig {
@@ -34,10 +34,6 @@ interface SoundLog {
 
 interface AppConfig {
   roomId: number;
-  csrfToken: string;
-  minSendInterval: number;
-  enableAutoSend: boolean;
-  autoSendInterval: number;
   enableSensitiveWordFilter: boolean;
   sensitiveWords: string[];
   replaceChar: string;
@@ -72,28 +68,6 @@ export class DatabaseService {
 
   private async invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
     return this.api.invoke(channel, ...args) as Promise<T>;
-  }
-
-  // ===== 弹幕池 =====
-  async getDanmakuPool(): Promise<DanmakuPoolItem[]> {
-    return this.invoke('db:getDanmakuPool');
-  }
-
-  async setDanmakuPool(pool: DanmakuPoolItem[]): Promise<void> {
-    await this.invoke('db:setDanmakuPool', pool);
-    this.logger.info('弹幕池已更新');
-  }
-
-  async addDanmakuToPool(item: DanmakuPoolItem): Promise<void> {
-    await this.invoke('db:addDanmakuToPool', item);
-  }
-
-  async removeDanmakuFromPool(id: number): Promise<void> {
-    await this.invoke('db:removeDanmakuFromPool', id);
-  }
-
-  async updateDanmakuPoolItem(id: number, updates: Partial<DanmakuPoolItem>): Promise<void> {
-    await this.invoke('db:updateDanmakuPoolItem', id, updates);
   }
 
   // ===== 礼物 =====

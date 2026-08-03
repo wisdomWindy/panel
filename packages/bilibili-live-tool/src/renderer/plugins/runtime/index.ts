@@ -1,5 +1,4 @@
 import { createPluginManager, type PluginManager } from '../plugin-manager.js';
-import { getDanmakuService } from '../../services/danmaku-service.js';
 import { useConfigStore } from '../../stores/config.js';
 
 const DEFAULT_PLUGIN_DIR = 'examples/plugins';
@@ -28,7 +27,6 @@ function createPluginManagerInstance(): PluginManager {
     pluginDir: DEFAULT_PLUGIN_DIR,
     appVersion: APP_VERSION,
     dependencies: {
-      danmakuService: getDanmakuService(),
       configStore: createConfigAdapter()
     }
   });

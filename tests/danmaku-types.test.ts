@@ -11,9 +11,6 @@ interface Danmaku {
   content: string;
   timestamp: number;
   userType: 'normal' | 'captain' | 'admin' | 'owner';
-  type?: 'received' | 'sent';
-  success?: boolean;
-  message?: string;
   badge?: { level: number; name: string };
   medal?: { level: number; name: string; color: string };
 }
@@ -29,18 +26,6 @@ interface Gift {
   timestamp: number;
   isCombo: boolean;
   comboId?: string;
-}
-
-interface DanmakuPoolItem {
-  id: number;
-  content: string;
-  type: 'timed' | 'random' | 'trigger';
-  triggerWord?: string;
-  enabled: boolean;
-  priority: number;
-  createdAt: Date;
-  updatedAt: Date;
-  interval?: number;
 }
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -122,13 +107,9 @@ console.log('1. Valid Danmaku objects');
     content: 'Ahoy!',
     timestamp: 1700000001000,
     userType: 'captain',
-    type: 'received',
-    success: true,
     badge: { level: 5, name: 'Gold' },
     medal: { level: 10, name: 'Veteran', color: '#ff0000' },
   };
-  ok(d.type === 'received', 'type is received');
-  ok(d.success === true, 'success is true');
   ok(d.badge?.level === 5, 'badge level');
   ok(d.medal?.color === '#ff0000', 'medal color');
 }
@@ -141,9 +122,7 @@ console.log('1. Valid Danmaku objects');
     content: 'Welcome!',
     timestamp: 1700000002000,
     userType: 'owner',
-    message: 'optional message',
   };
-  ok(d.message === 'optional message', 'message field present');
   ok(d.badge === undefined, 'badge is undefined when omitted');
 }
 
@@ -198,62 +177,8 @@ console.log('3. ConnectionStatus type guard');
   ok(!isConnectionStatus('DISCONNECTED'), 'case-sensitive: DISCONNECTED is invalid');
 }
 
-// ── 4. DanmakuPoolItem type ──
-console.log('4. DanmakuPoolItem type');
-{
-  const now = new Date();
-  const item: DanmakuPoolItem = {
-    id: 1,
-    content: 'Welcome to the stream!',
-    type: 'timed',
-    enabled: true,
-    priority: 10,
-    createdAt: now,
-    updatedAt: now,
-  };
-  ok(typeof item.id === 'number', 'id is number');
-  ok(item.type === 'timed', 'type is timed');
-  ok(item.enabled === true, 'enabled is true');
-  ok(item.priority === 10, 'priority is 10');
-  ok(item.createdAt instanceof Date, 'createdAt is Date');
-  ok(item.updatedAt instanceof Date, 'updatedAt is Date');
-}
-
-{
-  const now = new Date();
-  const item: DanmakuPoolItem = {
-    id: 2,
-    content: 'Trigger me!',
-    type: 'trigger',
-    triggerWord: '!hello',
-    enabled: false,
-    priority: 5,
-    createdAt: now,
-    updatedAt: now,
-    interval: 30,
-  };
-  ok(item.type === 'trigger', 'type is trigger');
-  ok(item.triggerWord === '!hello', 'triggerWord set');
-  ok(item.interval === 30, 'interval set');
-}
-
-{
-  const now = new Date();
-  const item: DanmakuPoolItem = {
-    id: 3,
-    content: 'Random message',
-    type: 'random',
-    enabled: true,
-    priority: 1,
-    createdAt: now,
-    updatedAt: now,
-  };
-  ok(item.type === 'random', 'type is random');
-  ok(item.triggerWord === undefined, 'triggerWord undefined for random type');
-}
-
-// ── 5. Optional fields handling ──
-console.log('5. Optional fields handling');
+// ── 4. Optional fields handling ──
+console.log('4. Optional fields handling');
 {
   const d1: Danmaku = {
     id: 'opt-001',
@@ -263,9 +188,6 @@ console.log('5. Optional fields handling');
     timestamp: 1700000000000,
     userType: 'admin',
   };
-  ok(d1.type === undefined, 'Danmaku.type undefined');
-  ok(d1.success === undefined, 'Danmaku.success undefined');
-  ok(d1.message === undefined, 'Danmaku.message undefined');
   ok(d1.badge === undefined, 'Danmaku.badge undefined');
   ok(d1.medal === undefined, 'Danmaku.medal undefined');
 
@@ -281,22 +203,10 @@ console.log('5. Optional fields handling');
     isCombo: false,
   };
   ok(g1.comboId === undefined, 'Gift.comboId undefined');
-
-  const item: DanmakuPoolItem = {
-    id: 99,
-    content: 'no interval',
-    type: 'timed',
-    enabled: true,
-    priority: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-  ok(item.interval === undefined, 'DanmakuPoolItem.interval undefined');
-  ok(item.triggerWord === undefined, 'DanmakuPoolItem.triggerWord undefined for timed type');
 }
 
-// ── 6. BlacklistItem with permanent ban ──
-console.log('6. BlacklistItem with permanent ban');
+// ── 5. BlacklistItem with permanent ban ──
+console.log('5. BlacklistItem with permanent ban');
 {
   const perm: BlacklistItem = {
     userId: 'bad-user-1',
@@ -322,8 +232,8 @@ console.log('6. BlacklistItem with permanent ban');
   ok(temp.bannedUntil !== 0, 'non-zero bannedUntil means temporary');
 }
 
-// ── 7. Additional type structure checks ──
-console.log('7. Additional type checks');
+// ── 6. Additional type structure checks ──
+console.log('6. Additional type checks');
 {
   // RoomInfo
   const room: RoomInfo = {

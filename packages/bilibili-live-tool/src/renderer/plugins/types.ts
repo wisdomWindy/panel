@@ -5,7 +5,7 @@
 
 // 插件权限类型
 export type PluginPermission =
-  | 'danmaku'    // 弹幕读写
+  | 'danmaku'    // 弹幕监听
   | 'gift'       // 礼物监听
   | 'captain'    // 舰长监听
   | 'config'     // 配置读写
@@ -81,12 +81,6 @@ export interface CaptainEvent {
   isRenewal: boolean;
 }
 
-// 弹幕发送选项
-export interface DanmakuOptions {
-  color?: string;
-  fontSize?: number;
-}
-
 // 特效定义接口
 export interface EffectDefinition {
   id: string;
@@ -130,7 +124,6 @@ export interface SettingPanelDefinition {
 // 插件 API 接口
 export interface PluginAPI {
   // 弹幕相关
-  sendDanmaku(content: string, options?: DanmakuOptions): Promise<void>;
   onDanmaku(callback: (danmaku: DanmakuEvent) => void): () => void;
 
   // 礼物相关

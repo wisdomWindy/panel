@@ -65,27 +65,6 @@ export async function registerIpcHandlers(): Promise<void> {
     );
   });
 
-  // ===== 弹幕池 =====
-  ipcMain.handle('db:getDanmakuPool', () => {
-    return mainDatabase.getDanmakuPool();
-  });
-
-  ipcMain.handle('db:setDanmakuPool', (_event, pool) => {
-    mainDatabase.setDanmakuPool(pool);
-  });
-
-  ipcMain.handle('db:addDanmakuToPool', (_event, item) => {
-    mainDatabase.addDanmakuToPool(item);
-  });
-
-  ipcMain.handle('db:removeDanmakuFromPool', (_event, id: number) => {
-    mainDatabase.removeDanmakuFromPool(id);
-  });
-
-  ipcMain.handle('db:updateDanmakuPoolItem', (_event, id: number, updates) => {
-    mainDatabase.updateDanmakuPoolItem(id, updates);
-  });
-
   // ===== 礼物 =====
   ipcMain.handle('db:getGifts', () => {
     return mainDatabase.getGifts();

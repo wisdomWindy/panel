@@ -29,7 +29,7 @@ export const PLUGIN_CONFIG_PREFIX = 'plugin';
 
 // 插件权限列表
 export const PLUGIN_PERMISSIONS: Record<string, string> = {
-  danmaku: '弹幕读写',
+  danmaku: '弹幕监听',
   gift: '礼物监听',
   captain: '舰长监听',
   config: '配置读写',

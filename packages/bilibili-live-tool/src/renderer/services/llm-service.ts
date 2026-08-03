@@ -1,6 +1,6 @@
 /**
  * LLM 服务
- * 纯 IPC 调用封装，聊天上下文和回复逻辑已提取到 composables
+ * 纯 IPC 调用封装，由 AI store 负责本地文案生成编排
  */
 
 import { invokeIPC } from '../utils/ipc.js';

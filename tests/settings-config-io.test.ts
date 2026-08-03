@@ -4,11 +4,11 @@ import test from 'node:test';
 import {
   buildSettingsExportConfig,
   createSettingsImportPatches
-} from '../src/renderer/views/settings/utils/config-io.ts';
+} from '../packages/bilibili-live-tool/src/renderer/views/settings/utils/config-io.ts';
 
 test('buildSettingsExportConfig groups core and feature configs', () => {
   const exported = buildSettingsExportConfig({
-    core: { language: 'en-US', enableAutoSend: true },
+    core: { language: 'en-US' },
     recording: { format: 'mp4', outputPath: '/tmp/output' },
     tts: { enabled: true, engine: 'edge-tts' },
     asr: { autoStart: true, engine: 'whisper-cpp' },

@@ -6,9 +6,6 @@ export interface Danmaku {
   content: string;
   timestamp: number;
   userType: 'normal' | 'captain' | 'admin' | 'owner';
-  type?: 'received' | 'sent';
-  success?: boolean;
-  message?: string;
   badge?: {
     level: number;
     name: string;
@@ -32,19 +29,6 @@ export interface Gift {
   timestamp: number;
   isCombo: boolean;
   comboId?: string;
-}
-
-// 弹幕池项
-export interface DanmakuPoolItem {
-  id: number;
-  content: string;
-  type: 'timed' | 'random' | 'trigger';
-  triggerWord?: string;
-  enabled: boolean;
-  priority: number;
-  createdAt: Date;
-  updatedAt: Date;
-  interval?: number; // 添加 interval 属性
 }
 
 // 连接状态

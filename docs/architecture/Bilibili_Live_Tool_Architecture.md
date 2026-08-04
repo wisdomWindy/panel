@@ -203,8 +203,8 @@
 │  │  │  │(ECharts) │ │(连接管理) │ │(弹幕列表)       │    │   │   │
 │  │  │  └──────────┘ └──────────┘ └────────────────┘    │   │   │
 │  │  │  ┌──────────┐ ┌──────────┐ ┌────────────────┐    │   │   │
-│  │  │  │DanmakuPool│ │GiftList  │ │Blacklist       │    │   │   │
-│  │  │  │(弹幕池)   │ │(礼物列表) │ │(黑名单)        │    │   │   │
+│  │  │  │DanmakuList│ │GiftList  │ │Blacklist       │    │   │   │
+│  │  │  │(弹幕列表) │ │(礼物列表) │ │(黑名单)        │    │   │   │
 │  │  │  └──────────┘ └──────────┘ └────────────────┘    │   │   │
 │  │  │  ┌──────────┐ ┌──────────┐                       │   │   │
 │  │  │  │Settings  │ │Logs      │                       │   │   │
@@ -276,7 +276,7 @@
 3. 通过 Vue Router (Hash 模式) 管理 8 个页面路由
 4. 通过 Services 层调用模块业务逻辑
 5. Modules 层包含所有核心业务逻辑：
-   - **danmaku/**: 弹幕管理、发送、解析、黑名单
+   - **danmaku/**: 弹幕接收、解析、事件分发、黑名单
    - **bilibili/**: Bilibili 直播协议 WebSocket 客户端
    - **effects/**: Canvas 2D + Three.js WebGL 特效渲染、音效管理
    - **ai/**: AI 管理、AI 服务调用、ASR 语音识别
@@ -380,7 +380,6 @@ bilibili-live-tool/
 │       │   │   └── types.ts    # 类型定义
 │       │   ├── danmaku/        # 弹幕模块
 │       │   │   ├── manager.ts  # 弹幕管理器 (EventEmitter)
-│       │   │   ├── sender.ts   # 弹幕发送器
 │       │   │   ├── parser.ts   # 弹幕解析器
 │       │   │   ├── blacklist.ts # 黑名单管理
 │       │   │   └── types.ts    # 类型定义
@@ -406,7 +405,6 @@ bilibili-live-tool/
 │       │   │       └── Leaderboard.vue
 │       │   ├── connection/     # 连接配置
 │       │   ├── danmaku-list/   # 弹幕列表
-│       │   ├── danmaku-pool/   # 弹幕池管理
 │       │   ├── settings/       # 设置
 │       │   │   ├── index.vue
 │       │   │   └── components/ # 设置子组件 (14 个)
@@ -445,11 +443,9 @@ bilibili-live-tool/
 ### 4.1 弹幕管理模块 (src/renderer/modules/danmaku/)
 
 **职责**:
-1. 管理弹幕生命周期（接收、解析、存储、发送）
-2. 弹幕池管理（定时/随机/触发词弹幕）
-3. 自动发送弹幕（变量替换 + 敏感词过滤）
-4. 触发词回复匹配
-5. 黑名单过滤
+1. 管理弹幕生命周期（接收、解析、存储）
+2. 分发弹幕、礼物和大航海事件
+3. 黑名单与刷屏检测
 
 **核心类**:
 
@@ -457,7 +453,6 @@ bilibili-live-tool/
 // src/renderer/modules/danmaku/manager.ts
 export class DanmakuManager extends EventEmitter {
   private client: BilibiliClient;
-  private sender: DanmakuSender;
   private parser: DanmakuParser;
   private blacklist: BlacklistManager;
   
@@ -467,26 +462,18 @@ export class DanmakuManager extends EventEmitter {
   // 断开连接
   disconnect(): void;
   
-  // 手动发送弹幕
-  async send(content: string): Promise<void>;
-  
-  // 添加、移除弹幕池项
-  addPoolItem(item: DanmakuPoolItem): void;
-  removePoolItem(id: string): void;
 }
 ```
 
 **相关类**:
-- `DanmakuSender`: 弹幕发送器（频率限制、敏感词过滤、变量替换）
 - `DanmakuParser`: 弹幕解析器（消息解码、字段提取、类型判断）
 - `BlacklistManager`: 黑名单管理（添加、移除、检查）
 
 **数据流**:
 ```
 WebSocket 消息 → BilibiliClient → DanmakuParser → DanmakuManager
-                                                      ├── 触发词匹配 → DanmakuSender → WebSocket
-                                                      ├── 弹幕池定时发送 → DanmakuSender → WebSocket
-                                                      └── 黑名单过滤
+                                                      ├── 接收事件分发
+                                                      └── 黑名单与刷屏检测
 ```
 
 ### 4.2 Bilibili 协议模块 (src/renderer/modules/bilibili/)
@@ -580,7 +567,7 @@ interface Effect {
 **职责**:
 1. LLM 回复生成（通过 axios 调用 AI API）
 2. ASR 语音识别（将直播间语音转为文本）
-3. AI 回复管理（上下文管理、回复策略）
+3. AI 文案生成管理（上下文管理、生成参数）
 
 **核心类**:
 
@@ -612,13 +599,6 @@ interface AppConfig {
   maxReconnectAttempts: number;
   heartbeatInterval: number;
   
-  // 弹幕发送配置
-  minSendInterval: number;      // 最小发送间隔 (ms)
-  enableAutoSend: boolean;      // 启用自动发送
-  autoSendInterval: number;     // 自动发送间隔 (ms)
-  enableTriggerReply: boolean;  // 启用触发词回复
-  enableGiftThank: boolean;     // 启用礼物感谢
-  
   // 敏感词过滤
   enableSensitiveWordFilter: boolean;
   sensitiveWords: string[];
@@ -639,8 +619,7 @@ interface AppConfig {
 
 **danmakuStore** (src/renderer/stores/danmaku.ts):
 - 弹幕列表（接收的弹幕）
-- 弹幕池项管理
-- 发送队列状态
+- 礼物列表与接收侧统计
 
 **roomStore** (src/renderer/stores/room.ts):
 - 直播间连接状态
@@ -677,16 +656,14 @@ Bilibili 直播间
     ↓
 ┌─────────────────┐
 │ DanmakuManager  │
-│ - 触发词匹配     │
 │ - 黑名单检查     │
-│ - 弹幕池管理     │
+│ - 接收事件分发   │
 └─────────────────┘
-    │ 匹配结果
+    │ 接收事件
     ├──────────────┬──────────────┐
     ↓              ↓              ↓
 ┌───────────┐ ┌───────────┐ ┌───────────┐
-│自动回复    │ │特效触发    │ │日志记录    │
-│DanmakuSndr│ │EffectMgr  │ │Logger     │
+│Store/View │ │EffectMgr  │ │Logger     │
 └───────────┘ └───────────┘ └───────────┘
 ```
 
@@ -717,7 +694,6 @@ Bilibili 直播间
 /                   → Dashboard.vue     (主界面，ECharts 图表)
 /connection         → Connection.vue    (直播间连接)
 /danmaku-list       → DanmakuList.vue   (弹幕列表)
-/danmaku-pool       → DanmakuPool.vue   (弹幕池管理)
 /gift-list          → GiftList.vue      (礼物列表)
 /blacklist          → Blacklist.vue     (黑名单管理)
 /settings           → Settings.vue      (应用设置)
@@ -772,16 +748,6 @@ MVP 阶段：目前主进程没有注册 IPC handlers，渲染进程主要通过
 3. 连接状态通过 roomStore 实时反映到 UI
 4. pako 库处理多种压缩格式（Brotli/gzip）
 
-### 7.2 自动弹幕风控
-
-**风险**: 自动弹幕频率过高导致账号被限流或封禁
-
-**应对方案**:
-1. 严格设置发送间隔（通过 configStore.minSendInterval 配置）
-2. DanmakuSender 内置频率限制器
-3. 敏感词过滤（sensitive-words.ts）避免违禁内容
-4. 变量替换增加随机性
-
 ### 7.3 AI 延迟问题
 
 **风险**: 语音识别和 LLM 生成存在延迟，导致互动不及时
@@ -820,7 +786,7 @@ MVP 阶段：目前主进程没有注册 IPC handlers，渲染进程主要通过
 
 ### 8.3 内存优化
 
-1. **弹幕池上限**: 限制内存中弹幕数量
+1. **弹幕列表上限**: 限制内存中接收弹幕数量
 2. **特效清理**: 过期特效自动移除
 3. **localStorage 限制**: 日志和配置有上限控制
 

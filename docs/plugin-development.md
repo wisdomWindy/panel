@@ -21,7 +21,6 @@
 
 - 监听和响应弹幕事件
 - 监听和响应礼物事件
-- 发送自动弹幕
 - 注册自定义特效
 - 扩展用户界面
 - 读写配置数据
@@ -212,23 +211,6 @@ onUnload() {
 ## API 参考
 
 ### 弹幕相关
-
-#### sendDanmaku(content, options?)
-
-发送弹幕到直播间。
-
-- `content`: 弹幕内容
-- `options`: 可选配置
-  - `color`: 弹幕颜色（十六进制）
-  - `fontSize`: 字体大小
-
-```javascript
-// 发送普通弹幕
-sendDanmaku('你好！');
-
-// 发送带颜色的弹幕
-sendDanmaku('你好！', { color: '#FF0000' });
-```
 
 #### onDanmaku(callback)
 
@@ -466,7 +448,7 @@ log('error', '错误日志');
 
 | 权限 | 说明 | 可用 API |
 |------|------|----------|
-| danmaku | 弹幕读写 | sendDanmaku、onDanmaku |
+| danmaku | 弹幕监听 | onDanmaku |
 | gift | 礼物监听 | onGift |
 | captain | 舰长监听 | onCaptain |
 | config | 配置读写 | getConfig、setConfig、onConfigChange |
@@ -476,11 +458,6 @@ log('error', '错误日志');
 ### 权限检查
 
 插件在调用 API 时会自动检查权限。如果插件未声明相应权限，API 调用将抛出错误。
-
-```javascript
-// 如果插件未声明 danmaku 权限，这行代码会抛出错误
-sendDanmaku('你好！');
-```
 
 ## 配置管理
 
@@ -497,11 +474,6 @@ sendDanmaku('你好！');
       "type": "string",
       "default": "你好！",
       "description": "欢迎语"
-    },
-    "autoReply": {
-      "type": "boolean",
-      "default": true,
-      "description": "是否自动回复"
     }
   }
 }
@@ -534,19 +506,7 @@ onConfigChange((key, value) => {
 
 ## 最佳实践
 
-### 1. 错误处理
-
-始终处理可能的错误，避免插件异常影响主应用：
-
-```javascript
-try {
-  sendDanmaku('你好！');
-} catch (error) {
-  log('error', `发送弹幕失败: ${error.message}`);
-}
-```
-
-### 2. 资源清理
+### 1. 资源清理
 
 在 `onDisable` 和 `onUnload` 中清理所有资源：
 

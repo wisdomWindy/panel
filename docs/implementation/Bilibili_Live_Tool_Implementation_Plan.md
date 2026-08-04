@@ -9,12 +9,10 @@
 ## Spec 验证 ✅
 
 ### Goals (目标)
-打造一款集自动化互动、智能回复、特效展示于一体的 Bilibili 直播辅助工具
+打造一款集直播间观测、文本解析、特效展示于一体的 Bilibili 直播辅助工具
 
 ### Scope (范围) - MVP 阶段一
 - Bilibili 直播间连接与弹幕接收
-- 基础自动弹幕发送 (定时/随机)
-- 简单礼物感谢弹幕
 - 基础 UI 界面
 
 ### Non-goals (不包含)
@@ -26,7 +24,7 @@
 
 ### Risks (风险)
 1. **技术风险**: WebSocket 连接稳定性、Bilibili 协议变更
-2. **合规风险**: 自动弹幕风控、隐私保护
+2. **合规风险**: 观众数据隐私保护
 3. **资源风险**: CPU/GPU 占用过高
 
 ### Verification (验证)
@@ -80,23 +78,7 @@
 - ✅ 定义所有协议相关类型
 - ✅ 完整的 TypeScript 类型
 
-#### 任务 1.4: 弹幕发送器
-**文件**: `src/renderer/modules/danmaku/sender.ts`
-**工时**: 3 小时
-**依赖**: 无
-**验收标准**:
-- ✅ 实现发送弹幕 API
-- ✅ 实现频率限制 (最小 3 秒)
-- ✅ 实现错误处理
-- ✅ 支持风控检测
-
-**实现步骤**:
-1. 实现发送 API 调用
-2. 实现频率限制器
-3. 实现重试机制
-4. 实现错误处理
-
-#### 任务 1.5: 弹幕解析器
+#### 任务 1.4: 弹幕解析器
 **文件**: `src/renderer/modules/danmaku/parser.ts`
 **工时**: 2 小时
 **依赖**: 任务 1.2
@@ -138,9 +120,8 @@
 **依赖**: 阶段一所有任务
 **验收标准**:
 - ✅ 集成 Bilibili 客户端
-- ✅ 实现定时发送逻辑
-- ✅ 实现随机发送逻辑
-- ✅ 实现触发词回复
+- ✅ 分发弹幕和礼物接收事件
+- ✅ 集成黑名单与刷屏检测
 - ✅ 事件驱动架构
 
 #### 任务 2.2: Pinia Store - 直播间
@@ -158,8 +139,6 @@
 **依赖**: 任务 2.1
 **验收标准**:
 - ✅ 管理弹幕列表
-- ✅ 管理弹幕池
-- ✅ 管理发送状态
 
 #### 任务 2.4: Pinia Store - 配置
 **文件**: `src/renderer/stores/config.store.ts`
@@ -173,20 +152,14 @@
 
 ### 阶段三：UI 开发 (第 3 周)
 
-#### 任务 3.1: 弹幕配置页面
-**文件**: `src/renderer/components/DanmakuConfig/index.vue`
+#### 任务 3.1: 弹幕观测页面
+**文件**: `src/renderer/views/danmaku-list/index.vue`
 **工时**: 6 小时
 **依赖**: 任务 2.3, 2.4
 **验收标准**:
-- ✅ 弹幕池管理 (增删改查)
-- ✅ 触发词配置
-- ✅ 定时发送配置
-- ✅ 表单验证
-
-**子组件**:
-- `src/renderer/components/DanmakuConfig/components/DanmakuPool.vue` (2h)
-- `src/renderer/components/DanmakuConfig/components/TriggerConfig.vue` (2h)
-- `src/renderer/components/DanmakuConfig/components/TimedConfig.vue` (2h)
+- ✅ 展示接收弹幕
+- ✅ 清空弹幕列表
+- ✅ 展示列表空状态
 
 #### 任务 3.2: 设置页面
 **文件**: `src/renderer/components/Settings/index.vue`
@@ -254,7 +227,6 @@
 - ✅ 内存占用 < 500MB (空闲)
 - ✅ CPU 占用 < 10% (空闲)
 - ✅ 弹幕接收延迟 < 100ms
-- ✅ 弹幕发送延迟 < 500ms
 
 #### 任务 4.5: 文档完善
 **文件**: 多个文档
@@ -281,7 +253,6 @@
 ### 工作包 B: 弹幕管理
 **负责人**: Subagent 2
 **文件**:
-- `src/renderer/modules/danmaku/sender.ts`
 - `src/renderer/modules/danmaku/parser.ts`
 - `src/renderer/modules/danmaku/manager.ts`
 

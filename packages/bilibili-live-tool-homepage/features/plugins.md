@@ -74,13 +74,6 @@ plugin.on('gift', (data) => {
 });
 ```
 
-### 发送弹幕
-
-```javascript
-// 发送弹幕
-plugin.sendDanmaku('Hello World');
-```
-
 ### 存储数据
 
 ```javascript

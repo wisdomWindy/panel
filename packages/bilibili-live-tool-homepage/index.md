@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Bilibili 直播助手
-  text: 智能弹幕与互动工具
-  tagline: 提升直播互动体验，让直播更有趣
+  text: 直播间观测与内容工具
+  tagline: 实时掌握直播动态，沉淀直播内容
   image:
     src: /logo.svg
     alt: Bilibili 直播助手
@@ -24,7 +24,7 @@ hero:
   <div class="feature-item">
     <div class="feature-icon"><el-icon :size="16"><ChatDotRound /></el-icon></div>
     <h3>智能弹幕</h3>
-    <p>支持弹幕自动回复、关键词过滤、弹幕播报等功能</p>
+    <p>支持弹幕监控、关键词过滤、弹幕播报等功能</p>
   </div>
   <div class="feature-item">
     <div class="feature-icon"><el-icon :size="16"><Present /></el-icon></div>
@@ -38,8 +38,8 @@ hero:
   </div>
   <div class="feature-item">
     <div class="feature-icon"><el-icon :size="16"><MagicStick /></el-icon></div>
-    <h3>AI 对话</h3>
-    <p>集成 AI 大模型，实现智能弹幕互动</p>
+    <h3>AI 文本解析</h3>
+    <p>集成 AI 大模型，在本地生成回复预览</p>
   </div>
   <div class="feature-item">
     <div class="feature-icon"><el-icon :size="16"><Connection /></el-icon></div>
@@ -108,5 +108,4 @@ hero:
     页面下载其他版本
   </p>
 </div>
-
 

@@ -14,14 +14,12 @@
 - ✅ **Implementation Plan** (Bilibili_Live_Tool_Implementation_Plan.md) - 具体的实施计划
 
 ### 2. Spec 验证
-- ✅ **Goals**: 打造一款集自动化互动、智能回复、特效展示于一体的 Bilibili 直播辅助工具
+- ✅ **Goals**: 打造一款集直播间观测、文本解析、特效展示于一体的 Bilibili 直播辅助工具
 - ✅ **Scope (MVP 阶段一)**: 
   - Bilibili 直播间连接与弹幕接收
-  - 基础自动弹幕发送 (定时/随机)
-  - 简单礼物感谢弹幕
   - 基础 UI 界面
 - ✅ **Non-goals**: 语音识别、AI 对话、上舰特效、高光录制、数据看板
-- ✅ **Risks**: WebSocket 连接稳定性、Bilibili 协议变更、自动弹幕风控
+- ✅ **Risks**: WebSocket 连接稳定性、Bilibili 协议变更
 - ✅ **Verification**: 单元测试覆盖率 ≥ 80%、集成测试、E2E 测试、性能测试
 
 ---
@@ -135,22 +133,15 @@ package.json          # 添加新依赖
 #### 工作包 B: 弹幕管理 (手动完成)
 由于 subagent 速率限制，需要手动实现：
 
-1. **弹幕发送器** (src/renderer/modules/danmaku/sender.ts)
-   - 发送弹幕 API 调用
-   - 频率限制（最小 3 秒）
-   - 重试机制
-   - 错误处理
-
-2. **弹幕解析器** (src/renderer/modules/danmaku/parser.ts)
+1. **弹幕解析器** (src/renderer/modules/danmaku/parser.ts)
    - 弹幕数据解析
    - 用户信息提取
    - 身份识别逻辑
 
-3. **完善弹幕管理器** (src/renderer/modules/danmaku/manager.ts)
+2. **完善弹幕管理器** (src/renderer/modules/danmaku/manager.ts)
    - 集成 Bilibili 客户端
-   - 实现定时发送逻辑
-   - 实现随机发送逻辑
-   - 实现触发词回复
+   - 分发弹幕和礼物接收事件
+   - 集成黑名单与刷屏检测
 
 #### 工作包 C: 工具模块 (subagent 已完成，需手动整合)
 Subagent 已完成但文件未保存：

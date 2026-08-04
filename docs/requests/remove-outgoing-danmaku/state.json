@@ -1,0 +1,34 @@
+{
+  "request_id": "remove-outgoing-danmaku",
+  "source": {
+    "type": "direct_user_instruction",
+    "summary": "移除以主播账号发送弹幕及互动面板弹幕指令功能"
+  },
+  "stage": "complete",
+  "status": "completed",
+  "artifacts": {
+    "request": "request.md",
+    "prd_snapshot": "artifacts/prd-snapshot.md",
+    "code_context": "artifacts/code-context.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "speed_profile": {
+    "level": "S2 scoped",
+    "reason": "删除跨页面、服务、状态、插件、持久化和文档的完整功能链，需要 removal cleanup 与引用闭包审查",
+    "context_budget": "scoped",
+    "artifact_density": "full"
+  },
+  "architecture_design_required": true,
+  "page_design_required": false,
+  "module_flow": null,
+  "loop": {
+    "iteration": 18,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "review_blocked"
+  }
+}

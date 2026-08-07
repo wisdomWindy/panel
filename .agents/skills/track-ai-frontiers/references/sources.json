@@ -6,13 +6,31 @@
     "max_items_per_source": 50,
     "request_timeout_seconds": 18,
     "concurrency": 6,
+    "freshness": {
+      "max_item_age_hours": 168,
+      "future_tolerance_hours": 6,
+      "allow_undated": false
+    },
     "article_fetch": {
       "enabled": true,
       "max_articles_per_run": 30,
       "concurrency": 4,
       "timeout_seconds": 12,
+      "refresh_after_hours": 24,
       "min_content_chars": 300,
       "max_content_chars": 20000
+    },
+    "translation": {
+      "enabled": true,
+      "provider": "openai-compatible",
+      "api_key_env": "OPENAI_API_KEY",
+      "base_url_env": "AI_FRONTIER_TRANSLATION_BASE_URL",
+      "model_env": "AI_FRONTIER_TRANSLATION_MODEL",
+      "base_url": "https://api.openai.com/v1",
+      "model": "gpt-4.1-mini",
+      "concurrency": 3,
+      "timeout_seconds": 60,
+      "max_chars_per_request": 6000
     }
   },
   "sources": [

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import hashlib
 import html
 import json
@@ -17,7 +18,7 @@ from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from urllib.request import Request, urlopen
 import xml.etree.ElementTree as ET
@@ -28,6 +29,7 @@ DEFAULT_SOURCES = SKILL_DIR / "references" / "sources.json"
 TEMPLATE_PATH = SKILL_DIR / "assets" / "dashboard.html"
 TRACKING_PARAMS = {"fbclid", "gclid", "mc_cid", "mc_eid", "ref", "source"}
 ARTICLE_EXTRACTOR_VERSION = 3
+TRANSLATOR_VERSION = 1
 
 
 def default_runtime_root() -> Path:
@@ -231,6 +233,192 @@ def normalize_article_text(value: str) -> str:
     return "\n\n".join(lines)
 
 
+def contains_english_text(value: str | None) -> bool:
+    """Return whether a field is predominantly English prose that needs translation."""
+    if not value:
+        return False
+    latin_words = re.findall(r"[A-Za-z]+(?:['’-][A-Za-z]+)?", value)
+    latin_count = sum(len(word) for word in latin_words)
+    cjk_count = len(re.findall(r"[\u3400-\u9fff]", value))
+    if latin_count < 8 or len(latin_words) < 2:
+        return False
+    return cjk_count == 0 or (len(latin_words) >= 4 and latin_count >= max(24, cjk_count * 4))
+
+
+def split_translation_chunks(value: str, max_chars: int) -> list[str]:
+    """Split long prose without discarding paragraph boundaries."""
+    if len(value) <= max_chars:
+        return [value]
+    chunks: list[str] = []
+    current = ""
+    for paragraph in value.split("\n\n"):
+        segments = [paragraph[index:index + max_chars] for index in range(0, len(paragraph), max_chars)] or [""]
+        for segment in segments:
+            candidate = f"{current}\n\n{segment}" if current else segment
+            if current and len(candidate) > max_chars:
+                chunks.append(current)
+                current = segment
+            else:
+                current = candidate
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def openai_compatible_translate(value: str, settings: dict[str, Any]) -> str:
+    """Translate one field through a configured OpenAI-compatible chat endpoint."""
+    api_key_env = str(settings.get("api_key_env", "OPENAI_API_KEY"))
+    api_key = os.environ.get(api_key_env, "").strip()
+    if not api_key:
+        raise ValueError(f"translation API key environment variable is not set: {api_key_env}")
+    base_url_env = str(settings.get("base_url_env", "AI_FRONTIER_TRANSLATION_BASE_URL"))
+    model_env = str(settings.get("model_env", "AI_FRONTIER_TRANSLATION_MODEL"))
+    base_url = os.environ.get(base_url_env) or str(settings.get("base_url", "https://api.openai.com/v1"))
+    model = os.environ.get(model_env) or str(settings.get("model", "gpt-4.1-mini"))
+    timeout = int(settings.get("timeout_seconds", 60))
+    max_chars = max(500, int(settings.get("max_chars_per_request", 6000)))
+    endpoint = f"{base_url.rstrip('/')}/chat/completions"
+    translated_chunks: list[str] = []
+    for chunk in split_translation_chunks(value, max_chars):
+        payload = json.dumps({
+            "model": model,
+            "temperature": 0,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "将用户提供的英文内容准确翻译为简体中文。保留段落、Markdown、代码、URL、数字、"
+                        "模型名和产品名；不要总结、解释或添加原文没有的信息，只返回译文。"
+                    ),
+                },
+                {"role": "user", "content": chunk},
+            ],
+        }, ensure_ascii=False).encode("utf-8")
+        request = Request(endpoint, data=payload, headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        })
+        with urlopen(request, timeout=timeout, context=TLS_CONTEXT) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        content = result.get("choices", [{}])[0].get("message", {}).get("content")
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError("translation endpoint returned no translated content")
+        translated_chunks.append(content.strip())
+    return "\n\n".join(translated_chunks)
+
+
+def translation_field_targets(item: dict[str, Any]) -> list[tuple[str, dict[str, Any], str]]:
+    targets = [("title", item, "title"), ("summary", item, "summary")]
+    article = item.get("article")
+    if isinstance(article, dict) and article.get("status") == "ok":
+        targets.extend([
+            ("article.pageTitle", article, "pageTitle"),
+            ("article.content", article, "content"),
+        ])
+    return targets
+
+
+def translate_item_fields(
+    item: dict[str, Any], translator: Callable[[str], str], translated_at: str
+) -> tuple[int, int, list[dict[str, str]]]:
+    metadata = item.setdefault("translation", {})
+    fields = metadata.setdefault("fields", {})
+    attempted = 0
+    translated = 0
+    errors: list[dict[str, str]] = []
+    for field_name, container, key in translation_field_targets(item):
+        current = str(container.get(key) or "")
+        cached = fields.get(field_name, {}) if isinstance(fields.get(field_name), dict) else {}
+        if (
+            cached.get("translatorVersion") == TRANSLATOR_VERSION
+            and current in {cached.get("original"), cached.get("translated")}
+            and cached.get("translated")
+        ):
+            container[key] = cached["translated"]
+            continue
+        if not contains_english_text(current):
+            fields.pop(field_name, None)
+            continue
+        attempted += 1
+        try:
+            translated_value = translator(current).strip()
+            if not translated_value or contains_english_text(translated_value):
+                raise ValueError("translator did not return predominantly Chinese content")
+            fields[field_name] = {
+                "original": current,
+                "translated": translated_value,
+                "translatorVersion": TRANSLATOR_VERSION,
+            }
+            container[key] = translated_value
+            if field_name == "article.content":
+                container["characterCount"] = len(translated_value)
+            translated += 1
+        except Exception as exc:
+            errors.append({
+                "itemId": str(item.get("id", "unknown")),
+                "field": field_name,
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+    remaining = any(contains_english_text(str(container.get(key) or "")) for _, container, key in translation_field_targets(item))
+    metadata.update({
+        "status": "error" if errors and not translated else ("partial" if errors or remaining else "ok"),
+        "sourceLanguage": "en",
+        "targetLanguage": "zh-CN",
+        "translatorVersion": TRANSLATOR_VERSION,
+        "translatedAt": translated_at,
+        "error": "; ".join(f"{error['field']}: {error['error']}" for error in errors) or None,
+    })
+    if not fields and not errors:
+        item.pop("translation", None)
+    return attempted, translated, errors
+
+
+def pending_translation_count(items: list[dict[str, Any]]) -> int:
+    return sum(
+        1 for item in items
+        if any(contains_english_text(str(container.get(key) or "")) for _, container, key in translation_field_targets(item))
+    )
+
+
+def translate_items(
+    items: list[dict[str, Any]], settings: dict[str, Any], translated_at: str,
+    translator: Callable[[str], str] | None = None,
+) -> dict[str, Any]:
+    candidates = [
+        item for item in items
+        if any(contains_english_text(str(container.get(key) or "")) for _, container, key in translation_field_targets(item))
+    ]
+    if not candidates:
+        return {"attemptedItems": 0, "translatedItems": 0, "failedItems": 0, "translatedFields": 0, "pendingItems": 0, "errors": []}
+    if str(settings.get("provider", "openai-compatible")) != "openai-compatible":
+        error = f"unsupported translation provider: {settings.get('provider')}"
+        return {"attemptedItems": len(candidates), "translatedItems": 0, "failedItems": len(candidates), "translatedFields": 0, "pendingItems": len(candidates), "errors": [{"itemId": "configuration", "field": "translation", "error": error}]}
+    if translator is None:
+        api_key_env = str(settings.get("api_key_env", "OPENAI_API_KEY"))
+        if not os.environ.get(api_key_env, "").strip():
+            error = f"translation API key environment variable is not set: {api_key_env}"
+            return {"attemptedItems": len(candidates), "translatedItems": 0, "failedItems": len(candidates), "translatedFields": 0, "pendingItems": len(candidates), "errors": [{"itemId": "configuration", "field": "translation", "error": error}]}
+        translator = lambda value: openai_compatible_translate(value, settings)
+    concurrency = max(1, min(int(settings.get("concurrency", 3)), len(candidates)))
+    results: list[tuple[int, int, list[dict[str, str]]]] = []
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
+        futures = [pool.submit(translate_item_fields, item, translator, translated_at) for item in candidates]
+        for future in as_completed(futures):
+            results.append(future.result())
+    errors = [error for _, _, item_errors in results for error in item_errors]
+    translated_items = sum(1 for _, translated, item_errors in results if translated and not item_errors)
+    failed_items = sum(1 for _, _, item_errors in results if item_errors)
+    return {
+        "attemptedItems": len(candidates),
+        "translatedItems": translated_items,
+        "failedItems": failed_items,
+        "translatedFields": sum(translated for _, translated, _ in results),
+        "pendingItems": pending_translation_count(items),
+        "errors": errors,
+    }
+
+
 def extract_article_text(payload: str, max_chars: int) -> tuple[str, bool]:
     parser = ArticleTextExtractor()
     parser.feed(payload)
@@ -404,6 +592,8 @@ def fetch_source(source: dict[str, Any], timeout: int, fetched_at: str) -> tuple
         "User-Agent": "AI-Frontier-Radar/1.0 (+local research dashboard)",
         "Accept": "application/atom+xml, application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.1",
         **{str(k): str(v) for k, v in source.get("headers", {}).items()},
+        "Cache-Control": "no-cache, no-store, max-age=0",
+        "Pragma": "no-cache",
     }
     started = utc_now()
     try:
@@ -436,6 +626,8 @@ def fetch_article(
         headers = {
             "User-Agent": "AI-Frontier-Radar/1.0 (+local readable article cache)",
             "Accept": "text/html, application/xhtml+xml;q=0.9, */*;q=0.1",
+            "Cache-Control": "no-cache, no-store, max-age=0",
+            "Pragma": "no-cache",
         }
         request = Request(str(item["url"]), headers=headers)
         with urlopen(request, timeout=timeout, context=TLS_CONTEXT) as response:
@@ -482,14 +674,87 @@ def load_json(path: Path, default: Any) -> Any:
         return json.load(handle)
 
 
-def date_value(item: dict[str, Any]) -> datetime:
-    raw = item.get("publishedAt") or item.get("fetchedAt")
+def timestamp_value(raw: Any) -> datetime | None:
     if not raw:
-        return datetime.min.replace(tzinfo=timezone.utc)
+        return None
     try:
-        return datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
     except ValueError:
-        return datetime.min.replace(tzinfo=timezone.utc)
+        return None
+
+
+def date_value(item: dict[str, Any]) -> datetime:
+    return timestamp_value(item.get("publishedAt") or item.get("fetchedAt")) or datetime.min.replace(tzinfo=timezone.utc)
+
+
+def filter_items_by_freshness(
+    items: list[dict[str, Any]],
+    now: datetime,
+    max_item_age_hours: int,
+    future_tolerance_hours: int,
+    allow_undated: bool,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Keep only items whose source publication time proves they are current."""
+    if max_item_age_hours <= 0:
+        raise ValueError("freshness.max_item_age_hours must be greater than zero")
+    cutoff = now - timedelta(hours=max_item_age_hours)
+    future_cutoff = now + timedelta(hours=max(0, future_tolerance_hours))
+    accepted: list[dict[str, Any]] = []
+    stale = 0
+    undated = 0
+    future = 0
+    for item in items:
+        published = timestamp_value(item.get("publishedAt"))
+        if published is None:
+            if allow_undated:
+                accepted.append(item)
+            else:
+                undated += 1
+            continue
+        if published < cutoff:
+            stale += 1
+            continue
+        if published > future_cutoff:
+            future += 1
+            continue
+        accepted.append(item)
+    accepted_dates = [timestamp_value(item.get("publishedAt")) for item in accepted]
+    dated = [value for value in accepted_dates if value is not None]
+    return accepted, {
+        "inputItems": len(items),
+        "acceptedItems": len(accepted),
+        "staleItemsDropped": stale,
+        "undatedItemsDropped": undated,
+        "futureItemsDropped": future,
+        "newestAcceptedAt": iso_utc(max(dated)) if dated else None,
+        "oldestAcceptedAt": iso_utc(min(dated)) if dated else None,
+    }
+
+
+def summarize_freshness(
+    items: list[dict[str, Any]],
+    now: datetime,
+    max_item_age_hours: int,
+    future_tolerance_hours: int,
+    allow_undated: bool,
+    filter_reports: list[dict[str, Any]],
+    sources_without_current_items: list[str] | None = None,
+) -> dict[str, Any]:
+    published_dates = [timestamp_value(item.get("publishedAt")) for item in items]
+    dated = [value for value in published_dates if value is not None]
+    return {
+        "maxItemAgeHours": max_item_age_hours,
+        "cutoffAt": iso_utc(now - timedelta(hours=max_item_age_hours)),
+        "futureToleranceHours": future_tolerance_hours,
+        "allowUndated": allow_undated,
+        "staleItemsDropped": sum(int(report.get("staleItemsDropped", 0)) for report in filter_reports),
+        "undatedItemsDropped": sum(int(report.get("undatedItemsDropped", 0)) for report in filter_reports),
+        "futureItemsDropped": sum(int(report.get("futureItemsDropped", 0)) for report in filter_reports),
+        "sourcesWithoutCurrentItems": sources_without_current_items or [],
+        "newestItemAt": iso_utc(max(dated)) if dated else None,
+        "oldestItemAt": iso_utc(min(dated)) if dated else None,
+    }
 
 
 def merge_items(
@@ -506,12 +771,24 @@ def merge_items(
     for item in fresh:
         previous = cached_by_id.get(str(item.get("id"))) or cached_by_url.get(canonical_url(str(item.get("url", ""))))
         if previous and previous.get("article") and not item.get("article"):
-            item["article"] = previous["article"]
+            item["article"] = deepcopy(previous["article"])
             if (
                 item.get("source", {}).get("updateTitleFromArticle")
                 and previous["article"].get("pageTitle")
             ):
                 item["title"] = clean_text(str(previous["article"]["pageTitle"]), 240)
+        if previous and isinstance(previous.get("translation"), dict):
+            translation = deepcopy(previous["translation"])
+            fields = translation.get("fields", {})
+            for field_name, container, key in translation_field_targets(item):
+                cached_field = fields.get(field_name, {}) if isinstance(fields.get(field_name), dict) else {}
+                current = str(container.get(key) or "")
+                if current == str(cached_field.get("original") or "") and cached_field.get("translated"):
+                    container[key] = cached_field["translated"]
+                elif current != str(cached_field.get("translated") or ""):
+                    fields.pop(field_name, None)
+            if fields:
+                item["translation"] = translation
     fresh_cutoff = now - timedelta(days=lookback_days)
     retention_cutoff = now - timedelta(days=retention_days)
     accepted_fresh = [
@@ -556,19 +833,29 @@ def enrich_articles(
     max_chars: int,
     min_chars: int,
     fetched_at: str,
+    refresh_after_hours: int = 24,
 ) -> dict[str, int]:
-    candidates = [
+    refresh_cutoff = (timestamp_value(fetched_at) or utc_now()) - timedelta(hours=max(0, refresh_after_hours))
+
+    def needs_refresh(item: dict[str, Any]) -> bool:
+        article = item.get("article", {})
+        article_fetched_at = timestamp_value(article.get("fetchedAt"))
+        return (
+            article.get("status") != "ok"
+            or int(article.get("extractorVersion", 0)) < ARTICLE_EXTRACTOR_VERSION
+            or (refresh_after_hours > 0 and (article_fetched_at is None or article_fetched_at < refresh_cutoff))
+        )
+
+    all_candidates = [
         item for item in items
         if item.get("source", {}).get("fetchArticles", True)
         and item.get("url")
-        and (
-            item.get("article", {}).get("status") != "ok"
-            or int(item.get("article", {}).get("extractorVersion", 0)) < ARTICLE_EXTRACTOR_VERSION
-        )
-    ][:max(0, limit)]
+        and needs_refresh(item)
+    ]
+    candidates = all_candidates[:max(0, limit)]
     if not candidates:
         apply_article_titles(items)
-        return {"attempted": 0, "fetched": 0, "failed": 0}
+        return {"attempted": 0, "fetched": 0, "failed": 0, "pending": len(all_candidates)}
     results: dict[str, dict[str, Any]] = {}
     with ThreadPoolExecutor(max_workers=max(1, min(concurrency, len(candidates)))) as pool:
         futures = {
@@ -580,10 +867,20 @@ def enrich_articles(
             results[item_id] = article
     for item in items:
         if str(item.get("id")) in results:
-            item["article"] = results[str(item["id"])]
+            result = results[str(item["id"])]
+            previous = item.get("article", {})
+            if result["status"] == "ok" or previous.get("status") != "ok":
+                item["article"] = result
+            else:
+                previous["lastRefreshAttemptAt"] = fetched_at
+                previous["refreshError"] = result.get("error")
     apply_article_titles(items)
     fetched = sum(1 for article in results.values() if article["status"] == "ok")
-    return {"attempted": len(candidates), "fetched": fetched, "failed": len(candidates) - fetched}
+    pending = sum(
+        1 for item in items
+        if item.get("source", {}).get("fetchArticles", True) and item.get("url") and needs_refresh(item)
+    )
+    return {"attempted": len(candidates), "fetched": fetched, "failed": len(candidates) - fetched, "pending": pending}
 
 
 def apply_article_titles(items: list[dict[str, Any]]) -> None:
@@ -656,6 +953,17 @@ def update(args: argparse.Namespace) -> int:
     article_timeout = args.article_timeout or int(article_settings.get("timeout_seconds", 12))
     article_max_chars = int(article_settings.get("max_content_chars", 20000))
     article_min_chars = int(article_settings.get("min_content_chars", 300))
+    article_refresh_after_hours = int(article_settings.get("refresh_after_hours", 24))
+    freshness_settings = settings.get("freshness", {})
+    max_item_age_hours = (
+        args.max_item_age_hours
+        if args.max_item_age_hours is not None
+        else int(freshness_settings.get("max_item_age_hours", 168))
+    )
+    future_tolerance_hours = int(freshness_settings.get("future_tolerance_hours", 6))
+    allow_undated = bool(freshness_settings.get("allow_undated", False)) or args.allow_undated
+    translation_settings = settings.get("translation", {})
+    translation_enabled = bool(translation_settings.get("enabled", True)) and not args.skip_translation
     now = utc_now()
     fetched_at = iso_utc(now)
     fresh: list[dict[str, Any]] = []
@@ -664,14 +972,24 @@ def update(args: argparse.Namespace) -> int:
     with ThreadPoolExecutor(max_workers=max(1, min(concurrency, len(sources)))) as pool:
         futures = {pool.submit(fetch_source, source, timeout, fetched_at): source for source in sources}
         for future in as_completed(futures):
-            items, report = future.result()
-            fresh.extend(items)
+            discovered, report = future.result()
+            if report["status"] == "ok":
+                current, source_freshness = filter_items_by_freshness(
+                    discovered, now, max_item_age_hours, future_tolerance_hours, allow_undated
+                )
+                report["discoveredItemCount"] = report["itemCount"]
+                report["itemCount"] = len(current)
+                report["freshness"] = source_freshness
+                fresh.extend(current)
             reports.append(report)
 
     reports.sort(key=lambda report: str(report["name"]).lower())
     data_path = args.data_dir / "items.json"
     cached_dataset = load_json(data_path, {"items": []})
-    cached_items = cached_dataset.get("items", []) if isinstance(cached_dataset, dict) else []
+    cached_items_raw = cached_dataset.get("items", []) if isinstance(cached_dataset, dict) else []
+    cached_items, cached_freshness = filter_items_by_freshness(
+        cached_items_raw, now, max_item_age_hours, future_tolerance_hours, allow_undated
+    )
     success_count = sum(1 for report in reports if report["status"] == "ok")
     if success_count == 0 and not cached_items:
         errors = "; ".join(f"{report['name']}: {report['error']}" for report in reports)
@@ -683,13 +1001,29 @@ def update(args: argparse.Namespace) -> int:
     article_report = (
         enrich_articles(
             items, article_limit, article_concurrency, article_timeout,
-            article_max_chars, article_min_chars, fetched_at,
+            article_max_chars, article_min_chars, fetched_at, article_refresh_after_hours,
         )
-        if article_enabled else {"attempted": 0, "fetched": 0, "failed": 0}
+        if article_enabled else {"attempted": 0, "fetched": 0, "failed": 0, "pending": 0}
+    )
+    translation_report = (
+        translate_items(items, translation_settings, fetched_at)
+        if translation_enabled else {
+            "attemptedItems": 0, "translatedItems": 0, "failedItems": 0,
+            "translatedFields": 0, "pendingItems": pending_translation_count(items), "errors": [],
+        }
     )
     readable_articles = sum(1 for item in items if item.get("article", {}).get("status") == "ok")
+    source_freshness_reports = [report.get("freshness", {}) for report in reports if report["status"] == "ok"]
+    freshness_report = summarize_freshness(
+        items, now, max_item_age_hours, future_tolerance_hours, allow_undated,
+        [*source_freshness_reports, cached_freshness],
+        [
+            str(report["name"]) for report in reports
+            if report["status"] == "ok" and int(report.get("itemCount", 0)) == 0
+        ],
+    )
     dataset = {
-        "schemaVersion": 3,
+        "schemaVersion": 5,
         "generatedAt": fetched_at,
         "stats": {
             "totalItems": len(items),
@@ -697,16 +1031,29 @@ def update(args: argparse.Namespace) -> int:
             "successfulSources": success_count,
             "failedSources": len(reports) - success_count,
             "readableArticles": readable_articles,
+            "pendingArticles": article_report["pending"],
+            "translatedItems": sum(1 for item in items if item.get("translation", {}).get("status") == "ok"),
+            "pendingTranslations": translation_report["pendingItems"],
+            "staleItemsDropped": freshness_report["staleItemsDropped"],
             "regions": region_counts(items),
             "categories": summary_counts(items),
         },
         "articleReport": article_report,
+        "translationReport": translation_report,
+        "freshnessReport": freshness_report,
         "sourceReports": reports,
         "items": items,
     }
     write_json(data_path, dataset)
     output = build_dashboard(dataset, args.site_dir)
-    print(json.dumps({"status": "ok" if success_count == len(reports) else "partial", "output": str(output), **dataset["stats"]}, ensure_ascii=False))
+    status = "ok" if (
+        success_count == len(reports)
+        and not article_report["failed"]
+        and not article_report["pending"]
+        and not translation_report["failedItems"]
+        and not translation_report["pendingItems"]
+    ) else "partial"
+    print(json.dumps({"status": status, "output": str(output), **dataset["stats"], "freshness": freshness_report, "translation": translation_report}, ensure_ascii=False))
     return 0
 
 
@@ -728,8 +1075,16 @@ def articles(args: argparse.Namespace) -> int:
     source_config = load_json(args.sources, {})
     settings = source_config.get("settings", {})
     article_settings = settings.get("article_fetch", {})
+    freshness_settings = settings.get("freshness", {})
+    max_item_age_hours = int(freshness_settings.get("max_item_age_hours", 168))
+    future_tolerance_hours = int(freshness_settings.get("future_tolerance_hours", 6))
+    allow_undated = bool(freshness_settings.get("allow_undated", False))
     source_map = {str(source["id"]): source for source in source_config.get("sources", [])}
-    items = dataset.get("items", [])
+    now = utc_now()
+    items, freshness_filter = filter_items_by_freshness(
+        dataset.get("items", []), now, max_item_age_hours, future_tolerance_hours, allow_undated
+    )
+    dataset["items"] = items
     for item in items:
         source = source_map.get(str(item.get("source", {}).get("id")), {})
         item_source = item.setdefault("source", {})
@@ -738,7 +1093,7 @@ def articles(args: argparse.Namespace) -> int:
             source.get("fetch_articles", item.get("source", {}).get("kind") != "research")
         )
         item_source["updateTitleFromArticle"] = bool(source.get("update_title_from_article", False))
-    fetched_at = iso_utc(utc_now())
+    fetched_at = iso_utc(now)
     report = enrich_articles(
         items,
         args.article_limit if args.article_limit is not None else int(article_settings.get("max_articles_per_run", 30)),
@@ -747,17 +1102,81 @@ def articles(args: argparse.Namespace) -> int:
         int(article_settings.get("max_content_chars", 20000)),
         int(article_settings.get("min_content_chars", 300)),
         fetched_at,
+        int(article_settings.get("refresh_after_hours", 24)),
     )
-    dataset["schemaVersion"] = 3
+    translation_settings = settings.get("translation", {})
+    translation_report = (
+        translate_items(items, translation_settings, fetched_at)
+        if bool(translation_settings.get("enabled", True)) and not args.skip_translation else {
+            "attemptedItems": 0, "translatedItems": 0, "failedItems": 0,
+            "translatedFields": 0, "pendingItems": pending_translation_count(items), "errors": [],
+        }
+    )
+    freshness_report = summarize_freshness(
+        items, now, max_item_age_hours, future_tolerance_hours, allow_undated, [freshness_filter]
+    )
+    dataset["schemaVersion"] = 5
     dataset["articlesUpdatedAt"] = fetched_at
     dataset["articleReport"] = report
+    dataset["translationReport"] = translation_report
+    dataset["freshnessReport"] = freshness_report
     dataset.setdefault("stats", {})["readableArticles"] = sum(
         1 for item in items if item.get("article", {}).get("status") == "ok"
     )
     dataset["stats"]["regions"] = region_counts(items)
+    dataset["stats"]["translatedItems"] = sum(1 for item in items if item.get("translation", {}).get("status") == "ok")
+    dataset["stats"]["pendingTranslations"] = translation_report["pendingItems"]
+    dataset["stats"]["totalItems"] = len(items)
+    dataset["stats"]["categories"] = summary_counts(items)
+    dataset["stats"]["staleItemsDropped"] = freshness_report["staleItemsDropped"]
     write_json(data_path, dataset)
     output = build_dashboard(dataset, args.site_dir)
-    print(json.dumps({"status": "ok" if not report["failed"] else "partial", "output": str(output), "readableArticles": dataset["stats"]["readableArticles"], **report}, ensure_ascii=False))
+    status = "ok" if (
+        not report["failed"] and not report["pending"]
+        and not translation_report["failedItems"] and not translation_report["pendingItems"]
+    ) else "partial"
+    print(json.dumps({"status": status, "output": str(output), "readableArticles": dataset["stats"]["readableArticles"], **report, "freshness": freshness_report, "translation": translation_report}, ensure_ascii=False))
+    return 0
+
+
+def translate(args: argparse.Namespace) -> int:
+    data_path = args.data_dir / "items.json"
+    dataset = load_json(data_path, None)
+    if not dataset:
+        raise FileNotFoundError(f"no cached dataset at {data_path}; run update first")
+    source_config = load_json(args.sources, {})
+    root_settings = source_config.get("settings", {})
+    settings = root_settings.get("translation", {})
+    freshness_settings = root_settings.get("freshness", {})
+    max_item_age_hours = int(freshness_settings.get("max_item_age_hours", 168))
+    future_tolerance_hours = int(freshness_settings.get("future_tolerance_hours", 6))
+    allow_undated = bool(freshness_settings.get("allow_undated", False))
+    now = utc_now()
+    items, freshness_filter = filter_items_by_freshness(
+        dataset.get("items", []), now, max_item_age_hours, future_tolerance_hours, allow_undated
+    )
+    dataset["items"] = items
+    translated_at = iso_utc(now)
+    report = translate_items(items, settings, translated_at)
+    freshness_report = summarize_freshness(
+        items, now, max_item_age_hours, future_tolerance_hours, allow_undated, [freshness_filter]
+    )
+    dataset["schemaVersion"] = 5
+    dataset["translationsUpdatedAt"] = translated_at
+    dataset["translationReport"] = report
+    dataset["freshnessReport"] = freshness_report
+    dataset.setdefault("stats", {})["translatedItems"] = sum(
+        1 for item in dataset.get("items", []) if item.get("translation", {}).get("status") == "ok"
+    )
+    dataset["stats"]["pendingTranslations"] = report["pendingItems"]
+    dataset["stats"]["totalItems"] = len(items)
+    dataset["stats"]["regions"] = region_counts(items)
+    dataset["stats"]["categories"] = summary_counts(items)
+    dataset["stats"]["staleItemsDropped"] = freshness_report["staleItemsDropped"]
+    write_json(data_path, dataset)
+    output = build_dashboard(dataset, args.site_dir)
+    status = "ok" if not report["failedItems"] and not report["pendingItems"] else "partial"
+    print(json.dumps({"status": status, "output": str(output), **report, "freshness": freshness_report}, ensure_ascii=False))
     return 0
 
 
@@ -794,9 +1213,12 @@ def parser() -> argparse.ArgumentParser:
     update_parser.add_argument("--retention-days", type=int)
     update_parser.add_argument("--max-items", type=int)
     update_parser.add_argument("--max-items-per-source", type=int)
+    update_parser.add_argument("--max-item-age-hours", type=int, help="hard freshness window for published items")
+    update_parser.add_argument("--allow-undated", action="store_true", help="retain entries without a valid publication time")
     update_parser.add_argument("--article-limit", type=int, help="maximum new article bodies to fetch")
     update_parser.add_argument("--article-timeout", type=int, help="timeout for each article page")
     update_parser.add_argument("--skip-articles", action="store_true", help="refresh feeds without fetching article bodies")
+    update_parser.add_argument("--skip-translation", action="store_true", help="skip English-to-Chinese translation")
     update_parser.set_defaults(handler=update)
 
     build_parser = subparsers.add_parser("build", parents=[common], help="rebuild from cached data")
@@ -806,7 +1228,12 @@ def parser() -> argparse.ArgumentParser:
     articles_parser.add_argument("--sources", type=Path, default=DEFAULT_SOURCES)
     articles_parser.add_argument("--article-limit", type=int, help="maximum article bodies to fetch")
     articles_parser.add_argument("--article-timeout", type=int, help="timeout for each article page")
+    articles_parser.add_argument("--skip-translation", action="store_true", help="skip English-to-Chinese translation")
     articles_parser.set_defaults(handler=articles)
+
+    translate_parser = subparsers.add_parser("translate", parents=[common], help="translate cached English content into Chinese")
+    translate_parser.add_argument("--sources", type=Path, default=DEFAULT_SOURCES)
+    translate_parser.set_defaults(handler=translate)
 
     serve_parser = subparsers.add_parser("serve", parents=[common], help="serve the generated dashboard")
     serve_parser.add_argument("--host", default="127.0.0.1")

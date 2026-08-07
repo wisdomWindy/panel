@@ -1,4 +1,4 @@
 interface:
   display_name: "AI Frontier Radar"
-  short_description: "Daily AI research, model, and technology radar"
-  default_prompt: "Use $track-ai-frontiers to build or refresh my daily AI frontier dashboard."
+  short_description: "Fresh Chinese AI research, model, and technology radar"
+  default_prompt: "Use $track-ai-frontiers to build or refresh my up-to-date Chinese-language daily AI frontier dashboard."

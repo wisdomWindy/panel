@@ -1,0 +1,33 @@
+{
+  "request_id": "project-optimization-assessment",
+  "source": {
+    "type": "direct_user_instruction",
+    "reference": "current conversation",
+    "verbatim": "根据当前项目提出优化建议"
+  },
+  "stage": "complete",
+  "status": "completed",
+  "artifacts": {
+    "request": "request.md",
+    "prd_snapshot": "artifacts/prd-snapshot.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "speed_profile": {
+    "level": "S3 broad",
+    "reason": "仓库级优化评估横跨 monorepo 配置、两个 package、Electron 进程边界、测试、CI 与文档；需广泛但证据驱动的上下文，且不修改生产代码。",
+    "context_budget": "full",
+    "artifact_density": "full"
+  },
+  "architecture_design_required": false,
+  "module_flow": null,
+  "loop": {
+    "iteration": 6,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "stage_transition"
+  }
+}

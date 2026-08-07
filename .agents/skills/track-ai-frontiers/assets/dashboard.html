@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>AI Frontier Radar</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-muted: #eef1f4;
+      --text: #17202a;
+      --muted: #66717d;
+      --line: #d9dee4;
+      --accent: #13795b;
+      --accent-soft: #dff4ec;
+      --signal: #c2410c;
+      --shadow: 0 8px 24px rgba(23, 32, 42, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #111417;
+        --surface: #191e22;
+        --surface-muted: #232a2f;
+        --text: #eef3f6;
+        --muted: #a6b0b8;
+        --line: #333c43;
+        --accent: #52c9a1;
+        --accent-soft: #173d33;
+        --signal: #fb923c;
+        --shadow: 0 8px 24px rgba(0, 0, 0, .22);
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 0; }
+    button, input, select { font: inherit; }
+    a { color: inherit; }
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+    .topbar-inner, main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    .topbar-inner { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .brand-mark { width: 28px; height: 28px; border: 2px solid var(--accent); display: grid; place-items: center; font-weight: 800; color: var(--accent); }
+    .brand h1 { margin: 0; font-size: 17px; line-height: 1.2; letter-spacing: 0; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .updated { color: var(--muted); white-space: nowrap; font-size: 12px; }
+    main { padding: 26px 0 52px; }
+    .summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .metric { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+    .metric span { color: var(--muted); font-size: 12px; }
+    .metric strong { display: block; margin-top: 3px; font-size: 22px; line-height: 1.2; }
+    .metric.warning strong { color: var(--signal); }
+    .controls { display: grid; grid-template-columns: minmax(220px, 1fr) 130px 190px 160px; gap: 10px; margin-bottom: 12px; }
+    .control { min-height: 42px; width: 100%; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); padding: 0 12px; outline: none; }
+    .control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .tabs { display: flex; gap: 7px; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: thin; }
+    .tab { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 6px; min-height: 34px; padding: 0 11px; cursor: pointer; white-space: nowrap; }
+    .tab[aria-selected="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); font-weight: 650; }
+    .result-line { display: flex; align-items: center; justify-content: space-between; color: var(--muted); margin: 1px 0 10px; font-size: 12px; }
+    .feed { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .item { background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 17px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+    .item:hover { border-color: color-mix(in srgb, var(--accent) 52%, var(--line)); box-shadow: var(--shadow); }
+    .meta { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; min-width: 0; }
+    .source { color: var(--accent); font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .region-mark { border: 1px solid var(--line); border-radius: 3px; color: var(--muted); font-size: 10px; padding: 0 5px; white-space: nowrap; }
+    .dot::before { content: "·"; }
+    .item h2 { margin: 0; font-size: 17px; line-height: 1.4; letter-spacing: 0; overflow-wrap: anywhere; }
+    .item h2 a { text-decoration: none; }
+    .item h2 a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+    .item p { margin: 0; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .footer-row { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .item-actions { display: flex; align-items: center; gap: 12px; }
+    .badge { display: inline-flex; align-items: center; min-height: 25px; padding: 0 8px; border-radius: 4px; background: var(--surface-muted); color: var(--muted); font-size: 11px; font-weight: 650; }
+    .open-link { color: var(--accent); text-decoration: none; font-weight: 650; font-size: 12px; }
+    .reader { border-top: 1px solid var(--line); margin-top: 2px; padding-top: 10px; }
+    .reader summary { color: var(--accent); cursor: pointer; font-size: 12px; font-weight: 700; list-style-position: outside; margin-left: 14px; }
+    .reader[open] summary { margin-bottom: 12px; }
+    .reader-body { background: var(--surface-muted); border-radius: 5px; color: var(--text); line-height: 1.78; max-height: 62vh; overflow: auto; padding: 16px; white-space: pre-wrap; }
+    .reader-note { color: var(--muted); font-size: 11px; margin-top: 9px; }
+    .empty { grid-column: 1 / -1; border: 1px dashed var(--line); padding: 48px 20px; text-align: center; color: var(--muted); background: var(--surface); border-radius: 7px; }
+    .failures { margin-top: 18px; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; }
+    .failures summary { cursor: pointer; padding: 12px 14px; color: var(--muted); }
+    .failures ul { margin: 0; padding: 0 28px 14px; color: var(--signal); }
+    @media (max-width: 760px) {
+      .topbar-inner { align-items: flex-start; padding: 13px 0; }
+      .updated { white-space: normal; text-align: right; max-width: 130px; }
+      main { padding-top: 18px; }
+      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .controls { grid-template-columns: 1fr; }
+      .feed { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 420px) {
+      .topbar-inner, main { width: min(100% - 22px, 1180px); }
+      .brand p { display: none; }
+      .metric { padding: 12px; }
+      .metric strong { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">AI</div>
+        <div><h1>AI Frontier Radar</h1><p>思想、研究、模型与工程动态</p></div>
+      </div>
+      <div class="updated" id="updated"></div>
+    </div>
+  </header>
+  <main>
+    <section class="summary" aria-label="更新概览">
+      <div class="metric"><span>收录动态</span><strong id="totalMetric">0</strong></div>
+      <div class="metric"><span>本次新增</span><strong id="newMetric">0</strong></div>
+      <div class="metric"><span>正文可读</span><strong id="articleMetric">0</strong></div>
+      <div class="metric"><span>有效来源</span><strong id="sourceMetric">0</strong></div>
+      <div class="metric warning"><span>异常来源</span><strong id="failedMetric">0</strong></div>
+    </section>
+
+    <section aria-label="筛选">
+      <div class="controls">
+        <input class="control" id="search" type="search" placeholder="搜索标题、正文或来源" autocomplete="off">
+        <select class="control" id="region">
+          <option value="">国内 + 国际</option>
+          <option value="CN">国内</option>
+          <option value="Global">国际</option>
+        </select>
+        <select class="control" id="source"><option value="">全部来源</option></select>
+        <select class="control" id="range">
+          <option value="0">全部时间</option>
+          <option value="1">最近 24 小时</option>
+          <option value="7">最近 7 天</option>
+          <option value="30">最近 30 天</option>
+        </select>
+      </div>
+      <div class="tabs" id="tabs" role="tablist" aria-label="主题分类"></div>
+      <div class="result-line"><span id="resultCount"></span><span>按发布时间倒序</span></div>
+    </section>
+
+    <section class="feed" id="feed" aria-live="polite"></section>
+    <details class="failures" id="failures" hidden>
+      <summary>查看抓取异常</summary>
+      <ul id="failureList"></ul>
+    </details>
+  </main>
+
+  <script id="radar-data" type="application/json">__RADAR_DATA__</script>
+  <script>
+    const data = JSON.parse(document.getElementById('radar-data').textContent);
+    const state = { category: '', query: '', region: '', source: '', days: 0 };
+    const elements = {
+      feed: document.getElementById('feed'), tabs: document.getElementById('tabs'),
+      search: document.getElementById('search'), region: document.getElementById('region'), source: document.getElementById('source'),
+      range: document.getElementById('range'), resultCount: document.getElementById('resultCount')
+    };
+    const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+    const formatDate = value => value ? new Intl.DateTimeFormat('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value)) : '日期未知';
+    const relativeDate = value => {
+      if (!value) return '日期未知';
+      const days = Math.floor((Date.now() - new Date(value).getTime()) / 86400000);
+      if (days <= 0) return '今天';
+      if (days === 1) return '昨天';
+      if (days < 14) return `${days} 天前`;
+      return formatDate(value);
+    };
+
+    function init() {
+      const stats = data.stats || {};
+      document.getElementById('totalMetric').textContent = stats.totalItems || 0;
+      document.getElementById('newMetric').textContent = stats.newItems || 0;
+      document.getElementById('articleMetric').textContent = stats.readableArticles || 0;
+      document.getElementById('sourceMetric').textContent = stats.successfulSources || 0;
+      document.getElementById('failedMetric').textContent = stats.failedSources || 0;
+      document.getElementById('updated').textContent = `更新于 ${new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.generatedAt))}`;
+
+      const categories = Object.keys(stats.categories || {});
+      elements.tabs.innerHTML = [{ name: '', label: '全部' }, ...categories.map(name => ({ name, label: name }))]
+        .map(tab => `<button class="tab" role="tab" data-category="${escapeHtml(tab.name)}" aria-selected="${tab.name === ''}">${escapeHtml(tab.label)}${tab.name ? ` ${stats.categories[tab.name]}` : ''}</button>`).join('');
+      [...new Set((data.items || []).map(item => item.source.name))].sort((a,b) => a.localeCompare(b))
+        .forEach(name => elements.source.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`));
+
+      const failures = (data.sourceReports || []).filter(report => report.status !== 'ok');
+      if (failures.length) {
+        document.getElementById('failures').hidden = false;
+        document.getElementById('failureList').innerHTML = failures.map(report => `<li><strong>${escapeHtml(report.name)}</strong>: ${escapeHtml(report.error)}</li>`).join('');
+      }
+
+      elements.tabs.addEventListener('click', event => {
+        const button = event.target.closest('[data-category]');
+        if (!button) return;
+        state.category = button.dataset.category;
+        elements.tabs.querySelectorAll('[role="tab"]').forEach(tab => tab.setAttribute('aria-selected', String(tab === button)));
+        render();
+      });
+      elements.search.addEventListener('input', event => { state.query = event.target.value.trim().toLowerCase(); render(); });
+      elements.region.addEventListener('change', event => { state.region = event.target.value; render(); });
+      elements.source.addEventListener('change', event => { state.source = event.target.value; render(); });
+      elements.range.addEventListener('change', event => { state.days = Number(event.target.value); render(); });
+      render();
+    }
+
+    function render() {
+      const cutoff = state.days ? Date.now() - state.days * 86400000 : 0;
+      const items = (data.items || []).filter(item => {
+        const searchable = `${item.title} ${item.summary || ''} ${item.article?.content || ''} ${item.source.name}`.toLowerCase();
+        return (!state.category || item.category === state.category)
+          && (!state.region || (item.source.region || 'Global') === state.region)
+          && (!state.source || item.source.name === state.source)
+          && (!state.query || searchable.includes(state.query))
+          && (!cutoff || !item.publishedAt || new Date(item.publishedAt).getTime() >= cutoff);
+      });
+      const readable = items.filter(item => item.article?.status === 'ok').length;
+      const domestic = items.filter(item => item.source.region === 'CN').length;
+      const international = items.length - domestic;
+      elements.resultCount.textContent = `${items.length} 条结果 · 国内 ${domestic} · 国际 ${international} · ${readable} 篇正文可读`;
+      if (!items.length) {
+        elements.feed.innerHTML = '<div class="empty">没有符合当前筛选条件的内容</div>';
+        return;
+      }
+      elements.feed.innerHTML = items.map(item => {
+        const article = item.article?.status === 'ok' ? item.article : null;
+        const articleLabel = article ? `站内阅读 · ${Number(article.characterCount || 0).toLocaleString('zh-CN')} 字${article.truncated ? '节选' : ''}` : '';
+        return `
+        <article class="item${article ? ' has-article' : ''}">
+          <div class="meta"><span class="source">${escapeHtml(item.source.name)}</span><span class="region-mark">${item.source.region === 'CN' ? '国内' : '国际'}</span><span class="dot"></span><time datetime="${escapeHtml(item.publishedAt || '')}" title="${escapeHtml(formatDate(item.publishedAt))}">${escapeHtml(relativeDate(item.publishedAt))}</time></div>
+          <h2><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a></h2>
+          ${item.summary ? `<p>${escapeHtml(item.summary)}</p>` : ''}
+          <div class="footer-row"><span class="badge">${escapeHtml(item.category)}</span><div class="item-actions">${article ? '<span class="badge">已缓存正文</span>' : ''}<a class="open-link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">原文 ↗</a></div></div>
+          ${article ? `<details class="reader"><summary>${escapeHtml(articleLabel)}</summary><div class="reader-body">${escapeHtml(article.content)}</div><div class="reader-note">正文来自原文页面的自动抽取缓存，内容与排版以原站为准。</div></details>` : ''}
+        </article>`;
+      }).join('');
+    }
+    init();
+  </script>
+</body>
+</html>

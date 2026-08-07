@@ -1,0 +1,195 @@
+{
+  "settings": {
+    "lookback_days": 21,
+    "retention_days": 120,
+    "max_items": 600,
+    "max_items_per_source": 50,
+    "request_timeout_seconds": 18,
+    "concurrency": 6,
+    "article_fetch": {
+      "enabled": true,
+      "max_articles_per_run": 30,
+      "concurrency": 4,
+      "timeout_seconds": 12,
+      "min_content_chars": 300,
+      "max_content_chars": 20000
+    }
+  },
+  "sources": [
+    {
+      "id": "openai-news",
+      "name": "OpenAI",
+      "url": "https://openai.com/news/rss.xml",
+      "kind": "official",
+      "region": "Global",
+      "default_category": "Models"
+    },
+    {
+      "id": "anthropic-sdk-releases",
+      "name": "Anthropic SDK Releases",
+      "url": "https://github.com/anthropics/anthropic-sdk-python/releases.atom",
+      "kind": "official",
+      "region": "Global",
+      "default_category": "Engineering",
+      "fetch_articles": false
+    },
+    {
+      "id": "deepmind-blog",
+      "name": "Google DeepMind",
+      "url": "https://deepmind.google/blog/rss.xml",
+      "kind": "official",
+      "region": "Global",
+      "default_category": "Research"
+    },
+    {
+      "id": "google-ai",
+      "name": "Google AI",
+      "url": "https://blog.google/technology/ai/rss/",
+      "kind": "official",
+      "region": "Global",
+      "default_category": "Technology"
+    },
+    {
+      "id": "microsoft-research",
+      "name": "Microsoft Research",
+      "url": "https://www.microsoft.com/en-us/research/feed/",
+      "kind": "official",
+      "region": "Global",
+      "default_category": "Research"
+    },
+    {
+      "id": "meta-ai",
+      "name": "Meta AI",
+      "url": "https://ai.meta.com/blog/rss/",
+      "kind": "official",
+      "region": "Global",
+      "default_category": "Research"
+    },
+    {
+      "id": "hugging-face",
+      "name": "Hugging Face",
+      "url": "https://huggingface.co/blog/feed.xml",
+      "kind": "community",
+      "region": "Global",
+      "default_category": "Open Source"
+    },
+    {
+      "id": "nvidia-ai",
+      "name": "NVIDIA Technical Blog",
+      "url": "https://developer.nvidia.com/blog/category/generative-ai/feed/",
+      "kind": "official",
+      "region": "Global",
+      "default_category": "Technology"
+    },
+    {
+      "id": "arxiv-ai",
+      "name": "arXiv cs.AI",
+      "url": "https://rss.arxiv.org/rss/cs.AI",
+      "kind": "research",
+      "region": "Global",
+      "default_category": "Research",
+      "fetch_articles": false
+    },
+    {
+      "id": "arxiv-lg",
+      "name": "arXiv cs.LG",
+      "url": "https://rss.arxiv.org/rss/cs.LG",
+      "kind": "research",
+      "region": "Global",
+      "default_category": "Research",
+      "fetch_articles": false
+    },
+    {
+      "id": "pytorch-blog",
+      "name": "PyTorch",
+      "url": "https://pytorch.org/blog/feed.xml",
+      "kind": "official",
+      "region": "Global",
+      "default_category": "Engineering"
+    },
+    {
+      "id": "deepseek-news",
+      "name": "DeepSeek 官方动态",
+      "url": "https://api-docs.deepseek.com/sitemap.xml",
+      "format": "sitemap",
+      "include_patterns": ["/news/"],
+      "kind": "official",
+      "region": "CN",
+      "default_category": "Models",
+      "fetch_articles": true,
+      "update_title_from_article": true
+    },
+    {
+      "id": "qwen-agent-releases",
+      "name": "通义千问 Qwen-Agent",
+      "url": "https://github.com/QwenLM/Qwen-Agent/releases.atom",
+      "kind": "official",
+      "region": "CN",
+      "default_category": "Agents",
+      "fetch_articles": false
+    },
+    {
+      "id": "deepseek-r1-releases",
+      "name": "DeepSeek-R1",
+      "url": "https://github.com/deepseek-ai/DeepSeek-R1/releases.atom",
+      "kind": "official",
+      "region": "CN",
+      "default_category": "Models",
+      "fetch_articles": false
+    },
+    {
+      "id": "internlm-releases",
+      "name": "书生浦语 InternLM",
+      "url": "https://github.com/InternLM/InternLM/releases.atom",
+      "kind": "official",
+      "region": "CN",
+      "default_category": "Models",
+      "fetch_articles": false
+    },
+    {
+      "id": "agentscope-releases",
+      "name": "ModelScope AgentScope",
+      "url": "https://github.com/modelscope/agentscope/releases.atom",
+      "kind": "official",
+      "region": "CN",
+      "default_category": "Agents",
+      "fetch_articles": false
+    },
+    {
+      "id": "ms-swift-releases",
+      "name": "ModelScope ms-swift",
+      "url": "https://github.com/modelscope/ms-swift/releases.atom",
+      "kind": "official",
+      "region": "CN",
+      "default_category": "Engineering",
+      "fetch_articles": false
+    },
+    {
+      "id": "internvl-releases",
+      "name": "OpenGVLab InternVL",
+      "url": "https://github.com/OpenGVLab/InternVL/releases.atom",
+      "kind": "official",
+      "region": "CN",
+      "default_category": "Models",
+      "fetch_articles": false
+    },
+    {
+      "id": "flagembedding-releases",
+      "name": "智源 FlagEmbedding",
+      "url": "https://github.com/FlagOpen/FlagEmbedding/releases.atom",
+      "kind": "research",
+      "region": "CN",
+      "default_category": "Open Source",
+      "fetch_articles": false
+    },
+    {
+      "id": "hunyuan-video-releases",
+      "name": "腾讯混元 HunyuanVideo",
+      "url": "https://github.com/Tencent/HunyuanVideo/releases.atom",
+      "kind": "official",
+      "region": "CN",
+      "default_category": "Models",
+      "fetch_articles": false
+    }
+  ]
+}

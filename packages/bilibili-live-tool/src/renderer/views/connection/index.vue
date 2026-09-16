@@ -1,108 +1,63 @@
 <script setup lang="ts">
-import { reactive, computed } from 'vue';
-import { useRoomStore } from '../../stores/room';
-import { useConfigStore } from '../../stores/config';
-import { getDanmakuService } from '../../services/danmaku-service';
+import { computed } from 'vue';
+import { useLiveRoomStore } from '@/stores/live-data/room';
+import { formatCount } from '@/modules/live-data/formatters';
 
-const danmakuService = getDanmakuService();
-
-const roomStore = useRoomStore();
-const configStore = useConfigStore();
-
-const form = reactive({
-  autoReconnect: configStore.config.autoReconnect,
-  reconnectInterval: configStore.config.reconnectInterval,
-  maxReconnectAttempts: configStore.config.maxReconnectAttempts
-});
-
-const isConnected = computed(() => roomStore.isConnected);
-
-function saveConfig() {
-  configStore.updateConfig({
-    autoReconnect: form.autoReconnect,
-    reconnectInterval: form.reconnectInterval,
-    maxReconnectAttempts: form.maxReconnectAttempts
-  });
-  ElMessage.success('配置已保存');
-}
-
-async function handleDisconnect() {
-  try {
-    await danmakuService.disconnect();
-    ElMessage.info('已断开连接');
-  } catch (error) {
-    ElMessage.error(`断开连接失败: ${error}`);
-  }
-}
+const room = useLiveRoomStore();
+const statusText = computed(() => ({
+  disconnected: '未连接',
+  connecting: '连接中',
+  connected: '已连接',
+  reconnecting: `重连中 ${room.snapshot.reconnectAttempt}/10`,
+  error: '连接错误'
+}[room.snapshot.status]));
 </script>
 
 <template>
-  <div class="p-8">
-    <el-card>
-      <template #header>
-        <div class="flex justify-between items-center">
-          <span class="font-semibold text-gray-700">连接配置</span>
-          <el-tag :type="isConnected ? 'success' : 'info'">
-            {{ isConnected ? '已连接' : '未连接' }}
-          </el-tag>
-        </div>
-      </template>
+  <section class="mx-auto max-w-5xl">
+    <header class="flex h-14 items-center justify-between border-b border-gray-200">
+      <h2 class="m-0 text-lg font-semibold text-gray-900">
+        直播间
+      </h2>
+      <el-tag :type="room.isConnected ? 'success' : room.snapshot.status === 'reconnecting' ? 'warning' : room.snapshot.status === 'error' ? 'danger' : 'info'">
+        {{ statusText }}
+      </el-tag>
+    </header>
 
-      <el-form :model="form" label-width="140px">
-        <el-form-item label="自动重连">
-          <el-switch v-model="form.autoReconnect" />
-        </el-form-item>
+    <el-alert
+      v-if="room.error"
+      class="mt-5"
+      :title="room.error.message"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
-        <el-form-item label="重连间隔">
-          <el-input-number
-            v-model="form.reconnectInterval"
-            :min="1000"
-            :max="60000"
-            :step="1000"
-          />
-          <span class="ml-2">毫秒</span>
-        </el-form-item>
-
-        <el-form-item label="最大重连次数">
-          <el-input-number
-            v-model="form.maxReconnectAttempts"
-            :min="1"
-            :max="20"
-          />
-        </el-form-item>
-
-        <el-form-item>
-          <el-button type="primary" @click="saveConfig">
-            保存配置
-          </el-button>
-          <el-button
-            v-if="isConnected"
-            type="danger"
-            class="ml-2"
-            @click="handleDisconnect"
-          >
-            断开连接
-          </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-
-    <el-card v-if="isConnected" class="mt-5">
-      <template #header>
-        <span>连接信息</span>
-      </template>
-
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="房间号">
-          {{ roomStore.currentRoomId }}
-        </el-descriptions-item>
-        <el-descriptions-item label="在线人数">
-          {{ roomStore.onlineCount.toLocaleString() }}
-        </el-descriptions-item>
-        <el-descriptions-item label="用户ID">
-          {{ roomStore.uid || '未登录' }}
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-card>
-  </div>
+    <dl class="mt-6 grid grid-cols-1 gap-px overflow-hidden border border-gray-200 bg-gray-200 sm:grid-cols-3">
+      <div class="bg-white p-5">
+        <dt class="text-sm text-gray-500">
+          房间号
+        </dt>
+        <dd class="m-0 mt-2 text-xl font-semibold tabular-nums text-gray-900">
+          {{ room.snapshot.roomId ?? '-' }}
+        </dd>
+      </div>
+      <div class="bg-white p-5">
+        <dt class="text-sm text-gray-500">
+          房间名称
+        </dt>
+        <dd class="m-0 mt-2 truncate text-xl font-semibold text-gray-900">
+          {{ room.snapshot.roomName ?? '-' }}
+        </dd>
+      </div>
+      <div class="bg-white p-5">
+        <dt class="text-sm text-gray-500">
+          在线人数
+        </dt>
+        <dd class="m-0 mt-2 text-xl font-semibold tabular-nums text-gray-900">
+          {{ room.snapshot.onlineCount === null ? '-' : formatCount(room.snapshot.onlineCount) }}
+        </dd>
+      </div>
+    </dl>
+  </section>
 </template>

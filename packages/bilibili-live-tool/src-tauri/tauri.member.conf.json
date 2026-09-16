@@ -1,0 +1,8 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Bilibili 直播助手 会员版",
+  "build": {
+    "beforeBuildCommand": "pnpm build:web:member",
+    "features": ["member"]
+  }
+}

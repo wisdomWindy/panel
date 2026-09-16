@@ -3,6 +3,7 @@
  */
 
 import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router';
+import { memberChannel } from '@member-channel';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -14,6 +15,12 @@ const routes: RouteRecordRaw[] = [
     name: 'Dashboard',
     component: () => import('@/views/dashboard/index.vue'),
     meta: { title: '仪表盘' }
+  },
+  {
+    path: '/rankings',
+    name: 'Rankings',
+    component: () => import('@/views/rankings/index.vue'),
+    meta: { title: '排行榜' }
   },
   {
     path: '/connection',
@@ -46,16 +53,28 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '日志监控' }
   },
   {
+    path: '/sensitive-words',
+    name: 'SensitiveWords',
+    component: () => import('@/views/sensitive-words/index.vue'),
+    meta: { title: '敏感词管理' }
+  },
+  {
     path: '/blacklist',
     name: 'Blacklist',
     component: () => import('@/views/blacklist/index.vue'),
     meta: { title: '黑名单管理' }
   },
   {
-    path: '/effect-preview',
-    name: 'EffectPreview',
-    component: () => import('@/views/effect-preview/index.vue'),
-    meta: { title: '特效预览' }
+    path: '/captain-effect',
+    name: 'CaptainEffect',
+    component: () => import('@/views/captain-effect/index.vue'),
+    meta: { title: '上舰特效' }
+  },
+  {
+    path: '/gift-reminder',
+    name: 'GiftReminder',
+    component: () => import('@/views/gift-reminder/index.vue'),
+    meta: { title: '礼物提醒' }
   },
   {
     path: '/update-log',
@@ -70,6 +89,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '插件管理' }
   },
   {
+    path: '/tts',
+    name: 'Tts',
+    component: () => import('@/views/tts/index.vue'),
+    meta: { title: '语音播报' }
+  },
+  {
     path: '/recording',
     name: 'Recording',
     component: () => import('@/views/recording/index.vue'),
@@ -80,7 +105,8 @@ const routes: RouteRecordRaw[] = [
     name: 'GiftSound',
     component: () => import('@/views/gift-sound/index.vue'),
     meta: { title: '礼物音效配置' }
-  }
+  },
+  ...memberChannel.routes
 ];
 
 const router = createRouter({
@@ -93,6 +119,10 @@ router.beforeEach((to, _from, next) => {
   // 设置页面标题
   if (to.meta.title) {
     document.title = `${to.meta.title} - Bilibili 直播助手`;
+  }
+  if (!memberChannel.canAccess(to.path)) {
+    next(memberChannel.deniedRoute);
+    return;
   }
   next();
 });

@@ -29,3 +29,5 @@ app.asar
 
 # Temporary files
 *.tmp
+packages/bilibili-live-tool/.release-staging/
+packages/bilibili-live-tool/src-tauri/tauri.release.*.conf.json

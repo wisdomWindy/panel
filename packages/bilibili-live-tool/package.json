@@ -2,80 +2,54 @@
   "name": "@monorepo/bilibili-live-tool",
   "version": "0.1.0",
   "description": "Bilibili 直播助手 - 智能弹幕与互动工具",
-  "main": "dist/main/index.js",
-  "author": "Your Name",
+  "author": "",
   "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev.js",
-    "build": "node scripts/build.js",
+    "dev": "pnpm dev:free",
+    "dev:free": "tauri dev --config src-tauri/tauri.free.conf.json",
+    "dev:member": "tauri dev --config src-tauri/tauri.member.conf.json",
+    "dev:web": "vite --host 127.0.0.1",
+    "build": "pnpm build:free",
+    "build:free": "tauri build --config src-tauri/tauri.free.conf.json",
+    "build:member": "tauri build --config src-tauri/tauri.member.conf.json",
+    "build:web": "pnpm build:web:free",
+    "build:web:free": "vite build --mode free",
+    "build:web:member": "vite build --mode member",
     "build:vite": "vite build",
-    "build:app": "vite build && electron-builder",
     "build:renderer": "vite build",
     "preview": "vite preview",
     "lint": "eslint --ext .js,.ts,.vue src --fix",
     "lint:check": "eslint --ext .js,.ts,.vue src",
     "lint:style": "stylelint \"src/**/*.{vue,scss,css}\" --fix",
     "type-check": "tsc --noEmit -p tsconfig.eslint.json",
-    "format": "prettier --write src/"
-  },
-  "build": {
-    "appId": "com.bilibili.live-tool",
-    "productName": "Bilibili 直播助手",
-    "executableName": "start",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*"
-    ],
-    "electronDist": "node_modules/electron/dist",
-    "mac": {
-      "target": "dmg",
-      "icon": "public/icon.icns"
-    },
-    "win": {
-      "target": "nsis",
-      "icon": "public/icon.ico"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "public/icon.png"
-    }
+    "test:platform": "vitest run src/renderer/platform/desktop",
+    "test:live-data": "vitest run --mode free src/renderer/modules/live-data src/renderer/composables/useLiveDataRuntime.test.ts src/renderer/stores/live-data",
+    "test:release": "node --test scripts/*.node-test.mjs",
+    "format": "prettier --write src/",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
-    "@types/lodash": "catalog:",
-    "@types/three": "catalog:",
-    "@vueuse/core": "catalog:",
-    "axios": "catalog:",
-    "crypto-js": "catalog:",
-    "dayjs": "catalog:",
+    "@tauri-apps/api": "^2.11.1",
     "echarts": "catalog:",
-    "electron-store": "catalog:",
     "element-plus": "catalog:",
-    "lodash": "catalog:",
-    "pako": "catalog:",
     "pinia": "catalog:",
-    "three": "catalog:",
     "vue": "catalog:",
     "vue-i18n": "catalog:",
-    "vue-router": "catalog:",
-    "winston": "catalog:"
+    "vue-router": "catalog:"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "catalog:",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/node": "catalog:",
-    "@types/pako": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@vue/tsconfig": "catalog:",
     "@vue/typescript-plugin": "catalog:",
     "autoprefixer": "catalog:",
-    "electron": "catalog:",
-    "electron-builder": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-vue": "catalog:",
     "postcss": "catalog:",
@@ -86,7 +60,6 @@
     "unplugin-auto-import": "catalog:",
     "unplugin-vue-components": "catalog:",
     "vite": "catalog:",
-    "vite-plugin-electron": "catalog:",
-    "vite-plugin-electron-renderer": "catalog:"
+    "vitest": "^2.1.9"
   }
 }

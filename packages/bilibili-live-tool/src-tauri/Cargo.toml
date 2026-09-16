@@ -1,0 +1,52 @@
+[package]
+name = "bilibili-live-tool"
+version = "0.1.0"
+description = "Bilibili live monitoring assistant"
+authors = []
+license = "MIT"
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+[features]
+default = []
+free = []
+member = []
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "bilibili_live_tool_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+aho-corasick = "1"
+async-trait = "0.1"
+csv = "1"
+ed25519-dalek = "2"
+regex = "1"
+semver = "1"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"
+log = "0.4"
+rodio = { version = "0.20.1", default-features = false, features = ["mp3", "wav"] }
+tauri = { version = "2.11.3", features = [] }
+tauri-plugin-log = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-global-shortcut = "2.3.2"
+tauri-plugin-notification = "2.4.0"
+tauri-plugin-updater = "2.11.0"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "migrate", "macros"] }
+sysinfo = { version = "0.30.13", default-features = false }
+sys-locale = "0.3.2"
+thiserror = "2"
+tokio = { version = "1", features = ["fs", "io-util", "macros", "process", "rt-multi-thread", "sync", "time", "test-util"] }
+tts = { version = "0.26.3", default-features = false }
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+tempfile = "3"

@@ -1,123 +1,97 @@
 <script setup lang="ts">
-import { VideoPlay, FolderOpened, Delete, Download } from '@element-plus/icons-vue';
-import type { Recording } from '../../../modules/recording/types.js';
-import { useRecordingStore } from '../../../stores/recording';
-import { formatDuration, formatFileSize, formatDate } from '../../../utils/format.js';
-import { getRecordingStatusTagType, getRecordingStatusText, confirmDelete, showSuccess, showError } from '../../../utils/ui.js';
+import { Delete, Edit, VideoPlay } from '@element-plus/icons-vue';
+import type { RecordingId, RecordingSummary } from '@/platform/desktop';
+import { formatBytes, formatClockTime, formatDuration } from '@/modules/media/formatters';
 
 defineProps<{
-  recordings: Recording[];
+  recordings: readonly RecordingSummary[];
   loading?: boolean;
+  pendingOperations: ReadonlySet<string>;
 }>();
 
-const recordingStore = useRecordingStore();
+const emit = defineEmits<{
+  preview: [recording: RecordingSummary];
+  rename: [recording: RecordingSummary];
+  delete: [recording: RecordingSummary];
+}>();
 
-async function handlePlay(recording: Recording) {
-  await recordingStore.openRecordingFolder(recording.id);
+function operationPending(action: string, id: RecordingId, pending: ReadonlySet<string>): boolean {
+  return pending.has(`${action}:${id}`);
 }
 
-async function handleOpenFolder(recording: Recording) {
-  await recordingStore.openRecordingFolder(recording.id);
-}
-
-async function handleDelete(recording: Recording) {
-  const confirmed = await confirmDelete(
-    `确定要删除录制文件 "${recording.fileName}" 吗？此操作不可恢复。`
-  );
-  if (!confirmed) return;
-
-  try {
-    await recordingStore.deleteRecording(recording.id);
-    showSuccess('删除成功');
-  } catch {
-    showError('删除失败');
-  }
-}
-
-function handleDownload(recording: Recording) {
-  const link = document.createElement('a');
-  link.href = recording.filePath;
-  link.download = recording.fileName;
-  link.click();
+function statusText(status: RecordingSummary['status']): string {
+  return { recording: '录制中', completed: '已完成', partial: '部分文件', failed: '失败' }[status];
 }
 </script>
 
 <template>
-  <div class="w-full">
-    <el-table
-      :data="recordings"
-      :loading="loading"
-      stripe
-      class="w-full"
-    >
+  <div class="min-h-64 w-full overflow-x-auto">
+    <el-table :data="recordings" :loading="loading" class="min-w-[780px] w-full">
       <el-table-column
         prop="fileName"
         label="文件名"
-        min-width="200"
+        min-width="220"
         show-overflow-tooltip
       />
-
-      <el-table-column label="时长" width="100" align="center">
+      <el-table-column label="时长" width="105" align="right">
         <template #default="{ row }">
-          {{ formatDuration(row.duration) }}
+          {{ formatDuration(row.durationSeconds) }}
         </template>
       </el-table-column>
-
-      <el-table-column label="大小" width="100" align="center">
+      <el-table-column label="大小" width="105" align="right">
         <template #default="{ row }">
-          {{ formatFileSize(row.fileSize) }}
+          {{ formatBytes(row.sizeBytes) }}
         </template>
       </el-table-column>
-
-      <el-table-column label="录制时间" width="180" align="center">
+      <el-table-column label="录制时间" width="120">
         <template #default="{ row }">
-          {{ formatDate(row.startedAt) }}
+          {{ formatClockTime(row.startedAt) }}
         </template>
       </el-table-column>
-
-      <el-table-column label="状态" width="100" align="center">
+      <el-table-column label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="getRecordingStatusTagType(row.status)">
-            {{ getRecordingStatusText(row.status) }}
+          <el-tag :type="row.status === 'completed' ? 'success' : row.status === 'failed' ? 'danger' : row.status === 'partial' ? 'warning' : 'primary'">
+            {{ statusText(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
-
-      <el-table-column
-        label="操作"
-        width="200"
-        align="center"
-        fixed="right"
-      >
+      <el-table-column label="操作" width="150" fixed="right">
         <template #default="{ row }">
-          <el-button
-            type="primary"
-            :icon="VideoPlay"
-            size="small"
-            @click="handlePlay(row)"
-          />
-          <el-button
-            type="info"
-            :icon="FolderOpened"
-            size="small"
-            @click="handleOpenFolder(row)"
-          />
-          <el-button
-            type="success"
-            :icon="Download"
-            size="small"
-            @click="handleDownload(row)"
-          />
-          <el-button
-            type="danger"
-            :icon="Delete"
-            size="small"
-            @click="handleDelete(row)"
-          />
+          <div class="flex items-center gap-1">
+            <el-tooltip content="预览">
+              <el-button
+                :icon="VideoPlay"
+                circle
+                :loading="operationPending('previewRecording', row.id, pendingOperations)"
+                aria-label="预览录制"
+                @click="emit('preview', row)"
+              />
+            </el-tooltip>
+            <el-tooltip content="重命名">
+              <el-button
+                :icon="Edit"
+                circle
+                aria-label="重命名录制"
+                @click="emit('rename', row)"
+              />
+            </el-tooltip>
+            <el-tooltip content="删除">
+              <el-button
+                :icon="Delete"
+                circle
+                type="danger"
+                plain
+                :loading="operationPending('deleteRecording', row.id, pendingOperations)"
+                aria-label="删除录制"
+                @click="emit('delete', row)"
+              />
+            </el-tooltip>
+          </div>
         </template>
       </el-table-column>
+      <template #empty>
+        <el-empty description="暂无录制文件" />
+      </template>
     </el-table>
-
-    <el-empty v-if="!loading && recordings.length === 0" description="暂无录制文件" />
   </div>
 </template>

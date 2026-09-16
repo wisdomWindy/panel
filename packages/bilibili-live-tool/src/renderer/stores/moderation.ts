@@ -1,126 +1,167 @@
-/**
- * 自动禁言与刷屏防护状态管理
- */
-
+import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import type { ModerationConfig, MuteRecord } from '../modules/moderation/types.js';
-import { DEFAULT_MODERATION_CONFIG } from '../modules/moderation/types.js';
-import { getModerationService } from '../services/moderation-service.js';
+import {
+  invokeDesktop,
+  normalizeDesktopError,
+  type DesktopError,
+  type ModerationAlert,
+  type ModerationAlertId,
+  type ModerationLogEntry,
+  type ModerationRules,
+  type ModerationSummary,
+  type MuteDuration,
+  type UserUid
+} from '@/platform/desktop';
+import {
+  adaptModerationAlert,
+  adaptModerationLogs,
+  adaptModerationSummary
+} from '@/modules/member/adapters';
 
-export const useModerationStore = defineStore('moderation', () => {
-  // State
-  const config = ref<ModerationConfig>({ ...DEFAULT_MODERATION_CONFIG });
-  const muteRecords = ref<MuteRecord[]>([]);
-  const isEnabled = ref<boolean>(false);
-  const lastMuteRecord = ref<MuteRecord | null>(null);
+export const useModerationStore = defineStore('member-moderation', () => {
+  const summary = ref<ModerationSummary | null>(null);
+  const logs = ref<readonly ModerationLogEntry[]>([]);
+  const pendingOperations = ref<ReadonlySet<string>>(new Set());
+  const error = ref<DesktopError | null>(null);
+  const operations = new Map<string, Promise<unknown>>();
+  let generation = 0;
 
-  // Getters
-  const activeMuteCount = computed(() => {
-    const now = Date.now();
-    return muteRecords.value.filter(r => {
-      if (r.unmutedAt) return false;
-      if (r.duration === 0) return true;
-      const muteEnd = r.mutedAt.getTime() + r.duration * 60 * 1000;
-      return now < muteEnd;
-    }).length;
-  });
+  const alerts = computed(() => summary.value?.alerts ?? Object.freeze([]));
+  const rules = computed(() => summary.value?.rules ?? null);
 
-  // Actions
-  function updateConfig(updates: Partial<ModerationConfig>): void {
-    config.value = { ...config.value, ...updates };
-    const moderationService = getModerationService();
-    moderationService.updateConfig(updates);
-    saveConfig();
+  function run<T>(key: string, effect: () => Promise<T>): Promise<T> {
+    const existing = operations.get(key) as Promise<T> | undefined;
+    if (existing) return existing;
+    const localGeneration = generation;
+    error.value = null;
+    pendingOperations.value = new Set([...pendingOperations.value, key]);
+    const current = effect()
+      .catch(reason => {
+        const mapped = normalizeDesktopError(reason);
+        if (localGeneration === generation) error.value = mapped;
+        throw mapped;
+      })
+      .finally(() => {
+        if (operations.get(key) === current) operations.delete(key);
+        if (localGeneration === generation) {
+          const next = new Set(pendingOperations.value);
+          next.delete(key);
+          pendingOperations.value = next;
+        }
+      });
+    operations.set(key, current);
+    return current;
   }
 
-  function toggleEnabled(): void {
-    updateConfig({ enabled: !config.value.enabled });
-    isEnabled.value = config.value.enabled;
+  function bootstrap(): Promise<ModerationSummary> {
+    return run('bootstrap', async () => {
+      const next = adaptModerationSummary(await invokeDesktop('moderate_status', undefined));
+      summary.value = next;
+      return next;
+    });
   }
 
-  function toggleAutoMute(): void {
-    updateConfig({ autoMuteEnabled: !config.value.autoMuteEnabled });
+  function setAuto(isEnabled: boolean, isRiskAccepted: boolean): Promise<ModerationSummary> {
+    return run('setAuto', async () => {
+      const next = adaptModerationSummary(
+        await invokeDesktop('moderate_set_auto', { isEnabled, isRiskAccepted })
+      );
+      summary.value = next;
+      return next;
+    });
   }
 
-  function toggleFloodProtection(): void {
-    updateConfig({ floodProtectionEnabled: !config.value.floodProtectionEnabled });
+  function updateRules(value: ModerationRules): Promise<ModerationSummary> {
+    return run('updateRules', async () => {
+      const next = adaptModerationSummary(
+        await invokeDesktop('moderate_update_rules', { rules: value })
+      );
+      summary.value = next;
+      return next;
+    });
   }
 
-  function addProhibitedWord(word: string): void {
-    const moderationService = getModerationService();
-    moderationService.addProhibitedWord(word);
-    config.value.prohibitedWords = moderationService.getProhibitedWords();
-    saveConfig();
+  function mute(alertId: ModerationAlertId, duration: MuteDuration): Promise<ModerationAlert> {
+    return run(`mute:${alertId}`, async () => {
+      const next = adaptModerationAlert(
+        await invokeDesktop('moderate_mute', { alertId, duration })
+      );
+      replaceAlert(next);
+      return next;
+    });
   }
 
-  function removeProhibitedWord(word: string): void {
-    const moderationService = getModerationService();
-    moderationService.removeProhibitedWord(word);
-    config.value.prohibitedWords = moderationService.getProhibitedWords();
-    saveConfig();
+  function ignore(alertId: ModerationAlertId): Promise<ModerationSummary> {
+    return run(`ignore:${alertId}`, async () => {
+      const next = adaptModerationSummary(await invokeDesktop('moderate_ignore', { alertId }));
+      summary.value = next;
+      return next;
+    });
   }
 
-  function fetchMuteRecords(roomId?: string): void {
-    const moderationService = getModerationService();
-    muteRecords.value = moderationService.getMuteRecords(roomId);
+  function loadLogs(filters: {
+    userUid: UserUid | null;
+    startedAt: number | null;
+    endedAt: number | null;
+  }): Promise<readonly ModerationLogEntry[]> {
+    return run('loadLogs', async () => {
+      const next = adaptModerationLogs(await invokeDesktop('moderate_log_query', filters));
+      logs.value = next;
+      return next;
+    });
   }
 
-  function unmuteUser(userId: string): void {
-    const moderationService = getModerationService();
-    moderationService.unmute(userId);
-    fetchMuteRecords();
+  function markFalsePositive(logId: number): Promise<readonly ModerationLogEntry[]> {
+    return run(`falsePositive:${logId}`, async () => {
+      const next = adaptModerationLogs(
+        await invokeDesktop('moderate_mark_false_positive', { logId })
+      );
+      logs.value = next;
+      return next;
+    });
   }
 
-  function clearRecords(): void {
-    muteRecords.value = [];
+  function replaceAlert(value: unknown): void {
+    const alert = adaptModerationAlert(value);
+    const current = summary.value;
+    if (!current) return;
+    summary.value = Object.freeze({
+      ...current,
+      alerts: Object.freeze([
+        alert,
+        ...current.alerts.filter(item => item.alertId !== alert.alertId)
+      ])
+    });
   }
 
-  function saveConfig(): void {
-    try {
-      localStorage.setItem('moderation-config', JSON.stringify(config.value));
-    } catch (error) {
-      console.error('Failed to save moderation config:', error);
-    }
+  function replaceSummary(value: unknown): void {
+    summary.value = adaptModerationSummary(value);
   }
 
-  function loadConfig(): void {
-    try {
-      const saved = localStorage.getItem('moderation-config');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        config.value = { ...DEFAULT_MODERATION_CONFIG, ...parsed };
-        isEnabled.value = config.value.enabled;
-      }
-    } catch (error) {
-      console.error('Failed to load moderation config:', error);
-    }
+  function dispose(): void {
+    generation += 1;
+    operations.clear();
+    pendingOperations.value = new Set();
+    error.value = null;
+    logs.value = [];
   }
-
-  // 初始化
-  loadConfig();
 
   return {
-    // State
-    config,
-    muteRecords,
-    isEnabled,
-    lastMuteRecord,
-
-    // Getters
-    activeMuteCount,
-
-    // Actions
-    updateConfig,
-    toggleEnabled,
-    toggleAutoMute,
-    toggleFloodProtection,
-    addProhibitedWord,
-    removeProhibitedWord,
-    fetchMuteRecords,
-    unmuteUser,
-    clearRecords,
-    saveConfig,
-    loadConfig
+    summary,
+    logs,
+    alerts,
+    rules,
+    pendingOperations,
+    error,
+    bootstrap,
+    setAuto,
+    updateRules,
+    mute,
+    ignore,
+    loadLogs,
+    markFalsePositive,
+    replaceAlert,
+    replaceSummary,
+    dispose
   };
 });

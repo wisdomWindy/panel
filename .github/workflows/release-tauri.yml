@@ -1,0 +1,238 @@
+name: Release Tauri Applications
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tauri-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  APP_PATH: packages/bilibili-live-tool
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate signing inputs
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_SIGNING_PUBLIC_KEY: ${{ vars.TAURI_SIGNING_PUBLIC_KEY }}
+        run: |
+          test -n "$TAURI_SIGNING_PRIVATE_KEY"
+          test -n "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+          test -n "$TAURI_SIGNING_PUBLIC_KEY"
+
+      - name: Validate release tag and project version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
+          test "${GITHUB_REF_NAME}" = "v${VERSION}"
+
+      - name: Test release contracts
+        run: pnpm --dir "$APP_PATH" test:release
+
+      - name: Validate workflow formatting
+        run: pnpm --dir "$APP_PATH" exec prettier --check ../../.github/workflows/release-tauri.yml
+
+  build:
+    needs: verify
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [free, member]
+        target:
+          - platform: macos-latest
+            args: --target aarch64-apple-darwin
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
+          - platform: macos-latest
+            args: --target x86_64-apple-darwin
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
+          - platform: ubuntu-22.04
+            args: ""
+            rust_targets: ""
+          - platform: ubuntu-22.04-arm
+            args: ""
+            rust_targets: ""
+          - platform: windows-latest
+            args: ""
+            rust_targets: ""
+    runs-on: ${{ matrix.target.platform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Linux dependencies
+        if: startsWith(matrix.target.platform, 'ubuntu-')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils libasound2-dev libspeechd-dev
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target.rust_targets }}
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "${{ env.APP_PATH }}/src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate signed updater configuration
+        shell: bash
+        env:
+          TAURI_SIGNING_PUBLIC_KEY: ${{ vars.TAURI_SIGNING_PUBLIC_KEY }}
+        run: >-
+          node "$APP_PATH/scripts/prepare-release-config.mjs"
+          --channel "${{ matrix.channel }}"
+          --output "$APP_PATH/src-tauri/tauri.release.${{ matrix.channel }}.conf.json"
+
+      - name: Build and upload Tauri bundles
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: "-"
+        with:
+          projectPath: ${{ env.APP_PATH }}
+          tagName: ${{ matrix.channel }}-v__VERSION__
+          releaseName: "Bilibili Live Assistant ${{ matrix.channel }} v__VERSION__"
+          releaseBody: "Signed desktop installers and updater artifacts."
+          releaseDraft: true
+          prerelease: false
+          args: --config src-tauri/tauri.release.${{ matrix.channel }}.conf.json ${{ matrix.target.args }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Resolve and verify official runtime packages
+        run: >-
+          node "$APP_PATH/scripts/resolve-runtime-artifacts.mjs"
+          --output "$APP_PATH/.release-staging/runtime-artifacts.json"
+          --download-dir "$APP_PATH/.release-staging/runtime-assets"
+
+      - name: Validate optional WASM signature files
+        shell: bash
+        run: |
+          shopt -s nullglob
+          for module in release-assets/wasm/*.wasm; do
+            test -s "${module}.sig"
+          done
+
+      - name: Download and finalize updater manifests
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
+          for CHANNEL in free member; do
+            mkdir -p "$APP_PATH/.release-staging/$CHANNEL"
+            gh release download "$CHANNEL-v$VERSION" --pattern latest.json --dir "$APP_PATH/.release-staging/$CHANNEL"
+            node "$APP_PATH/scripts/finalize-update-manifest.mjs" \
+              --input "$APP_PATH/.release-staging/$CHANNEL/latest.json" \
+              --version "$VERSION"
+          done
+
+      - name: Upload runtime catalog and optional WASM assets
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
+          shopt -s nullglob
+          WASM_ASSETS=(release-assets/wasm/*.wasm release-assets/wasm/*.wasm.sig)
+          for CHANNEL in free member; do
+            gh release upload "$CHANNEL-v$VERSION" "$APP_PATH/.release-staging/runtime-artifacts.json#runtime-artifacts.json" --clobber
+            if (( ${#WASM_ASSETS[@]} )); then
+              gh release upload "$CHANNEL-v$VERSION" "${WASM_ASSETS[@]}" --clobber
+            fi
+          done
+
+      - name: Publish channel manifests to updates branch
+        shell: bash
+        run: |
+          DEFAULT_BRANCH=$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)
+          DEFAULT_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$DEFAULT_BRANCH" --jq .object.sha)
+          if ! gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/updates" >/dev/null 2>&1; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref='refs/heads/updates' \
+              -f sha="$DEFAULT_SHA"
+          fi
+
+          VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
+          for CHANNEL in free member; do
+            TARGET="$CHANNEL/latest.json"
+            FILE="$APP_PATH/.release-staging/$CHANNEL/latest.json"
+            CONTENT=$(base64 -w0 "$FILE")
+            SHA=$(gh api "repos/$GITHUB_REPOSITORY/contents/$TARGET?ref=updates" --jq .sha 2>/dev/null || true)
+            if [[ -n "$SHA" ]]; then
+              gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$TARGET" \
+                -f message="release: publish $CHANNEL updater manifest v$VERSION" \
+                -f content="$CONTENT" \
+                -f branch=updates \
+                -f sha="$SHA"
+            else
+              gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$TARGET" \
+                -f message="release: publish $CHANNEL updater manifest v$VERSION" \
+                -f content="$CONTENT" \
+                -f branch=updates
+            fi
+          done
+
+      - name: Publish GitHub releases
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
+          gh release edit "free-v$VERSION" --draft=false
+          gh release edit "member-v$VERSION" --draft=false

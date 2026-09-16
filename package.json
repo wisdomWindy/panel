@@ -9,7 +9,6 @@
   "scripts": {
     "dev": "pnpm --filter @monorepo/bilibili-live-tool dev",
     "build": "pnpm --filter @monorepo/bilibili-live-tool build",
-    "build:app": "pnpm --filter @monorepo/bilibili-live-tool build:app",
     "lint": "pnpm --filter @monorepo/bilibili-live-tool lint",
     "lint:check": "pnpm --filter @monorepo/bilibili-live-tool lint:check",
     "type-check": "pnpm --filter @monorepo/bilibili-live-tool type-check",

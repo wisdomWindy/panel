@@ -1,315 +1,310 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { VideoCamera, VideoPause, VideoPlay, Setting, Star } from '@element-plus/icons-vue';
-import { useRecordingStore } from '../../stores/recording';
-import { useRoomStore } from '../../stores/room';
-import RecordingList from './components/RecordingList.vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
+import { Setting, Star, VideoCamera, VideoPause } from '@element-plus/icons-vue';
+import type { HighlightSummary, PreviewSession, RecordingConfig, RecordingSummary } from '@/platform/desktop';
+import RecordingStatusBand from '@/components/media/RecordingStatusBand.vue';
+import { validateFileNameStem } from '@/modules/media/validation';
+import { useLiveRoomStore } from '@/stores/live-data/room';
+import { useMediaRecordingStore } from '@/stores/media/recording';
 import HighlightList from './components/HighlightList.vue';
-import {
-  buildRecordingStartOptions,
-  canStartRecording
-} from './utils/recording-context.js';
+import RecordingList from './components/RecordingList.vue';
+import RecordingSettingsDialog from './components/RecordingSettingsDialog.vue';
 
-const recordingStore = useRecordingStore();
-const roomStore = useRoomStore();
+const store = useMediaRecordingStore();
+const room = useLiveRoomStore();
+const activeTab = ref<'recordings' | 'highlights'>('recordings');
+const settingsVisible = ref(false);
+const settingsDraft = ref<RecordingConfig | null>(null);
+const preview = ref<PreviewSession | null>(null);
+const previewTitle = ref('');
+const primaryButton = ref<{ $el?: HTMLElement } | null>(null);
 
-const activeTab = ref('recordings');
-const configDialogVisible = ref(false);
+const config = computed(() => store.config);
+const status = computed(() => store.status);
+const isActive = computed(() => status.value?.state === 'recording');
+const isTransitioning = computed(() => ['starting', 'stopping', 'finalizing'].includes(status.value?.state ?? ''));
+const startDisabledReason = computed(() => {
+  if (!room.isConnected || !room.snapshot.roomId) return '请先连接已开播的直播间';
+  if (!config.value?.directory) return '请先选择录制存储目录';
+  if (config.value.ffmpegSource === 'bundled') return '内置 FFmpeg 尚未提供，请在设置中选择本机 FFmpeg';
+  if (status.value && status.value.diskRemainingBytes > 0 && status.value.diskRemainingBytes < config.value.waterlineBytes) {
+    return '磁盘剩余空间低于停止水位';
+  }
+  if (status.value?.state === 'error') return '录制状态异常，请检查 FFmpeg 路径';
+  return null;
+});
+const primaryText = computed(() => isActive.value ? '停止录制' : status.value?.state === 'error' ? '重试录制' : '开始录制');
 
-// 计算属性
-const isRecording = computed(() => recordingStore.isRecording);
-const isPaused = computed(() => recordingStore.isPaused);
-const isIdle = computed(() => recordingStore.isIdle);
+function cloneConfig(value: RecordingConfig): RecordingConfig {
+  return { ...value, directory: value.directory ? { ...value.directory } : null };
+}
 
-// 方法
-async function handleStartRecording() {
+function openSettings(): void {
+  if (!config.value) return;
+  settingsDraft.value = cloneConfig(config.value);
+  settingsVisible.value = true;
+}
+
+async function handlePrimary(): Promise<void> {
   try {
-    // 检查 FFmpeg
-    const ffmpegInfo = await recordingStore.checkFFmpeg();
-    if (!ffmpegInfo.available) {
-      ElMessage.error('FFmpeg 未安装，请先安装 FFmpeg');
+    if (isActive.value) {
+      await store.stop();
+      await store.refresh();
+      ElMessage.success('录制已停止');
       return;
     }
-
-    const roomContext = roomStore.roomInfo
-      ? {
-          roomId: String(roomStore.roomInfo.roomId),
-          roomName: roomStore.roomInfo.roomName
-        }
-      : null;
-    const canStart = canStartRecording(roomContext);
-    if (!canStart.ok) {
-      ElMessage.error(canStart.message);
-      return;
-    }
-
-    await recordingStore.startRecording(
-      buildRecordingStartOptions(roomContext, recordingStore.config)
-    );
-
-    ElMessage.success('开始录制');
+    if (startDisabledReason.value || !room.snapshot.roomId) return;
+    await store.start(room.snapshot.roomId);
+    ElMessage.success('已开始录制');
   } catch (error) {
-    ElMessage.error('开始录制失败: ' + (error as Error).message);
+    ElMessage.error((error as { message?: string }).message ?? '录制操作失败');
   }
 }
 
-async function handlePauseRecording() {
+async function handleMark(): Promise<void> {
   try {
-    await recordingStore.pauseRecording();
-    ElMessage.success('录制已暂停');
-  } catch (error) {
-    ElMessage.error('暂停录制失败: ' + (error as Error).message);
-  }
-}
-
-async function handleResumeRecording() {
-  try {
-    await recordingStore.resumeRecording();
-    ElMessage.success('录制已恢复');
-  } catch (error) {
-    ElMessage.error('恢复录制失败: ' + (error as Error).message);
-  }
-}
-
-async function handleStopRecording() {
-  try {
-    await recordingStore.stopRecording();
-    ElMessage.success('录制已停止');
-  } catch (error) {
-    ElMessage.error('停止录制失败: ' + (error as Error).message);
-  }
-}
-
-async function handleMarkHighlight() {
-  try {
-    await recordingStore.markHighlight('manual', '手动标记');
+    await store.markHighlight();
+    activeTab.value = 'highlights';
     ElMessage.success('高光已标记');
   } catch (error) {
-    ElMessage.error('标记高光失败: ' + (error as Error).message);
+    ElMessage.error((error as { message?: string }).message ?? '标记失败');
   }
 }
 
-function handleOpenConfig() {
-  configDialogVisible.value = true;
+async function selectDirectory(): Promise<void> {
+  if (!settingsDraft.value) return;
+  try {
+    const directory = await store.selectDirectory();
+    settingsDraft.value = { ...settingsDraft.value, directory };
+  } catch (error) {
+    const value = error as { code?: string; message?: string };
+    if (value.code !== 'dialog_cancelled') ElMessage.error(value.message ?? '目录选择失败');
+  }
 }
 
-// 生命周期
-onMounted(async () => {
-  await recordingStore.fetchRecordings();
-  await recordingStore.fetchHighlights();
-  await recordingStore.fetchConfig();
+async function setFfmpegSource(source: RecordingConfig['ffmpegSource']): Promise<void> {
+  if (!settingsDraft.value) return;
+  try {
+    const saved = await store.setFfmpegSource(source);
+    settingsDraft.value = { ...settingsDraft.value, ffmpegSource: saved.ffmpegSource };
+  } catch (error) {
+    const value = error as { code?: string; message?: string };
+    if (value.code !== 'dialog_cancelled') ElMessage.error(value.message ?? 'FFmpeg 来源设置失败');
+  }
+}
 
-  // 监听 F9 快捷键
-  window.electronAPI.on('recording:markHighlightHotkey', () => {
-    if (recordingStore.isRecording) {
-      handleMarkHighlight();
-    }
-  });
+async function saveSettings(): Promise<void> {
+  if (!settingsDraft.value) return;
+  try {
+    const saved = await store.saveConfig(cloneConfig(settingsDraft.value));
+    settingsDraft.value = cloneConfig(saved);
+    settingsVisible.value = false;
+    ElMessage.success('录制设置已保存');
+    await nextTick();
+    primaryButton.value?.$el?.focus();
+  } catch (error) {
+    ElMessage.error((error as { message?: string }).message ?? '保存失败');
+  }
+}
+
+function handleSettingsVisibility(visible: boolean): void {
+  settingsVisible.value = visible;
+  if (!visible) {
+    void store.discardDirectorySelection();
+    if (config.value) settingsDraft.value = cloneConfig(config.value);
+  }
+}
+
+async function showRecordingPreview(recording: RecordingSummary): Promise<void> {
+  try {
+    preview.value = await store.previewRecording(recording.id);
+    previewTitle.value = recording.fileName;
+  } catch (error) {
+    ElMessage.error((error as { message?: string }).message ?? '预览失败');
+  }
+}
+
+async function showHighlightPreview(highlight: HighlightSummary): Promise<void> {
+  try {
+    preview.value = await store.previewHighlight(highlight.id);
+    previewTitle.value = `高光 ${highlight.positionSeconds}s`;
+  } catch (error) {
+    ElMessage.error((error as { message?: string }).message ?? '预览失败');
+  }
+}
+
+async function renameRecording(recording: RecordingSummary): Promise<void> {
+  const extension = `.${recording.format}`;
+  const initial = recording.fileName.endsWith(extension) ? recording.fileName.slice(0, -extension.length) : recording.fileName;
+  try {
+    const result = await ElMessageBox.prompt('输入新文件名', `重命名 ${recording.fileName}`, {
+      inputValue: initial,
+      inputValidator: value => validateFileNameStem(value).message ?? true,
+      confirmButtonText: '重命名',
+      cancelButtonText: '取消'
+    });
+    await store.renameRecording(recording.id, result.value.trim());
+    ElMessage.success('录制文件已重命名');
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') ElMessage.error((error as { message?: string }).message ?? '重命名失败');
+  }
+}
+
+async function deleteRecording(recording: RecordingSummary): Promise<void> {
+  try {
+    await ElMessageBox.confirm(`确定删除录制文件“${recording.fileName}”？`, '删除录制', {
+      type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消'
+    });
+    await store.deleteRecording(recording.id);
+    ElMessage.success('录制文件已删除');
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') ElMessage.error((error as { message?: string }).message ?? '删除失败');
+  }
+}
+
+async function exportHighlight(highlight: HighlightSummary): Promise<void> {
+  try {
+    await store.exportHighlight(highlight.id);
+    ElMessage.success('高光片段已导出');
+  } catch (error) {
+    const value = error as { code?: string; message?: string };
+    if (value.code !== 'dialog_cancelled') ElMessage.error(value.message ?? '导出失败');
+  }
+}
+
+async function deleteHighlight(highlight: HighlightSummary): Promise<void> {
+  try {
+    await ElMessageBox.confirm(`确定删除 ${highlight.positionSeconds}s 处的高光标记？`, '删除高光', {
+      type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消'
+    });
+    await store.deleteHighlight(highlight.id);
+    ElMessage.success('高光已删除');
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') ElMessage.error((error as { message?: string }).message ?? '删除失败');
+  }
+}
+
+function closePreview(): void {
+  preview.value = null;
+  previewTitle.value = '';
+}
+
+onMounted(async () => {
+  try {
+    await store.load();
+  } catch {
+    // The stable error region below owns retry feedback.
+  }
 });
 </script>
 
 <template>
-  <div class="recording-page p-8 h-[calc(100vh-100px)]">
-    <!-- 顶部操作区 -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-4">
-        <h2 class="text-2xl font-bold">
-          录制管理
-        </h2>
-
-        <!-- 录制控制按钮 -->
-        <div class="flex items-center gap-2">
-          <el-button
-            v-if="isIdle"
-            type="danger"
-            :icon="VideoCamera"
-            @click="handleStartRecording"
-          >
-            开始录制
-          </el-button>
-
-          <template v-if="isRecording || isPaused">
+  <div class="mx-auto w-full max-w-6xl">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <h2 class="m-0 text-xl font-semibold text-gray-900">
+        直播录制
+      </h2>
+      <div class="flex flex-wrap items-center gap-2">
+        <el-tooltip :content="!isActive && startDisabledReason ? startDisabledReason : primaryText">
+          <span>
             <el-button
-              v-if="isRecording"
-              type="warning"
-              :icon="VideoPause"
-              @click="handlePauseRecording"
+              ref="primaryButton"
+              :type="isActive ? 'danger' : 'primary'"
+              :icon="isActive ? VideoPause : VideoCamera"
+              :loading="store.pendingOperations.has(isActive ? 'stop' : 'start') || isTransitioning"
+              :disabled="!isActive && !!startDisabledReason"
+              @click="handlePrimary"
             >
-              暂停
+              {{ primaryText }}
             </el-button>
-            <el-button
-              v-if="isPaused"
-              type="success"
-              :icon="VideoPlay"
-              @click="handleResumeRecording"
-            >
-              继续
-            </el-button>
-            <el-button
-              type="info"
-              :icon="VideoCamera"
-              @click="handleStopRecording"
-            >
-              停止
-            </el-button>
-            <el-button
-              type="primary"
-              :icon="Star"
-              @click="handleMarkHighlight"
-            >
-              标记高光
-            </el-button>
-          </template>
-        </div>
+          </span>
+        </el-tooltip>
+        <el-button
+          :icon="Star"
+          :disabled="!isActive"
+          :loading="store.pendingOperations.has('markHighlight')"
+          @click="handleMark"
+        >
+          手动标记
+        </el-button>
+        <el-button :icon="Setting" :disabled="!config || isActive" @click="openSettings">
+          设置
+        </el-button>
       </div>
-
-      <!-- 配置按钮 -->
-      <el-button
-        :icon="Setting"
-        @click="handleOpenConfig"
-      >
-        录制配置
-      </el-button>
     </div>
 
-    <!-- 录制状态信息 -->
-    <el-card
-      v-if="isRecording || isPaused"
-      class="mb-6"
+    <el-alert
+      v-if="store.error"
+      class="mb-4"
+      type="error"
+      :closable="false"
+      :title="store.error.message"
+      show-icon
     >
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-6">
-          <div class="flex items-center gap-2">
-            <el-icon
-              :class="isRecording ? 'text-red-500 animate-pulse' : 'text-yellow-500'"
-              class="text-xl"
-            >
-              <VideoCamera />
-            </el-icon>
-            <span class="font-medium">
-              {{ isRecording ? '录制中' : '已暂停' }}
-            </span>
-          </div>
+      <el-button size="small" @click="store.refresh()">
+        重试
+      </el-button>
+    </el-alert>
 
-          <div class="flex items-center gap-2">
-            <span class="text-gray-500">时长:</span>
-            <span class="font-mono text-lg">
-              {{ recordingStore.formattedDuration }}
-            </span>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <span class="text-gray-500">大小:</span>
-            <span class="font-mono text-lg">
-              {{ recordingStore.formattedFileSize }}
-            </span>
-          </div>
-
-          <div
-            v-if="recordingStore.highlightCount > 0"
-            class="flex items-center gap-2"
-          >
-            <span class="text-gray-500">高光:</span>
-            <span class="font-mono text-lg text-yellow-500">
-              {{ recordingStore.highlightCount }}
-            </span>
-          </div>
-        </div>
+    <el-skeleton v-if="store.pending && (!config || !status)" :rows="8" animated />
+    <template v-else-if="config && status">
+      <RecordingStatusBand :status="status" :config="config" />
+      <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
+        <span>高光快捷键：<kbd class="rounded border border-gray-300 bg-gray-50 px-2 py-1 font-mono">{{ config.shortcut }}</kbd></span>
+        <span v-if="startDisabledReason && !isActive" class="text-amber-700">{{ startDisabledReason }}</span>
       </div>
-    </el-card>
 
-    <!-- 标签页 -->
-    <el-tabs v-model="activeTab">
-      <el-tab-pane label="录制文件" name="recordings">
-        <RecordingList
-          :recordings="recordingStore.recordings"
-          :loading="recordingStore.isLoading"
-        />
-      </el-tab-pane>
+      <el-tabs v-model="activeTab" class="mt-4">
+        <el-tab-pane label="录制文件" name="recordings">
+          <RecordingList
+            :recordings="store.recordings"
+            :loading="store.pending"
+            :pending-operations="store.pendingOperations"
+            @preview="showRecordingPreview"
+            @rename="renameRecording"
+            @delete="deleteRecording"
+          />
+        </el-tab-pane>
+        <el-tab-pane label="高光片段" name="highlights">
+          <HighlightList
+            :highlights="store.highlights"
+            :loading="store.pending"
+            :pending-operations="store.pendingOperations"
+            @preview="showHighlightPreview"
+            @export="exportHighlight"
+            @delete="deleteHighlight"
+          />
+        </el-tab-pane>
+      </el-tabs>
+    </template>
 
-      <el-tab-pane label="高光时刻" name="highlights">
-        <HighlightList
-          :highlights="recordingStore.highlights"
-          :loading="recordingStore.isLoading"
-        />
-      </el-tab-pane>
-    </el-tabs>
+    <RecordingSettingsDialog
+      v-if="settingsDraft"
+      v-model="settingsDraft"
+      :visible="settingsVisible"
+      :pending="store.pendingOperations.has('saveConfig')"
+      :path-pending="store.pendingOperations.has('selectDirectory')"
+      :ffmpeg-pending="store.pendingOperations.has('setFfmpegSource')"
+      @update:visible="handleSettingsVisibility"
+      @select-directory="selectDirectory"
+      @set-ffmpeg-source="setFfmpegSource"
+      @save="saveSettings"
+    />
 
-    <!-- 配置对话框 -->
     <el-dialog
-      v-model="configDialogVisible"
-      title="录制配置"
-      width="600px"
+      :model-value="!!preview"
+      :title="previewTitle"
+      width="min(860px, calc(100vw - 32px))"
+      destroy-on-close
+      @close="closePreview"
     >
-      <el-form :model="recordingStore.config" label-width="120px">
-        <el-form-item label="录制格式">
-          <el-select v-model="recordingStore.config.format">
-            <el-option label="MP4" value="mp4" />
-            <el-option label="FLV" value="flv" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="录制质量">
-          <el-select v-model="recordingStore.config.quality">
-            <el-option label="原始质量" value="original" />
-            <el-option label="720p" value="720p" />
-            <el-option label="1080p" value="1080p" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="存储路径">
-          <el-input v-model="recordingStore.config.outputPath" placeholder="留空使用默认路径" />
-        </el-form-item>
-
-        <el-form-item label="自动分段">
-          <el-switch v-model="recordingStore.config.segmentSize" :active-value="2048" :inactive-value="0" />
-          <span class="ml-2">按 2GB 分段</span>
-        </el-form-item>
-
-        <el-form-item label="自动清理">
-          <el-switch v-model="recordingStore.config.autoCleanup" />
-          <span class="ml-2">保留 {{ recordingStore.config.cleanupDays }} 天</span>
-        </el-form-item>
-
-        <el-divider content-position="left">
-          高光配置
-        </el-divider>
-
-        <el-form-item label="启用高光">
-          <el-switch v-model="recordingStore.config.highlightEnabled" />
-        </el-form-item>
-
-        <el-form-item label="弹幕阈值">
-          <el-input-number
-            v-model="recordingStore.config.highlightConfig.danmakuThreshold"
-            :min="10"
-            :max="100"
-          />
-          <span class="ml-2">条/{{ recordingStore.config.highlightConfig.danmakuWindow }}秒</span>
-        </el-form-item>
-
-        <el-form-item label="礼物阈值">
-          <el-input-number
-            v-model="recordingStore.config.highlightConfig.giftValueThreshold"
-            :min="10"
-            :max="10000"
-          />
-          <span class="ml-2">舰长数</span>
-        </el-form-item>
-
-        <el-form-item label="舰长触发">
-          <el-switch v-model="recordingStore.config.highlightConfig.captainTrigger" />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="configDialogVisible = false">
-          取消
-        </el-button>
-        <el-button type="primary" @click="recordingStore.updateConfig(recordingStore.config); configDialogVisible = false">
-          保存
-        </el-button>
-      </template>
+      <video
+        v-if="preview"
+        :src="preview.url"
+        controls
+        autoplay
+        class="max-h-[65vh] w-full bg-black"
+      />
     </el-dialog>
   </div>
 </template>

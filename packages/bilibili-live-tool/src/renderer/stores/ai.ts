@@ -1,251 +1,200 @@
-/**
- * AI 状态管理
- * 管理 LLM 对话生成相关的状态和操作
- */
-
+import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import type { AIConfig, AIResponse, AIStatus, AIError, ChatMessage } from '../modules/ai/types.js';
-import { DEFAULT_AI_CONFIG, PRESET_PERSONALITIES } from '../modules/ai/types.js';
-import { getLLMService } from '../services/llm-service.js';
-import { useChatContext } from '../composables/useChatContext.js';
+import {
+  invokeDesktop,
+  normalizeDesktopError,
+  type AiConfig,
+  type AiConfigSaveRequest,
+  type AiContextItem,
+  type AiGeneration,
+  type AiLogEntry,
+  type AsrModelManifest,
+  type AsrStatus,
+  type DesktopError,
+  type GenerationId,
+  type UserUid
+} from '@/platform/desktop';
+import {
+  adaptAiConfig,
+  adaptAiGeneration,
+  adaptAiLogs,
+  adaptAsrStatus
+} from '@/modules/member/adapters';
 
-function mergeAIConfig(current: AIConfig, updates: unknown): AIConfig {
-  if (!updates || typeof updates !== 'object') {
+export const useAIStore = defineStore('member-ai', () => {
+  const config = ref<AiConfig | null>(null);
+  const generation = ref<AiGeneration | null>(null);
+  const asr = ref<AsrStatus | null>(null);
+  const logs = ref<readonly AiLogEntry[]>([]);
+  const pendingOperations = ref<ReadonlySet<string>>(new Set());
+  const error = ref<DesktopError | null>(null);
+  const operations = new Map<string, Promise<unknown>>();
+  let revision = 0;
+
+  const isGenerating = computed(
+    () => generation.value?.status === 'assembling' || generation.value?.status === 'streaming'
+  );
+
+  function run<T>(key: string, effect: () => Promise<T>): Promise<T> {
+    const existing = operations.get(key) as Promise<T> | undefined;
+    if (existing) return existing;
+    const localRevision = revision;
+    error.value = null;
+    pendingOperations.value = new Set([...pendingOperations.value, key]);
+    const current = effect()
+      .catch(reason => {
+        const mapped = normalizeDesktopError(reason);
+        if (localRevision === revision) error.value = mapped;
+        throw mapped;
+      })
+      .finally(() => {
+        if (operations.get(key) === current) operations.delete(key);
+        if (localRevision === revision) {
+          const next = new Set(pendingOperations.value);
+          next.delete(key);
+          pendingOperations.value = next;
+        }
+      });
+    operations.set(key, current);
     return current;
   }
 
-  const source = updates as Record<string, unknown>;
-  const personalitySource =
-    source.personality && typeof source.personality === 'object'
-      ? (source.personality as Record<string, unknown>)
-      : {};
-  const provider = source.provider;
-  const tone = personalitySource.tone;
-  const responseStyle = personalitySource.responseStyle;
-  const readString = (key: keyof AIConfig, fallback: string) =>
-    typeof source[key] === 'string' ? source[key] : fallback;
-  const readNumber = (key: keyof AIConfig, fallback: number) =>
-    typeof source[key] === 'number' ? source[key] : fallback;
-
-  return {
-    enabled: typeof source.enabled === 'boolean' ? source.enabled : current.enabled,
-    provider:
-      provider === 'openai' ||
-      provider === 'claude' ||
-      provider === 'ollama' ||
-      provider === 'custom'
-        ? provider
-        : current.provider,
-    apiKey: readString('apiKey', current.apiKey),
-    model: readString('model', current.model),
-    endpoint: readString('endpoint', current.endpoint),
-    personality: {
-      name:
-        typeof personalitySource.name === 'string'
-          ? personalitySource.name
-          : current.personality.name,
-      tone:
-        tone === 'humorous' ||
-        tone === 'gentle' ||
-        tone === 'professional' ||
-        tone === 'anime' ||
-        tone === 'custom' ||
-        tone === 'friendly'
-          ? tone
-          : current.personality.tone,
-      responseStyle:
-        responseStyle === 'casual' ||
-        responseStyle === 'formal' ||
-        responseStyle === 'friendly' ||
-        responseStyle === 'custom'
-          ? responseStyle
-          : current.personality.responseStyle,
-      systemPrompt:
-        typeof personalitySource.systemPrompt === 'string'
-          ? personalitySource.systemPrompt
-          : current.personality.systemPrompt,
-      examples: Array.isArray(personalitySource.examples)
-        ? personalitySource.examples.filter(
-            (example): example is string => typeof example === 'string'
-          )
-        : current.personality.examples
-    },
-    contextWindow: readNumber('contextWindow', current.contextWindow),
-    maxTokens: readNumber('maxTokens', current.maxTokens),
-    temperature: readNumber('temperature', current.temperature),
-    maxResponseLength: readNumber('maxResponseLength', current.maxResponseLength),
-    sensitiveWordsFilter:
-      typeof source.sensitiveWordsFilter === 'boolean'
-        ? source.sensitiveWordsFilter
-        : current.sensitiveWordsFilter
-  };
-}
-
-export const useAIStore = defineStore('ai', () => {
-  const llmService = getLLMService();
-  const chatContext = useChatContext();
-
-  // State
-  const config = ref<AIConfig>({ ...DEFAULT_AI_CONFIG });
-  const status = ref<AIStatus>('idle');
-  const isAvailable = ref<boolean>(false);
-  const recentResponses = ref<AIResponse[]>([]);
-  const lastError = ref<AIError | null>(null);
-  const totalTokensUsed = ref<number>(0);
-
-  // Getters
-  const isEnabled = computed(() => config.value.enabled);
-  const isThinking = computed(() => status.value === 'thinking');
-  const isGenerating = computed(() => status.value === 'generating');
-
-  // Actions
-  function updateConfig(updates: Partial<AIConfig> | Record<string, unknown>): void {
-    config.value = mergeAIConfig(config.value, updates);
-    llmService.updateConfig(config.value);
-    saveConfig();
-  }
-
-  function toggleEnabled(): void {
-    updateConfig({ enabled: !config.value.enabled });
-  }
-
-  function setPersonality(personalityKey: string): void {
-    const personality = PRESET_PERSONALITIES[personalityKey];
-    if (personality) {
-      updateConfig({ personality });
-    }
-  }
-
-  async function generateReply(): Promise<AIResponse> {
-    const startTime = Date.now();
-    status.value = 'thinking';
-
-    try {
-      const messages: ChatMessage[] = [
-        {
-          role: 'system',
-          content: config.value.personality.systemPrompt,
-          timestamp: Date.now()
-        },
-        ...chatContext.getContextWindow(config.value.contextWindow)
-      ];
-
-      status.value = 'generating';
-      const response = await llmService.callLLM({
-        messages,
-        model: config.value.model,
-        maxTokens: config.value.maxTokens,
-        temperature: config.value.temperature,
-        stream: false
-      });
-
-      const latency = Date.now() - startTime;
-      const replyText = response.content.trim().slice(0, config.value.maxResponseLength);
-
-      const aiResponse: AIResponse = {
-        text: replyText,
-        confidence: 0.8,
-        tokensUsed: response.usage.totalTokens,
-        latency
-      };
-
-      chatContext.addToContext({
-        role: 'assistant',
-        content: replyText,
-        timestamp: Date.now()
-      });
-
-      status.value = 'idle';
-      return aiResponse;
-    } catch (error) {
-      status.value = 'error';
-      throw error;
-    }
-  }
-
-  function addResponse(response: AIResponse): void {
-    recentResponses.value.unshift(response);
-    totalTokensUsed.value += response.tokensUsed;
-    if (recentResponses.value.length > 50) {
-      recentResponses.value = recentResponses.value.slice(0, 50);
-    }
-  }
-
-  function clearResponses(): void {
-    recentResponses.value = [];
-  }
-
-  function clearError(): void {
-    lastError.value = null;
-  }
-
-  function clearContext(): void {
-    chatContext.clearContext();
-  }
-
-  async function manualReply(prompt: string): Promise<AIResponse> {
-    chatContext.addToContext({
-      role: 'user',
-      content: prompt,
-      timestamp: Date.now()
+  function bootstrap(): Promise<void> {
+    return run('bootstrap', async () => {
+      const [nextConfig, nextAsr] = await Promise.all([
+        invokeDesktop('ai_config_get', undefined),
+        invokeDesktop('asr_status', undefined)
+      ]);
+      config.value = adaptAiConfig(nextConfig);
+      asr.value = adaptAsrStatus(nextAsr);
     });
-    return generateReply();
   }
 
-  async function checkAvailability(): Promise<void> {
-    const result = await llmService.checkAvailability();
-    isAvailable.value = result.available;
-    if (!result.available && result.error) {
-      lastError.value = {
-        code: 'unavailable',
-        message: result.error
-      };
-    }
+  function saveConfig(request: AiConfigSaveRequest): Promise<AiConfig> {
+    return run('saveConfig', async () => {
+      const next = adaptAiConfig(await invokeDesktop('ai_config_save', request));
+      config.value = next;
+      return next;
+    });
   }
 
-  function saveConfig(): void {
-    try {
-      localStorage.setItem('ai-config', JSON.stringify(config.value));
-    } catch (error) {
-      console.error('Failed to save AI config:', error);
-    }
+  function generate(prompt: string, context: readonly AiContextItem[]): Promise<AiGeneration> {
+    return run('generate', async () => {
+      const next = adaptAiGeneration(await invokeDesktop('ai_generate', { prompt, context }));
+      generation.value = next;
+      return next;
+    });
   }
 
-  function loadConfig(): void {
-    try {
-      const saved = localStorage.getItem('ai-config');
-      if (saved) {
-        config.value = mergeAIConfig(DEFAULT_AI_CONFIG, JSON.parse(saved));
-      }
-    } catch (error) {
-      console.error('Failed to load AI config:', error);
-    }
+  function regenerate(generationId: GenerationId): Promise<AiGeneration> {
+    return run('generate', async () => {
+      const next = adaptAiGeneration(await invokeDesktop('ai_regenerate', { generationId }));
+      generation.value = next;
+      return next;
+    });
   }
 
-  loadConfig();
+  function loadLogs(filters: {
+    userUid: UserUid | null;
+    startedAt: number | null;
+    endedAt: number | null;
+  }): Promise<readonly AiLogEntry[]> {
+    return run('loadLogs', async () => {
+      const next = adaptAiLogs(await invokeDesktop('ai_log_query', filters));
+      logs.value = next;
+      return next;
+    });
+  }
+
+  function downloadModel(
+    manifest: AsrModelManifest,
+    isLicenseAccepted: boolean
+  ): Promise<AsrStatus> {
+    return run('downloadModel', async () => {
+      const next = adaptAsrStatus(
+        await invokeDesktop('asr_model_download', { manifest, isLicenseAccepted })
+      );
+      asr.value = next;
+      return next;
+    });
+  }
+
+  function startAsr(): Promise<AsrStatus> {
+    return run('asr', async () => {
+      const next = adaptAsrStatus(await invokeDesktop('asr_start', undefined));
+      asr.value = next;
+      return next;
+    });
+  }
+
+  function stopAsr(): Promise<AsrStatus> {
+    return run('asr', async () => {
+      const next = adaptAsrStatus(await invokeDesktop('asr_stop', undefined));
+      asr.value = next;
+      return next;
+    });
+  }
+
+  function acceptDelta(payload: {
+    readonly generationId: GenerationId;
+    readonly sequence: number;
+    readonly delta: string;
+  }): void {
+    const current = generation.value;
+    if (!current || current.generationId !== payload.generationId) return;
+    if (payload.sequence !== current.lastSequence + 1) return;
+    generation.value = Object.freeze({
+      ...current,
+      status: 'streaming',
+      result: current.result + payload.delta,
+      lastSequence: payload.sequence
+    });
+  }
+
+  function acceptGeneration(value: unknown): void {
+    const next = adaptAiGeneration(value);
+    if (generation.value && generation.value.generationId !== next.generationId) return;
+    generation.value = next;
+  }
+
+  function acceptAsr(value: unknown): void {
+    asr.value = adaptAsrStatus(value);
+  }
+
+  function clear(): void {
+    generation.value = null;
+    logs.value = [];
+    error.value = null;
+  }
+
+  function dispose(): void {
+    revision += 1;
+    operations.clear();
+    pendingOperations.value = new Set();
+    generation.value = null;
+    error.value = null;
+  }
 
   return {
     config,
-    status,
-    isAvailable,
-    recentResponses,
-    lastError,
-    totalTokensUsed,
-    isEnabled,
-    isThinking,
+    generation,
+    asr,
+    logs,
+    pendingOperations,
+    error,
     isGenerating,
-    updateConfig,
-    toggleEnabled,
-    setPersonality,
-    generateReply,
-    addResponse,
-    clearResponses,
-    clearError,
-    clearContext,
-    manualReply,
-    checkAvailability,
+    bootstrap,
     saveConfig,
-    loadConfig
+    generate,
+    regenerate,
+    loadLogs,
+    downloadModel,
+    startAsr,
+    stopAsr,
+    acceptDelta,
+    acceptGeneration,
+    acceptAsr,
+    clear,
+    dispose
   };
 });

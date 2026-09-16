@@ -1,0 +1,90 @@
+{
+  "request_id": "tauri-rust-refactor",
+  "source": {
+    "type": "local_prd",
+    "path": "docs/requirements/Bilibili 直播助手 - 产品需求文档 (PRD).md",
+    "version": "2026-09-14-final",
+    "working_tree_source": true
+  },
+  "stage": "complete",
+  "status": "completed",
+  "artifacts": {
+    "request": "request.md",
+    "prd_snapshot": "artifacts/prd-snapshot.md",
+    "requirement_analysis": "analysis/requirement-analysis.md",
+    "requirement_map": "requirements/requirement-map.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "speed_profile": {
+    "level": "S3 broad",
+    "reason": "PRD 驱动的 Electron 到 Tauri/Rust 全量迁移，包含 20 个功能、双构建通道、SQLite、Sidecar、安全与跨系统外部契约。",
+    "context_budget": "full",
+    "artifact_density": "full"
+  },
+  "module_flow": {
+    "execution_mode": "sequential",
+    "current_module_id": null,
+    "pending_module_ids": [],
+    "completed_module_ids": [
+      "platform-foundation",
+      "live-data-safety",
+      "interaction-media",
+      "application-shell",
+      "membership-intelligence"
+    ],
+    "modules": {
+      "platform-foundation": {
+        "source_module_path": "requirements/modules/platform-foundation.md",
+        "page_design_required": false,
+        "architecture_design_required": true,
+        "approvals": { "spec_approved": true, "plan_approved": true },
+        "status": "completed"
+      },
+      "live-data-safety": {
+        "source_module_path": "requirements/modules/live-data-safety.md",
+        "page_design_required": true,
+        "architecture_design_required": true,
+        "approvals": { "spec_approved": true, "plan_approved": true },
+        "status": "completed"
+      },
+      "interaction-media": {
+        "source_module_path": "requirements/modules/interaction-media.md",
+        "page_design_required": true,
+        "architecture_design_required": true,
+        "approvals": { "spec_approved": true, "plan_approved": true },
+        "status": "completed"
+      },
+      "application-shell": {
+        "source_module_path": "requirements/modules/application-shell.md",
+        "page_design_required": true,
+        "architecture_design_required": true,
+        "approvals": { "spec_approved": true, "plan_approved": true },
+        "status": "completed"
+      },
+      "membership-intelligence": {
+        "source_module_path": "requirements/modules/membership-intelligence.md",
+        "page_design_required": true,
+        "architecture_design_required": true,
+        "approvals": { "spec_approved": true, "plan_approved": true },
+        "status": "completed"
+      },
+      "extensions-release-resilience": {
+        "source_module_path": "requirements/modules/extensions-release-resilience.md",
+        "page_design_required": true,
+        "architecture_design_required": true,
+        "approvals": { "spec_approved": true, "plan_approved": true },
+        "status": "completed"
+      }
+    }
+  },
+  "loop": {
+    "iteration": 12,
+    "state": "complete",
+    "last_completed_stage": "complete",
+    "pending_gate": null,
+    "reentry_reason": "review_blocked"
+  }
+}

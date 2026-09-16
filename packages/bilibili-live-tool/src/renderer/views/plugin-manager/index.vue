@@ -1,347 +1,141 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { usePluginStore } from '../../stores/plugin';
-import { PluginState } from '../../plugins/types';
-import { ensurePluginManagerInitialized } from '../../plugins/runtime/index.js';
+import { computed, ref } from 'vue';
+import { Delete, Refresh, Setting, Upload } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
+import type { PluginSnapshot } from '@/platform/desktop';
+import { useReleaseStore } from '@/stores/release';
+import PluginInstallDialog from './PluginInstallDialog.vue';
 
-const pluginStore = usePluginStore();
+type PluginTab = 'installed' | 'updateAvailable' | 'disabled';
+const { t } = useI18n();
+const store = useReleaseStore();
+const activeTab = ref<PluginTab>('installed');
+const isInstallOpen = ref(false);
+const installManifest = ref<PluginSnapshot | null>(null);
+const visiblePlugins = computed(() => store.plugins.filter(plugin => {
+  if (activeTab.value === 'updateAvailable') return plugin.status === 'updateAvailable';
+  if (activeTab.value === 'disabled') return plugin.status === 'disabled' || plugin.status === 'failed';
+  return plugin.status !== 'updateAvailable';
+}));
 
-// 状态
-const showInstallDialog = ref(false);
-const showDetailDialog = ref(false);
-const showConfigDialog = ref(false);
-const selectedPlugin = ref<PluginState | null>(null);
-const installFile = ref<File | null>(null);
-const installing = ref(false);
+async function refresh(): Promise<void> {
+  try { await store.refreshPlugins(); } catch { /* The page alert owns the native failure. */ }
+}
 
-// 计算属性
-const plugins = computed(() => pluginStore.installedPlugins);
-const loading = computed(() => pluginStore.loading);
-const error = computed(() => pluginStore.error);
+async function selectInstall(): Promise<void> {
+  try { installManifest.value = await store.selectPluginInstall(); } catch { /* The page alert owns the native failure. */ }
+}
 
-// 生命周期
-onMounted(async () => {
-  await loadPlugins();
-});
-
-// 加载插件列表
-async function loadPlugins() {
-  pluginStore.setLoading(true);
-  pluginStore.setError(null);
-
+async function install(pluginId: string): Promise<void> {
   try {
-    const pluginManager = await ensurePluginManagerInitialized();
-    pluginStore.setPlugins(pluginManager.getPlugins());
-  } catch (err) {
-    pluginStore.setError(err instanceof Error ? err.message : '加载插件失败');
-  } finally {
-    pluginStore.setLoading(false);
-  }
+    await store.installPlugin(pluginId);
+    isInstallOpen.value = false;
+    installManifest.value = null;
+  } catch { /* The page alert owns the native failure. */ }
 }
 
-// 启用/禁用插件
-async function togglePlugin(plugin: PluginState) {
+async function toggle(plugin: PluginSnapshot): Promise<void> {
+  try { await store.togglePlugin(plugin); } catch { /* Native snapshot remains unchanged. */ }
+}
+
+async function uninstall(plugin: PluginSnapshot): Promise<void> {
   try {
-    const pluginManager = await ensurePluginManagerInitialized();
-    if (plugin.enabled) {
-      await pluginManager.enablePlugin(plugin.id);
-      pluginStore.enablePlugin(plugin.id);
-    } else {
-      await pluginManager.disablePlugin(plugin.id);
-      pluginStore.disablePlugin(plugin.id);
-    }
-  } catch (err) {
-    ElMessage.error(err instanceof Error ? err.message : '操作失败');
-    await loadPlugins();
-  }
-}
-
-// 查看插件详情
-function viewDetail(plugin: PluginState) {
-  selectedPlugin.value = plugin;
-  showDetailDialog.value = true;
-}
-
-// 打开配置对话框
-function openConfig(plugin: PluginState) {
-  selectedPlugin.value = plugin;
-  showConfigDialog.value = true;
-}
-
-// 卸载插件
-async function uninstallPlugin(plugin: PluginState) {
-  try {
-    await ElMessageBox.confirm(
-      `确定要卸载插件 "${plugin.name}" 吗？此操作不可恢复。`,
-      '卸载确认',
-      { type: 'warning' }
-    );
-
-    const pluginManager = await ensurePluginManagerInitialized();
-    await pluginManager.uninstallPlugin(plugin.id);
-    pluginStore.removePlugin(plugin.id);
-
-    ElMessage.success('插件已卸载');
-  } catch (err) {
-    if (err !== 'cancel') {
-      ElMessage.error(err instanceof Error ? err.message : '卸载失败');
-    }
-  }
-}
-
-// 安装插件
-async function handleInstall() {
-  if (!installFile.value) {
-    ElMessage.warning('请选择插件文件');
+    await ElMessageBox.confirm(t('plugins.uninstallConfirm'), t('plugins.uninstall'), {
+      type: 'warning',
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel')
+    });
+  } catch {
     return;
   }
-
-  installing.value = true;
-
-  try {
-    const pluginPath = (installFile.value as File & { path?: string }).path;
-    if (!pluginPath) {
-      throw new Error('当前环境无法读取插件路径，请选择本地插件目录');
-    }
-    const pluginManager = await ensurePluginManagerInitialized();
-    await pluginManager.installPlugin(pluginPath);
-
-    ElMessage.success('插件安装成功');
-    showInstallDialog.value = false;
-    installFile.value = null;
-    await loadPlugins();
-  } catch (err) {
-    ElMessage.error(err instanceof Error ? err.message : '安装失败');
-  } finally {
-    installing.value = false;
-  }
-}
-
-// 文件选择处理
-function handleFileChange(file: File) {
-  installFile.value = file;
-}
-
-// 格式化日期
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleString('zh-CN');
-}
-
-// 获取权限标签类型
-function getPermissionTagType(permission: string): string {
-  const types: Record<string, string> = {
-    danmaku: 'primary',
-    gift: 'success',
-    captain: 'warning',
-    config: 'info',
-    effect: 'danger',
-    ui: ''
-  };
-  return types[permission] || '';
-}
-
-// 获取权限标签文本
-function getPermissionLabel(permission: string): string {
-  const labels: Record<string, string> = {
-    danmaku: '弹幕',
-    gift: '礼物',
-    captain: '舰长',
-    config: '配置',
-    effect: '特效',
-    ui: 'UI'
-  };
-  return labels[permission] || permission;
+  try { await store.uninstallPlugin(plugin.id); } catch { /* The page alert owns the native failure. */ }
 }
 </script>
 
 <template>
-  <div class="p-5">
-    <!-- 头部操作栏 -->
-    <div class="flex justify-between items-center mb-5">
+  <section class="min-w-0 bg-white px-7 py-6 dark:bg-gray-900">
+    <header class="flex flex-wrap items-center justify-between gap-3">
       <h2 class="m-0 text-xl font-semibold">
-        插件管理
+        {{ t('plugins.title') }}
       </h2>
-      <div class="flex gap-2.5">
-        <el-button type="primary" @click="showInstallDialog = true">
-          <el-icon><Upload /></el-icon>
-          安装插件
+      <div class="flex flex-wrap gap-2">
+        <el-button :icon="Upload" type="primary" @click="isInstallOpen = true">
+          {{ t('plugins.install') }}
         </el-button>
-        <el-button @click="loadPlugins">
-          <el-icon><Refresh /></el-icon>
-          刷新
+        <el-button :icon="Refresh" :loading="store.pending.has('refreshPlugins')" @click="refresh">
+          {{ t('plugins.refresh') }}
         </el-button>
       </div>
-    </div>
-
-    <!-- 统计信息 -->
-    <div class="flex gap-10 mb-5 p-5 bg-[#f5f7fa] rounded-lg">
-      <el-statistic title="已安装" :value="pluginStore.pluginCount" />
-      <el-statistic title="已启用" :value="pluginStore.enabledCount" />
-      <el-statistic title="已禁用" :value="pluginStore.disabledPlugins.length" />
-    </div>
-
-    <!-- 错误提示 -->
+    </header>
     <el-alert
-      v-if="error"
-      :title="error"
-      type="error"
+      class="mt-5"
+      type="info"
       show-icon
-      closable
-      @close="pluginStore.setError(null)"
+      :closable="false"
+      :title="t('plugins.safety')"
     />
-
-    <!-- 插件列表 -->
-    <el-table
-      :data="plugins"
-      :loading="loading"
-      empty-text="暂无已安装的插件"
-      stripe
-      class="w-full"
-    >
-      <el-table-column prop="name" label="插件名称" min-width="150">
-        <template #default="{ row }">
-          <div class="flex items-center gap-2">
+    <el-alert
+      v-if="store.error"
+      class="mt-3"
+      type="warning"
+      show-icon
+      :closable="false"
+      :title="store.error.message"
+    />
+    <el-tabs v-model="activeTab" class="mt-5">
+      <el-tab-pane :label="t('plugins.installed')" name="installed" />
+      <el-tab-pane :label="t('plugins.updateAvailable')" name="updateAvailable" />
+      <el-tab-pane :label="t('plugins.disabled')" name="disabled" />
+    </el-tabs>
+    <div class="min-w-0 overflow-x-auto">
+      <el-table :data="visiblePlugins" :empty-text="t('plugins.noPlugins')" class="min-w-[760px]">
+        <el-table-column prop="name" :label="t('plugins.name')" min-width="180">
+          <template #default="{ row }">
             <span class="font-semibold">{{ row.name }}</span>
-            <span class="text-[#909399] text-xs">v{{ row.version }}</span>
-          </div>
-        </template>
-      </el-table-column>
-
-      <el-table-column
-        prop="description"
-        label="描述"
-        min-width="200"
-        show-overflow-tooltip
-      />
-
-      <el-table-column prop="author" label="作者" width="120" />
-
-      <el-table-column label="权限" width="200">
-        <template #default="{ row }">
-          <el-tag
-            v-for="permission in row.permissions"
-            :key="permission"
-            :type="getPermissionTagType(permission)"
-            size="small"
-            class="mr-1"
-          >
-            {{ getPermissionLabel(permission) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-
-      <el-table-column label="状态" width="100">
-        <template #default="{ row }">
-          <el-switch
-            v-model="row.enabled"
-            :active-text="row.enabled ? '已启用' : '已禁用'"
-            @change="togglePlugin(row)"
-          />
-        </template>
-      </el-table-column>
-
-      <el-table-column label="安装时间" width="180">
-        <template #default="{ row }">
-          {{ formatDate(row.installedAt) }}
-        </template>
-      </el-table-column>
-
-      <el-table-column label="操作" width="200" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="viewDetail(row)">
-            详情
-          </el-button>
-          <el-button size="small" @click="openConfig(row)">
-            配置
-          </el-button>
-          <el-button size="small" type="danger" @click="uninstallPlugin(row)">
-            卸载
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <!-- 安装对话框 -->
-    <el-dialog v-model="showInstallDialog" title="安装插件" width="500px">
-      <div class="py-5">
-        <el-upload
-          drag
-          :auto-upload="false"
-          :on-change="handleFileChange"
-          accept=".zip,.js"
-        >
-          <el-icon class="el-icon--upload">
-            <Upload />
-          </el-icon>
-          <div class="el-upload__text">
-            将插件文件拖到此处，或<em>点击选择</em>
-          </div>
-          <template #tip>
-            <div class="el-upload__tip">
-              支持 .zip 和 .js 格式的插件文件
+          </template>
+        </el-table-column>
+        <el-table-column prop="version" :label="t('plugins.version')" width="110" />
+        <el-table-column :label="t('plugins.enabled')" width="140">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'enabled' ? 'success' : row.status === 'failed' ? 'danger' : 'info'">
+              {{ t(`plugins.status.${row.status}`) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('plugins.permissionsLabel')" min-width="220">
+          <template #default="{ row }">
+            <div class="flex flex-wrap gap-1">
+              <el-tag v-for="permission in row.permissions" :key="permission" size="small">
+                {{ t(`plugins.permissions.${permission}`) }}
+              </el-tag>
             </div>
           </template>
-        </el-upload>
-      </div>
-
-      <template #footer>
-        <span class="flex justify-end gap-2.5">
-          <el-button @click="showInstallDialog = false">取消</el-button>
-          <el-button type="primary" :loading="installing" @click="handleInstall">
-            安装
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
-
-    <!-- 详情对话框 -->
-    <el-dialog v-model="showDetailDialog" title="插件详情" width="600px">
-      <div v-if="selectedPlugin" class="py-2.5">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="插件名称">
-            {{ selectedPlugin.name }}
-          </el-descriptions-item>
-          <el-descriptions-item label="版本">
-            {{ selectedPlugin.version }}
-          </el-descriptions-item>
-          <el-descriptions-item label="作者">
-            {{ selectedPlugin.author }}
-          </el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="selectedPlugin.enabled ? 'success' : 'info'">
-              {{ selectedPlugin.enabled ? '已启用' : '已禁用' }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="描述" :span="2">
-            {{ selectedPlugin.description }}
-          </el-descriptions-item>
-          <el-descriptions-item label="权限" :span="2">
-            <el-tag
-              v-for="permission in selectedPlugin.permissions"
-              :key="permission"
-              :type="getPermissionTagType(permission)"
-              class="mr-1"
-            >
-              {{ getPermissionLabel(permission) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="安装时间">
-            {{ formatDate(selectedPlugin.installedAt) }}
-          </el-descriptions-item>
-          <el-descriptions-item label="更新时间">
-            {{ formatDate(selectedPlugin.updatedAt) }}
-          </el-descriptions-item>
-        </el-descriptions>
-      </div>
-    </el-dialog>
-
-    <!-- 配置对话框 -->
-    <el-dialog v-model="showConfigDialog" title="插件配置" width="600px">
-      <div v-if="selectedPlugin" class="py-2.5">
-        <p>插件配置功能开发中...</p>
-        <p>当前配置：</p>
-        <pre class="bg-[#f5f7fa] p-2.5 rounded overflow-x-auto">{{ JSON.stringify(selectedPlugin.config, null, 2) }}</pre>
-      </div>
-    </el-dialog>
-  </div>
+        </el-table-column>
+        <el-table-column :label="t('plugins.actions')" width="230" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" :loading="store.pending.has(`plugin:${row.id}`)" @click="toggle(row)">
+              {{ row.status === 'enabled' ? t('plugins.disable') : t('plugins.enable') }}
+            </el-button>
+            <el-button size="small" :icon="Setting" disabled>
+              {{ t('plugins.configure') }}
+            </el-button>
+            <el-button
+              size="small"
+              type="danger"
+              :icon="Delete"
+              @click="uninstall(row)"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+    <PluginInstallDialog
+      v-model="isInstallOpen"
+      :manifest="installManifest"
+      :is-pending="store.pending.has('selectPluginInstall')"
+      @select="selectInstall"
+      @install="install"
+    />
+  </section>
 </template>

@@ -1,103 +1,90 @@
 <script setup lang="ts">
-import { VideoPlay, Delete } from '@element-plus/icons-vue';
-import type { Highlight } from '../../../modules/recording/types.js';
-import { useRecordingStore } from '../../../stores/recording';
-import { formatTimestamp, formatDate } from '../../../utils/format.js';
-import { getHighlightReasonTagType, getHighlightReasonText, confirmDelete, showSuccess, showError, showWarning } from '../../../utils/ui.js';
+import { Delete, Download, VideoPlay } from '@element-plus/icons-vue';
+import type { HighlightId, HighlightSummary } from '@/platform/desktop';
+import { formatClockTime, formatDuration } from '@/modules/media/formatters';
 
 defineProps<{
-  highlights: Highlight[];
+  highlights: readonly HighlightSummary[];
   loading?: boolean;
+  pendingOperations: ReadonlySet<string>;
 }>();
 
-const recordingStore = useRecordingStore();
+const emit = defineEmits<{
+  preview: [highlight: HighlightSummary];
+  export: [highlight: HighlightSummary];
+  delete: [highlight: HighlightSummary];
+}>();
 
-async function handlePlay(highlight: Highlight) {
-  if (highlight.clipPath) {
-    await recordingStore.openRecordingFolder(highlight.recordingId);
-  } else {
-    showWarning('该高光片段未生成独立文件');
-  }
-}
-
-async function handleDelete(highlight: Highlight) {
-  const confirmed = await confirmDelete('确定要删除该高光标记吗？');
-  if (!confirmed) return;
-
-  try {
-    await recordingStore.deleteHighlight(highlight.id);
-    showSuccess('删除成功');
-  } catch {
-    showError('删除失败');
-  }
+function operationPending(action: string, id: HighlightId, pending: ReadonlySet<string>): boolean {
+  return pending.has(`${action}:${id}`);
 }
 </script>
 
 <template>
-  <div class="w-full">
-    <el-table
-      :data="highlights"
-      :loading="loading"
-      stripe
-      class="w-full"
-    >
-      <el-table-column label="时间点" width="100" align="center">
+  <div class="min-h-64 w-full overflow-x-auto">
+    <el-table :data="highlights" :loading="loading" class="min-w-[680px] w-full">
+      <el-table-column label="时间点" width="110">
         <template #default="{ row }">
-          {{ formatTimestamp(row.timestamp) }}
+          {{ formatDuration(row.positionSeconds) }}
         </template>
       </el-table-column>
-
-      <el-table-column label="触发原因" width="120" align="center">
+      <el-table-column label="触发类型" width="120">
         <template #default="{ row }">
-          <el-tag :type="getHighlightReasonTagType(row.reason)">
-            {{ getHighlightReasonText(row.reason) }}
+          <el-tag :type="row.triggerType === 'manual' ? 'primary' : 'warning'">
+            {{ row.triggerType === 'manual' ? '手动标记' : '弹幕激增' }}
           </el-tag>
         </template>
       </el-table-column>
-
-      <el-table-column
-        prop="description"
-        label="描述"
-        min-width="200"
-        show-overflow-tooltip
-      />
-
-      <el-table-column label="片段时长" width="100" align="center">
+      <el-table-column label="片段时长" width="110">
         <template #default="{ row }">
-          {{ row.clipDuration }}秒
+          {{ formatDuration(row.clipDurationSeconds) }}
         </template>
       </el-table-column>
-
-      <el-table-column label="标记时间" width="180" align="center">
+      <el-table-column label="标记时间" min-width="130">
         <template #default="{ row }">
-          {{ formatDate(row.createdAt) }}
+          {{ formatClockTime(row.createdAt) }}
         </template>
       </el-table-column>
-
-      <el-table-column
-        label="操作"
-        width="120"
-        align="center"
-        fixed="right"
-      >
+      <el-table-column label="操作" width="150" fixed="right">
         <template #default="{ row }">
-          <el-button
-            type="primary"
-            :icon="VideoPlay"
-            size="small"
-            :disabled="!row.clipPath"
-            @click="handlePlay(row)"
-          />
-          <el-button
-            type="danger"
-            :icon="Delete"
-            size="small"
-            @click="handleDelete(row)"
-          />
+          <div class="flex items-center gap-1">
+            <el-tooltip :content="row.isClipAvailable ? '预览' : '片段未生成'">
+              <el-button
+                :icon="VideoPlay"
+                circle
+                :disabled="!row.isClipAvailable"
+                :loading="operationPending('previewHighlight', row.id, pendingOperations)"
+                aria-label="预览高光"
+                @click="emit('preview', row)"
+              />
+            </el-tooltip>
+            <el-tooltip :content="row.isClipAvailable ? '导出' : '片段未生成'">
+              <el-button
+                :icon="Download"
+                circle
+                :disabled="!row.isClipAvailable"
+                :loading="operationPending('exportHighlight', row.id, pendingOperations)"
+                aria-label="导出高光"
+                @click="emit('export', row)"
+              />
+            </el-tooltip>
+            <el-tooltip content="删除">
+              <el-button
+                :icon="Delete"
+                circle
+                type="danger"
+                plain
+                :loading="operationPending('deleteHighlight', row.id, pendingOperations)"
+                aria-label="删除高光"
+                @click="emit('delete', row)"
+              />
+            </el-tooltip>
+          </div>
         </template>
       </el-table-column>
+      <template #empty>
+        <el-empty description="暂无高光标记" />
+      </template>
     </el-table>
-
-    <el-empty v-if="!loading && highlights.length === 0" description="暂无高光标记" />
   </div>
 </template>

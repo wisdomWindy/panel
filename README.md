@@ -1,355 +1,195 @@
 # Bilibili 直播助手
 
-一款集弹幕观测、文本解析、特效展示、直播录制、多语言支持于一体的 Bilibili 直播辅助工具。
+基于 Tauri 2、Rust、Vue 3 和 TypeScript 的桌面直播辅助工具。项目已从 Electron/Node 运行时迁移到 Tauri：Rust 负责 SQLite、直播事件、媒体进程、文件权限、插件/更新和系统边界，Vue WebView 只负责界面、状态展示与用户交互。
 
-## 功能特性
+## 当前状态
 
-### 已完成功能
+已落地的本地能力包括：
 
-- ✅ **直播间连接** - 通过主播身份码连接 Bilibili 直播开放平台
-- ✅ **弹幕接收** - 实时接收和展示直播间弹幕
-- ✅ **上舰特效** - 首次上舰、续费上舰特效展示
-- ✅ **礼物连击特效** - 礼物连击动画效果
-- ✅ **敏感词过滤** - 自动过滤敏感词
-- ✅ **黑名单管理** - 用户黑名单功能
-- ✅ **数据统计** - 在线人数、弹幕数量、礼物价值统计
-- ✅ **排行榜** - 送礼榜、弹幕榜、舰长贡献榜
-- ✅ **特效预览** - 2D Canvas 和 3D WebGL 特效预览
-- ✅ **日志监控** - 实时日志查看
-- ✅ **自动断开** - 关闭应用时自动断开连接
-- ✅ **直播录制** - 全程录制、高光标记、片段提取
-- ✅ **更新日志** - 版本更新检测与更新日志查看
-- ✅ **多语言支持** - 中文/英文界面切换
-- ✅ **AI 文本解析** - LLM 多提供商支持，本地生成回复预览
-- ✅ **语音识别** - whisper.cpp 集成
-- ✅ **自动禁言与刷屏防护** - 检测刷屏自动禁言
-- ✅ **礼物音效系统** - 自定义礼物音效播放
+- 免费版/会员版编译期隔离，会员路由、IPC 命令和代码不进入免费版产物。
+- SQLite 数据库、迁移备份、配置导入/导出、语言与界面偏好。
+- 弹幕/礼物数据契约、敏感词、黑名单、统计、排行和导出。
+- 上舰特效、礼物提醒/音效、系统 TTS、本地 FFmpeg 录制与高光管理边界。
+- Tauri Updater 签名校验、GitHub Actions 双通道发布、官方 FFmpeg/Whisper 资产目录。
 
-### 开发中功能
+下列成功路径需要额外的生产契约或二进制资源，当前会明确返回 `unavailable` / degraded 状态，不会伪造成功：
 
-- 🚧 无
+- Bilibili 真实直播间传输与需要凭据的开放平台接口。
+- 会员登录/支付/权益校验、LLM、Whisper 模型下载与云端审核服务。
+- 签名 WASM 插件运行时；在 ABI、包和独立验签契约完整前保持不可用。
 
 ## 技术栈
 
-- **框架**: Electron 30 + Vue 3 + TypeScript
-- **状态管理**: Pinia
-- **UI 组件**: Element Plus
-- **构建工具**: Vite
-- **图表**: ECharts
-- **3D 特效**: Three.js
-- **样式**: Tailwind CSS
-- **录制**: FFmpeg (fluent-ffmpeg)
-- **国际化**: vue-i18n
-- **TTS**: edge-tts (Strategy 模式)
-- **语音识别**: whisper.cpp (Strategy 模式)
-- **AI**: LLM 多提供商支持
+| 层级     | 技术                                               |
+| -------- | -------------------------------------------------- |
+| 桌面容器 | Tauri 2.11                                         |
+| 本地核心 | Rust 2021、Tokio、SQLx/SQLite                      |
+| 前端     | Vue 3、TypeScript、Pinia、Vue Router、Element Plus |
+| 构建     | Vite 5、pnpm workspace、Cargo features             |
+| 测试     | Vitest、Node test runner、Cargo test/Clippy        |
+| 发布     | GitHub Actions、Tauri Action、Tauri Updater        |
 
-## 快速开始
+## 工程结构
 
-### 安装依赖
+```text
+.
+├─ .github/workflows/release-tauri.yml       # 签名、多平台、双通道发布
+├─ packages/
+│  ├─ bilibili-live-tool/
+│  │  ├─ src/renderer/                # Vue 页面、Pinia、桌面适配器
+│  │  ├─ src-tauri/src/
+│  │  │  ├─ domain/               # 纯领域规则
+│  │  │  ├─ application/          # 用例、状态与端口
+│  │  │  ├─ infrastructure/       # SQLite、系统 I/O、Updater
+│  │  │  └─ ipc/                  # Tauri Command/Event DTO
+│  │  ├─ src-tauri/migrations/         # SQLite 迁移
+│  │  └─ scripts/                     # 发布配置与资产校验
+│  └─ bilibili-live-tool-homepage/        # VitePress 官网
+├─ docs/
+│  ├─ requirements/                       # PRD
+│  └─ requests/                           # 需求、设计、执行、验证与评审
+└─ description-doc/                          # Bilibili 开放平台参考资料
+```
+
+主要依赖方向为：
+
+```text
+Vue View -> Pinia/Runtime -> Desktop Adapter -> Tauri IPC
+         -> Application State -> Domain/Port -> Infrastructure
+```
+
+`main` 窗口只获得经白名单授权的桌面命令；`effect-*` 特效窗口是纯展示窗口，不具备 IPC 权限。
+
+## 环境要求
+
+- Node.js `>=24 <25`
+- pnpm 9
+- Rust stable，项目最低 Rust 版本 `1.77.2`
+- 对应平台的 Tauri 2 系统构建依赖
+- Windows 运行需要 WebView2；Windows 构建使用 MSVC 工具链
+
+Ubuntu 构建与 CI 使用的系统依赖：
 
 ```bash
-pnpm install
+sudo apt-get install -y \
+  libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
+  patchelf xdg-utils libasound2-dev libspeechd-dev
 ```
 
-### 开发模式
+## 安装与开发
 
-```bash
-pnpm run dev
+```powershell
+pnpm install --frozen-lockfile
+
+# 免费版 Tauri 桌面应用
+pnpm dev
+
+# 会员版 Tauri 桌面应用
+pnpm --filter @monorepo/bilibili-live-tool dev:member
+
+# 仅运行 Web 调试界面
+pnpm --filter @monorepo/bilibili-live-tool dev:web
+
+# 官网
+pnpm homepage:dev
 ```
 
-### 构建可执行文件
+默认开发命令启动 `free` 通道。桌面数据库由 Tauri 写入应用数据目录的 `app.db`；不应在 Vue 中拼接或传递本地原始路径。
 
-```bash
-pnpm run build:vite
+## 构建通道
+
+| 通道     | Vite mode | Cargo feature | 范围                                         |
+| -------- | --------- | ------------- | -------------------------------------------- |
+| `free`   | `free`    | `free`        | 通用直播、安全、媒体、配置、更新界面         |
+| `member` | `member`  | `member`      | 包含通用能力，并编译会员、AI、ASR 和审核边界 |
+
+```powershell
+# 仅构建前端
+pnpm --filter @monorepo/bilibili-live-tool build:web:free
+pnpm --filter @monorepo/bilibili-live-tool build:web:member
+
+# 构建 Tauri 安装包
+pnpm --filter @monorepo/bilibili-live-tool build:free
+pnpm --filter @monorepo/bilibili-live-tool build:member
+
+# 构建官网
+pnpm homepage:build
 ```
 
-构建完成后，可执行文件位于 `release/win-unpacked/BilibiliLiveTool.exe`
+Tauri 安装包默认生成于：
 
-## 项目结构
-
-```
-panel/
-├── src/
-│   ├── main/                          # Electron 主进程
-│   │   ├── index.ts                   # 应用入口
-│   │   ├── bilibili-api.ts            # Bilibili API 封装
-│   │   ├── database.ts                # 数据库操作
-│   │   ├── ipc-handlers.ts            # IPC 通信处理
-│   │   └── modules/
-│   │       ├── ai/                    # AI 对话模块
-│   │       ├── asr/                   # 语音识别模块
-│   │       ├── gift-sound/            # 礼物音效模块
-│   │       └── recording/             # 录制模块
-│   │           ├── index.ts           # 模块入口
-│   │           ├── ffmpeg-manager.ts  # FFmpeg 进程管理
-│   │           ├── recording-engine.ts # 录制引擎
-│   │           ├── highlight-detector.ts # 高光检测
-│   │           └── file-manager.ts    # 文件管理
-│   ├── preload/                       # 预加载脚本
-│   └── renderer/                      # Vue 渲染进程
-│       ├── components/                # 全局共享组件
-│       │   ├── RecordingStatusBar.vue # 录制状态栏
-│       │   └── WhatsNewModal.vue      # 新版本特性弹窗
-│       ├── composables/               # Vue 组合式函数
-│       │   ├── useAudioRecording.ts   # 音频录制
-│       │   ├── useBroadcastQueue.ts   # 播报队列
-│       │   ├── useChatContext.ts      # 聊天上下文
-│       │   └── useWebSpeechRecognition.ts # Web Speech 识别
-│       ├── engines/                   # TTS/ASR 引擎 (Strategy 模式)
-│       │   ├── tts-engine.ts          # TTS 引擎接口
-│       │   ├── asr-engine.ts          # ASR 引擎接口
-│       │   ├── edge-tts-engine.ts     # Edge TTS 实现
-│       │   ├── web-speech-tts-engine.ts # Web Speech TTS 实现
-│       │   ├── web-speech-asr-engine.ts # Web Speech ASR 实现
-│       │   ├── whisper-asr-engine.ts  # Whisper ASR 实现
-│       │   └── engine-factory.ts      # 引擎工厂
-│       ├── locales/                   # 国际化语言包
-│       │   ├── zh-CN.json             # 中文语言包
-│       │   └── en-US.json             # 英文语言包
-│       ├── modules/                   # 核心模块
-│       │   ├── bilibili/              # Bilibili 客户端
-│       │   ├── danmaku/               # 弹幕管理
-│       │   ├── effects/               # 特效系统
-│       │   ├── gift-sound/            # 礼物音效类型定义
-│       │   ├── recording/             # 录制类型定义
-│       │   └── utils/                 # 工具函数
-│       ├── plugins/                   # 插件系统
-│       ├── services/                  # 服务层
-│       │   ├── asr-service.ts         # ASR 服务
-│       │   ├── tts-service.ts         # TTS 服务
-│       │   ├── llm-service.ts         # LLM 服务
-│       │   ├── recording-service.ts   # 录制服务
-│       │   ├── danmaku-service.ts     # 弹幕服务
-│       │   ├── gift-sound-service.ts  # 礼物音效服务
-│       │   ├── database-service.ts    # 数据库服务
-│       │   ├── moderation-service.ts  # 内容审核服务
-│       │   └── update-service.ts      # 更新服务
-│       ├── stores/                    # Pinia 状态管理
-│       │   ├── ai.ts                  # AI 状态
-│       │   ├── asr.ts                 # 语音识别状态
-│       │   ├── config.ts              # 配置状态
-│       │   ├── danmaku.ts             # 弹幕状态
-│       │   ├── gift-sound.ts          # 礼物音效状态
-│       │   ├── moderation.ts          # 审核状态
-│       │   ├── plugin.ts              # 插件状态
-│       │   ├── recording.ts           # 录制状态
-│       │   ├── room.ts                # 房间状态
-│       │   ├── tts.ts                 # TTS 状态
-│       │   └── update.ts              # 更新状态
-│       ├── utils/                     # 公共工具函数
-│       │   ├── format.ts              # 格式化工具
-│       │   ├── ipc.ts                 # IPC 通信封装
-│       │   └── ui.ts                  # UI 工具函数
-│       ├── views/                     # 页面模块 (每个模块独立文件夹)
-│       │   ├── dashboard/             # 仪表盘
-│       │   │   ├── index.vue
-│       │   │   └── components/
-│       │   │       ├── StatCard.vue
-│       │   │       └── Leaderboard.vue
-│       │   ├── connection/            # 连接配置
-│       │   ├── danmaku-list/          # 弹幕列表
-│       │   ├── settings/              # 设置
-│       │   │   ├── index.vue
-│       │   │   └── components/        # 设置子组件
-│       │   │       ├── ConnectionSettings.vue
-│       │   │       ├── DanmakuSettings.vue
-│       │   │       ├── AutoSendSettings.vue
-│       │   │       ├── FilterSettings.vue
-│       │   │       ├── LogSettings.vue
-│       │   │       ├── UpdateSettings.vue
-│       │   │       ├── PluginSettings.vue
-│       │   │       ├── LanguageSettings.vue
-│       │   │       ├── TTSSettings.vue
-│       │   │       ├── ASRSettings.vue
-│       │   │       ├── AISettings.vue
-│       │   │       ├── ModerationSettings.vue
-│       │   │       ├── RecordingSettings.vue
-│       │   │       └── RoleSettings.vue
-│       │   ├── recording/             # 录制管理
-│       │   │   ├── index.vue
-│       │   │   └── components/
-│       │   │       ├── RecordingList.vue
-│       │   │       └── HighlightList.vue
-│       │   ├── gift-list/             # 礼物列表
-│       │   ├── gift-sound/            # 礼物音效配置
-│       │   ├── effect-preview/        # 特效预览
-│       │   ├── blacklist/             # 黑名单管理
-│       │   ├── logs/                  # 日志监控
-│       │   ├── plugin-manager/        # 插件管理
-│       │   ├── update-log/            # 更新日志
-│       │   └── login/                 # 登录
-│       └── router/                    # 路由配置
-├── docs/                              # 项目文档
-├── tests/                             # 测试文件
-└── scripts/                           # 构建脚本
+```text
+packages/bilibili-live-tool/src-tauri/target/release/bundle/
 ```
 
-## 架构设计
+`free` 和 `member` Cargo feature 必须且只能选择一个，不要直接使用无 feature 的 Cargo 构建。
 
-### 分层架构
+## 测试与质量检查
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Views (页面层)                         │
-│  每个模块独立文件夹，包含 index.vue 和模块专属组件        │
-├─────────────────────────────────────────────────────────┤
-│                  Stores (状态管理层)                      │
-│  Pinia stores，管理应用状态，调用 Services               │
-├─────────────────────────────────────────────────────────┤
-│              Composables (组合式函数层)                   │
-│  可复用的逻辑：录音、播报队列、聊天上下文等               │
-├─────────────────────────────────────────────────────────┤
-│                  Services (服务层)                        │
-│  业务逻辑封装，IPC 调用代理                              │
-├─────────────────────────────────────────────────────────┤
-│              Engines (引擎层 - Strategy 模式)             │
-│  TTS/ASR 引擎接口和实现，支持动态切换                    │
-├─────────────────────────────────────────────────────────┤
-│                  Utils (工具层)                           │
-│  格式化、IPC 封装、UI 工具等公共函数                     │
-├─────────────────────────────────────────────────────────┤
-│              Modules (核心模块层)                         │
-│  Bilibili 客户端、弹幕管理、特效系统等                   │
-└─────────────────────────────────────────────────────────┘
+```powershell
+# TypeScript 与 ESLint
+pnpm type-check
+pnpm lint:check
+
+# 发布脚本契约
+pnpm --filter @monorepo/bilibili-live-tool test:release
+
+# Vue/TypeScript 双通道测试
+pnpm --filter @monorepo/bilibili-live-tool exec vitest run --mode free
+pnpm --filter @monorepo/bilibili-live-tool exec vitest run --mode member
+
+# Rust 双通道测试
+cargo test --manifest-path packages/bilibili-live-tool/src-tauri/Cargo.toml --no-default-features --features free
+cargo test --manifest-path packages/bilibili-live-tool/src-tauri/Cargo.toml --no-default-features --features member
+
+# Rust 格式与严格静态检查
+cargo fmt --manifest-path packages/bilibili-live-tool/src-tauri/Cargo.toml -- --check
+cargo clippy --manifest-path packages/bilibili-live-tool/src-tauri/Cargo.toml --no-default-features --features free --all-targets -- -D warnings
+cargo clippy --manifest-path packages/bilibili-live-tool/src-tauri/Cargo.toml --no-default-features --features member --all-targets -- -D warnings
 ```
 
-## 使用说明
+## 签名与发布
 
-1. 从 [Bilibili 互动应用中心](https://play-live.bilibili.com/) 获取主播身份码
-2. 启动应用，输入身份码连接
-3. 在设置页面配置 AccessKeyId、AccessKeySecret 和 AppID
-4. 开始使用各项功能
+`.github/workflows/release-tauri.yml` 支持手动触发，也会在推送 `v*` tag 时运行。Tag 中的版本必须与 `src-tauri/tauri.conf.json` 一致，例如：
 
-## 直播录制功能
+```powershell
+git tag v0.1.0
+git push origin v0.1.0
+```
 
-### 前置条件
+发布流程会：
 
-- 安装 FFmpeg：`brew install ffmpeg` (macOS) 或从 [FFmpeg 官网](https://ffmpeg.org/) 下载
+1. 运行发布契约和工作流格式检查。
+2. 构建 `free` / `member` 的 Windows、Linux x64/ARM64 和 macOS x64/ARM64 产物。
+3. 使用 Tauri Updater 私钥生成强制签名的更新产物。
+4. 生成独立的 `free/latest.json` 和 `member/latest.json`，发布到 `updates` 分支。
+5. 生成 `free-v<version>` 和 `member-v<version>` GitHub Releases。
+6. 解析并校验官方平台资产，下载后二次计算 SHA-256。
 
-### 功能说明
+仓库 Actions 需要以下配置：
 
-- **全程录制**: 支持 MP4/FLV 格式，可选质量（原始/720p/1080p）
-- **高光标记**: 
-  - 自动标记：弹幕激增、高价值礼物、舰长赠送
-  - 手动标记：按 F9 快捷键
-- **录制管理**: 文件列表、删除、打开目录
-- **状态栏**: 实时显示录制状态、时长、文件大小
+| 类型     | 名称                                 | 用途                       |
+| -------- | ------------------------------------ | -------------------------- |
+| Secret   | `TAURI_SIGNING_PRIVATE_KEY`          | Tauri Updater 私钥         |
+| Secret   | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 私钥密码                   |
+| Variable | `TAURI_SIGNING_PUBLIC_KEY`           | 注入客户端的 minisign 公钥 |
 
-### 配置说明
+私钥和密码不得写入 Git。发布脚本生成的 `tauri.release.*.conf.json` 和 `.release-staging/` 均已忽略。平台安装包代码签名/公证与 Tauri Updater 签名是两套独立凭据。
 
-在设置页面的「录制设置」中可以配置：
-- 录制格式（MP4/FLV）
-- 录制质量（原始/720p/1080p）
-- 存储路径
-- 自动分段
-- 自动清理
-- 高光触发阈值
+## 第三方运行时资产
 
-## 多语言支持
+- FFmpeg：只允许 FFmpeg 官网链接的 `BtbN/FFmpeg-Builds` LGPL shared 包。
+- Whisper：只允许 `ggml-org/whisper.cpp` GitHub Releases 的官方二进制包。
+- 当前目录覆盖 Windows/Linux x64 和 ARM64；官方不存在完全匹配的平台资产时，保持不可用，不使用非官方镜像回退。
+- 资产目录包含 `artifactId`、版本、平台/架构、下载 URL、SHA-256、归档类型、选中条目和许可证来源。
 
-### 支持语言
+## 文档
 
-- **中文** (zh-CN) - 默认语言
-- **English** (en-US)
-
-### 切换语言
-
-1. 打开设置页面
-2. 选择「语言设置」
-3. 从下拉菜单选择语言
-4. 界面将立即切换到所选语言
-
-### 扩展语言
-
-如需添加新语言：
-
-1. 在 `src/renderer/locales/` 目录创建新的语言文件（如 `ja-JP.json`）
-2. 复制 `zh-CN.json` 的结构并翻译所有文本
-3. 在 `src/renderer/main.ts` 中导入新语言包
-4. 在 `src/renderer/views/settings/components/LanguageSettings.vue` 中添加语言选项
-
-## 配置说明
-
-### Bilibili 直播开放平台配置
-
-- **AccessKeyId**: 开放平台 Access Key ID
-- **AccessKeySecret**: 开放平台 Access Key Secret
-- **AppID**: 应用 ID
-
-### 弹幕配置
-
-- **敏感词过滤**: 是否启用敏感词过滤
-
-### 特效配置
-
-- **渲染模式**: 2D Canvas 或 3D WebGL
-- **动画类型**: 淡入淡出、滑动、缩放、旋转、粒子
-- **持续时间**: 特效显示时长
-
-### AI 配置
-
-- **AI 提供商**: OpenAI、Claude、Ollama 或自定义
-- **API Key**: AI 服务 API Key（加密存储）
-- **模型选择**: GPT-4、Claude、本地模型等
-- **人设配置**: 本地回复预览的风格和提示词
-
-### 语音识别配置
-
-- **识别引擎**: whisper.cpp（推荐）或 Web Speech API
-- **模型大小**: tiny、base、small、medium、large
-- **语言**: 中文、英文、自动检测
-
-### TTS 配置
-
-- **TTS 引擎**: edge-tts（推荐）或 Web Speech API
-- **语音选择**: 18 种中文语音
-- **语速调节**: 0.5x - 2.0x
-- **音量控制**: 0 - 100%
-
-### 礼物音效配置
-
-- **音效绑定**: 为每个礼物绑定自定义 MP3 音效
-- **音量控制**: 独立控制礼物音效音量
-- **播放模式**: 单次播放或循环播放
-- **冷却时间**: 设置同一礼物音效的最小播放间隔
+- 产品需求：`docs/requirements/Bilibili 直播助手 - 产品需求文档 (PRD).md`
+- 重构请求与验收证据：`docs/requests/tauri-rust-refactor/`
+- 最终验证：`docs/requests/tauri-rust-refactor/module-runs/extensions-release-resilience/verification/verification.md`
+- 最终评审：`docs/requests/tauri-rust-refactor/module-runs/extensions-release-resilience/review/review.md`
 
 ## 许可证
 
-MIT
-
-## 更新日志
-
-### v2.2.0 (2026-06-24)
-
-- 🏗️ 重构项目架构，提升可维护性、可读性、可扩展性
-- ✨ 提取公共工具层 (utils/)：format.ts、ipc.ts、ui.ts
-- ✨ 提取 Composables 层：录音、播报队列、聊天上下文等
-- ✨ 实现 Strategy 模式：TTS/ASR 引擎支持动态切换
-- ✨ Views 模块化：每个页面独立文件夹，模块专属组件内聚
-- ✨ 拆分 Settings.vue (1081→130行) 为 14 个独立子组件
-- ✨ Services 层精简：ASR (395→52行)、TTS (441→63行)、LLM (303→58行)
-- 🐛 修复所有 TypeScript 类型错误
-- 🧹 清理未使用代码和死代码
-
-### v2.1.0 (2026-06-17)
-
-- ✨ 新增排行榜功能（送礼榜、弹幕榜、舰长贡献榜）
-- ✨ 新增礼物音效系统功能
-- ✨ 新增 AI 智能回复功能
-- ✨ 新增语音识别功能（whisper.cpp）
-- ✨ 新增自动禁言与刷屏防护功能
-- 🌐 完善多语言支持
-
-### v1.5.0 (2026-06-16)
-
-- ✨ 新增弹幕语音播报功能（edge-tts）
-- ✨ 新增直播录制功能（全程/高光）
-- ✨ 新增多语言支持（中文/英文）
-
-### v1.0.0 (2026-06-03)
-
-- 🎉 初始版本发布
-- ✨ 基础直播间连接与弹幕功能
-- ✨ 礼物感谢与上舰特效
-- ✨ 数据统计与日志监控
+项目代码当前声明为 MIT。FFmpeg、Whisper 及其他第三方组件保持各自的许可证和源码/通知义务，不随本项目 MIT 声明改变。

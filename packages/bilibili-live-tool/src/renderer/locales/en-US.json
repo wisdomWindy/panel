@@ -10,8 +10,9 @@
     "settings": "Settings",
     "logs": "Logs",
     "blacklist": "Blacklist",
-    "effectPreview": "Effect Preview",
-    "giftSound": "Gift Sound"
+    "effectPreview": "Captain Effect",
+    "giftSound": "Gift Sound",
+    "giftReminder": "Gift Reminder"
   },
   "common": {
     "save": "Save",
@@ -121,7 +122,6 @@
   "connection": {
     "title": "Connection",
     "roomId": "Room ID",
-    "autoReconnect": "Auto Reconnect",
     "connect": "Connect",
     "disconnect": "Disconnect",
     "connecting": "Connecting...",
@@ -131,8 +131,129 @@
     "ownerName": "Owner",
     "roomIdPlaceholder": "Enter room ID"
   },
+  "shell": {
+    "productName": "Bilibili Live Assistant",
+    "toolbar": {
+      "roomPlaceholder": "Enter or select a room ID",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "notifications": "Notifications",
+      "settings": "System settings"
+    },
+    "navigation": {
+      "room": "Live room",
+      "danmaku": "Danmaku panel",
+      "dashboard": "Dashboard",
+      "rankings": "Rankings",
+      "risk": "Risk control",
+      "sensitiveWords": "Sensitive words",
+      "blacklist": "Blacklist",
+      "reminders": "Alert settings",
+      "captainEffect": "Captain effects",
+      "giftReminder": "Gift alerts",
+      "giftSound": "Gift sounds",
+      "tts": "Voice broadcast",
+      "recording": "Live recording",
+      "plugins": "Plugin center",
+      "settings": "System settings"
+    },
+    "status": {
+      "connection": "Connection",
+      "room": "Room",
+      "danmakuRate": "Danmaku",
+      "online": "Online",
+      "recording": "Recording",
+      "memory": "Memory",
+      "cpu": "CPU"
+    },
+    "errors": {
+      "roomRequired": "Enter a room ID",
+      "roomInvalid": "Room IDs must contain 1 to 20 digits",
+      "operationFailed": "The operation failed. Try again later."
+    }
+  },
   "settings": {
     "title": "Settings",
+    "categories": {
+      "config": "Configuration",
+      "language": "Language",
+      "interface": "Interface",
+      "about": "About and licenses"
+    },
+    "config": {
+      "location": "Configuration location",
+      "lastBackup": "Last backup",
+      "neverBackedUp": "No backup yet",
+      "exportScope": "Export scope",
+      "openDirectory": "Open directory",
+      "selectAtLeastOne": "Select at least one configuration category",
+      "restoreDefaults": "Restore configuration defaults",
+      "resetTitle": "Restore configuration defaults",
+      "resetConfirmation": "Restore all configuration to its default values?",
+      "scopes": {
+        "room": "Live room",
+        "sensitiveWords": "Sensitive words",
+        "blacklist": "Blacklist",
+        "giftSounds": "Gift sounds",
+        "interfaceLayout": "Interface layout",
+        "recording": "Recording",
+        "plugins": "Plugins",
+        "ai": "AI",
+        "moderation": "Moderation"
+      }
+    },
+    "locale": {
+      "followSystem": "Follow system language",
+      "interfaceLanguage": "Interface language"
+    },
+    "interface": {
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System",
+      "accentColor": "Accent color",
+      "opacity": "Window opacity",
+      "fontSize": "Font size",
+      "fontSmall": "Small",
+      "fontMedium": "Medium",
+      "fontLarge": "Large",
+      "layoutAndDisplay": "Layout and danmaku display",
+      "layout": "Layout",
+      "layoutDefault": "Default layout",
+      "layoutCustom": "Custom layout",
+      "editLayout": "Edit layout",
+      "layoutEditor": "Layout editor",
+      "toolbarRegion": "Toolbar",
+      "navigationRegion": "Navigation",
+      "contentRegion": "Content",
+      "statusRegion": "Status bar",
+      "navigationWidth": "Navigation width",
+      "toolbarHeight": "Toolbar height",
+      "statusHeight": "Status bar height",
+      "danmakuFields": "Danmaku fields",
+      "showLevel": "Level",
+      "showMedal": "Fan medal",
+      "showTime": "Time",
+      "maxDanmakuEntries": "Maximum danmaku entries",
+      "restoreDefaults": "Restore interface defaults"
+    },
+    "aboutInfo": {
+      "version": "Application version",
+      "channel": "Update channel",
+      "licenses": "Third-party licenses",
+      "component": "Component",
+      "license": "License",
+      "source": "Source address",
+      "unavailable": "Third-party distribution artifacts and license information are unavailable"
+    },
+    "feedback": {
+      "saved": "Settings saved",
+      "exported": "Configuration exported",
+      "imported": "Configuration imported",
+      "reset": "Defaults restored",
+      "operationFailed": "The operation failed. Try again later.",
+      "desktopUnavailable": "The desktop runtime is unavailable. Native settings actions are disabled."
+    },
     "language": "Language",
     "languageSettings": "Language Settings",
     "connection": "Connection Settings",
@@ -186,7 +307,36 @@
     "description": "Description",
     "author": "Author",
     "enabled": "Status",
-    "remove": "Remove"
+    "remove": "Remove",
+    "install": "Install plugin",
+    "refresh": "Refresh",
+    "installed": "Installed",
+    "updateAvailable": "Updates",
+    "disabled": "Disabled",
+    "permissionsLabel": "Permissions",
+    "actions": "Actions",
+    "enable": "Enable",
+    "disable": "Disable",
+    "configure": "Configure",
+    "uninstall": "Uninstall plugin",
+    "uninstallConfirm": "Uninstall this plugin?",
+    "selectPackage": "Select package",
+    "safety": "Plugins run in independent WASM sandboxes and cannot read sensitive configuration",
+    "status": {
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "updateAvailable": "Update available",
+      "failed": "Runtime failed",
+      "unavailable": "Unavailable"
+    },
+    "permissions": {
+      "sanitizedEvent": "Sanitized events",
+      "currentRoomUid": "Current room UID",
+      "effect": "Effects",
+      "panel": "Panels",
+      "dataSource": "Data sources",
+      "network": "Declared network"
+    }
   },
   "gift": {
     "title": "Gift List",
@@ -261,6 +411,12 @@
     "noChangelog": "No changelog available",
     "whatsNew": "What's New",
     "dontRemind": "Don't remind for this version",
-    "gotIt": "Got it"
+    "gotIt": "Got it",
+    "availableTitle": "New version available",
+    "updateNow": "Update now",
+    "later": "Later",
+    "skipVersion": "Skip this version",
+    "restartInstall": "Restart and install",
+    "unavailable": "Update service is unavailable"
   }
 }

@@ -1,200 +1,135 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoomStore } from '@/stores/room';
-import { useUpdateStore } from '@/stores/update';
-import { getDanmakuService } from '@/services/danmaku-service';
+import { useRoute, useRouter } from 'vue-router';
+import type { RoomId } from '@/platform/desktop';
 import { elementPlusLocale } from '@/i18n-runtime';
+import AppShellNavigation from '@/components/application-shell/AppShellNavigation.vue';
+import AppShellStatusBar from '@/components/application-shell/AppShellStatusBar.vue';
+import AppShellToolbar from '@/components/application-shell/AppShellToolbar.vue';
+import { useApplicationShellRuntime } from '@/composables/useApplicationShellRuntime';
+import { useLiveDataRuntime } from '@/composables/useLiveDataRuntime';
+import { useMediaRuntime } from '@/composables/useMediaRuntime';
+import { useReleaseRuntime } from '@/composables/useReleaseRuntime';
 import {
-  House,
-  Connection,
-  Document,
-  Present,
-  Setting,
-  DocumentCopy,
-  CircleClose,
-  MagicStick,
-  Bell,
-  Box,
-  VideoCamera
-} from '@element-plus/icons-vue';
-import LoginPage from '@/views/login/index.vue';
-import WhatsNewModal from '@/components/WhatsNewModal.vue';
-import RecordingStatusBar from '@/components/RecordingStatusBar.vue';
+  buildNavigationTree,
+  type ShellNavigationItem
+} from '@/modules/application-shell/navigation';
+import { buildStatusBarView, normalizeRoomInput } from '@/modules/application-shell/view-model';
+import { useApplicationShellStore } from '@/stores/application-shell';
+import { useLiveFeedStore } from '@/stores/live-data/feed';
+import { useLiveRoomStore } from '@/stores/live-data/room';
+import { useMediaRecordingStore } from '@/stores/media/recording';
+import { memberChannel } from '@member-channel';
 
 const { t } = useI18n();
-const roomStore = useRoomStore();
-const updateStore = useUpdateStore();
-const danmakuService = getDanmakuService();
+const route = useRoute();
+const router = useRouter();
+const shell = useApplicationShellStore();
+const room = useLiveRoomStore();
+const feed = useLiveFeedStore();
+const recording = useMediaRecordingStore();
+const applicationShellRuntime = useApplicationShellRuntime();
+const liveDataRuntime = useLiveDataRuntime();
+const mediaRuntime = useMediaRuntime();
+const releaseRuntime = useReleaseRuntime();
 
-const showWhatsNew = ref(false);
-const whatsNewVersion = ref('');
+const roomInput = ref('');
+const roomError = ref<string | null>(null);
+const notificationOpen = ref(false);
+const navigation = computed(() => memberChannel.buildNavigation(buildNavigationTree()));
+const recentRooms = computed(() => room.snapshot.roomId ? [room.snapshot.roomId] : []);
+const acceptedDanmakuCount = computed(() => {
+  const cutoff = shell.statusObservedAt - 1_000;
+  return feed.events.filter(event => event.kind === 'danmu' && event.occurredAt >= cutoff).length;
+});
+const statusItems = computed(() => buildStatusBarView({
+  room: room.snapshot,
+  acceptedDanmakuCount: acceptedDanmakuCount.value,
+  recordingState: recording.status?.state ?? 'idle',
+  metrics: shell.metrics,
+  locale: shell.locale?.locale ?? 'zh-CN'
+}));
 
-function handleBeforeUnload() {
-  if (roomStore.isConnected) {
-    danmakuService.disconnect();
-  }
-}
-
-async function handleDisconnect() {
+async function toggleConnection(): Promise<void> {
+  roomError.value = null;
   try {
-    await danmakuService.disconnect();
-    ElMessage.info(t('connection.disconnected'));
-  } catch (error) {
-    ElMessage.error(`${t('connection.disconnect')}: ${error}`);
+    if (room.snapshot.status === 'connected' || room.snapshot.status === 'reconnecting') {
+      await room.disconnect();
+      return;
+    }
+    const normalized = normalizeRoomInput(roomInput.value);
+    if (!normalized.ok) {
+      roomError.value = t(`shell.errors.${normalized.code}`);
+      return;
+    }
+    await room.connect(normalized.value as RoomId);
+  } catch {
+    roomError.value = t('shell.errors.operationFailed');
   }
 }
 
-function checkWhatsNew() {
-  const currentVersion = updateStore.currentVersion;
-  const lastWhatsNewVersion = localStorage.getItem('lastWhatsNewVersion');
-  const dontRemindList = JSON.parse(localStorage.getItem('whatsNewDontRemind') || '[]');
-
-  if (lastWhatsNewVersion !== currentVersion && !dontRemindList.includes(currentVersion)) {
-    whatsNewVersion.value = currentVersion;
-    showWhatsNew.value = true;
-  }
+function navigate(item: ShellNavigationItem): void {
+  if (item.route && !item.isDisabled) void router.push(item.route);
 }
 
-function handleWhatsNewClose() {
-  showWhatsNew.value = false;
-  localStorage.setItem('lastWhatsNewVersion', whatsNewVersion.value);
+function openNotifications(): void {
+  notificationOpen.value = !notificationOpen.value;
 }
 
-function handleDontRemind() {
-  const dontRemindList = JSON.parse(localStorage.getItem('whatsNewDontRemind') || '[]');
-  if (!dontRemindList.includes(whatsNewVersion.value)) {
-    dontRemindList.push(whatsNewVersion.value);
-    localStorage.setItem('whatsNewDontRemind', JSON.stringify(dontRemindList));
-  }
+function openSettings(): void {
+  void router.push('/settings');
 }
 
-onMounted(async () => {
-  window.addEventListener('beforeunload', handleBeforeUnload);
-
-  // 异步检查更新（不阻塞主界面）
-  await updateStore.checkForUpdates();
-
-  // 检查是否需要显示新版本弹窗
-  await updateStore.parseChangelog();
-  checkWhatsNew();
+onMounted(() => {
+  void Promise.allSettled([
+    applicationShellRuntime.start(),
+    liveDataRuntime.start(),
+    mediaRuntime.start(),
+    releaseRuntime.start(),
+    memberChannel.start()
+  ]);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('beforeunload', handleBeforeUnload);
+  applicationShellRuntime.stop();
+  liveDataRuntime.stop();
+  mediaRuntime.stop();
+  releaseRuntime.stop();
+  memberChannel.stop();
 });
 </script>
 
 <template>
   <el-config-provider :locale="elementPlusLocale">
-    <div class="h-screen flex flex-col bg-[#F5F6FA] overflow-hidden">
-      <!-- 未连接：全屏显示身份码输入页 -->
-      <LoginPage v-if="!roomStore.isConnected" />
-
-      <!-- 已连接：显示完整布局 -->
-      <el-container v-else class="flex flex-col h-full">
-        <el-header class="flex items-center justify-between shrink-0 h-14 bg-gradient-to-r from-[#1D3557] to-[#457B9D] shadow-lg">
-          <h1 class="m-0 text-lg font-semibold tracking-wider text-white">
-            {{ t('app.title') }}
-          </h1>
-          <div class="flex items-center">
-            <el-badge :is-dot="updateStore.hasUpdate" class="mr-4">
-              <el-button
-                type="info"
-                size="small"
-                :icon="Bell"
-                circle
-                @click="$router.push('/update-log')"
-              />
-            </el-badge>
-            <el-button
-              type="danger"
-              size="small"
-              @click="handleDisconnect"
-            >
-              {{ t('connection.disconnect') }}
-            </el-button>
-          </div>
-        </el-header>
-
-        <el-container class="flex flex-1 min-h-0">
-          <el-aside width="220px" class="shrink-0 bg-[#304156] overflow-y-auto">
-            <el-menu
-              :default-active="$route.path"
-              router
-              background-color="#304156"
-              text-color="#bfcbd9"
-              active-text-color="#409EFF"
-              class="border-r-0"
-            >
-              <el-menu-item index="/dashboard">
-                <el-icon><House /></el-icon>
-                <span>{{ t('nav.dashboard') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/connection">
-                <el-icon><Connection /></el-icon>
-                <span>{{ t('nav.connection') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/danmaku-list">
-                <el-icon><Document /></el-icon>
-                <span>{{ t('nav.danmakuList') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/gift-list">
-                <el-icon><Present /></el-icon>
-                <span>{{ t('nav.giftList') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/settings">
-                <el-icon><Setting /></el-icon>
-                <span>{{ t('nav.settings') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/logs">
-                <el-icon><DocumentCopy /></el-icon>
-                <span>{{ t('nav.logs') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/blacklist">
-                <el-icon><CircleClose /></el-icon>
-                <span>{{ t('nav.blacklist') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/effect-preview">
-                <el-icon><MagicStick /></el-icon>
-                <span>{{ t('nav.effectPreview') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/update-log">
-                <el-icon><Bell /></el-icon>
-                <span>{{ t('update.title') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/plugins">
-                <el-icon><Box /></el-icon>
-                <span>{{ t('plugins.title') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/recording">
-                <el-icon><VideoCamera /></el-icon>
-                <span>{{ t('recording.title') }}</span>
-              </el-menu-item>
-              <el-menu-item index="/gift-sound">
-                <el-icon><Present /></el-icon>
-                <span>{{ t('nav.giftSound') }}</span>
-              </el-menu-item>
-            </el-menu>
-          </el-aside>
-
-          <el-main class="p-8 overflow-y-auto flex-1 bg-[#F5F6FA]">
-            <router-view />
-          </el-main>
-        </el-container>
-
-        <!-- 录制状态栏 -->
-        <RecordingStatusBar class="shrink-0" />
-      </el-container>
-
-      <!-- 新版本特性弹窗 -->
-      <WhatsNewModal
-        :visible="showWhatsNew"
-        :version="whatsNewVersion"
-        :changelog="updateStore.latestChangelogEntry"
-        @close="handleWhatsNewClose"
-        @dont-remind="handleDontRemind"
+    <div
+      v-loading="shell.pending"
+      class="grid h-screen min-h-0 min-w-[calc(var(--shell-navigation-width,208px)+320px)] grid-rows-[var(--shell-toolbar-height,56px)_minmax(0,1fr)_var(--shell-status-height,32px)] overflow-hidden bg-gray-50 text-[length:var(--shell-font-size,14px)] text-gray-900 opacity-[var(--shell-opacity,0.95)] dark:bg-gray-950 dark:text-gray-100"
+    >
+      <AppShellToolbar
+        v-model="roomInput"
+        :rooms="recentRooms"
+        :room="room.snapshot"
+        :is-pending="room.pending"
+        :room-error="roomError"
+        :notification-open="notificationOpen"
+        :member-toolbar-component="memberChannel.toolbarComponent"
+        @update:notification-open="notificationOpen = $event"
+        @toggle-connection="toggleConnection"
+        @open-notifications="openNotifications"
+        @open-settings="openSettings"
       />
+      <div class="flex min-h-0 min-w-0">
+        <AppShellNavigation
+          :items="navigation"
+          :active-route="route.path"
+          @navigate="navigate"
+        />
+        <main class="min-w-0 flex-1 overflow-y-auto bg-gray-50 p-4 dark:bg-gray-950">
+          <router-view />
+        </main>
+      </div>
+      <AppShellStatusBar :items="statusItems" />
     </div>
   </el-config-provider>
 </template>

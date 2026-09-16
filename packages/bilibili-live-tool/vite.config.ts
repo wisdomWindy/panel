@@ -1,12 +1,11 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import electron from 'vite-plugin-electron';
 import path from 'path';
 import AutoImport from 'unplugin-auto-import/vite';
 import Components from 'unplugin-vue-components/vite';
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     vue(),
     AutoImport({
@@ -17,44 +16,25 @@ export default defineConfig({
     Components({
       dts: 'components.d.ts',
       resolvers: [ElementPlusResolver()]
-    }),
-    electron([
-      {
-        entry: 'src/main/index.ts',
-        vite: {
-          build: {
-            outDir: 'dist/main',
-            rollupOptions: {
-              external: ['electron']
-            }
-          }
-        }
-      },
-      {
-        entry: 'src/preload/index.ts',
-        onstart(options) {
-          options.reload();
-        },
-        vite: {
-          build: {
-            outDir: 'dist/preload',
-            lib: {
-              entry: 'src/preload/index.ts',
-              formats: ['cjs'],
-              fileName: () => 'index.js'
-            },
-            rollupOptions: {
-              external: ['electron']
-            }
-          }
-        }
-      }
-    ])
+    })
   ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src/renderer'),
-      'events': path.resolve(__dirname, 'src/renderer/modules/utils/event-emitter.ts')
+      '@member-channel': path.resolve(
+        __dirname,
+        mode === 'member'
+          ? 'src/renderer/platform/desktop/channel.member.ts'
+          : 'src/renderer/platform/desktop/channel.free.ts'
+      )
+    }
+  },
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true,
+    watch: {
+      ignored: ['**/src-tauri/target/**']
     }
   },
   root: '.',
@@ -89,8 +69,8 @@ export default defineConfig({
             return 'echarts-vendor';
           }
 
-          if (id.includes('/three/')) {
-            return 'three-vendor';
+          if (id.includes('/element-plus/') || id.includes('/@element-plus/')) {
+            return 'element-plus-vendor';
           }
 
           if (
@@ -110,4 +90,4 @@ export default defineConfig({
     drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
   },
   publicDir: 'public'
-});
+}));

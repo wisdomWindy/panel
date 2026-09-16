@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Bilibili 直播助手",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "identifier": "com.bilibili.live-tool",
   "build": {
     "frontendDist": "../dist/renderer",
@@ -10,6 +10,7 @@
     "beforeBuildCommand": "pnpm build:web"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Bilibili 直播助手",

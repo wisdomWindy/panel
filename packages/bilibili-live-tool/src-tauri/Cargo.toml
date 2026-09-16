@@ -1,6 +1,6 @@
 [package]
 name = "bilibili-live-tool"
-version = "0.1.1"
+version = "0.1.2"
 description = "Bilibili live monitoring assistant"
 authors = []
 license = "MIT"
@@ -34,7 +34,7 @@ serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10"
 log = "0.4"
 rodio = { version = "0.20.1", default-features = false, features = ["mp3", "wav"] }
-tauri = { version = "2.11.3", features = [] }
+tauri = { version = "2.11.3", features = ["macos-private-api"] }
 tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2.3.2"

@@ -1,6 +1,6 @@
 {
   "name": "@monorepo/bilibili-live-tool",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Bilibili 直播助手 - 智能弹幕与互动工具",
   "author": "",
   "license": "MIT",

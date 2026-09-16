@@ -3,6 +3,31 @@ import { pathToFileURL } from 'node:url';
 
 const RELEASE_ORIGIN = 'https://github.com';
 const RELEASE_PATH_PREFIX = '/wisdomWindy/panel/releases/download/';
+const ASSET_API_PREFIX = 'https://api.github.com/repos/wisdomWindy/panel/releases/assets/';
+
+export function normalizeDraftAssetUrls(manifest, release) {
+  if (typeof release?.tagName !== 'string' || !Array.isArray(release.assets)) {
+    throw new Error('Release asset metadata is invalid');
+  }
+  const assets = new Map(release.assets.map(asset => [asset.apiUrl, asset.name]));
+  const platforms = Object.fromEntries(
+    Object.entries(manifest.platforms ?? {}).map(([target, artifact]) => {
+      if (!artifact.url?.startsWith(ASSET_API_PREFIX)) return [target, artifact];
+      const assetName = assets.get(artifact.url);
+      if (!assetName) {
+        throw new Error(`Updater artifact ${target} is not present in the release assets`);
+      }
+      return [
+        target,
+        {
+          ...artifact,
+          url: `${RELEASE_ORIGIN}${RELEASE_PATH_PREFIX}${encodeURIComponent(release.tagName)}/${encodeURIComponent(assetName)}`
+        }
+      ];
+    })
+  );
+  return { ...manifest, platforms };
+}
 
 export function finalizeUpdateManifest(manifest, expectedVersion) {
   const version = String(manifest.version ?? '').replace(/^v/, '');
@@ -51,7 +76,11 @@ async function main() {
   if (!args.input || !args.version) {
     throw new Error('--input and --version are required');
   }
-  const manifest = JSON.parse(await readFile(args.input, 'utf8'));
+  let manifest = JSON.parse(await readFile(args.input, 'utf8'));
+  if (args.assets) {
+    const release = JSON.parse(await readFile(args.assets, 'utf8'));
+    manifest = normalizeDraftAssetUrls(manifest, release);
+  }
   const finalized = finalizeUpdateManifest(manifest, args.version);
   await writeFile(args.input, `${JSON.stringify(finalized, null, 2)}\n`, 'utf8');
 }

@@ -1,7 +1,56 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { finalizeUpdateManifest } from './finalize-update-manifest.mjs';
+import * as manifestModule from './finalize-update-manifest.mjs';
+
+const { finalizeUpdateManifest } = manifestModule;
+
+test('normalizeDraftAssetUrls converts draft API URLs to stable release URLs', () => {
+  const manifest = manifestModule.normalizeDraftAssetUrls(
+    {
+      version: '1.2.3',
+      platforms: {
+        'windows-x86_64': {
+          url: 'https://api.github.com/repos/wisdomWindy/panel/releases/assets/42',
+          signature: 'signed'
+        }
+      }
+    },
+    {
+      tagName: 'free-v1.2.3',
+      assets: [
+        {
+          apiUrl: 'https://api.github.com/repos/wisdomWindy/panel/releases/assets/42',
+          name: 'Bilibili Live Tool_1.2.3_x64-setup.exe'
+        }
+      ]
+    }
+  );
+
+  assert.equal(
+    manifest.platforms['windows-x86_64'].url,
+    'https://github.com/wisdomWindy/panel/releases/download/free-v1.2.3/Bilibili%20Live%20Tool_1.2.3_x64-setup.exe'
+  );
+});
+
+test('normalizeDraftAssetUrls rejects API assets missing from the release', () => {
+  assert.throws(
+    () =>
+      manifestModule.normalizeDraftAssetUrls(
+        {
+          version: '1.2.3',
+          platforms: {
+            linux: {
+              url: 'https://api.github.com/repos/wisdomWindy/panel/releases/assets/99',
+              signature: 'signed'
+            }
+          }
+        },
+        { tagName: 'free-v1.2.3', assets: [] }
+      ),
+    /not present/
+  );
+});
 
 test('finalizeUpdateManifest validates signatures and adds rollout policy', () => {
   const manifest = finalizeUpdateManifest(

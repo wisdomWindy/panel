@@ -60,8 +60,33 @@ jobs:
       - name: Validate workflow formatting
         run: pnpm --dir "$APP_PATH" exec prettier --check ../../.github/workflows/release-tauri.yml
 
-  build:
+  prepare:
     needs: verify
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Create channel draft releases
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
+          for CHANNEL in free member; do
+            TAG="$CHANNEL-v$VERSION"
+            if ! gh release view "$TAG" >/dev/null 2>&1; then
+              gh release create "$TAG" \
+                --draft \
+                --title "Bilibili Live Assistant $CHANNEL v$VERSION" \
+                --notes "Signed desktop installers and updater artifacts."
+            fi
+          done
+
+  build:
+    needs: prepare
     permissions:
       contents: write
     strategy:
@@ -181,9 +206,13 @@ jobs:
           for CHANNEL in free member; do
             mkdir -p "$APP_PATH/.release-staging/$CHANNEL"
             gh release download "$CHANNEL-v$VERSION" --pattern latest.json --dir "$APP_PATH/.release-staging/$CHANNEL"
+            gh release view "$CHANNEL-v$VERSION" \
+              --json tagName,assets \
+              > "$APP_PATH/.release-staging/$CHANNEL/release.json"
             node "$APP_PATH/scripts/finalize-update-manifest.mjs" \
               --input "$APP_PATH/.release-staging/$CHANNEL/latest.json" \
-              --version "$VERSION"
+              --version "$VERSION" \
+              --assets "$APP_PATH/.release-staging/$CHANNEL/release.json"
           done
 
       - name: Upload runtime catalog and optional WASM assets

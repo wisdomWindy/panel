@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Bilibili Live Assistant"
+    "title": "biliLiveHelper"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -132,7 +132,7 @@
     "roomIdPlaceholder": "Enter room ID"
   },
   "shell": {
-    "productName": "Bilibili Live Assistant",
+    "productName": "biliLiveHelper",
     "toolbar": {
       "roomPlaceholder": "Enter or select a room ID",
       "connect": "Connect",

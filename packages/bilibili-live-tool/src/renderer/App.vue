@@ -103,8 +103,8 @@ onUnmounted(() => {
 <template>
   <el-config-provider :locale="elementPlusLocale">
     <div
-      v-loading="shell.pending"
-      class="grid h-screen min-h-0 min-w-[calc(var(--shell-navigation-width,208px)+320px)] grid-rows-[var(--shell-toolbar-height,56px)_minmax(0,1fr)_var(--shell-status-height,32px)] overflow-hidden bg-gray-50 text-[length:var(--shell-font-size,14px)] text-gray-900 opacity-[var(--shell-opacity,0.95)] dark:bg-gray-950 dark:text-gray-100"
+      :aria-busy="shell.pending"
+      class="grid h-screen min-h-0 min-w-0 grid-rows-[var(--shell-toolbar-height,64px)_minmax(0,1fr)_var(--shell-status-height,36px)] overflow-hidden bg-zinc-100 text-[length:var(--shell-font-size,14px)] text-zinc-950 opacity-[var(--shell-opacity,0.98)] dark:bg-zinc-950 dark:text-zinc-100"
     >
       <AppShellToolbar
         v-model="roomInput"
@@ -125,7 +125,7 @@ onUnmounted(() => {
           :active-route="route.path"
           @navigate="navigate"
         />
-        <main class="min-w-0 flex-1 overflow-y-auto bg-gray-50 p-4 dark:bg-gray-950">
+        <main class="min-w-0 flex-1 overflow-y-auto bg-zinc-100 p-3 sm:p-5 dark:bg-zinc-950">
           <router-view />
         </main>
       </div>

@@ -118,7 +118,7 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   // 设置页面标题
   if (to.meta.title) {
-    document.title = `${to.meta.title} - Bilibili 直播助手`;
+    document.title = `${to.meta.title} - biliLiveHelper`;
   }
   if (!memberChannel.canAccess(to.path)) {
     next(memberChannel.deniedRoute);

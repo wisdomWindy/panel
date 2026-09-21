@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+
+const workflowUrl = new URL('../../../.github/workflows/release-tauri.yml', import.meta.url);
+
+test('release build matrix contains only Windows x64 and both macOS architectures', async () => {
+  const workflow = await readFile(workflowUrl, 'utf8');
+  const matrix = workflow.match(/\n  build:\n[\s\S]*?\n    runs-on:/)?.[0];
+
+  assert.ok(matrix, 'release build matrix is present');
+  assert.equal(matrix.match(/\n          - platform:/g)?.length, 3);
+  assert.match(matrix, /platform: windows-latest[\s\S]*?args: --bundles nsis/);
+  assert.match(
+    matrix,
+    /platform: macos-latest[\s\S]*?--target aarch64-apple-darwin --bundles app,dmg/
+  );
+  assert.match(
+    matrix,
+    /platform: macos-15-intel[\s\S]*?--target x86_64-apple-darwin --bundles app,dmg/
+  );
+  assert.doesNotMatch(matrix, /platform: (?:ubuntu|windows-11-arm)/);
+});

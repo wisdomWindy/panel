@@ -6,7 +6,7 @@ import { buildReleaseConfig, defaultUpdaterEndpoint } from './prepare-release-co
 test('buildReleaseConfig adds signed updater settings without leaking signing secrets', () => {
   const config = buildReleaseConfig({
     baseConfig: {
-      productName: 'Bilibili Live Assistant Free',
+      productName: 'biliLiveHelper',
       build: { beforeBuildCommand: 'pnpm build:web:free' }
     },
     channel: 'free',
@@ -14,7 +14,7 @@ test('buildReleaseConfig adds signed updater settings without leaking signing se
     endpoint: defaultUpdaterEndpoint('free')
   });
 
-  assert.equal(config.productName, 'Bilibili Live Assistant Free');
+  assert.equal(config.productName, 'biliLiveHelper');
   assert.equal(config.bundle.createUpdaterArtifacts, true);
   assert.deepEqual(config.plugins.updater, {
     pubkey: 'RWQ-public-key',

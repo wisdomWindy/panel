@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Bilibili 直播助手"
+    "title": "biliLiveHelper"
   },
   "nav": {
     "dashboard": "仪表盘",
@@ -132,7 +132,7 @@
     "roomIdPlaceholder": "请输入直播间号"
   },
   "shell": {
-    "productName": "Bilibili 直播助手",
+    "productName": "biliLiveHelper",
     "toolbar": {
       "roomPlaceholder": "输入或选择直播间号",
       "connect": "连接",

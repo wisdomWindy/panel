@@ -3,6 +3,7 @@ import { createI18n } from 'vue-i18n';
 import ElementPlus from 'element-plus';
 import './styles/tailwind.css';
 import 'element-plus/dist/index.css';
+import 'element-plus/theme-chalk/dark/css-vars.css';
 import router from './router';
 import { pinia } from './stores';
 import App from '@/App.vue';
@@ -12,6 +13,10 @@ import { getStoredLocale, localeState } from './i18n-runtime';
 import './platform/desktop/build-channel';
 import EffectWindowRoot from './views/captain-effect/EffectWindowRoot.vue';
 import { memberChannel } from '@member-channel';
+
+const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+document.documentElement.classList.toggle('dark', prefersDark);
+document.documentElement.style.colorScheme = prefersDark ? 'dark' : 'light';
 
 const storedLocale = getStoredLocale();
 

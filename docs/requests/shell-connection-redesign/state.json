@@ -1,0 +1,31 @@
+{
+  "request_id": "shell-connection-redesign",
+  "request_type": "direct-change",
+  "source": "user instruction 2026-09-21 and attached screenshot",
+  "stage": "complete",
+  "speed_profile": {
+    "level": "S2 scoped",
+    "context_budget": "scoped",
+    "artifact_density": "full",
+    "reason": "Existing multi-file application shell and first-page redesign with runtime-startup fix"
+  },
+  "page_design_required": true,
+  "architecture_design_required": false,
+  "module_flow": null,
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "loop": {
+    "state": "complete",
+    "iteration": 1,
+    "blocking_gate": null,
+    "reentry_reason": null,
+    "remaining_blockers": []
+  },
+  "figma_mcp": {
+    "requested": true,
+    "available": false,
+    "fallback": "durable page-design artifact and browser visual verification"
+  }
+}

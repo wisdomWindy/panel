@@ -80,8 +80,8 @@ jobs:
             if ! gh release view "$TAG" >/dev/null 2>&1; then
               gh release create "$TAG" \
                 --draft \
-                --title "Bilibili Live Assistant $CHANNEL v$VERSION" \
-                --notes "Signed desktop installers and updater artifacts."
+                --title "biliLiveHelper $CHANNEL v$VERSION" \
+                --notes "biliLiveHelper v$VERSION for Windows x64, macOS Apple Silicon, and macOS Intel."
             fi
           done
 
@@ -95,30 +95,18 @@ jobs:
         channel: [free, member]
         target:
           - platform: macos-latest
-            args: --target aarch64-apple-darwin
-            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
-          - platform: macos-latest
-            args: --target x86_64-apple-darwin
-            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
-          - platform: ubuntu-22.04
-            args: ""
-            rust_targets: ""
-          - platform: ubuntu-22.04-arm
-            args: ""
-            rust_targets: ""
+            args: --target aarch64-apple-darwin --bundles app,dmg
+            rust_targets: aarch64-apple-darwin
+          - platform: macos-15-intel
+            args: --target x86_64-apple-darwin --bundles app,dmg
+            rust_targets: x86_64-apple-darwin
           - platform: windows-latest
-            args: ""
+            args: --bundles nsis
             rust_targets: ""
     runs-on: ${{ matrix.target.platform }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
-      - name: Install Linux dependencies
-        if: startsWith(matrix.target.platform, 'ubuntu-')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils libasound2-dev libspeechd-dev
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -163,8 +151,8 @@ jobs:
         with:
           projectPath: ${{ env.APP_PATH }}
           tagName: ${{ matrix.channel }}-v__VERSION__
-          releaseName: "Bilibili Live Assistant ${{ matrix.channel }} v__VERSION__"
-          releaseBody: "Signed desktop installers and updater artifacts."
+          releaseName: "biliLiveHelper ${{ matrix.channel }} v__VERSION__"
+          releaseBody: "biliLiveHelper v__VERSION__ for Windows x64, macOS Apple Silicon, and macOS Intel."
           releaseDraft: true
           prerelease: false
           args: --config src-tauri/tauri.release.${{ matrix.channel }}.conf.json ${{ matrix.target.args }}

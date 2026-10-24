@@ -419,6 +419,7 @@ impl AiSpeechOutput for SystemAiSpeechOutput {
             speech
                 .speak(text, false)
                 .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))
+                .map(|_| ())
         })
         .await
         .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?

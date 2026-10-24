@@ -10,13 +10,23 @@
 - SQLite 数据库、迁移备份、配置导入/导出、语言与界面偏好。
 - 弹幕/礼物数据契约、敏感词、黑名单、统计、排行和导出。
 - 上舰特效、礼物提醒/音效、系统 TTS、本地 FFmpeg 录制与高光管理边界。
-- Tauri Updater 签名校验、GitHub Actions 双通道发布、官方 FFmpeg/Whisper 资产目录。
+- Tauri Updater 签名校验、GitHub Actions 免费版多平台发布、官方 FFmpeg/Whisper 资产目录。
 - 本地 Whisper CPU 语音识别：下载模型后采集默认麦克风，识别结果显示在 AI 助手页；关闭 ASR 时释放采集资源。
 
 下列成功路径需要额外的生产契约或二进制资源，当前会明确返回 `unavailable` / degraded 状态，不会伪造成功：
 
 - Bilibili 真实直播间传输与需要凭据的开放平台接口。
 - 会员登录/支付/权益校验、LLM 与云端审核服务。
+
+## 下载
+
+当前公开版本为 [`biliLiverHelper free v0.2.0`](https://github.com/wisdomWindy/panel/releases/tag/free-v0.2.0)：
+
+- Windows x64：[`biliLiverHelper_0.2.0_Windows_x64-setup.exe`](https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_Windows_x64-setup.exe)
+- macOS Intel：[`biliLiverHelper_0.2.0_macOS_Intel.dmg`](https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_macOS_Intel.dmg)（macOS 10.15 或更高版本）
+- macOS Apple Silicon：[`biliLiverHelper_0.2.0_macOS_AppleSilicon.dmg`](https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_macOS_AppleSilicon.dmg)（macOS 10.15 或更高版本）
+
+安装包统一使用 `biliLiverHelper_<version>_<platform>.<extension>` 命名。Windows 安装包未进行 Authenticode 签名，macOS 磁盘映像未进行 Apple Developer 签名或公证；仅在确认文件来自本仓库后跳过操作系统警告。
 
 ## 技术栈
 
@@ -33,7 +43,7 @@
 
 ```text
 .
-├─ .github/workflows/release-tauri.yml       # 签名、多平台、双通道发布
+├─ .github/workflows/release-tauri.yml       # 签名、免费版多平台发布
 ├─ packages/
 │  ├─ bilibili-live-tool/
 │  │  ├─ src/renderer/                # Vue 页面、Pinia、桌面适配器
@@ -154,18 +164,21 @@ cargo clippy --manifest-path packages/bilibili-live-tool/src-tauri/Cargo.toml --
 `.github/workflows/release-tauri.yml` 支持手动触发，也会在推送 `v*` tag 时运行。Tag 中的版本必须与 `src-tauri/tauri.conf.json` 一致，例如：
 
 ```powershell
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 发布流程会：
 
 1. 运行发布契约和工作流格式检查。
-2. 构建 `free` / `member` 的 Windows、Linux x64/ARM64 和 macOS x64/ARM64 产物。
+2. 构建 `free` 通道的 Windows x64、macOS Intel 和 macOS Apple Silicon 产物。
 3. 使用 Tauri Updater 私钥生成强制签名的更新产物。
-4. 生成独立的 `free/latest.json` 和 `member/latest.json`，发布到 `updates` 分支。
-5. 生成 `free-v<version>` 和 `member-v<version>` GitHub Releases。
-6. 解析并校验官方平台资产，下载后二次计算 SHA-256。
+4. 生成 `free/latest.json` 并发布到 `updates` 分支。
+5. 生成 `free-v<version>` GitHub Release，写入版本变更和各平台直接下载链接。
+6. 按 `biliLiverHelper_<version>_<platform>.<extension>` 命名安装包和更新产物。
+7. 解析并校验官方运行时资产，下载后二次计算 SHA-256。
+
+会员版仍可在本地通过 `member` feature 构建和测试，但发布工作流不会创建会员版 Release。
 
 仓库 Actions 需要以下配置：
 

@@ -97,12 +97,15 @@ jobs:
           - platform: macos-latest
             args: --target aarch64-apple-darwin --bundles app,dmg
             rust_targets: aarch64-apple-darwin
+            asset_platform: macos-arm64
           - platform: macos-15-intel
             args: --target x86_64-apple-darwin --bundles app,dmg
             rust_targets: x86_64-apple-darwin
+            asset_platform: macos-x64
           - platform: windows-latest
             args: --bundles nsis
             rust_targets: ""
+            asset_platform: windows-x64
     runs-on: ${{ matrix.target.platform }}
     steps:
       - name: Checkout
@@ -176,6 +179,7 @@ jobs:
           releaseBody: "biliLiveHelper v__VERSION__ for Windows x64, macOS Apple Silicon, and macOS Intel."
           releaseDraft: true
           prerelease: false
+          releaseAssetNamePattern: biliLiverHelper_[version]_${{ matrix.target.asset_platform }}[ext]
           args: --config src-tauri/tauri.release.${{ matrix.channel }}.conf.json ${{ matrix.target.args }}
 
   publish:
@@ -272,4 +276,10 @@ jobs:
         shell: bash
         run: |
           VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
-          gh release edit "free-v$VERSION" --draft=false
+          node "$APP_PATH/scripts/generate-release-notes.mjs" \
+            --version "$VERSION" \
+            --tag "free-v$VERSION" \
+            --output "$APP_PATH/.release-staging/free/release-notes.md"
+          gh release edit "free-v$VERSION" \
+            --notes-file "$APP_PATH/.release-staging/free/release-notes.md" \
+            --draft=false

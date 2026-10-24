@@ -89,6 +89,8 @@ jobs:
     needs: prepare
     permissions:
       contents: write
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "10.15"
     strategy:
       fail-fast: false
       matrix:

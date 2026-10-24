@@ -20,9 +20,9 @@ test('release build matrix contains only Windows x64 and both macOS architecture
     /platform: macos-15-intel[\s\S]*?--target x86_64-apple-darwin --bundles app,dmg/
   );
   assert.doesNotMatch(matrix, /platform: (?:ubuntu|windows-11-arm)/);
-  assert.match(matrix, /platform: windows-latest[\s\S]*?asset_platform: windows-x64/);
-  assert.match(matrix, /platform: macos-latest[\s\S]*?asset_platform: macos-arm64/);
-  assert.match(matrix, /platform: macos-15-intel[\s\S]*?asset_platform: macos-x64/);
+  assert.match(matrix, /platform: windows-latest[\s\S]*?asset_platform: Windows_x64-setup/);
+  assert.match(matrix, /platform: macos-latest[\s\S]*?asset_platform: macOS_AppleSilicon/);
+  assert.match(matrix, /platform: macos-15-intel[\s\S]*?asset_platform: macOS_Intel/);
 });
 
 test('release workflow publishes only the free channel', async () => {
@@ -39,4 +39,5 @@ test('release workflow publishes only the free channel', async () => {
     /releaseAssetNamePattern: biliLiverHelper_\[version\]_\$\{\{ matrix\.target\.asset_platform \}\}\[ext\]/
   );
   assert.match(workflow, /generate-release-notes\.mjs/);
+  assert.match(workflow, /--changes-file "\$APP_PATH\/release-notes\/\$VERSION\.md"/);
 });

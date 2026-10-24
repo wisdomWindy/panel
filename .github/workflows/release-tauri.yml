@@ -97,15 +97,15 @@ jobs:
           - platform: macos-latest
             args: --target aarch64-apple-darwin --bundles app,dmg
             rust_targets: aarch64-apple-darwin
-            asset_platform: macos-arm64
+            asset_platform: macOS_AppleSilicon
           - platform: macos-15-intel
             args: --target x86_64-apple-darwin --bundles app,dmg
             rust_targets: x86_64-apple-darwin
-            asset_platform: macos-x64
+            asset_platform: macOS_Intel
           - platform: windows-latest
             args: --bundles nsis
             rust_targets: ""
-            asset_platform: windows-x64
+            asset_platform: Windows_x64-setup
     runs-on: ${{ matrix.target.platform }}
     steps:
       - name: Checkout
@@ -279,6 +279,7 @@ jobs:
           node "$APP_PATH/scripts/generate-release-notes.mjs" \
             --version "$VERSION" \
             --tag "free-v$VERSION" \
+            --changes-file "$APP_PATH/release-notes/$VERSION.md" \
             --output "$APP_PATH/.release-staging/free/release-notes.md"
           gh release edit "free-v$VERSION" \
             --notes-file "$APP_PATH/.release-staging/free/release-notes.md" \

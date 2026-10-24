@@ -21,3 +21,14 @@ test('release build matrix contains only Windows x64 and both macOS architecture
   );
   assert.doesNotMatch(matrix, /platform: (?:ubuntu|windows-11-arm)/);
 });
+
+test('release workflow publishes only the free channel', async () => {
+  const workflow = await readFile(workflowUrl, 'utf8');
+  const matrix = workflow.match(/\n  build:\n[\s\S]*?\n    runs-on:/)?.[0];
+
+  assert.ok(matrix, 'release build matrix is present');
+  assert.match(matrix, /channel: \[free\]/);
+  assert.doesNotMatch(matrix, /channel: \[[^\]]*member/);
+  assert.doesNotMatch(workflow, /for CHANNEL in free member/);
+  assert.doesNotMatch(workflow, /gh release edit "member-v\$VERSION"/);
+});

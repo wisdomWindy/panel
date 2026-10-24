@@ -75,7 +75,7 @@ jobs:
         shell: bash
         run: |
           VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
-          for CHANNEL in free member; do
+          for CHANNEL in free; do
             TAG="$CHANNEL-v$VERSION"
             if ! gh release view "$TAG" >/dev/null 2>&1; then
               gh release create "$TAG" \
@@ -92,7 +92,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        channel: [free, member]
+        channel: [free]
         target:
           - platform: macos-latest
             args: --target aarch64-apple-darwin --bundles app,dmg
@@ -212,7 +212,7 @@ jobs:
         shell: bash
         run: |
           VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
-          for CHANNEL in free member; do
+          for CHANNEL in free; do
             mkdir -p "$APP_PATH/.release-staging/$CHANNEL"
             gh release download "$CHANNEL-v$VERSION" --pattern latest.json --dir "$APP_PATH/.release-staging/$CHANNEL"
             gh release view "$CHANNEL-v$VERSION" \
@@ -230,7 +230,7 @@ jobs:
           VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
           shopt -s nullglob
           WASM_ASSETS=(release-assets/wasm/*.wasm release-assets/wasm/*.wasm.sig)
-          for CHANNEL in free member; do
+          for CHANNEL in free; do
             gh release upload "$CHANNEL-v$VERSION" "$APP_PATH/.release-staging/runtime-artifacts.json#runtime-artifacts.json" --clobber
             if (( ${#WASM_ASSETS[@]} )); then
               gh release upload "$CHANNEL-v$VERSION" "${WASM_ASSETS[@]}" --clobber
@@ -249,7 +249,7 @@ jobs:
           fi
 
           VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
-          for CHANNEL in free member; do
+          for CHANNEL in free; do
             TARGET="$CHANNEL/latest.json"
             FILE="$APP_PATH/.release-staging/$CHANNEL/latest.json"
             CONTENT=$(base64 -w0 "$FILE")
@@ -273,4 +273,3 @@ jobs:
         run: |
           VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
           gh release edit "free-v$VERSION" --draft=false
-          gh release edit "member-v$VERSION" --draft=false

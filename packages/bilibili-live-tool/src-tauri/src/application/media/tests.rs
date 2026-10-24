@@ -30,12 +30,18 @@ impl AudioPlayback for FinishedPlayback {
 #[derive(Default)]
 struct RecordingAudio {
     sources: Mutex<Vec<PathBuf>>,
+    alert_volumes: Mutex<Vec<f64>>,
 }
 
 #[async_trait::async_trait]
 impl AudioOutputPort for RecordingAudio {
     async fn play(&self, request: AudioRequest) -> Result<Box<dyn AudioPlayback>, MediaIoError> {
         self.sources.lock().await.push(request.source);
+        Ok(Box::new(FinishedPlayback))
+    }
+
+    async fn play_alert(&self, volume: f64) -> Result<Box<dyn AudioPlayback>, MediaIoError> {
+        self.alert_volumes.lock().await.push(volume);
         Ok(Box::new(FinishedPlayback))
     }
 }
@@ -74,6 +80,27 @@ impl EffectWindowPort for NoopWindow {
     }
 }
 
+#[derive(Default)]
+struct RecordingWindow {
+    specs: Mutex<Vec<EffectWindowSpec>>,
+}
+
+#[async_trait::async_trait]
+impl EffectWindowPort for RecordingWindow {
+    async fn ensure(&self, spec: &EffectWindowSpec) -> Result<(), MediaIoError> {
+        self.specs.lock().await.push(spec.clone());
+        Ok(())
+    }
+
+    async fn show(&self, _: &str) -> Result<(), MediaIoError> {
+        Ok(())
+    }
+
+    async fn close(&self, _: &str) -> Result<(), MediaIoError> {
+        Ok(())
+    }
+}
+
 struct NoopNotification;
 
 #[async_trait::async_trait]
@@ -87,6 +114,27 @@ impl NotificationPort for NoopNotification {
     }
 
     async fn show(&self, _: NotificationRequest) -> Result<(), MediaIoError> {
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+struct RecordingNotification {
+    requests: Mutex<Vec<NotificationRequest>>,
+}
+
+#[async_trait::async_trait]
+impl NotificationPort for RecordingNotification {
+    async fn permission(&self) -> Result<NotificationPermission, MediaIoError> {
+        Ok(NotificationPermission::Granted)
+    }
+
+    async fn request_permission(&self) -> Result<NotificationPermission, MediaIoError> {
+        Ok(NotificationPermission::Granted)
+    }
+
+    async fn show(&self, request: NotificationRequest) -> Result<(), MediaIoError> {
+        self.requests.lock().await.push(request);
         Ok(())
     }
 }
@@ -234,9 +282,120 @@ fn gift_event(id: &str) -> LiveEvent {
         base: event_base(id, 10_000, Vec::new()),
         gift_id: "gift-1".into(),
         gift_name: "礼物".into(),
+        gift_icon_url: Some("https://i0.hdslb.com/bfs/live/gift.png".into()),
         quantity: 2,
         value_minor: 20_000,
     }
+}
+
+#[tokio::test(start_paused = true)]
+async fn gift_system_notification_contains_gift_identity_and_image() {
+    let notifications = Arc::new(RecordingNotification::default());
+    let runtime = GiftMediaRuntime::start(
+        default_gift_notify_config(),
+        default_gift_sound_policy(),
+        Vec::new(),
+        Arc::new(RecordingAudio::default()),
+        notifications.clone(),
+    )
+    .await;
+
+    runtime
+        .consume(&gift_event("gift-notification-content"))
+        .await;
+    for _ in 0..10 {
+        tokio::task::yield_now().await;
+    }
+
+    let requests = notifications.requests.lock().await;
+    assert_eq!(requests.len(), 1);
+    assert_eq!(requests[0].title, "礼物提醒");
+    assert_eq!(requests[0].body, "用户A 送出 礼物 ×2");
+    assert_eq!(
+        requests[0].image_url.as_deref(),
+        Some("https://i0.hdslb.com/bfs/live/gift.png")
+    );
+    drop(requests);
+    runtime.shutdown().await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn gift_sound_uses_the_exact_binding_before_the_default_alert() {
+    let audio = Arc::new(RecordingAudio::default());
+    let runtime = GiftMediaRuntime::start(
+        default_gift_notify_config(),
+        default_gift_sound_policy(),
+        vec![GiftSoundBindingRecord {
+            gift_id: "gift-1".into(),
+            gift_name: "礼物".into(),
+            sound_path: Some(PathBuf::from("gift-1.mp3")),
+            volume: 0.5,
+            is_enabled: true,
+        }],
+        audio.clone(),
+        Arc::new(NoopNotification),
+    )
+    .await;
+
+    runtime.consume(&gift_event("custom-gift-sound")).await;
+    for _ in 0..10 {
+        tokio::task::yield_now().await;
+    }
+
+    assert_eq!(
+        *audio.sources.lock().await,
+        vec![PathBuf::from("gift-1.mp3")]
+    );
+    assert!(audio.alert_volumes.lock().await.is_empty());
+    runtime.shutdown().await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn gift_sound_falls_back_to_the_default_alert_without_a_binding() {
+    let audio = Arc::new(RecordingAudio::default());
+    let runtime = GiftMediaRuntime::start(
+        default_gift_notify_config(),
+        default_gift_sound_policy(),
+        Vec::new(),
+        audio.clone(),
+        Arc::new(NoopNotification),
+    )
+    .await;
+
+    runtime
+        .preview(default_gift_notify_config(), "preview-default-sound".into())
+        .await;
+    for _ in 0..10 {
+        tokio::task::yield_now().await;
+    }
+
+    assert!(audio.sources.lock().await.is_empty());
+    assert_eq!(*audio.alert_volumes.lock().await, vec![0.8]);
+    runtime.shutdown().await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn gift_sound_does_not_play_when_the_method_is_disabled() {
+    let audio = Arc::new(RecordingAudio::default());
+    let mut config = default_gift_notify_config();
+    config.methods.sound = false;
+    let runtime = GiftMediaRuntime::start(
+        config,
+        default_gift_sound_policy(),
+        Vec::new(),
+        audio.clone(),
+        Arc::new(NoopNotification),
+    )
+    .await;
+
+    runtime.consume(&gift_event("disabled-gift-sound")).await;
+    for _ in 0..10 {
+        tokio::task::yield_now().await;
+    }
+
+    assert!(audio.sources.lock().await.is_empty());
+    assert!(audio.alert_volumes.lock().await.is_empty());
+    runtime.shutdown().await;
 }
 
 #[tokio::test(start_paused = true)]
@@ -283,6 +442,97 @@ async fn captain_effects_are_fifo_and_keep_a_local_fallback() {
         vec![PathBuf::from("first.mp3"), PathBuf::from("renewal.mp3")]
     );
     assert_eq!(runtime.snapshot().await, EffectRuntimeSnapshot::default());
+    runtime.shutdown().await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn captain_effect_uses_the_configured_window_size_and_position() {
+    let window = Arc::new(RecordingWindow::default());
+    let mut config = default_captain_effect_config();
+    config.window_width = 720;
+    config.window_height = 360;
+    config.position = crate::domain::media::MediaPosition::BottomRight;
+    let runtime = EffectRuntime::start(
+        config.clone(),
+        Arc::new(RecordingAudio::default()),
+        window.clone(),
+    )
+    .await;
+
+    runtime.preview(config, "preview-window-spec".into()).await;
+    for _ in 0..10 {
+        tokio::task::yield_now().await;
+    }
+
+    assert_eq!(
+        window.specs.lock().await.as_slice(),
+        [EffectWindowSpec {
+            label: "effect-captain".into(),
+            width: 720,
+            height: 360,
+            position: crate::domain::media::MediaPosition::BottomRight,
+        }]
+    );
+    runtime.shutdown().await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn captain_effect_preview_exposes_the_active_payload_until_the_effect_finishes() {
+    let mut config = default_captain_effect_config();
+    config.preset_id = "golden-premium".into();
+    config.duration_seconds = 3;
+    let runtime = EffectRuntime::start(
+        config.clone(),
+        Arc::new(RecordingAudio::default()),
+        Arc::new(NoopWindow),
+    )
+    .await;
+
+    runtime
+        .preview(config.clone(), "preview-active-effect".into())
+        .await;
+    for _ in 0..10 {
+        tokio::task::yield_now().await;
+    }
+
+    let active = runtime.active_effect().await.expect("preview is active");
+    assert_eq!(active.item.event_id, "preview-active-effect");
+    assert_eq!(active.item.username, "用户A");
+    assert_eq!(active.config, config);
+    assert!(active.is_preview);
+
+    tokio::time::advance(std::time::Duration::from_secs(3)).await;
+    for _ in 0..10 {
+        tokio::task::yield_now().await;
+    }
+    assert!(runtime.active_effect().await.is_none());
+    runtime.shutdown().await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn captain_effect_active_payload_preserves_the_live_audience() {
+    let runtime = EffectRuntime::start(
+        default_captain_effect_config(),
+        Arc::new(RecordingAudio::default()),
+        Arc::new(NoopWindow),
+    )
+    .await;
+    let event = captain_event("live-active-effect", CaptainAction::Renewal);
+
+    runtime.enqueue(&event).await;
+    for _ in 0..10 {
+        tokio::task::yield_now().await;
+    }
+
+    let active = runtime
+        .active_effect()
+        .await
+        .expect("live effect is active");
+    let audience = active.item.audience.expect("live audience is retained");
+    assert_eq!(audience.user_uid.as_str(), "200");
+    assert_eq!(audience.username, "用户A");
+    assert_eq!(active.item.action, CaptainAction::Renewal);
+    assert!(!active.is_preview);
     runtime.shutdown().await;
 }
 

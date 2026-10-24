@@ -29,7 +29,7 @@ const freeTree = (): readonly ShellNavigationItem[] => Object.freeze([
   ])),
   item('tts', '/tts'),
   item('recording', '/recording'),
-  item('plugins', '/plugins'),
+  item('ai', '/ai'),
   item('settings', '/settings')
 ]);
 

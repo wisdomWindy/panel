@@ -6,14 +6,21 @@ pub mod ipc;
 
 use std::sync::Arc;
 
+use application::member::{AiState, MemberStates};
+#[cfg(feature = "member")]
+use application::member::{MembershipState, ModerationState};
 use application::{
     bootstrap::ApplicationState,
-    live_data::{LiveDataState, LiveRepository, UnavailableRoomTransport},
+    live_data::{
+        AcceptedLiveEventConsumer, AcceptedLiveEventFanout, FailedRoomTransport, LiveDataState,
+        LiveRepository, RoomTransport,
+    },
     media::{
         default_captain_effect_config, default_gift_notify_config, default_gift_sound_policy,
         default_recording_config, default_tts_config, EffectRuntime, GiftMediaRuntime,
         MediaServices, MediaState, RecordingRuntime, TtsRuntime,
     },
+    member::MemberRepository,
     paths::{PathPurpose, PathState},
     release::ReleaseState,
     shell::{
@@ -21,27 +28,29 @@ use application::{
         UnavailableSystemMetrics,
     },
 };
-#[cfg(feature = "member")]
-use application::{
-    live_data::AcceptedLiveEventFanout,
-    member::{AiState, MemberRepository, MemberStates, MembershipState, ModerationState},
+use infrastructure::member::{
+    OpenAiCompatibleLlmProvider, SqliteMemberRepository, SystemAiSecretStore, SystemAiSpeechOutput,
+    WhisperAsrProvider,
 };
 #[cfg(feature = "member")]
 use infrastructure::member::{
-    SqliteMemberRepository, UnavailableAsrProvider, UnavailableAuthProvider,
-    UnavailableEntitlementVerifier, UnavailableLlmProvider, UnavailableMembershipProvider,
+    UnavailableAuthProvider, UnavailableEntitlementVerifier, UnavailableMembershipProvider,
     UnavailableModerationProvider,
 };
 use infrastructure::{
     database::SqliteDatabase,
-    live_data::{GrantedLiveFileStore, LiveDataRepository, UnavailableLiveRepository},
+    database_location,
+    live_data::{
+        BilibiliOpenLiveTransport, GrantedLiveFileStore, LiveDataRepository, OpenLiveConfig,
+        UnavailableLiveRepository,
+    },
     media::{
         GiftSoundFileStore, LocalFfmpegProcessPort, PreviewRegistry, RodioAudioOutput,
         SqliteMediaRepository, SystemSpeechEngine, TauriEffectWindowPort, TauriHotkeyPort,
         TauriNotificationPort, UnavailableSpeechEngine,
     },
     path_grants::PathGrantStore,
-    release::{installation_bucket, migration_resilience_snapshot, release_providers},
+    release::{installation_bucket, migration_resilience_snapshot, update_provider},
     shell::{
         NativeConfigArchiveFiles, NativeDirectoryOpener, NativeSystemLocale, SqliteShellRepository,
         SysinfoMetrics,
@@ -56,28 +65,34 @@ use ipc::live_data::{
     RankingPresenter, TauriLiveEventSink,
 };
 use ipc::media::{
-    captain_effect_get, captain_effect_preview, captain_effect_save, gift_notify_get,
-    gift_notify_save, gift_notify_test, gift_sound_export, gift_sound_import, gift_sound_list,
-    gift_sound_remove, gift_sound_save, gift_sound_set, handle_media_preview_protocol,
-    highlight_delete, highlight_export, highlight_list, highlight_mark, highlight_preview,
-    recording_delete, recording_get_config, recording_list, recording_preview, recording_rename,
-    recording_save_config, recording_set_ffmpeg_source, recording_start, recording_status,
-    recording_stop, sound_preview, tts_clear, tts_get, tts_pause, tts_save, tts_set_enabled,
-    tts_test, TauriMediaEventSink,
+    captain_effect_current, captain_effect_get, captain_effect_preview, captain_effect_save,
+    gift_notify_get, gift_notify_save, gift_notify_test, gift_sound_export, gift_sound_import,
+    gift_sound_list, gift_sound_remove, gift_sound_save, gift_sound_set,
+    handle_media_preview_protocol, highlight_delete, highlight_export, highlight_list,
+    highlight_mark, highlight_preview, recording_delete, recording_get_config, recording_list,
+    recording_preview, recording_rename, recording_save_config, recording_set_ffmpeg_source,
+    recording_start, recording_status, recording_stop, sound_preview, tts_clear, tts_get,
+    tts_pause, tts_save, tts_set_enabled, tts_test, TauriMediaEventSink,
+};
+use ipc::member::{
+    ai_config_get, ai_config_save, ai_generate, ai_log_query, ai_model_profile_delete,
+    ai_model_profile_list, ai_model_profile_save, ai_model_set_default, ai_model_test,
+    ai_regenerate, ai_tts_clear_queue, ai_tts_list_output_devices, ai_tts_pause,
+    ai_tts_set_output_device, ai_tts_skip, ai_tts_test, ai_voice_reply_get,
+    ai_voice_reply_set_enabled, ai_voice_reply_update_rules, asr_model_download, asr_model_list,
+    asr_start, asr_status, asr_stop, TauriMemberEventSink,
 };
 #[cfg(feature = "member")]
 use ipc::member::{
-    ai_config_get, ai_config_save, ai_generate, ai_log_query, ai_regenerate, asr_model_download,
-    asr_start, asr_status, asr_stop, auth_bind_uid, auth_logout, auth_qrcode_cancel,
-    auth_qrcode_generate, auth_query_uid, member_status, membership_cancel_order,
-    membership_orders, membership_purchase, moderate_ignore, moderate_log_query,
-    moderate_mark_false_positive, moderate_mute, moderate_set_auto, moderate_status,
-    moderate_update_rules, module_cleanup, module_list, module_update, TauriMemberEventSink,
+    auth_bind_uid, auth_logout, auth_qrcode_cancel, auth_qrcode_generate, auth_query_uid,
+    member_status, membership_cancel_order, membership_orders, membership_purchase,
+    moderate_ignore, moderate_log_query, moderate_mark_false_positive, moderate_mute,
+    moderate_set_auto, moderate_status, moderate_update_rules, module_cleanup, module_list,
+    module_update,
 };
 use ipc::release::{
-    about_info, plugin_config_get, plugin_config_save, plugin_install, plugin_list,
-    plugin_select_install, plugin_toggle, plugin_uninstall, resilience_status, update_check,
-    update_download, update_install, update_skip, update_status, TauriReleaseEventSink,
+    about_info, resilience_status, update_check, update_download, update_install, update_skip,
+    update_status, TauriReleaseEventSink,
 };
 use ipc::shell::{
     config_export, config_import, config_open_directory, config_overview, config_reset, locale_get,
@@ -94,7 +109,7 @@ pub struct AppState {
     ranking_presenter: Arc<RankingPresenter>,
     shell: Arc<ApplicationShellState>,
     release: Arc<ReleaseState>,
-    #[cfg(feature = "member")]
+    ai: Option<Arc<AiState>>,
     member: Option<Arc<MemberStates>>,
 }
 
@@ -129,14 +144,13 @@ impl AppState {
                 system_metrics,
                 Arc::new(NativeSystemLocale),
                 Arc::new(TauriShellEventSink::new(app.clone())),
-                config_directory,
+                config_directory.clone(),
             )
             .await,
         );
-        let (update_provider, plugin_provider) = release_providers(app.clone());
+        let update_provider = update_provider(app.clone());
         let release = Arc::new(ReleaseState::new(
             update_provider,
-            plugin_provider,
             Arc::new(TauriReleaseEventSink::new(app.clone())),
             installation_bucket(&database_path),
             migration_resilience_snapshot(&database_path),
@@ -248,6 +262,28 @@ impl AppState {
         let media =
             Arc::new(media.with_event_sink(Arc::new(TauriMediaEventSink::new(app.clone()))));
 
+        let ai = pool.clone().map(|pool| {
+            let repository: Arc<dyn MemberRepository> = Arc::new(SqliteMemberRepository::new(pool));
+            let secrets = Arc::new(SystemAiSecretStore);
+            let llm = Arc::new(OpenAiCompatibleLlmProvider::new(
+                repository.clone(),
+                secrets.clone(),
+            ));
+            Arc::new(
+                AiState::new_with_services(
+                    repository,
+                    llm,
+                    secrets,
+                    Arc::new(
+                        WhisperAsrProvider::new(config_directory.join("asr-models"))
+                            .with_event_sink(Arc::new(TauriMemberEventSink::new(app.clone()))),
+                    ),
+                    Arc::new(SystemAiSpeechOutput::default()),
+                )
+                .with_event_sink(Arc::new(TauriMemberEventSink::new(app.clone()))),
+            )
+        });
+
         #[cfg(feature = "member")]
         let member = pool.clone().map(|pool| {
             let repository: Arc<dyn MemberRepository> = Arc::new(SqliteMemberRepository::new(pool));
@@ -261,14 +297,6 @@ impl AppState {
                 )
                 .with_event_sink(event_sink.clone()),
             );
-            let ai = Arc::new(
-                AiState::new(
-                    repository.clone(),
-                    Arc::new(UnavailableLlmProvider),
-                    Arc::new(UnavailableAsrProvider),
-                )
-                .with_event_sink(event_sink.clone()),
-            );
             let moderation = Arc::new(
                 ModerationState::new(
                     repository,
@@ -277,8 +305,10 @@ impl AppState {
                 )
                 .with_event_sink(event_sink),
             );
-            Arc::new(MemberStates::new(membership, ai, moderation))
+            Arc::new(MemberStates::new(membership, moderation))
         });
+        #[cfg(all(feature = "free", not(feature = "member")))]
+        let member: Option<Arc<MemberStates>> = None;
         #[cfg(feature = "member")]
         if let Some(member) = &member {
             member.start_hourly_validation().await;
@@ -291,11 +321,23 @@ impl AppState {
             |pool| Arc::new(LiveDataRepository::new(pool)) as Arc<dyn LiveRepository>,
         );
         let event_sink = Arc::new(TauriLiveEventSink::new(app, ranking_presenter.clone()));
-        let live_data =
-            LiveDataState::new(Arc::new(UnavailableRoomTransport), repository, event_sink)
-                .with_files(Arc::new(GrantedLiveFileStore::new(grants)));
+        let transport: Arc<dyn RoomTransport> = match OpenLiveConfig::embedded() {
+            Ok(config) => Arc::new(BilibiliOpenLiveTransport::new(config)),
+            Err(error) => {
+                log::warn!("open live transport is unavailable: code={}", error.code);
+                Arc::new(FailedRoomTransport::new(error))
+            }
+        };
+        let live_data = LiveDataState::new(transport, repository, event_sink)
+            .with_files(Arc::new(GrantedLiveFileStore::new(grants)));
         #[cfg(all(feature = "free", not(feature = "member")))]
-        let live_data = live_data.with_accepted_consumer(media.clone());
+        let live_data = {
+            let mut consumers = vec![media.clone() as Arc<dyn AcceptedLiveEventConsumer>];
+            if let Some(ai) = &ai {
+                consumers.push(ai.clone() as Arc<dyn AcceptedLiveEventConsumer>);
+            }
+            live_data.with_accepted_consumer(Arc::new(AcceptedLiveEventFanout::new(consumers)))
+        };
         #[cfg(feature = "member")]
         let live_data =
             live_data.with_accepted_consumer(Arc::new(AcceptedLiveEventFanout::new(
@@ -306,10 +348,12 @@ impl AppState {
                     },
                     |member| {
                         vec![
-                            media.clone()
-                                as Arc<dyn application::live_data::AcceptedLiveEventConsumer>,
-                            member.moderation.clone()
-                                as Arc<dyn application::live_data::AcceptedLiveEventConsumer>,
+                            media.clone() as Arc<dyn AcceptedLiveEventConsumer>,
+                            ai.as_ref()
+                                .expect("AI state exists with initialized storage")
+                                .clone()
+                                as Arc<dyn AcceptedLiveEventConsumer>,
+                            member.moderation.clone() as Arc<dyn AcceptedLiveEventConsumer>,
                         ]
                     },
                 ),
@@ -327,7 +371,7 @@ impl AppState {
             ranking_presenter,
             shell,
             release,
-            #[cfg(feature = "member")]
+            ai,
             member,
         }
     }
@@ -360,7 +404,12 @@ impl AppState {
         &self.release
     }
 
-    #[cfg(feature = "member")]
+    pub(crate) fn ai(&self) -> Result<&Arc<AiState>, ipc::error::DesktopError> {
+        self.ai.as_ref().ok_or_else(|| {
+            ipc::error::DesktopError::new("ai_storage_unavailable", "AI 本地数据暂不可用", true)
+        })
+    }
+
     pub(crate) fn member(&self) -> Result<&Arc<MemberStates>, ipc::error::DesktopError> {
         self.member.as_ref().ok_or_else(|| {
             ipc::error::DesktopError::new(
@@ -383,11 +432,15 @@ pub fn run() {
         .on_window_event(|window, event| {
             if window.label() == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
                 let media = window.state::<AppState>().media().clone();
-                #[cfg(feature = "member")]
+                let live_data = window.state::<AppState>().live_data().clone();
+                let ai = window.state::<AppState>().ai.clone();
                 let member = window.state::<AppState>().member.clone();
                 tauri::async_runtime::spawn(async move {
+                    let _ = live_data.disconnect_room().await;
                     media.shutdown().await;
-                    #[cfg(feature = "member")]
+                    if let Some(ai) = ai {
+                        ai.shutdown().await;
+                    }
                     if let Some(member) = member {
                         member.shutdown().await;
                     }
@@ -403,7 +456,8 @@ pub fn run() {
                 )?;
             }
 
-            let database_path = app.path().app_data_dir()?.join("app.db");
+            let database_path =
+                database_location::resolve_database_path(&app.path().app_data_dir()?)?;
             let state =
                 tauri::async_runtime::block_on(AppState::new(app.handle().clone(), database_path));
             app.manage(state);
@@ -436,13 +490,6 @@ pub fn run() {
         update_download,
         update_install,
         update_skip,
-        plugin_list,
-        plugin_select_install,
-        plugin_install,
-        plugin_toggle,
-        plugin_uninstall,
-        plugin_config_get,
-        plugin_config_save,
         about_info,
         resilience_status,
         room_connect,
@@ -465,7 +512,32 @@ pub fn run() {
         stat_export,
         rank_query,
         rank_export,
+        ai_config_get,
+        ai_config_save,
+        ai_model_profile_list,
+        ai_model_profile_save,
+        ai_model_profile_delete,
+        ai_model_set_default,
+        ai_model_test,
+        ai_voice_reply_get,
+        ai_voice_reply_set_enabled,
+        ai_voice_reply_update_rules,
+        ai_tts_list_output_devices,
+        ai_tts_set_output_device,
+        ai_tts_test,
+        ai_tts_pause,
+        ai_tts_skip,
+        ai_tts_clear_queue,
+        ai_generate,
+        ai_regenerate,
+        ai_log_query,
+        asr_status,
+        asr_model_list,
+        asr_model_download,
+        asr_start,
+        asr_stop,
         captain_effect_get,
+        captain_effect_current,
         captain_effect_save,
         captain_effect_preview,
         gift_notify_get,
@@ -527,13 +599,6 @@ pub fn run() {
         update_download,
         update_install,
         update_skip,
-        plugin_list,
-        plugin_select_install,
-        plugin_install,
-        plugin_toggle,
-        plugin_uninstall,
-        plugin_config_get,
-        plugin_config_save,
         about_info,
         resilience_status,
         member_status,
@@ -550,10 +615,25 @@ pub fn run() {
         module_cleanup,
         ai_config_get,
         ai_config_save,
+        ai_model_profile_list,
+        ai_model_profile_save,
+        ai_model_profile_delete,
+        ai_model_set_default,
+        ai_model_test,
+        ai_voice_reply_get,
+        ai_voice_reply_set_enabled,
+        ai_voice_reply_update_rules,
+        ai_tts_list_output_devices,
+        ai_tts_set_output_device,
+        ai_tts_test,
+        ai_tts_pause,
+        ai_tts_skip,
+        ai_tts_clear_queue,
         ai_generate,
         ai_regenerate,
         ai_log_query,
         asr_status,
+        asr_model_list,
         asr_model_download,
         asr_start,
         asr_stop,
@@ -585,6 +665,7 @@ pub fn run() {
         rank_query,
         rank_export,
         captain_effect_get,
+        captain_effect_current,
         captain_effect_save,
         captain_effect_preview,
         gift_notify_get,

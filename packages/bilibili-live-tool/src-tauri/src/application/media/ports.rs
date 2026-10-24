@@ -179,6 +179,7 @@ pub trait AudioPlayback: Send {
 #[async_trait::async_trait]
 pub trait AudioOutputPort: Send + Sync {
     async fn play(&self, request: AudioRequest) -> Result<Box<dyn AudioPlayback>, MediaIoError>;
+    async fn play_alert(&self, volume: f64) -> Result<Box<dyn AudioPlayback>, MediaIoError>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -233,6 +234,7 @@ pub trait RecorderProcessPort: Send + Sync {
 pub struct NotificationRequest {
     pub title: String,
     pub body: String,
+    pub image_url: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -254,6 +256,7 @@ pub struct EffectWindowSpec {
     pub label: String,
     pub width: u32,
     pub height: u32,
+    pub position: crate::domain::media::MediaPosition,
 }
 
 #[async_trait::async_trait]

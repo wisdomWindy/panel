@@ -1,10 +1,85 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
 
 describe('interaction media page contracts', () => {
+  it('pairs TTS and recording surfaces with readable dark-theme variants', () => {
+    const paths = [
+      'src/renderer/views/tts/index.vue',
+      'src/renderer/components/media/TtsQueuePanel.vue',
+      'src/renderer/views/recording/index.vue',
+      'src/renderer/components/media/RecordingStatusBand.vue',
+      'src/renderer/views/recording/components/RecordingSettingsDialog.vue'
+    ];
+
+    for (const path of paths) {
+      const lines = source(path).split(/\r?\n/);
+      expect(
+        lines.filter(line => /text-gray-\d+/.test(line) && !/dark:text-/.test(line)),
+        path
+      ).toEqual([]);
+      expect(
+        lines.filter(line => /text-red-\d+/.test(line) && !/dark:text-red-/.test(line)),
+        path
+      ).toEqual([]);
+      expect(
+        lines.filter(line => /text-amber-\d+/.test(line) && !/dark:text-amber-/.test(line)),
+        path
+      ).toEqual([]);
+      expect(
+        lines.filter(
+          line => /border-gray-200/.test(line) && !/dark:border-zinc-800/.test(line)
+        ),
+        path
+      ).toEqual([]);
+      expect(
+        lines.filter(
+          line => /border-gray-300/.test(line) && !/dark:border-zinc-700/.test(line)
+        ),
+        path
+      ).toEqual([]);
+      expect(
+        lines.filter(line => /bg-gray-50/.test(line) && !/dark:bg-zinc-900/.test(line)),
+        path
+      ).toEqual([]);
+    }
+  });
+
+  it('pairs reminder-page text and dividers with readable dark-theme variants', () => {
+    const paths = [
+      'src/renderer/views/captain-effect/index.vue',
+      'src/renderer/views/gift-reminder/index.vue',
+      'src/renderer/views/gift-sound/index.vue',
+      'src/renderer/components/media/GiftSoundTable.vue'
+    ];
+
+    for (const path of paths) {
+      const lines = source(path).split(/\r?\n/);
+      expect(
+        lines.filter(line => /text-gray-\d+/.test(line) && !/dark:text-/.test(line)),
+        path
+      ).toEqual([]);
+      expect(
+        lines.filter(line => /text-red-\d+/.test(line) && !/dark:text-red-/.test(line)),
+        path
+      ).toEqual([]);
+      expect(
+        lines.filter(
+          line => /border-gray-200/.test(line) && !/dark:border-zinc-800/.test(line)
+        ),
+        path
+      ).toEqual([]);
+      expect(
+        lines.filter(
+          line => /divide-gray-200/.test(line) && !/dark:divide-zinc-800/.test(line)
+        ),
+        path
+      ).toEqual([]);
+    }
+  });
+
   it('keeps page components behind stores and removes browser/Electron media paths', () => {
     const pages = [
       'src/renderer/views/captain-effect/index.vue',
@@ -31,16 +106,76 @@ describe('interaction media page contracts', () => {
     );
   });
 
-  it('keeps the restricted effect surface to one listener and a complete canvas lifecycle', () => {
+  it('recovers the active effect after registering one listener and keeps a complete canvas lifecycle', () => {
     const root = source('src/renderer/views/captain-effect/EffectWindowRoot.vue');
     const surface = source('src/renderer/components/media/CaptainEffectSurface.vue');
     expect(root.match(/listenDesktop\('captain_effect_trigger'/g)).toHaveLength(1);
-    expect(root).not.toContain('invokeDesktop');
+    expect(root.match(/invokeDesktop\('captain_effect_current'/g)).toHaveLength(1);
+    expect(root.indexOf('await listenDesktop(\'captain_effect_trigger\'')).toBeLessThan(
+      root.indexOf('invokeDesktop(\'captain_effect_current\'')
+    );
+    expect(root).toContain('eventRevision');
     expect(surface).toContain('requestAnimationFrame');
     expect(surface).toContain('cancelAnimationFrame');
     expect(surface).toContain('ResizeObserver');
     expect(surface).toContain('devicePixelRatio');
     expect(surface).toContain('prefers-reduced-motion');
+    expect(surface).toContain('CAPTAIN_DECORATIONS');
+    expect(surface).toContain('t(`captainEffect.actions.${payload.action}`)');
+    expect(surface).toContain('payload.audience.username');
+    expect(surface).toContain('t(`liveData.tags.${payload.level}`)');
+    expect(surface).not.toContain('captainEffect.welcome');
+    for (const mapping of [
+      '\'captain-default\': \'classic\'',
+      '\'golden-premium\': \'sparkles\'',
+      '\'starlight-blue\': \'stars\'',
+      '\'cherry-blossom\': \'petals\'',
+      '\'violet-galaxy\': \'orbit\'',
+      '\'emerald-stream\': \'stream\'',
+      '\'crimson-celebration\': \'flames\'',
+      '\'silver-frost\': \'crystals\'',
+      '\'neon-party\': \'neon\'',
+      '\'aurora-dream\': \'aurora\'',
+      '\'sunset-flare\': \'rays\'',
+      '\'midnight-crown\': \'crown\''
+    ]) {
+      expect(surface).toContain(mapping);
+    }
+  });
+
+  it('applies built-in captain preset colors from the selected catalog item', () => {
+    const page = source('src/renderer/views/captain-effect/index.vue');
+    expect(page).toContain('function handlePresetChange');
+    expect(page).toContain('@change="handlePresetChange"');
+    expect(page).toContain('draft.primaryColor = preset.primaryColor');
+    expect(page).toContain('draft.secondaryColor = preset.secondaryColor');
+    expect(page).not.toContain('captainEffect.materialsUnavailable');
+  });
+
+  it('renders gift alerts in the configured local-popup position with timer cleanup', () => {
+    const app = source('src/renderer/App.vue');
+    const overlayPath = resolve(
+      process.cwd(),
+      'src/renderer/components/media/GiftAlertOverlay.vue'
+    );
+    const overlay = existsSync(overlayPath) ? readFileSync(overlayPath, 'utf8') : '';
+
+    expect(app).toContain('GiftAlertOverlay');
+    expect(app).toContain(':payload="gifts.latestAlert"');
+    expect(overlay).toContain('topLeft');
+    expect(overlay).toContain('topRight');
+    expect(overlay).toContain('bottomLeft');
+    expect(overlay).toContain('bottomRight');
+    expect(overlay).toContain('center');
+    expect(overlay).toContain('translate-x-[-50%]');
+    expect(overlay).toContain('translate-y-[-50%]');
+    expect(overlay).toContain('clearTimeout');
+    expect(overlay).toContain('popupDurationSeconds * 1_000');
+    expect(overlay).toContain('<img');
+    expect(overlay).toContain('giftIconUrl');
+    expect(overlay).toContain('@error');
+    expect(overlay).toContain('imageLoadFailed');
+    expect(overlay).toContain('giftName');
   });
 
   it('exposes the approved reminder routes and navigation labels', () => {

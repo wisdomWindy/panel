@@ -9,9 +9,6 @@ function targets(): MemberRuntimeTargets {
     status: vi.fn(),
     modules: vi.fn(),
     installed: vi.fn(),
-    aiDelta: vi.fn(),
-    aiFinished: vi.fn(),
-    asr: vi.fn(),
     alert: vi.fn(),
     action: vi.fn(),
     bootstrap: vi.fn().mockResolvedValue(undefined),
@@ -20,7 +17,7 @@ function targets(): MemberRuntimeTargets {
 }
 
 describe('member runtime', () => {
-  it('registers the exact eleven listeners once and disposes all of them', async () => {
+  it('registers only member listeners once and disposes all of them', async () => {
     const listeners = new Map<string, (payload: unknown) => void>();
     const unlisten = vi.fn();
     const listen = vi.fn(async <K extends EventName>(
@@ -42,17 +39,14 @@ describe('member runtime', () => {
       'membership_renewed',
       'module_download_progress',
       'module_installed',
-      'ai_generation_delta',
-      'ai_generation_finished',
-      'asr_status_changed',
       'moderation_alert',
       'moderation_action_result'
     ]);
-    expect(listen).toHaveBeenCalledTimes(11);
+    expect(listen).toHaveBeenCalledTimes(8);
     expect(target.bootstrap).toHaveBeenCalledTimes(1);
 
     runtime.stop();
-    expect(unlisten).toHaveBeenCalledTimes(11);
+    expect(unlisten).toHaveBeenCalledTimes(8);
     expect(target.dispose).toHaveBeenCalledTimes(1);
   });
 
@@ -67,7 +61,7 @@ describe('member runtime', () => {
     const runtime = createMemberRuntime(listen, targets());
 
     await expect(runtime.start()).rejects.toThrow('listener failed');
-    expect(unlisten).toHaveBeenCalledTimes(10);
+    expect(unlisten).toHaveBeenCalledTimes(7);
     expect(runtime.isActive()).toBe(false);
   });
 });

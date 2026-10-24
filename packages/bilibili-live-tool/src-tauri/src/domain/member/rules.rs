@@ -107,7 +107,80 @@ pub fn filter_and_truncate(
         return Err(AiTextError::SensitiveTerm);
     }
 
-    Ok(input.chars().take(maximum_chars).collect())
+    let flattened = input
+        .lines()
+        .map(strip_markdown_prefix)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
+    let without_markdown = flattened.replace(['*', '`', '#', '_'], "");
+    let normalized = without_markdown
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    let conversational = strip_ai_preamble(&normalized);
+
+    Ok(conversational.chars().take(maximum_chars).collect())
+}
+
+pub fn truncate_sentences(input: &str, maximum_sentences: usize) -> String {
+    if maximum_sentences == 0 {
+        return String::new();
+    }
+    let mut sentences = 0;
+    let mut output = String::new();
+    for character in input.chars() {
+        output.push(character);
+        if matches!(character, '。' | '！' | '？' | '!' | '?') {
+            sentences += 1;
+            if sentences >= maximum_sentences {
+                break;
+            }
+        }
+    }
+    output.trim().to_owned()
+}
+
+fn strip_markdown_prefix(line: &str) -> &str {
+    let trimmed = line.trim();
+    let without_bullet = trimmed
+        .strip_prefix("- ")
+        .or_else(|| trimmed.strip_prefix("* "))
+        .or_else(|| trimmed.strip_prefix("+ "))
+        .unwrap_or(trimmed);
+    let digit_count = without_bullet
+        .chars()
+        .take_while(|character| character.is_ascii_digit())
+        .count();
+    let remainder = &without_bullet[digit_count..];
+    if digit_count > 0 {
+        remainder
+            .strip_prefix(". ")
+            .or_else(|| remainder.strip_prefix(") "))
+            .or_else(|| remainder.strip_prefix("、"))
+            .unwrap_or(without_bullet)
+    } else {
+        without_bullet.trim_start_matches('#').trim_start()
+    }
+}
+
+fn strip_ai_preamble(input: &str) -> &str {
+    const PREAMBLES: &[&str] = &[
+        "当然可以，",
+        "当然可以。",
+        "好的，",
+        "您好，",
+        "作为 AI，",
+        "作为AI，",
+        "作为一个 AI，",
+        "我是 AI，",
+        "我是AI，",
+    ];
+    PREAMBLES
+        .iter()
+        .find_map(|preamble| input.strip_prefix(preamble))
+        .unwrap_or(input)
+        .trim_start()
 }
 
 pub const fn moderation_defaults() -> ModerationDefaults {
@@ -218,6 +291,26 @@ mod tests {
         assert_eq!(
             filter_and_truncate("safe", &banned, 0),
             Err(AiTextError::InvalidMaximumLength)
+        );
+    }
+
+    #[test]
+    fn ai_output_is_flattened_and_strips_markdown_and_ai_preambles() {
+        assert_eq!(
+            filter_and_truncate("作为 AI，\n1. **今天状态很好**\n- 谢谢大家", &[], 50),
+            Ok("今天状态很好 谢谢大家".to_owned())
+        );
+        assert_eq!(
+            filter_and_truncate("当然可以，这就开始", &[], 50),
+            Ok("这就开始".to_owned())
+        );
+    }
+
+    #[test]
+    fn ai_output_respects_the_sentence_limit() {
+        assert_eq!(
+            truncate_sentences("第一句。第二句！第三句？", 2),
+            "第一句。第二句！"
         );
     }
 

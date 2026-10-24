@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Brush, Files, InfoFilled, Location } from '@element-plus/icons-vue';
+import { Brush, Files, InfoFilled, Location, Refresh } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { useReleaseStore } from '@/stores/release';
 import ConfigManagementPanel from './components/ConfigManagementPanel.vue';
@@ -13,6 +14,23 @@ const { t } = useI18n();
 const release = useReleaseStore();
 const activeCategory = ref<SettingsCategory>('config');
 const title = computed(() => t(`settings.categories.${activeCategory.value}`));
+
+async function handleCheckUpdate(): Promise<void> {
+  try {
+    await release.checkUpdate();
+    if (release.update?.candidate) {
+      ElMessage.success(t('update.hasUpdate'));
+      return;
+    }
+    if (release.update?.status === 'current') {
+      ElMessage.success(t('update.noUpdate'));
+      return;
+    }
+    ElMessage.error(t('update.unavailable'));
+  } catch {
+    ElMessage.error(release.error?.message ?? t('settings.feedback.operationFailed'));
+  }
+}
 </script>
 
 <template>
@@ -49,18 +67,21 @@ const title = computed(() => t(`settings.categories.${activeCategory.value}`));
       <LanguageSettings v-else-if="activeCategory === 'language'" />
       <InterfaceSettingsPanel v-else-if="activeCategory === 'interface'" />
       <div v-else class="max-w-3xl">
+        <div class="mb-5 flex justify-end">
+          <el-button
+            :icon="Refresh"
+            :loading="release.pending.has('checkUpdate')"
+            @click="handleCheckUpdate"
+          >
+            {{ t('update.checkUpdate') }}
+          </el-button>
+        </div>
         <dl class="grid grid-cols-[9rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
           <dt class="text-gray-500">
             {{ t('settings.aboutInfo.version') }}
           </dt>
           <dd class="m-0 font-semibold">
             v{{ release.about?.applicationVersion ?? '--' }}
-          </dd>
-          <dt class="text-gray-500">
-            {{ t('settings.aboutInfo.channel') }}
-          </dt>
-          <dd class="m-0">
-            {{ release.about?.channel ?? '--' }}
           </dd>
         </dl>
         <div class="my-6 border-t border-gray-200 dark:border-gray-700" />

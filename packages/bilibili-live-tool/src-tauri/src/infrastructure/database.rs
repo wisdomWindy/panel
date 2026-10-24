@@ -17,7 +17,7 @@ use crate::{
 
 // Keep this call site touched when adding migrations so incremental builds re-embed the directory.
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
-pub const SCHEMA_VERSION: u32 = 3;
+pub const SCHEMA_VERSION: u32 = 7;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DatabaseError {
@@ -253,6 +253,8 @@ mod tests {
                 "t_account",
                 "t_ai_config",
                 "t_ai_log",
+                "t_ai_model_profile",
+                "t_ai_voice_config",
                 "t_app_setting",
                 "t_asr_config",
                 "t_black_user",
@@ -266,7 +268,6 @@ mod tests {
                 "t_moderation_log",
                 "t_module",
                 "t_order",
-                "t_plugin",
                 "t_ranking_archive",
                 "t_recording",
                 "t_room_config",
@@ -279,6 +280,7 @@ mod tests {
             indexes,
             [
                 "idx_ai_log_room_time",
+                "idx_ai_model_default",
                 "idx_black_user_uid",
                 "idx_event_room_time",
                 "idx_gift_sound_gift_id",
@@ -303,6 +305,18 @@ mod tests {
                 .fetch_all(&pool)
                 .await
                 .unwrap();
+        let ai_profile_columns: Vec<String> = sqlx::query_scalar(
+            "SELECT name FROM pragma_table_info('t_ai_model_profile') ORDER BY cid",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        let ai_voice_columns: Vec<String> = sqlx::query_scalar(
+            "SELECT name FROM pragma_table_info('t_ai_voice_config') ORDER BY cid",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
         let order_columns: Vec<String> =
             sqlx::query_scalar("SELECT name FROM pragma_table_info('t_order') ORDER BY cid")
                 .fetch_all(&pool)
@@ -312,6 +326,10 @@ mod tests {
         assert!(!account_columns.iter().any(|name| name.contains("token")));
         assert!(!ai_columns.iter().any(|name| name == "api_key"));
         assert!(ai_columns.iter().any(|name| name == "api_key_ciphertext"));
+        assert!(ai_profile_columns
+            .iter()
+            .any(|name| name == "reasoning_effort"));
+        assert!(ai_voice_columns.iter().any(|name| name == "voice_id"));
         assert!(order_columns.iter().any(|name| name == "amount_minor"));
         assert!(!order_columns.iter().any(|name| name == "amount"));
     }
@@ -324,13 +342,20 @@ mod tests {
         open_database(&path).await.unwrap().close().await;
         let pool = open_database(&path).await.unwrap();
         let state_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM t_schema_state WHERE state_key = 'schema_version_3'",
+            "SELECT COUNT(*) FROM t_schema_state WHERE state_key = 'schema_version_7'",
         )
         .fetch_one(&pool)
         .await
         .unwrap();
 
         assert_eq!(state_count, 1);
+        let plugin_table_count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 't_plugin'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(plugin_table_count, 0);
     }
 
     #[tokio::test]

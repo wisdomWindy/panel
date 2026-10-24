@@ -333,7 +333,6 @@ bilibili-live-tool/
 │       │   ├── danmaku.ts      # 弹幕状态
 │       │   ├── gift-sound.ts   # 礼物音效状态
 │       │   ├── moderation.ts   # 审核状态
-│       │   ├── plugin.ts       # 插件状态
 │       │   ├── recording.ts    # 录制状态
 │       │   ├── room.ts         # 房间状态
 │       │   ├── tts.ts          # TTS 状态
@@ -366,12 +365,6 @@ bilibili-live-tool/
 │       │   ├── format.ts       # 格式化工具
 │       │   ├── ipc.ts          # IPC 通信封装
 │       │   └── ui.ts           # UI 工具函数
-│       ├── plugins/            # 插件系统
-│       │   ├── types.ts        # 插件类型定义
-│       │   ├── plugin-api.ts   # 插件 API
-│       │   ├── plugin-loader.ts # 插件加载器
-│       │   ├── plugin-manager.ts # 插件管理器
-│       │   └── plugin-sandbox.ts # 插件沙箱
 │       ├── modules/            # 业务逻辑模块
 │       │   ├── bilibili/       # Bilibili 协议
 │       │   │   ├── client.ts   # WebSocket 客户端
@@ -418,7 +411,6 @@ bilibili-live-tool/
 │       │   ├── effect-preview/ # 特效预览
 │       │   ├── blacklist/      # 黑名单管理
 │       │   ├── logs/           # 日志监控
-│       │   ├── plugin-manager/ # 插件管理
 │       │   ├── update-log/     # 更新日志
 │       │   └── login/          # 登录
 │       ├── components/         # 全局共享组件

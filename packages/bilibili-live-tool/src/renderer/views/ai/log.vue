@@ -8,16 +8,16 @@ import { useAIStore } from '@/stores/ai';
 const router = useRouter();
 const store = useAIStore();
 const userUid = ref('');
-const startedAt = ref<number | null>(null);
-const endedAt = ref<number | null>(null);
+const startedAt = ref<string | null>(null);
+const endedAt = ref<string | null>(null);
 
 function query(): void {
   const normalizedUid = userUid.value.trim();
   void store
     .loadLogs({
       userUid: normalizedUid ? (normalizedUid as UserUid) : null,
-      startedAt: startedAt.value,
-      endedAt: endedAt.value
+      startedAt: startedAt.value ? Number(startedAt.value) : null,
+      endedAt: endedAt.value ? Number(endedAt.value) : null
     })
     .catch(() => undefined);
 }
@@ -59,11 +59,11 @@ onMounted(query);
       </label>
       <label class="text-sm">
         <span class="mb-1 block text-gray-500">开始时间</span>
-        <el-date-picker v-model="startedAt" type="datetime" />
+        <el-date-picker v-model="startedAt" type="datetime" value-format="x" />
       </label>
       <label class="text-sm">
         <span class="mb-1 block text-gray-500">结束时间</span>
-        <el-date-picker v-model="endedAt" type="datetime" />
+        <el-date-picker v-model="endedAt" type="datetime" value-format="x" />
       </label>
       <el-button type="primary" :icon="Search" @click="query">
         查询

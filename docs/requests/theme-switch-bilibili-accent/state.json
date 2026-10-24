@@ -1,0 +1,39 @@
+{
+  "request_id": "theme-switch-bilibili-accent",
+  "source": {
+    "type": "direct-user-defect-and-confirmed-design",
+    "evidence": ["U1", "U2", "U3", "U4"]
+  },
+  "stage": "complete",
+  "status": "complete",
+  "artifacts": {
+    "request": "request.md",
+    "bugfix_source": "artifacts/bugfix-source.md",
+    "prd_snapshot": "artifacts/prd-snapshot.md",
+    "code_context": "artifacts/code-context.md",
+    "execution": "execution/changelog.md",
+    "verification": "verification/verification.md",
+    "review": "review/review.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true,
+    "execute_approved": true,
+    "verify_approved": true,
+    "review_approved": true
+  },
+  "speed_profile": {
+    "level": "S1 local",
+    "reason": "既有主题单链路，涉及 CSS selector、投影与监听生命周期，无新业务/API/架构",
+    "context_budget": "scoped",
+    "artifact_density": "compact"
+  },
+  "module_flow": null,
+  "loop": {
+    "iteration": 5,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "verification_failed"
+  }
+}

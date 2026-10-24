@@ -98,8 +98,8 @@ pub struct UiPreferences {
 impl Default for UiPreferences {
     fn default() -> Self {
         Self {
-            theme: ThemeMode::Dark,
-            accent_color: "#FF6699".to_owned(),
+            theme: ThemeMode::System,
+            accent_color: "#FB7299".to_owned(),
             opacity: 0.95,
             font_size: FontSize::Medium,
             layout_mode: LayoutMode::Default,
@@ -121,7 +121,6 @@ pub enum ShellConfigScope {
     GiftSounds,
     InterfaceLayout,
     Recording,
-    Plugins,
     #[cfg(feature = "member")]
     Ai,
     #[cfg(feature = "member")]
@@ -151,7 +150,6 @@ impl ShellConfigScope {
             Self::GiftSounds => "media.gift_",
             Self::InterfaceLayout => "shell.",
             Self::Recording => "media.recording",
-            Self::Plugins => "plugin.",
             #[cfg(feature = "member")]
             Self::Ai => "member.ai.",
             #[cfg(feature = "member")]
@@ -168,7 +166,6 @@ pub fn available_config_scopes() -> Vec<ShellConfigScope> {
         ShellConfigScope::GiftSounds,
         ShellConfigScope::InterfaceLayout,
         ShellConfigScope::Recording,
-        ShellConfigScope::Plugins,
     ];
     #[cfg(feature = "member")]
     {
@@ -302,7 +299,8 @@ mod tests {
     fn freezes_public_surface_and_source_defaults() {
         assert_eq!(SHELL_COMMAND_NAMES.len(), 13);
         assert_eq!(SHELL_EVENT_NAMES.len(), 3);
-        assert_eq!(UiPreferences::default().accent_color, "#FF6699");
+        assert_eq!(UiPreferences::default().theme, ThemeMode::System);
+        assert_eq!(UiPreferences::default().accent_color, "#FB7299");
         assert_eq!(UiPreferences::default().opacity, 0.95);
         assert_eq!(UiPreferences::default().max_danmaku_entries, 1_000);
     }
@@ -371,16 +369,16 @@ mod tests {
 
     #[cfg(not(feature = "member"))]
     #[test]
-    fn free_scope_projection_contains_exactly_seven_items() {
-        assert_eq!(available_config_scopes().len(), 7);
-        assert_eq!(executable_config_scopes().len(), 7);
+    fn free_scope_projection_contains_exactly_six_items() {
+        assert_eq!(available_config_scopes().len(), 6);
+        assert_eq!(executable_config_scopes().len(), 6);
     }
 
     #[cfg(feature = "member")]
     #[test]
     fn member_scope_projection_contains_two_additional_items() {
-        assert_eq!(available_config_scopes().len(), 9);
-        assert_eq!(executable_config_scopes().len(), 7);
+        assert_eq!(available_config_scopes().len(), 8);
+        assert_eq!(executable_config_scopes().len(), 6);
         assert!(!executable_config_scopes().contains(&ShellConfigScope::Ai));
         assert!(!executable_config_scopes().contains(&ShellConfigScope::Moderation));
         assert!(!is_config_scope_available(ShellConfigScope::Ai));

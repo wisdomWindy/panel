@@ -4,6 +4,7 @@ import {
   MEDIA_EVENT_NAMES,
   type CaptainEffectConfig,
   type CommandRequestMap,
+  type CommandResultMap,
   type EventPayloadMap,
   type RecordingStatus,
   type TtsStatus
@@ -11,8 +12,9 @@ import {
 
 describe('interaction media desktop contracts', () => {
   it('keeps the approved media surface closed', () => {
-    expect(MEDIA_COMMAND_NAMES).toHaveLength(34);
+    expect(MEDIA_COMMAND_NAMES).toHaveLength(35);
     expect(MEDIA_COMMAND_NAMES[0]).toBe('captain_effect_get');
+    expect(MEDIA_COMMAND_NAMES[1]).toBe('captain_effect_current');
     expect(MEDIA_COMMAND_NAMES.at(-1)).toBe('highlight_delete');
     expect(MEDIA_EVENT_NAMES).toEqual([
       'captain_effect_trigger',
@@ -30,6 +32,8 @@ describe('interaction media desktop contracts', () => {
       presetId: 'gold',
       durationSeconds: 5,
       position: 'center',
+      windowWidth: 560,
+      windowHeight: 280,
       primaryColor: '#FFD700',
       secondaryColor: '#FFFFFF',
       firstSound: null,
@@ -40,6 +44,7 @@ describe('interaction media desktop contracts', () => {
       comboWindowSeconds: 10
     };
     const request: CommandRequestMap['captain_effect_save'] = { config };
+    const current: CommandResultMap['captain_effect_current'] = null;
     const tts: TtsStatus = {
       state: 'idle',
       currentText: null,
@@ -60,6 +65,9 @@ describe('interaction media desktop contracts', () => {
     const event: EventPayloadMap['tts_status_changed'] = tts;
 
     expect(request.config.durationSeconds).toBe(5);
+    expect(current).toBeNull();
+    expect(request.config.windowWidth).toBe(560);
+    expect(request.config.windowHeight).toBe(280);
     expect(event.currentText).toBeNull();
     expect(JSON.stringify({ config, tts, recording })).not.toMatch(/rawPath|filePath/);
   });

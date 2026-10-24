@@ -2,8 +2,9 @@ use sqlx::{Row, SqlitePool};
 
 use crate::{
     application::member::{
-        AiConfigRecord, MemberRepository, MemberServiceError, ModerationConfigRecord, OrderRecord,
-        OrderStatus, StoredEntitlement,
+        AiConfigRecord, AiModelConnectionState, AiModelProfileRecord, AiReasoningEffort,
+        AiVoiceConfigRecord, MemberRepository, MemberServiceError, ModerationConfigRecord,
+        OrderRecord, OrderStatus, StoredEntitlement,
     },
     domain::{
         live_data::UserUid,
@@ -27,6 +28,48 @@ impl SqliteMemberRepository {
 
 #[async_trait::async_trait]
 impl MemberRepository for SqliteMemberRepository {
+    async fn query_ai_logs(
+        &self,
+        user_uid: Option<&str>,
+        started_at: Option<i64>,
+        ended_at: Option<i64>,
+    ) -> Result<Vec<crate::application::member::AiLogRecord>, MemberServiceError> {
+        let rows = sqlx::query(
+            "SELECT *, CAST(strftime('%s', create_time) AS INTEGER) * 1000 AS created_at
+             FROM t_ai_log
+             WHERE (? IS NULL OR user_uid = ?)
+               AND (? IS NULL OR CAST(strftime('%s', create_time) AS INTEGER) * 1000 >= ?)
+               AND (? IS NULL OR CAST(strftime('%s', create_time) AS INTEGER) * 1000 <= ?)
+             ORDER BY create_time DESC, id DESC LIMIT 500",
+        )
+        .bind(user_uid)
+        .bind(user_uid)
+        .bind(started_at)
+        .bind(started_at)
+        .bind(ended_at)
+        .bind(ended_at)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(repository_error)?;
+        rows.into_iter()
+            .map(|row| {
+                Ok(crate::application::member::AiLogRecord {
+                    id: row.try_get("id").map_err(repository_error)?,
+                    operation_type: row.try_get("operation_type").map_err(repository_error)?,
+                    username: row.try_get("username").map_err(repository_error)?,
+                    user_uid: row.try_get("user_uid").map_err(repository_error)?,
+                    original_content: row.try_get("original_content").map_err(repository_error)?,
+                    ai_content: row.try_get("ai_content").map_err(repository_error)?,
+                    generation_status: row
+                        .try_get("generation_status")
+                        .map_err(repository_error)?,
+                    reject_reason: row.try_get("reject_reason").map_err(repository_error)?,
+                    room_id: row.try_get("room_id").map_err(repository_error)?,
+                    created_at: row.try_get("created_at").map_err(repository_error)?,
+                })
+            })
+            .collect()
+    }
     async fn load_account(&self) -> Result<Option<MemberAccount>, MemberServiceError> {
         let row = sqlx::query(
             "SELECT user_uid, username, avatar_url, logged_in_at FROM t_account ORDER BY updated_at DESC LIMIT 1",
@@ -227,7 +270,7 @@ impl MemberRepository for SqliteMemberRepository {
     }
 
     async fn load_ai_config(&self) -> Result<Option<AiConfigRecord>, MemberServiceError> {
-        let row = sqlx::query("SELECT identity_text, speaking_style, system_prompt, provider, endpoint, model_name, api_key_ciphertext, temperature, max_response_len, sensitive_filter_enabled, banned_words_json, danmaku_context_count, asr_context_count, manual_context_count, updated_at FROM t_ai_config WHERE id = 1")
+        let row = sqlx::query("SELECT identity_text, speaking_style, system_prompt, provider, endpoint, model_name, api_key_ciphertext, temperature, max_response_len, max_sentences, sensitive_filter_enabled, banned_words_json, danmaku_context_count, asr_context_count, manual_context_count, updated_at FROM t_ai_config WHERE id = 1")
             .fetch_optional(&self.pool)
             .await
             .map_err(repository_error)?;
@@ -238,7 +281,7 @@ impl MemberRepository for SqliteMemberRepository {
         validate_ai_config(config)?;
         let banned_words =
             serde_json::to_string(&config.banned_words).map_err(|_| invalid_data())?;
-        sqlx::query("INSERT INTO t_ai_config (id, identity_text, speaking_style, system_prompt, provider, endpoint, model_name, api_key_ciphertext, temperature, max_response_len, sensitive_filter_enabled, banned_words_json, danmaku_context_count, asr_context_count, manual_context_count, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET identity_text = excluded.identity_text, speaking_style = excluded.speaking_style, system_prompt = excluded.system_prompt, provider = excluded.provider, endpoint = excluded.endpoint, model_name = excluded.model_name, api_key_ciphertext = excluded.api_key_ciphertext, temperature = excluded.temperature, max_response_len = excluded.max_response_len, sensitive_filter_enabled = excluded.sensitive_filter_enabled, banned_words_json = excluded.banned_words_json, danmaku_context_count = excluded.danmaku_context_count, asr_context_count = excluded.asr_context_count, manual_context_count = excluded.manual_context_count, updated_at = excluded.updated_at")
+        sqlx::query("INSERT INTO t_ai_config (id, identity_text, speaking_style, system_prompt, provider, endpoint, model_name, api_key_ciphertext, temperature, max_response_len, max_sentences, sensitive_filter_enabled, banned_words_json, danmaku_context_count, asr_context_count, manual_context_count, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET identity_text = excluded.identity_text, speaking_style = excluded.speaking_style, system_prompt = excluded.system_prompt, provider = excluded.provider, endpoint = excluded.endpoint, model_name = excluded.model_name, api_key_ciphertext = excluded.api_key_ciphertext, temperature = excluded.temperature, max_response_len = excluded.max_response_len, max_sentences = excluded.max_sentences, sensitive_filter_enabled = excluded.sensitive_filter_enabled, banned_words_json = excluded.banned_words_json, danmaku_context_count = excluded.danmaku_context_count, asr_context_count = excluded.asr_context_count, manual_context_count = excluded.manual_context_count, updated_at = excluded.updated_at")
             .bind(&config.identity)
             .bind(&config.speaking_style)
             .bind(&config.system_prompt)
@@ -248,11 +291,147 @@ impl MemberRepository for SqliteMemberRepository {
             .bind(&config.api_key_ciphertext)
             .bind(config.temperature)
             .bind(i64::from(config.max_length))
+            .bind(i64::from(config.max_sentences))
             .bind(config.is_sensitive_filter_enabled)
             .bind(banned_words)
             .bind(i64::from(config.danmaku_context_count))
             .bind(i64::from(config.asr_context_count))
             .bind(i64::from(config.manual_context_count))
+            .bind(config.updated_at)
+            .execute(&self.pool)
+            .await
+            .map_err(repository_error)?;
+        Ok(())
+    }
+
+    async fn list_ai_model_profiles(
+        &self,
+    ) -> Result<Vec<AiModelProfileRecord>, MemberServiceError> {
+        sqlx::query("SELECT profile_id, name, provider_kind, base_url, model_name, reasoning_effort, max_tokens, timeout_seconds, proxy_url, is_enabled, is_default, connection_state, has_api_key, updated_at FROM t_ai_model_profile ORDER BY is_default DESC, updated_at DESC")
+            .fetch_all(&self.pool)
+            .await
+            .map_err(repository_error)?
+            .into_iter()
+            .map(map_ai_model_profile)
+            .collect()
+    }
+
+    async fn load_ai_model_profile(
+        &self,
+        profile_id: &str,
+    ) -> Result<Option<AiModelProfileRecord>, MemberServiceError> {
+        let row = sqlx::query("SELECT profile_id, name, provider_kind, base_url, model_name, reasoning_effort, max_tokens, timeout_seconds, proxy_url, is_enabled, is_default, connection_state, has_api_key, updated_at FROM t_ai_model_profile WHERE profile_id = ?")
+            .bind(profile_id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(repository_error)?;
+        row.map(map_ai_model_profile).transpose()
+    }
+
+    async fn load_default_ai_model_profile(
+        &self,
+    ) -> Result<Option<AiModelProfileRecord>, MemberServiceError> {
+        let row = sqlx::query("SELECT profile_id, name, provider_kind, base_url, model_name, reasoning_effort, max_tokens, timeout_seconds, proxy_url, is_enabled, is_default, connection_state, has_api_key, updated_at FROM t_ai_model_profile WHERE is_default = TRUE LIMIT 1")
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(repository_error)?;
+        row.map(map_ai_model_profile).transpose()
+    }
+
+    async fn save_ai_model_profile(
+        &self,
+        profile: &AiModelProfileRecord,
+    ) -> Result<(), MemberServiceError> {
+        validate_ai_model_profile(profile)?;
+        sqlx::query("INSERT INTO t_ai_model_profile (profile_id, name, provider_kind, base_url, model_name, temperature, reasoning_effort, max_tokens, timeout_seconds, proxy_url, is_enabled, is_default, connection_state, has_api_key, updated_at) VALUES (?, ?, ?, ?, ?, 0.7, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(profile_id) DO UPDATE SET name = excluded.name, provider_kind = excluded.provider_kind, base_url = excluded.base_url, model_name = excluded.model_name, reasoning_effort = excluded.reasoning_effort, max_tokens = excluded.max_tokens, timeout_seconds = excluded.timeout_seconds, proxy_url = excluded.proxy_url, is_enabled = excluded.is_enabled, connection_state = excluded.connection_state, has_api_key = excluded.has_api_key, updated_at = excluded.updated_at")
+            .bind(&profile.profile_id)
+            .bind(&profile.name)
+            .bind(&profile.provider_kind)
+            .bind(&profile.base_url)
+            .bind(&profile.model)
+            .bind(profile.reasoning_effort.as_str())
+            .bind(i64::from(profile.max_tokens))
+            .bind(i64::from(profile.timeout_seconds))
+            .bind(&profile.proxy_url)
+            .bind(profile.is_enabled)
+            .bind(profile.is_default)
+            .bind(ai_connection_state_name(profile.connection_state))
+            .bind(profile.has_api_key)
+            .bind(profile.updated_at)
+            .execute(&self.pool)
+            .await
+            .map_err(repository_error)?;
+        Ok(())
+    }
+
+    async fn delete_ai_model_profile(&self, profile_id: &str) -> Result<bool, MemberServiceError> {
+        let result = sqlx::query(
+            "DELETE FROM t_ai_model_profile WHERE profile_id = ? AND is_default = FALSE",
+        )
+        .bind(profile_id)
+        .execute(&self.pool)
+        .await
+        .map_err(repository_error)?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    async fn set_default_ai_model_profile(
+        &self,
+        profile_id: &str,
+        updated_at: i64,
+    ) -> Result<(), MemberServiceError> {
+        let mut transaction = self.pool.begin().await.map_err(repository_error)?;
+        let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM t_ai_model_profile WHERE profile_id = ? AND is_enabled = TRUE)")
+            .bind(profile_id)
+            .fetch_one(&mut *transaction)
+            .await
+            .map_err(repository_error)?;
+        if !exists {
+            transaction.rollback().await.map_err(repository_error)?;
+            return Err(MemberServiceError::invalid("ai_model_profile_unavailable"));
+        }
+        sqlx::query("UPDATE t_ai_model_profile SET is_default = FALSE WHERE is_default = TRUE")
+            .execute(&mut *transaction)
+            .await
+            .map_err(repository_error)?;
+        sqlx::query(
+            "UPDATE t_ai_model_profile SET is_default = TRUE, updated_at = ? WHERE profile_id = ?",
+        )
+        .bind(updated_at)
+        .bind(profile_id)
+        .execute(&mut *transaction)
+        .await
+        .map_err(repository_error)?;
+        transaction.commit().await.map_err(repository_error)?;
+        Ok(())
+    }
+
+    async fn load_ai_voice_config(&self) -> Result<AiVoiceConfigRecord, MemberServiceError> {
+        let row = sqlx::query("SELECT is_enabled, trigger_scope, keywords_json, global_cooldown_seconds, user_cooldown_seconds, queue_capacity, duplicate_filter_enabled, output_device_id, voice_id, volume, audio_route_confirmed, updated_at FROM t_ai_voice_config WHERE id = 1")
+            .fetch_one(&self.pool)
+            .await
+            .map_err(repository_error)?;
+        map_ai_voice_config(row)
+    }
+
+    async fn save_ai_voice_config(
+        &self,
+        config: &AiVoiceConfigRecord,
+    ) -> Result<(), MemberServiceError> {
+        validate_ai_voice_config(config)?;
+        let keywords = serde_json::to_string(&config.keywords).map_err(|_| invalid_data())?;
+        sqlx::query("UPDATE t_ai_voice_config SET is_enabled = ?, trigger_scope = ?, keywords_json = ?, global_cooldown_seconds = ?, user_cooldown_seconds = ?, queue_capacity = ?, duplicate_filter_enabled = ?, output_device_id = ?, voice_id = ?, volume = ?, audio_route_confirmed = ?, updated_at = ? WHERE id = 1")
+            .bind(config.is_enabled)
+            .bind(&config.trigger_scope)
+            .bind(keywords)
+            .bind(i64::from(config.global_cooldown_seconds))
+            .bind(i64::from(config.user_cooldown_seconds))
+            .bind(i64::from(config.queue_capacity))
+            .bind(config.is_duplicate_filter_enabled)
+            .bind(&config.output_device_id)
+            .bind(&config.voice_id)
+            .bind(config.volume)
+            .bind(config.is_audio_route_confirmed)
             .bind(config.updated_at)
             .execute(&self.pool)
             .await
@@ -404,6 +583,7 @@ fn map_ai_config(row: sqlx::sqlite::SqliteRow) -> Result<AiConfigRecord, MemberS
             .map_err(repository_error)?,
         temperature: row.try_get("temperature").map_err(repository_error)?,
         max_length: to_u32(row.try_get("max_response_len").map_err(repository_error)?)?,
+        max_sentences: to_u32(row.try_get("max_sentences").map_err(repository_error)?)?,
         is_sensitive_filter_enabled: row
             .try_get("sensitive_filter_enabled")
             .map_err(repository_error)?,
@@ -420,6 +600,67 @@ fn map_ai_config(row: sqlx::sqlite::SqliteRow) -> Result<AiConfigRecord, MemberS
         updated_at: positive_i64(row.try_get("updated_at").map_err(repository_error)?)?,
     };
     validate_ai_config(&config)?;
+    Ok(config)
+}
+
+fn map_ai_model_profile(
+    row: sqlx::sqlite::SqliteRow,
+) -> Result<AiModelProfileRecord, MemberServiceError> {
+    let profile = AiModelProfileRecord {
+        profile_id: required_text(row.try_get("profile_id").map_err(repository_error)?)?,
+        name: required_text(row.try_get("name").map_err(repository_error)?)?,
+        provider_kind: required_text(row.try_get("provider_kind").map_err(repository_error)?)?,
+        base_url: required_text(row.try_get("base_url").map_err(repository_error)?)?,
+        model: required_text(row.try_get("model_name").map_err(repository_error)?)?,
+        reasoning_effort: parse_ai_reasoning_effort(
+            &row.try_get::<String, _>("reasoning_effort")
+                .map_err(repository_error)?,
+        )?,
+        max_tokens: to_u32(row.try_get("max_tokens").map_err(repository_error)?)?,
+        timeout_seconds: to_u32(row.try_get("timeout_seconds").map_err(repository_error)?)?,
+        proxy_url: row.try_get("proxy_url").map_err(repository_error)?,
+        is_enabled: row.try_get("is_enabled").map_err(repository_error)?,
+        is_default: row.try_get("is_default").map_err(repository_error)?,
+        connection_state: parse_ai_connection_state(
+            &row.try_get::<String, _>("connection_state")
+                .map_err(repository_error)?,
+        )?,
+        has_api_key: row.try_get("has_api_key").map_err(repository_error)?,
+        updated_at: positive_i64(row.try_get("updated_at").map_err(repository_error)?)?,
+    };
+    validate_ai_model_profile(&profile)?;
+    Ok(profile)
+}
+
+fn map_ai_voice_config(
+    row: sqlx::sqlite::SqliteRow,
+) -> Result<AiVoiceConfigRecord, MemberServiceError> {
+    let keywords_json: String = row.try_get("keywords_json").map_err(repository_error)?;
+    let config = AiVoiceConfigRecord {
+        is_enabled: row.try_get("is_enabled").map_err(repository_error)?,
+        trigger_scope: row.try_get("trigger_scope").map_err(repository_error)?,
+        keywords: serde_json::from_str(&keywords_json).map_err(|_| invalid_data())?,
+        global_cooldown_seconds: to_u32(
+            row.try_get("global_cooldown_seconds")
+                .map_err(repository_error)?,
+        )?,
+        user_cooldown_seconds: to_u32(
+            row.try_get("user_cooldown_seconds")
+                .map_err(repository_error)?,
+        )?,
+        queue_capacity: to_u32(row.try_get("queue_capacity").map_err(repository_error)?)?,
+        is_duplicate_filter_enabled: row
+            .try_get("duplicate_filter_enabled")
+            .map_err(repository_error)?,
+        output_device_id: row.try_get("output_device_id").map_err(repository_error)?,
+        voice_id: row.try_get("voice_id").map_err(repository_error)?,
+        volume: row.try_get("volume").map_err(repository_error)?,
+        is_audio_route_confirmed: row
+            .try_get("audio_route_confirmed")
+            .map_err(repository_error)?,
+        updated_at: positive_i64(row.try_get("updated_at").map_err(repository_error)?)?,
+    };
+    validate_ai_voice_config(&config)?;
     Ok(config)
 }
 
@@ -465,6 +706,7 @@ fn validate_ai_config(config: &AiConfigRecord) -> Result<(), MemberServiceError>
     ) || !config.temperature.is_finite()
         || !(0.0..=2.0).contains(&config.temperature)
         || config.max_length == 0
+        || !(1..=3).contains(&config.max_sentences)
         || config.updated_at <= 0
         || config
             .banned_words
@@ -474,6 +716,80 @@ fn validate_ai_config(config: &AiConfigRecord) -> Result<(), MemberServiceError>
         return Err(invalid_data());
     }
     Ok(())
+}
+
+fn validate_ai_model_profile(profile: &AiModelProfileRecord) -> Result<(), MemberServiceError> {
+    let base_url = reqwest::Url::parse(profile.base_url.trim()).map_err(|_| invalid_data())?;
+    let proxy_valid = profile.proxy_url.as_deref().is_none_or(|proxy| {
+        reqwest::Url::parse(proxy).is_ok_and(|url| matches!(url.scheme(), "http" | "https"))
+    });
+    if profile.profile_id.trim().is_empty()
+        || profile.name.trim().is_empty()
+        || profile.model.trim().is_empty()
+        || !matches!(
+            profile.provider_kind.as_str(),
+            "cloud" | "aggregator" | "local" | "custom_openai"
+        )
+        || !matches!(base_url.scheme(), "http" | "https")
+        || !(1..=8192).contains(&profile.max_tokens)
+        || !(1..=120).contains(&profile.timeout_seconds)
+        || !proxy_valid
+        || profile.updated_at <= 0
+    {
+        return Err(MemberServiceError::invalid("ai_model_profile_invalid"));
+    }
+    Ok(())
+}
+
+fn validate_ai_voice_config(config: &AiVoiceConfigRecord) -> Result<(), MemberServiceError> {
+    if !matches!(
+        config.trigger_scope.as_str(),
+        "all" | "questions" | "captains" | "keywords" | "high_value"
+    ) || !(1..=60).contains(&config.global_cooldown_seconds)
+        || !(5..=300).contains(&config.user_cooldown_seconds)
+        || !(5..=100).contains(&config.queue_capacity)
+        || !config.volume.is_finite()
+        || !(0.0..=1.0).contains(&config.volume)
+        || config.voice_id.trim().is_empty()
+        || config
+            .keywords
+            .iter()
+            .any(|keyword| keyword.trim().is_empty())
+        || config.updated_at <= 0
+    {
+        return Err(MemberServiceError::invalid("ai_voice_rules_invalid"));
+    }
+    Ok(())
+}
+
+const fn ai_connection_state_name(value: AiModelConnectionState) -> &'static str {
+    match value {
+        AiModelConnectionState::Untested => "untested",
+        AiModelConnectionState::Available => "available",
+        AiModelConnectionState::Unavailable => "unavailable",
+    }
+}
+
+fn parse_ai_connection_state(value: &str) -> Result<AiModelConnectionState, MemberServiceError> {
+    match value {
+        "untested" => Ok(AiModelConnectionState::Untested),
+        "available" => Ok(AiModelConnectionState::Available),
+        "unavailable" => Ok(AiModelConnectionState::Unavailable),
+        _ => Err(invalid_data()),
+    }
+}
+
+fn parse_ai_reasoning_effort(value: &str) -> Result<AiReasoningEffort, MemberServiceError> {
+    match value {
+        "none" => Ok(AiReasoningEffort::None),
+        "minimal" => Ok(AiReasoningEffort::Minimal),
+        "low" => Ok(AiReasoningEffort::Low),
+        "medium" => Ok(AiReasoningEffort::Medium),
+        "high" => Ok(AiReasoningEffort::High),
+        "xhigh" => Ok(AiReasoningEffort::XHigh),
+        "max" => Ok(AiReasoningEffort::Max),
+        _ => Err(invalid_data()),
+    }
 }
 
 fn validate_moderation_config(config: &ModerationConfigRecord) -> Result<(), MemberServiceError> {

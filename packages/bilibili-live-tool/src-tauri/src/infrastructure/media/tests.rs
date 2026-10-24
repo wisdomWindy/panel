@@ -31,6 +31,8 @@ fn captain_config() -> CaptainEffectConfig {
         preset_id: "golden-rain".into(),
         duration_seconds: 5,
         position: MediaPosition::TopRight,
+        window_width: 560,
+        window_height: 280,
         primary_color: "#FFD700".into(),
         secondary_color: "#FFA500".into(),
         first_sound: None,
@@ -382,6 +384,7 @@ async fn unavailable_adapters_report_stable_non_success_states() {
                 label: "effect".into(),
                 width: 480,
                 height: 240,
+                position: MediaPosition::Center,
             })
             .await
             .unwrap_err()

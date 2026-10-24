@@ -1,0 +1,36 @@
+{
+  "request_id": "gift-alert-position-sound-fixes",
+  "source": {
+    "type": "direct-user-defect",
+    "reference": "current Codex thread",
+    "evidence": "center popup rendered at bottom-right; enabled gift sound produced no audio"
+  },
+  "stage": "complete",
+  "status": "complete",
+  "artifacts": {
+    "request": "request.md",
+    "bugfix_source": "artifacts/bugfix-source.md",
+    "prd_snapshot": "artifacts/prd-snapshot.md",
+    "code_context": "artifacts/code-context.md",
+    "verification": "verification/verification.md",
+    "review": "review/review.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "speed_profile": {
+    "level": "S2 scoped",
+    "reason": "two visible defects share the gift alert path across Vue lifecycle, Tauri IPC, Rust worker, and Rodio output",
+    "context_budget": "scoped",
+    "artifact_density": "compact"
+  },
+  "module_flow": null,
+  "loop": {
+    "iteration": 1,
+    "state": "completed",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": null
+  }
+}

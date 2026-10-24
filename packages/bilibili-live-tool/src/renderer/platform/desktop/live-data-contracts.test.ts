@@ -37,6 +37,7 @@ describe('live data desktop contracts', () => {
       },
       giftId: 'gift-31036' as GiftId,
       giftName: 'gift',
+      giftIconUrl: null,
       quantity: 2,
       valueMinor: 300
     };

@@ -17,7 +17,6 @@ export type PathPurpose =
   | 'giftSoundExport'
   | 'highlightExport'
   | 'localFfmpegExecutable'
-  | 'pluginPackage'
   | 'sensitiveWordImport'
   | 'sensitiveWordExport'
   | 'blacklistImport'

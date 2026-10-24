@@ -75,6 +75,7 @@ export function adaptUiPreferences(value: unknown): UiPreferences {
   if (typeof source.accentColor !== 'string' || !/^#[0-9A-F]{6}$/.test(source.accentColor)) {
     throw new TypeError('accentColor is invalid');
   }
+  const accentColor = source.accentColor === '#FF6699' ? '#FB7299' : source.accentColor;
   const opacity = finite(source.opacity, 'opacity');
   if (opacity < 0 || opacity > 1) throw new TypeError('opacity is invalid');
   if (!['small', 'medium', 'large'].includes(source.fontSize as string)) {
@@ -93,7 +94,7 @@ export function adaptUiPreferences(value: unknown): UiPreferences {
   }
   return {
     theme: source.theme as UiPreferences['theme'],
-    accentColor: source.accentColor,
+    accentColor,
     opacity,
     fontSize: source.fontSize as UiPreferences['fontSize'],
     layoutMode: source.layoutMode,
@@ -105,6 +106,21 @@ export function adaptUiPreferences(value: unknown): UiPreferences {
   };
 }
 
+export function cloneUiPreferences(value: UiPreferences): UiPreferences {
+  return {
+    theme: value.theme,
+    accentColor: value.accentColor,
+    opacity: value.opacity,
+    fontSize: value.fontSize,
+    layoutMode: value.layoutMode,
+    customLayout: value.customLayout === null ? null : { ...value.customLayout },
+    showDanmakuLevel: value.showDanmakuLevel,
+    showDanmakuMedal: value.showDanmakuMedal,
+    showDanmakuTime: value.showDanmakuTime,
+    maxDanmakuEntries: value.maxDanmakuEntries
+  };
+}
+
 export function adaptConfigOverview(value: unknown): ConfigOverview {
   const source = record(value, 'configOverview');
   if (typeof source.displayPath !== 'string' || !Array.isArray(source.scopes)) {
@@ -113,11 +129,11 @@ export function adaptConfigOverview(value: unknown): ConfigOverview {
   const knownScopes = import.meta.env.VITE_BUILD_CHANNEL === 'member'
     ? [
       'room', 'sensitiveWords', 'blacklist', 'giftSounds', 'interfaceLayout',
-      'recording', 'plugins', 'ai', 'moderation'
+      'recording', 'ai', 'moderation'
     ]
     : [
       'room', 'sensitiveWords', 'blacklist', 'giftSounds', 'interfaceLayout',
-      'recording', 'plugins'
+      'recording'
     ];
   const scopes = source.scopes.map(item => {
     const option = record(item, 'configScope');

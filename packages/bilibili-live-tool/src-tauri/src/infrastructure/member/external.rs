@@ -82,6 +82,21 @@ pub struct UnavailableAsrProvider;
 
 #[async_trait::async_trait]
 impl AsrProvider for UnavailableAsrProvider {
+    async fn list_models(
+        &self,
+    ) -> Result<Vec<crate::application::member::AsrModelRecord>, MemberServiceError> {
+        Ok(Vec::new())
+    }
+
+    async fn download_model(
+        &self,
+        _model_id: &str,
+    ) -> Result<crate::application::member::AsrModelRecord, MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "asr_model_download_unavailable",
+        ))
+    }
+
     async fn start(&self) -> Result<(), MemberServiceError> {
         Err(MemberServiceError::unavailable("asr_unavailable"))
     }

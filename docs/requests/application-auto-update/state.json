@@ -1,0 +1,43 @@
+{
+  "request_id": "application-auto-update",
+  "source": {
+    "type": "direct-change-with-repository-prd",
+    "user_instruction": "当前项目没有自动更新、检查更新功能，添加自动更新、检查更新功能",
+    "prd": "docs/requirements/Bilibili 直播助手 - 产品需求文档 (PRD).md#9.18"
+  },
+  "stage": "complete",
+  "status": "completed",
+  "artifacts": {
+    "request": "request.md",
+    "source_snapshot": "artifacts/prd-snapshot.md",
+    "code_context": "artifacts/code-context.md",
+    "spec": "spec/spec.md",
+    "clarifications": "spec/clarifications.md",
+    "architecture_design": "design/architecture-design.md",
+    "plan": "plan/plan.md",
+    "task_board": "plan/task-board.md",
+    "execution": "execution/changelog.md",
+    "verification": "verification/verification.md",
+    "review": "review/review.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "speed_profile": {
+    "level": "S2 scoped",
+    "reason": "The change spans the root runtime, Pinia release state, settings UI, global update dialog, localization, and signed Tauri release boundaries.",
+    "context_budget": "scoped",
+    "artifact_density": "full"
+  },
+  "architecture_design_required": true,
+  "page_design_required": false,
+  "module_flow": null,
+  "loop": {
+    "iteration": 7,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "review_blocked"
+  }
+}

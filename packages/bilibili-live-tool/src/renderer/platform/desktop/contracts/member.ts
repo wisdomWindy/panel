@@ -4,7 +4,6 @@ export type AuthSessionId = string & { readonly __authSessionId: unique symbol }
 export type OrderId = string & { readonly __orderId: unique symbol };
 export type ModuleId = string & { readonly __moduleId: unique symbol };
 export type MemberOperationId = string & { readonly __memberOperationId: unique symbol };
-export type GenerationId = string & { readonly __generationId: unique symbol };
 export type ModerationAlertId = string & { readonly __moderationAlertId: unique symbol };
 
 export type MemberShellState = 'unavailable' | 'loggedOut' | 'unpaid' | 'active' | 'expired';
@@ -27,7 +26,6 @@ export interface MemberEntitlement {
 }
 
 export interface MemberCapabilities {
-  readonly ai: MemberCapabilityState;
   readonly moderation: MemberCapabilityState;
 }
 
@@ -89,76 +87,6 @@ export interface ModuleOperation {
   readonly isTerminal: boolean;
 }
 
-export type AiSpeakingStyle = 'short' | 'humorous' | 'formal' | 'casual';
-
-export interface AiConfig {
-  readonly identity: string;
-  readonly speakingStyle: AiSpeakingStyle;
-  readonly systemPrompt: string;
-  readonly provider: string;
-  readonly model: string;
-  readonly temperature: number;
-  readonly maxLength: number;
-  readonly isSensitiveFilterEnabled: boolean;
-  readonly bannedWords: readonly string[];
-  readonly danmakuContextCount: number;
-  readonly asrContextCount: number;
-  readonly manualContextCount: number;
-  readonly isApiKeyConfigured: boolean;
-}
-
-export interface AiConfigSaveRequest {
-  readonly config: Omit<AiConfig, 'isApiKeyConfigured'>;
-  readonly apiKeyReplacement: string | null;
-}
-
-export interface AiContextItem {
-  readonly id: string;
-  readonly source: 'danmaku' | 'asr' | 'manual';
-  readonly content: string;
-}
-
-export interface AiGenerateRequest {
-  readonly prompt: string;
-  readonly context: readonly AiContextItem[];
-}
-
-export interface AiGeneration {
-  readonly generationId: GenerationId;
-  readonly status: 'assembling' | 'streaming' | 'completed' | 'failed' | 'rejected' | 'cancelled';
-  readonly result: string;
-  readonly lastSequence: number;
-  readonly errorCode: string | null;
-}
-
-export interface AiLogEntry {
-  readonly id: number;
-  readonly operationType: string;
-  readonly username: string | null;
-  readonly userUid: UserUid | null;
-  readonly originalContent: string | null;
-  readonly aiContent: string | null;
-  readonly generationStatus: string;
-  readonly rejectReason: string | null;
-  readonly roomId: string;
-  readonly createdAt: number;
-}
-
-export interface AsrStatus {
-  readonly state: 'unavailable' | 'modelMissing' | 'downloading' | 'ready' | 'starting' | 'listening' | 'error';
-  readonly modelName: string | null;
-  readonly language: string;
-  readonly progressPercent: number;
-  readonly errorCode: string | null;
-}
-
-export interface AsrModelManifest {
-  readonly modelName: string;
-  readonly sizeBytes: number;
-  readonly license: string;
-  readonly sourceLabel: string;
-}
-
 export type MuteDuration = '10m' | '1h' | 'permanent';
 
 export interface ModerationRules {
@@ -216,15 +144,6 @@ export const MEMBER_COMMAND_NAMES = [
   'module_list',
   'module_update',
   'module_cleanup',
-  'ai_config_get',
-  'ai_config_save',
-  'ai_generate',
-  'ai_regenerate',
-  'ai_log_query',
-  'asr_status',
-  'asr_model_download',
-  'asr_start',
-  'asr_stop',
   'moderate_status',
   'moderate_set_auto',
   'moderate_update_rules',
@@ -247,15 +166,6 @@ export interface MemberCommandRequestMap {
   module_list: undefined;
   module_update: { moduleId: ModuleId };
   module_cleanup: { moduleId: ModuleId };
-  ai_config_get: undefined;
-  ai_config_save: AiConfigSaveRequest;
-  ai_generate: AiGenerateRequest;
-  ai_regenerate: { generationId: GenerationId };
-  ai_log_query: { userUid: UserUid | null; startedAt: number | null; endedAt: number | null };
-  asr_status: undefined;
-  asr_model_download: { manifest: AsrModelManifest; isLicenseAccepted: boolean };
-  asr_start: undefined;
-  asr_stop: undefined;
   moderate_status: undefined;
   moderate_set_auto: { isEnabled: boolean; isRiskAccepted: boolean };
   moderate_update_rules: { rules: ModerationRules };
@@ -278,15 +188,6 @@ export interface MemberCommandResultMap {
   module_list: readonly MemberModule[];
   module_update: ModuleOperation;
   module_cleanup: { removed: boolean; modules: readonly MemberModule[] };
-  ai_config_get: AiConfig;
-  ai_config_save: AiConfig;
-  ai_generate: AiGeneration;
-  ai_regenerate: AiGeneration;
-  ai_log_query: readonly AiLogEntry[];
-  asr_status: AsrStatus;
-  asr_model_download: AsrStatus;
-  asr_start: AsrStatus;
-  asr_stop: AsrStatus;
   moderate_status: ModerationSummary;
   moderate_set_auto: ModerationSummary;
   moderate_update_rules: ModerationSummary;
@@ -303,9 +204,6 @@ export interface MemberEventPayloadMap {
   membership_renewed: MemberStatus;
   module_download_progress: ModuleOperation;
   module_installed: MemberModule;
-  ai_generation_delta: { generationId: GenerationId; sequence: number; delta: string };
-  ai_generation_finished: AiGeneration;
-  asr_status_changed: AsrStatus;
   moderation_alert: ModerationAlert;
   moderation_action_result: ModerationAlert;
 }

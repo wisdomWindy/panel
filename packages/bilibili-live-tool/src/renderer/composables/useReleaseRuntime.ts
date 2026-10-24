@@ -18,9 +18,7 @@ export function createReleaseRuntime(
     const guarded = <K extends EventName>(handler: (value: EventPayloadMap[K]) => void) =>
       (value: EventPayloadMap[K]) => { if (generation === localGeneration) handler(value); };
     const registrations = await Promise.allSettled([
-      listen('update://status', guarded<'update://status'>(store.replaceUpdate)),
-      listen('plugin://status', guarded<'plugin://status'>(store.replacePlugin)),
-      listen('plugin://crashed', guarded<'plugin://crashed'>(store.replacePlugin))
+      listen('update://status', guarded<'update://status'>(store.replaceUpdate))
     ]);
     const completed = registrations.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
     const failure = registrations.find((result): result is PromiseRejectedResult => result.status === 'rejected');
@@ -31,6 +29,11 @@ export function createReleaseRuntime(
     }
     unlisteners = completed;
     active = true;
+    try {
+      await store.checkUpdate();
+    } catch {
+      // Startup update checks are intentionally silent so offline use remains available.
+    }
   }
 
   function start(): Promise<void> {

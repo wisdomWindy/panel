@@ -62,6 +62,7 @@ impl LiveRuntimeError {
 }
 
 pub struct RoomConnection {
+    pub room_id: RoomId,
     pub room_name: Option<String>,
     pub online_count: Option<u64>,
     pub events: mpsc::Receiver<LiveEvent>,
@@ -69,17 +70,34 @@ pub struct RoomConnection {
 
 #[async_trait::async_trait]
 pub trait RoomTransport: Send + Sync {
-    async fn connect(&self, room_id: &RoomId) -> Result<RoomConnection, LiveRuntimeError>;
+    async fn connect(&self, identity_code: &str) -> Result<RoomConnection, LiveRuntimeError>;
 }
 
 pub struct UnavailableRoomTransport;
 
 #[async_trait::async_trait]
 impl RoomTransport for UnavailableRoomTransport {
-    async fn connect(&self, _: &RoomId) -> Result<RoomConnection, LiveRuntimeError> {
+    async fn connect(&self, _: &str) -> Result<RoomConnection, LiveRuntimeError> {
         Err(LiveRuntimeError::unavailable(
             "Bilibili live transport is not configured",
         ))
+    }
+}
+
+pub struct FailedRoomTransport {
+    error: LiveRuntimeError,
+}
+
+impl FailedRoomTransport {
+    pub fn new(error: LiveRuntimeError) -> Self {
+        Self { error }
+    }
+}
+
+#[async_trait::async_trait]
+impl RoomTransport for FailedRoomTransport {
+    async fn connect(&self, _: &str) -> Result<RoomConnection, LiveRuntimeError> {
+        Err(self.error.clone())
     }
 }
 

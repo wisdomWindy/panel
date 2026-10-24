@@ -1,0 +1,40 @@
+{
+  "request_id": "dark-ranking-theme-empty-state",
+  "source": {
+    "type": "direct-user-bug-report",
+    "evidence": ["U1", "U2", "U3", "U4"]
+  },
+  "stage": "complete",
+  "status": "complete",
+  "artifacts": {
+    "request": "request.md",
+    "bugfix_source": "artifacts/bugfix-source.md",
+    "prd_snapshot": "artifacts/prd-snapshot.md",
+    "code_context": "artifacts/code-context.md",
+    "spec": "spec/spec.md",
+    "clarifications": "spec/clarifications.md",
+    "plan": "plan/plan.md",
+    "task_board": "plan/task-board.md",
+    "execution": "execution/changelog.md",
+    "verification": "verification/verification.md",
+    "review": "review/review.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "speed_profile": {
+    "level": "S1 local",
+    "reason": "单个 Vue 页面内的样式与重复空状态缺陷，无 API、共享状态或架构边界变化",
+    "context_budget": "scoped",
+    "artifact_density": "compact"
+  },
+  "module_flow": null,
+  "loop": {
+    "iteration": 8,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": null
+  }
+}

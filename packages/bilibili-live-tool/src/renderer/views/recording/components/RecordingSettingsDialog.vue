@@ -1,24 +1,26 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { FolderOpened } from '@element-plus/icons-vue';
 import type { RecordingConfig } from '@/platform/desktop';
 import { formatBytes } from '@/modules/media/formatters';
 
 const props = defineProps<{
-  visible: boolean;
-  modelValue: RecordingConfig;
-  pending?: boolean;
-  pathPending?: boolean;
-  ffmpegPending?: boolean;
-}>();
+    visible: boolean;
+    modelValue: RecordingConfig;
+    pending?: boolean;
+    pathPending?: boolean;
+    ffmpegPending?: boolean;
+  }>();
+const { t } = useI18n();
 
 const emit = defineEmits<{
-  'update:visible': [visible: boolean];
-  'update:modelValue': [config: RecordingConfig];
-  save: [];
-  selectDirectory: [];
-  setFfmpegSource: [source: RecordingConfig['ffmpegSource']];
-}>();
+    'update:visible': [visible: boolean];
+    'update:modelValue': [config: RecordingConfig];
+    save: [];
+    selectDirectory: [];
+    setFfmpegSource: [source: RecordingConfig['ffmpegSource']];
+  }>();
 
 const config = computed({
   get: () => props.modelValue,
@@ -37,7 +39,7 @@ function close(): void {
 <template>
   <el-dialog
     :model-value="visible"
-    title="录制设置"
+    :title="t('recording.settings.title')"
     width="min(720px, calc(100vw - 32px))"
     destroy-on-close
     @close="close"
@@ -45,32 +47,44 @@ function close(): void {
     <div class="max-h-[calc(100vh-190px)] overflow-y-auto pr-2">
       <el-form label-position="top" @submit.prevent="emit('save')">
         <el-divider content-position="left">
-          编码与输出
+          {{ t('recording.settings.encoding') }}
         </el-divider>
         <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
-          <el-form-item label="录制格式">
-            <el-select :model-value="config.format" class="w-full" @update:model-value="update('format', $event)">
+          <el-form-item :label="t('recording.format')">
+            <el-select
+              :model-value="config.format"
+              class="w-full"
+              @update:model-value="update('format', $event)"
+            >
               <el-option label="MP4" value="mp4" />
               <el-option label="FLV" value="flv" />
             </el-select>
           </el-form-item>
-          <el-form-item label="录制画质">
-            <el-select :model-value="config.quality" class="w-full" @update:model-value="update('quality', $event)">
-              <el-option label="原画" value="original" />
-              <el-option label="高清" value="high" />
-              <el-option label="标清" value="standard" />
+          <el-form-item :label="t('recording.quality')">
+            <el-select
+              :model-value="config.quality"
+              class="w-full"
+              @update:model-value="update('quality', $event)"
+            >
+              <el-option :label="t('recording.settings.qualityOriginal')" value="original" />
+              <el-option :label="t('recording.settings.qualityHigh')" value="high" />
+              <el-option :label="t('recording.settings.qualityStandard')" value="standard" />
             </el-select>
           </el-form-item>
         </div>
-        <el-form-item label="存储路径">
+        <el-form-item :label="t('recording.settings.directory')">
           <div class="flex w-full min-w-0 items-center gap-2">
-            <el-input :model-value="config.directory?.displayPath ?? ''" readonly placeholder="未选择" />
-            <el-tooltip content="选择存储目录">
+            <el-input
+              :model-value="config.directory?.displayPath ?? ''"
+              readonly
+              :placeholder="t('common.notSelected')"
+            />
+            <el-tooltip :content="t('recording.settings.selectDirectory')">
               <el-button
                 :icon="FolderOpened"
                 circle
                 :loading="pathPending"
-                aria-label="选择存储目录"
+                :aria-label="t('recording.settings.selectDirectory')"
                 @click="emit('selectDirectory')"
               />
             </el-tooltip>
@@ -78,13 +92,16 @@ function close(): void {
         </el-form-item>
 
         <el-divider content-position="left">
-          分段与自动录制
+          {{ t('recording.settings.segmentation') }}
         </el-divider>
         <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
-          <el-form-item label="自动分段">
-            <el-switch :model-value="config.segmentationEnabled" @update:model-value="update('segmentationEnabled', $event)" />
+          <el-form-item :label="t('recording.segmentEnabled')">
+            <el-switch
+              :model-value="config.segmentationEnabled"
+              @update:model-value="update('segmentationEnabled', $event)"
+            />
           </el-form-item>
-          <el-form-item label="分段时长（秒）">
+          <el-form-item :label="t('recording.settings.segmentDuration')">
             <el-input-number
               :model-value="config.segmentDurationSeconds"
               :min="60"
@@ -93,16 +110,19 @@ function close(): void {
               @update:model-value="update('segmentDurationSeconds', $event ?? 3600)"
             />
           </el-form-item>
-          <el-form-item label="开播自动录制">
-            <el-switch :model-value="config.autoRecord" @update:model-value="update('autoRecord', $event)" />
+          <el-form-item :label="t('recording.settings.autoRecord')">
+            <el-switch
+              :model-value="config.autoRecord"
+              @update:model-value="update('autoRecord', $event)"
+            />
           </el-form-item>
         </div>
 
         <el-divider content-position="left">
-          高光
+          {{ t('recording.settings.highlight') }}
         </el-divider>
         <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
-          <el-form-item label="弹幕阈值">
+          <el-form-item :label="t('recording.danmakuThreshold')">
             <el-input-number
               :model-value="config.danmakuThreshold"
               :min="1"
@@ -110,24 +130,32 @@ function close(): void {
               @update:model-value="update('danmakuThreshold', $event ?? 20)"
             />
           </el-form-item>
-          <el-form-item label="高光时长">
-            <span class="text-sm text-gray-700">前 30 秒 / 后 30 秒</span>
+          <el-form-item :label="t('recording.settings.highlightDuration')">
+            <span class="text-sm text-gray-700 dark:text-zinc-300">{{ t('recording.settings.highlightWindow') }}</span>
           </el-form-item>
         </div>
 
         <el-divider content-position="left">
-          磁盘保护
+          {{ t('recording.settings.diskProtection') }}
         </el-divider>
         <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
-          <el-form-item label="磁盘配额">
-            <el-select :model-value="config.quotaBytes" class="w-full" @update:model-value="update('quotaBytes', $event)">
+          <el-form-item :label="t('recording.settings.diskQuota')">
+            <el-select
+              :model-value="config.quotaBytes"
+              class="w-full"
+              @update:model-value="update('quotaBytes', $event)"
+            >
               <el-option :label="formatBytes(10 * 1024 ** 3)" :value="10 * 1024 ** 3" />
               <el-option :label="formatBytes(20 * 1024 ** 3)" :value="20 * 1024 ** 3" />
               <el-option :label="formatBytes(50 * 1024 ** 3)" :value="50 * 1024 ** 3" />
             </el-select>
           </el-form-item>
-          <el-form-item label="停止录制水位">
-            <el-select :model-value="config.waterlineBytes" class="w-full" @update:model-value="update('waterlineBytes', $event)">
+          <el-form-item :label="t('recording.settings.stopWaterline')">
+            <el-select
+              :model-value="config.waterlineBytes"
+              class="w-full"
+              @update:model-value="update('waterlineBytes', $event)"
+            >
               <el-option :label="formatBytes(2 * 1024 ** 3)" :value="2 * 1024 ** 3" />
               <el-option :label="formatBytes(5 * 1024 ** 3)" :value="5 * 1024 ** 3" />
               <el-option :label="formatBytes(10 * 1024 ** 3)" :value="10 * 1024 ** 3" />
@@ -136,30 +164,42 @@ function close(): void {
         </div>
 
         <el-divider content-position="left">
-          FFmpeg 与快捷键
+          {{ t('recording.settings.ffmpegAndShortcut') }}
         </el-divider>
         <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
-          <el-form-item label="FFmpeg 来源">
+          <el-form-item :label="t('recording.settings.ffmpegSource')">
             <el-segmented
               :model-value="config.ffmpegSource"
-              :options="[{ label: '内置', value: 'bundled', disabled: true }, { label: '本机', value: 'local' }]"
+              :options="[
+                { label: t('recording.settings.bundled'), value: 'bundled', disabled: true },
+                { label: t('recording.settings.local'), value: 'local' }
+              ]"
               :disabled="ffmpegPending"
               @change="emit('setFfmpegSource', $event)"
             />
-            <span v-if="config.ffmpegSource === 'bundled'" class="mt-1 block text-xs text-amber-700">内置 FFmpeg 尚未随安装包提供</span>
+            <span
+              v-if="config.ffmpegSource === 'bundled'"
+              class="mt-1 block text-xs text-amber-700 dark:text-amber-400"
+            >
+              {{ t('recording.settings.bundledUnavailable') }}
+            </span>
           </el-form-item>
-          <el-form-item label="高光快捷键">
-            <el-input :model-value="config.shortcut" maxlength="32" @update:model-value="update('shortcut', $event)" />
+          <el-form-item :label="t('recording.settings.shortcut')">
+            <el-input
+              :model-value="config.shortcut"
+              maxlength="32"
+              @update:model-value="update('shortcut', $event)"
+            />
           </el-form-item>
         </div>
       </el-form>
     </div>
     <template #footer>
       <el-button :disabled="pending" @click="close">
-        取消
+        {{ t('common.cancel') }}
       </el-button>
       <el-button type="primary" :loading="pending" @click="emit('save')">
-        保存
+        {{ t('common.save') }}
       </el-button>
     </template>
   </el-dialog>

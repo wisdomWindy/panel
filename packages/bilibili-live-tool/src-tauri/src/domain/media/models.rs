@@ -11,6 +11,16 @@ pub const HIGHLIGHT_BEFORE_SECONDS: u64 = 30;
 pub const HIGHLIGHT_AFTER_SECONDS: u64 = 30;
 pub const DEFAULT_RECORDING_QUOTA_BYTES: u64 = 10 * 1024 * 1024 * 1024;
 pub const DEFAULT_RECORDING_WATERLINE_BYTES: u64 = 5 * 1024 * 1024 * 1024;
+pub const DEFAULT_CAPTAIN_EFFECT_WINDOW_WIDTH: u32 = 560;
+pub const DEFAULT_CAPTAIN_EFFECT_WINDOW_HEIGHT: u32 = 280;
+
+const fn default_captain_effect_window_width() -> u32 {
+    DEFAULT_CAPTAIN_EFFECT_WINDOW_WIDTH
+}
+
+const fn default_captain_effect_window_height() -> u32 {
+    DEFAULT_CAPTAIN_EFFECT_WINDOW_HEIGHT
+}
 
 #[derive(Clone, Debug, PartialEq, thiserror::Error)]
 pub enum MediaDomainError {
@@ -44,6 +54,10 @@ pub struct CaptainEffectConfig {
     pub preset_id: String,
     pub duration_seconds: u8,
     pub position: MediaPosition,
+    #[serde(default = "default_captain_effect_window_width")]
+    pub window_width: u32,
+    #[serde(default = "default_captain_effect_window_height")]
+    pub window_height: u32,
     pub primary_color: String,
     pub secondary_color: String,
     pub first_sound: Option<MediaSoundBinding>,
@@ -82,6 +96,7 @@ pub struct GiftRecord {
     pub username: String,
     pub gift_id: String,
     pub gift_name: String,
+    pub gift_icon_url: Option<String>,
     pub quantity: u32,
     pub value_minor: i64,
     pub occurred_at: i64,

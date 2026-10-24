@@ -1,9 +1,6 @@
-use std::{
-    collections::BTreeMap,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc, Mutex,
-    },
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
 };
 
 use serde::Serialize;
@@ -12,12 +9,12 @@ use tokio::sync::RwLock;
 use crate::{
     build_channel::BuildChannel,
     domain::release::{
-        is_update_eligible, is_update_forced, is_valid_plugin_id, is_valid_update_candidate,
-        PluginPermission, UpdateCandidate, UpdateStatus,
+        is_update_eligible, is_update_forced, is_valid_update_candidate, UpdateCandidate,
+        UpdateStatus,
     },
 };
 
-use super::release_ports::{PluginProvider, ReleaseEventSink, ReleaseServiceError, UpdateProvider};
+use super::release_ports::{ReleaseEventSink, ReleaseServiceError, UpdateProvider};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -41,27 +38,6 @@ impl UpdateSnapshot {
             error_code: Some("update_provider_unavailable".into()),
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum PluginStatus {
-    Disabled,
-    Enabled,
-    UpdateAvailable,
-    Failed,
-    Unavailable,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PluginSnapshot {
-    pub id: String,
-    pub name: String,
-    pub version: String,
-    pub status: PluginStatus,
-    pub permissions: Vec<PluginPermission>,
-    pub error_code: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -104,43 +80,32 @@ impl ResilienceSnapshot {
 
 pub struct ReleaseState {
     update: RwLock<UpdateSnapshot>,
-    plugins: RwLock<BTreeMap<String, PluginSnapshot>>,
     update_provider: Arc<dyn UpdateProvider>,
-    plugin_provider: Arc<dyn PluginProvider>,
     event_sink: Arc<dyn ReleaseEventSink>,
     installation_bucket: u8,
     update_generation: AtomicU64,
-    plugin_generations: Mutex<BTreeMap<String, u64>>,
     resilience: ResilienceSnapshot,
 }
 
 impl ReleaseState {
     pub fn new(
         update_provider: Arc<dyn UpdateProvider>,
-        plugin_provider: Arc<dyn PluginProvider>,
         event_sink: Arc<dyn ReleaseEventSink>,
         installation_bucket: u8,
         resilience: ResilienceSnapshot,
     ) -> Self {
         Self {
             update: RwLock::new(UpdateSnapshot::unavailable()),
-            plugins: RwLock::new(BTreeMap::new()),
             update_provider,
-            plugin_provider,
             event_sink,
             installation_bucket,
             update_generation: AtomicU64::new(0),
-            plugin_generations: Mutex::new(BTreeMap::new()),
             resilience,
         }
     }
 
     pub async fn update_status(&self) -> UpdateSnapshot {
         self.update.read().await.clone()
-    }
-
-    pub async fn plugins(&self) -> Vec<PluginSnapshot> {
-        self.plugins.read().await.values().cloned().collect()
     }
 
     pub async fn check_update(&self) -> Result<UpdateSnapshot, ReleaseServiceError> {
@@ -222,81 +187,6 @@ impl ReleaseState {
         Ok(snapshot)
     }
 
-    pub async fn select_plugin_install(&self) -> Result<PluginSnapshot, ReleaseServiceError> {
-        let plugin = self.plugin_provider.select_install().await?;
-        validate_plugin_snapshot(&plugin)?;
-        Ok(plugin)
-    }
-
-    pub async fn install_plugin(
-        &self,
-        plugin_id: &str,
-    ) -> Result<PluginSnapshot, ReleaseServiceError> {
-        validate_plugin_id(plugin_id)?;
-        let generation = self.begin_plugin_operation(plugin_id);
-        let result = self.plugin_provider.install(plugin_id).await;
-        if !self.is_current_plugin_operation(plugin_id, generation) {
-            return self.current_plugin(plugin_id).await;
-        }
-        let plugin = result?;
-        validate_plugin_response(plugin_id, &plugin)?;
-        let mut plugins = self.plugins.write().await;
-        if !self.is_current_plugin_operation(plugin_id, generation) {
-            return plugins
-                .get(plugin_id)
-                .cloned()
-                .ok_or_else(|| ReleaseServiceError::invalid("stale_plugin_operation"));
-        }
-        plugins.insert(plugin.id.clone(), plugin.clone());
-        drop(plugins);
-        self.event_sink.emit_plugin_status(&plugin);
-        Ok(plugin)
-    }
-
-    pub async fn toggle_plugin(
-        &self,
-        plugin_id: &str,
-        is_enabled: bool,
-    ) -> Result<PluginSnapshot, ReleaseServiceError> {
-        validate_plugin_id(plugin_id)?;
-        let generation = self.begin_plugin_operation(plugin_id);
-        let result = self.plugin_provider.toggle(plugin_id, is_enabled).await;
-        if !self.is_current_plugin_operation(plugin_id, generation) {
-            return self.current_plugin(plugin_id).await;
-        }
-        let plugin = result?;
-        validate_plugin_response(plugin_id, &plugin)?;
-        let mut plugins = self.plugins.write().await;
-        if !self.is_current_plugin_operation(plugin_id, generation) {
-            return plugins
-                .get(plugin_id)
-                .cloned()
-                .ok_or_else(|| ReleaseServiceError::invalid("stale_plugin_operation"));
-        }
-        plugins.insert(plugin.id.clone(), plugin.clone());
-        drop(plugins);
-        self.event_sink.emit_plugin_status(&plugin);
-        Ok(plugin)
-    }
-
-    pub async fn uninstall_plugin(&self, plugin_id: &str) -> Result<bool, ReleaseServiceError> {
-        validate_plugin_id(plugin_id)?;
-        let generation = self.begin_plugin_operation(plugin_id);
-        let result = self.plugin_provider.uninstall(plugin_id).await;
-        if !self.is_current_plugin_operation(plugin_id, generation) {
-            return Ok(false);
-        }
-        let removed = result?;
-        let mut plugins = self.plugins.write().await;
-        if !self.is_current_plugin_operation(plugin_id, generation) {
-            return Ok(false);
-        }
-        if removed {
-            plugins.remove(plugin_id);
-        }
-        Ok(removed)
-    }
-
     pub fn about(&self) -> AboutSnapshot {
         AboutSnapshot {
             application_version: env!("CARGO_PKG_VERSION").to_owned(),
@@ -315,48 +205,6 @@ impl ReleaseState {
 
     fn is_current_update_operation(&self, generation: u64) -> bool {
         self.update_generation.load(Ordering::SeqCst) == generation
-    }
-
-    fn begin_plugin_operation(&self, plugin_id: &str) -> u64 {
-        let mut generations = self
-            .plugin_generations
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let generation = generations.entry(plugin_id.to_owned()).or_default();
-        *generation += 1;
-        *generation
-    }
-
-    fn is_current_plugin_operation(&self, plugin_id: &str, generation: u64) -> bool {
-        self.plugin_generations
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .get(plugin_id)
-            .is_some_and(|current| *current == generation)
-    }
-
-    async fn current_plugin(&self, plugin_id: &str) -> Result<PluginSnapshot, ReleaseServiceError> {
-        self.plugins
-            .read()
-            .await
-            .get(plugin_id)
-            .cloned()
-            .ok_or_else(|| ReleaseServiceError::invalid("stale_plugin_operation"))
-    }
-
-    #[cfg(test)]
-    async fn mark_crashed(&self, id: &str) {
-        self.begin_plugin_operation(id);
-        let crashed = if let Some(plugin) = self.plugins.write().await.get_mut(id) {
-            plugin.status = PluginStatus::Failed;
-            plugin.error_code = Some("plugin_runtime_crashed".into());
-            Some(plugin.clone())
-        } else {
-            None
-        };
-        if let Some(plugin) = crashed {
-            self.event_sink.emit_plugin_crashed(&plugin);
-        }
     }
 }
 
@@ -398,32 +246,6 @@ fn apply_update_exposure_policy(
     snapshot
 }
 
-fn validate_plugin_id(plugin_id: &str) -> Result<(), ReleaseServiceError> {
-    if !is_valid_plugin_id(plugin_id) {
-        return Err(ReleaseServiceError::invalid("invalid_plugin_id"));
-    }
-    Ok(())
-}
-
-fn validate_plugin_snapshot(plugin: &PluginSnapshot) -> Result<(), ReleaseServiceError> {
-    validate_plugin_id(&plugin.id)?;
-    if plugin.name.trim().is_empty() || semver::Version::parse(&plugin.version).is_err() {
-        return Err(ReleaseServiceError::invalid("invalid_plugin_manifest"));
-    }
-    Ok(())
-}
-
-fn validate_plugin_response(
-    requested_id: &str,
-    plugin: &PluginSnapshot,
-) -> Result<(), ReleaseServiceError> {
-    validate_plugin_snapshot(plugin)?;
-    if plugin.id != requested_id {
-        return Err(ReleaseServiceError::invalid("plugin_identity_mismatch"));
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use std::sync::{atomic::AtomicUsize, Mutex};
@@ -435,21 +257,11 @@ mod tests {
     #[derive(Default)]
     struct RecordingEventSink {
         update_statuses: Mutex<Vec<UpdateSnapshot>>,
-        plugin_statuses: Mutex<Vec<PluginSnapshot>>,
-        plugin_crashes: Mutex<Vec<PluginSnapshot>>,
     }
 
     impl ReleaseEventSink for RecordingEventSink {
         fn emit_update_status(&self, snapshot: &UpdateSnapshot) {
             self.update_statuses.lock().unwrap().push(snapshot.clone());
-        }
-
-        fn emit_plugin_status(&self, snapshot: &PluginSnapshot) {
-            self.plugin_statuses.lock().unwrap().push(snapshot.clone());
-        }
-
-        fn emit_plugin_crashed(&self, snapshot: &PluginSnapshot) {
-            self.plugin_crashes.lock().unwrap().push(snapshot.clone());
         }
     }
 
@@ -513,32 +325,9 @@ mod tests {
         }
     }
 
-    struct UnusedPluginProvider;
-
-    #[async_trait::async_trait]
-    impl PluginProvider for UnusedPluginProvider {
-        async fn select_install(&self) -> Result<PluginSnapshot, ReleaseServiceError> {
-            Err(ReleaseServiceError::unavailable("unused"))
-        }
-        async fn install(&self, _plugin_id: &str) -> Result<PluginSnapshot, ReleaseServiceError> {
-            Err(ReleaseServiceError::unavailable("unused"))
-        }
-        async fn toggle(
-            &self,
-            _plugin_id: &str,
-            _is_enabled: bool,
-        ) -> Result<PluginSnapshot, ReleaseServiceError> {
-            Err(ReleaseServiceError::unavailable("unused"))
-        }
-        async fn uninstall(&self, _plugin_id: &str) -> Result<bool, ReleaseServiceError> {
-            Err(ReleaseServiceError::unavailable("unused"))
-        }
-    }
-
     fn state() -> ReleaseState {
         ReleaseState::new(
             Arc::new(UnusedUpdateProvider),
-            Arc::new(UnusedPluginProvider),
             Arc::new(RecordingEventSink::default()),
             0,
             ResilienceSnapshot::unavailable(),
@@ -590,7 +379,6 @@ mod tests {
         let event_sink = Arc::new(RecordingEventSink::default());
         let state = Arc::new(ReleaseState::new(
             provider.clone(),
-            Arc::new(UnusedPluginProvider),
             event_sink.clone(),
             0,
             ResilienceSnapshot::unavailable(),
@@ -611,55 +399,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn crashing_one_plugin_does_not_change_another_runtime() {
-        let event_sink = Arc::new(RecordingEventSink::default());
-        let state = ReleaseState::new(
-            Arc::new(UnusedUpdateProvider),
-            Arc::new(UnusedPluginProvider),
-            event_sink.clone(),
-            0,
-            ResilienceSnapshot::unavailable(),
-        );
-        state.plugins.write().await.extend([
-            (
-                "one".into(),
-                PluginSnapshot {
-                    id: "one".into(),
-                    name: "one".into(),
-                    version: "1.0.0".into(),
-                    status: PluginStatus::Enabled,
-                    permissions: vec![],
-                    error_code: None,
-                },
-            ),
-            (
-                "two".into(),
-                PluginSnapshot {
-                    id: "two".into(),
-                    name: "two".into(),
-                    version: "1.0.0".into(),
-                    status: PluginStatus::Enabled,
-                    permissions: vec![],
-                    error_code: None,
-                },
-            ),
-        ]);
-        state.mark_crashed("one").await;
-        let plugins = state.plugins().await;
-        assert_eq!(plugins[0].status, PluginStatus::Failed);
-        assert_eq!(plugins[1].status, PluginStatus::Enabled);
-        let crashes = event_sink.plugin_crashes.lock().unwrap();
-        assert_eq!(crashes.len(), 1);
-        assert_eq!(crashes[0].id, "one");
-    }
-
-    #[tokio::test]
-    async fn invalid_identifiers_fail_before_provider_calls() {
+    async fn invalid_update_version_fails_before_provider_calls() {
         let state = state();
-        assert_eq!(
-            state.install_plugin("../plugin").await.unwrap_err().code,
-            "invalid_plugin_id"
-        );
         assert_eq!(
             state.skip_update("latest").await.unwrap_err().code,
             "invalid_update_version"

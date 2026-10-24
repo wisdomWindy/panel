@@ -1,0 +1,28 @@
+{
+  "request_id": "dashboard-defaults-install-config",
+  "source": { "type": "direct-user-defect", "evidence": ["U1", "U2", "U3"] },
+  "stage": "complete",
+  "status": "completed",
+  "approvals": {
+    "spec_approved": true,
+    "architecture_approved": true,
+    "plan_approved": true,
+    "execute_approved": true,
+    "verify_approved": true,
+    "review_approved": true
+  },
+  "speed_profile": {
+    "level": "S2 scoped",
+    "reason": "local UI fixes plus release persistence relocation and migration",
+    "context_budget": "scoped",
+    "artifact_density": "compact"
+  },
+  "module_flow": null,
+  "loop": {
+    "iteration": 4,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "new_request"
+  }
+}

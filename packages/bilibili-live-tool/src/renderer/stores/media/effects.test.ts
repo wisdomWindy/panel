@@ -11,10 +11,19 @@ vi.mock('@/platform/desktop', async () => {
 function snapshot(updatedAt: number): CaptainEffectSnapshot {
   return {
     config: {
-      presetId: 'gold', durationSeconds: 5, position: 'center',
-      primaryColor: '#FFD700', secondaryColor: '#FFA500',
-      firstSound: null, renewalSound: null, comboSound: null,
-      volume: 0.7, comboEnabled: true, comboWindowSeconds: 10
+      presetId: 'gold',
+      durationSeconds: 5,
+      position: 'center',
+      windowWidth: 560,
+      windowHeight: 280,
+      primaryColor: '#FFD700',
+      secondaryColor: '#FFA500',
+      firstSound: null,
+      renewalSound: null,
+      comboSound: null,
+      volume: 0.7,
+      comboEnabled: true,
+      comboWindowSeconds: 10
     },
     presets: [],
     updatedAt
@@ -31,8 +40,16 @@ describe('media effects store', () => {
     let resolveFirst!: (value: CaptainEffectSnapshot) => void;
     let resolveSecond!: (value: CaptainEffectSnapshot) => void;
     vi.mocked(invokeDesktop)
-      .mockReturnValueOnce(new Promise(done => { resolveFirst = done; }))
-      .mockReturnValueOnce(new Promise(done => { resolveSecond = done; }));
+      .mockReturnValueOnce(
+        new Promise(done => {
+          resolveFirst = done;
+        })
+      )
+      .mockReturnValueOnce(
+        new Promise(done => {
+          resolveSecond = done;
+        })
+      );
     const store = useMediaEffectsStore();
     const first = store.load();
     const duplicate = store.load();

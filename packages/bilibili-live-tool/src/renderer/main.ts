@@ -9,7 +9,7 @@ import { pinia } from './stores';
 import App from '@/App.vue';
 import zhCN from './locales/zh-CN.json';
 import enUS from './locales/en-US.json';
-import { getStoredLocale, localeState } from './i18n-runtime';
+import { cspSafeMessageCompiler, getStoredLocale, localeState } from './i18n-runtime';
 import './platform/desktop/build-channel';
 import EffectWindowRoot from './views/captain-effect/EffectWindowRoot.vue';
 import { memberChannel } from '@member-channel';
@@ -24,6 +24,7 @@ const i18n = createI18n({
   legacy: false,
   locale: storedLocale,
   fallbackLocale: 'zh-CN',
+  messageCompiler: cspSafeMessageCompiler,
   messages: {
     'zh-CN': {
       ...zhCN,
@@ -45,7 +46,7 @@ const i18n = createI18n({
 const isEffectSurface = new URLSearchParams(window.location.search).get('surface') === 'effect';
 
 if (isEffectSurface) {
-  createApp(EffectWindowRoot).mount('#app');
+  createApp(EffectWindowRoot).use(i18n).mount('#app');
 } else {
   const app = createApp(App);
   app.use(pinia);

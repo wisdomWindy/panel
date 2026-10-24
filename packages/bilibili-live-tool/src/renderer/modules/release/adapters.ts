@@ -1,8 +1,6 @@
 import type {
   AboutSnapshot,
   LicenseDescriptor,
-  PluginPermission,
-  PluginSnapshot,
   ResilienceSnapshot,
   UpdateCandidate,
   UpdateSnapshot
@@ -66,28 +64,6 @@ export function adaptUpdateSnapshot(value: unknown): UpdateSnapshot {
     candidate: source.candidate === null ? null : candidate(source.candidate),
     progressPercent: progress as number | null,
     errorCode: nullableText(source.errorCode, 'errorCode')
-  });
-}
-
-const permissions: readonly PluginPermission[] = [
-  'sanitizedEvent', 'currentRoomUid', 'effect', 'panel', 'dataSource', 'network'
-];
-
-export function adaptPluginSnapshot(value: unknown): PluginSnapshot {
-  const source = record(value, 'pluginSnapshot');
-  if (!['disabled', 'enabled', 'updateAvailable', 'failed', 'unavailable'].includes(source.status as string)) {
-    throw new TypeError('plugin status is invalid');
-  }
-  if (!Array.isArray(source.permissions) || source.permissions.some(value => !permissions.includes(value as PluginPermission))) {
-    throw new TypeError('plugin permissions are invalid');
-  }
-  return Object.freeze({
-    id: text(source.id, 'pluginId'),
-    name: text(source.name, 'pluginName'),
-    version: text(source.version, 'pluginVersion'),
-    status: source.status as PluginSnapshot['status'],
-    permissions: Object.freeze(source.permissions as PluginPermission[]),
-    errorCode: nullableText(source.errorCode, 'pluginErrorCode')
   });
 }
 

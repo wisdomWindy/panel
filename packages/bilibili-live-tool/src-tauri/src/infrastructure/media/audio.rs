@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use rodio::{Decoder, OutputStream, Sink};
+use rodio::{source::SineWave, Decoder, OutputStream, Sink, Source};
 
 use crate::application::media::{AudioOutputPort, AudioPlayback, AudioRequest, MediaIoError};
 
@@ -44,22 +44,39 @@ impl Drop for RodioPlayback {
 #[async_trait::async_trait]
 impl AudioOutputPort for RodioAudioOutput {
     async fn play(&self, request: AudioRequest) -> Result<Box<dyn AudioPlayback>, MediaIoError> {
-        if !request.volume.is_finite() || !(0.0..=1.0).contains(&request.volume) {
-            return Err(MediaIoError::invalid("audio volume is invalid"));
-        }
+        validate_volume(request.volume)?;
         tokio::task::spawn_blocking(move || start_audio_worker(request))
+            .await
+            .map_err(|_| MediaIoError::operation("audio worker failed", true))?
+    }
+
+    async fn play_alert(&self, volume: f64) -> Result<Box<dyn AudioPlayback>, MediaIoError> {
+        validate_volume(volume)?;
+        tokio::task::spawn_blocking(move || start_alert_worker(volume))
             .await
             .map_err(|_| MediaIoError::operation("audio worker failed", true))?
     }
 }
 
 fn start_audio_worker(request: AudioRequest) -> Result<Box<dyn AudioPlayback>, MediaIoError> {
+    start_worker(move |stop, finished, ready| run_audio(request, stop, finished, ready))
+}
+
+fn start_alert_worker(volume: f64) -> Result<Box<dyn AudioPlayback>, MediaIoError> {
+    start_worker(move |stop, finished, ready| run_alert(volume, stop, finished, ready))
+}
+
+fn start_worker(
+    run: impl FnOnce(mpsc::Receiver<()>, Arc<AtomicBool>, mpsc::SyncSender<Result<(), MediaIoError>>)
+        + Send
+        + 'static,
+) -> Result<Box<dyn AudioPlayback>, MediaIoError> {
     let (stop_tx, stop_rx) = mpsc::channel();
     let (ready_tx, ready_rx) = mpsc::sync_channel(1);
     let finished = Arc::new(AtomicBool::new(false));
     let worker_finished = finished.clone();
     let worker = std::thread::spawn(move || {
-        run_audio(request, stop_rx, worker_finished, ready_tx);
+        run(stop_rx, worker_finished, ready_tx);
     });
     match ready_rx.recv() {
         Ok(Ok(())) => Ok(Box::new(RodioPlayback {
@@ -117,11 +134,83 @@ fn run_audio(
     finished.store(true, Ordering::Release);
 }
 
+fn run_alert(
+    volume: f64,
+    stop: mpsc::Receiver<()>,
+    finished: Arc<AtomicBool>,
+    ready: mpsc::SyncSender<Result<(), MediaIoError>>,
+) {
+    let setup = (|| {
+        let (stream, handle) = OutputStream::try_default()
+            .map_err(|_| MediaIoError::unavailable("audio output is unavailable"))?;
+        let sink = Sink::try_new(&handle)
+            .map_err(|_| MediaIoError::unavailable("audio output is unavailable"))?;
+        Ok::<_, MediaIoError>((stream, sink))
+    })();
+    let (_stream, sink) = match setup {
+        Ok(setup) => setup,
+        Err(error) => {
+            let _ = ready.send(Err(error));
+            return;
+        }
+    };
+    sink.set_volume(volume as f32);
+    for &(frequency, duration_millis) in alert_tone_sequence() {
+        sink.append(
+            SineWave::new(frequency)
+                .take_duration(Duration::from_millis(duration_millis))
+                .amplify(0.16),
+        );
+    }
+    if ready.send(Ok(())).is_err() {
+        sink.stop();
+        return;
+    }
+    while !sink.empty() {
+        if stop.recv_timeout(Duration::from_millis(20)).is_ok() {
+            sink.stop();
+            break;
+        }
+    }
+    finished.store(true, Ordering::Release);
+}
+
+const ALERT_TONE_SEQUENCE: [(f32, u64); 4] =
+    [(523.25, 70), (659.25, 70), (783.99, 90), (1_046.50, 180)];
+
+fn alert_tone_sequence() -> &'static [(f32, u64)] {
+    &ALERT_TONE_SEQUENCE
+}
+
+fn validate_volume(volume: f64) -> Result<(), MediaIoError> {
+    if !volume.is_finite() || !(0.0..=1.0).contains(&volume) {
+        return Err(MediaIoError::invalid("audio volume is invalid"));
+    }
+    Ok(())
+}
+
 pub struct UnavailableAudioOutput;
 
 #[async_trait::async_trait]
 impl AudioOutputPort for UnavailableAudioOutput {
     async fn play(&self, _: AudioRequest) -> Result<Box<dyn AudioPlayback>, MediaIoError> {
         Err(MediaIoError::unavailable("audio output is unavailable"))
+    }
+
+    async fn play_alert(&self, _: f64) -> Result<Box<dyn AudioPlayback>, MediaIoError> {
+        Err(MediaIoError::unavailable("audio output is unavailable"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::alert_tone_sequence;
+
+    #[test]
+    fn built_in_gift_alert_is_a_short_ascending_four_note_cue() {
+        let notes = alert_tone_sequence();
+        assert_eq!(notes.len(), 4);
+        assert!(notes.windows(2).all(|pair| pair[0].0 < pair[1].0));
+        assert!(notes.iter().map(|(_, millis)| millis).sum::<u64>() <= 600);
     }
 }

@@ -20,7 +20,7 @@ const memberStatus = {
   shellState: 'loggedOut',
   account: null,
   entitlement: null,
-  capabilities: { ai: 'unavailable', moderation: 'unavailable' },
+  capabilities: { moderation: 'unavailable' },
   serviceErrorCode: null
 };
 
@@ -28,6 +28,17 @@ describe('member stores', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     invokeDesktop.mockReset();
+  });
+
+  it('keeps unrelated AI errors out of model configuration and generation', async () => {
+    const store = useAIStore();
+    invokeDesktop.mockRejectedValueOnce(new Error('ASR download failed'));
+    await expect(store.downloadModel('tiny' as never, true)).rejects.toBeDefined();
+    expect(store.errorFor('downloadModel')?.message).toBe('ASR download failed');
+    expect(store.errorFor('saveProfile', 'deleteProfile', 'setDefaultProfile', 'testProfile')).toBeNull();
+    expect(store.errorFor('generate')).toBeNull();
+    store.clear();
+    expect(store.errorFor('downloadModel')).toBeNull();
   });
 
   it('deduplicates an in-flight membership bootstrap', async () => {

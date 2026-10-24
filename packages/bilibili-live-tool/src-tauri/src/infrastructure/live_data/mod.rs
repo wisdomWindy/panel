@@ -1,5 +1,6 @@
 mod file_codec;
 mod files;
+mod open_live;
 mod repository;
 
 pub use file_codec::{
@@ -7,6 +8,7 @@ pub use file_codec::{
     BlacklistFileRow, SensitiveFileFormat,
 };
 pub use files::GrantedLiveFileStore;
+pub use open_live::{BilibiliOpenLiveTransport, OpenLiveConfig};
 pub use repository::{
     LiveDataRepository, RepositoryError, StoredBlacklistEntry, UnavailableLiveRepository,
 };

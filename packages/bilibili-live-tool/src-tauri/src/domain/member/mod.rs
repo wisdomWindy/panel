@@ -8,7 +8,7 @@ pub use models::{
 };
 pub use rules::{
     derive_capability, evaluate_entitlement, filter_and_truncate, moderation_defaults,
-    module_progress, AiTextError, ModuleProgressError, AI_ASSEMBLY_TARGET_MILLIS,
-    DEFAULT_LLM_TIMEOUT_MILLIS, OFFLINE_VALIDITY_MILLIS, QR_EXPIRES_SECONDS,
-    QR_MAX_CONSECUTIVE_FAILURES, QR_MAX_POLLS, QR_POLL_INTERVAL_SECONDS,
+    module_progress, truncate_sentences, AiTextError, ModuleProgressError,
+    AI_ASSEMBLY_TARGET_MILLIS, DEFAULT_LLM_TIMEOUT_MILLIS, OFFLINE_VALIDITY_MILLIS,
+    QR_EXPIRES_SECONDS, QR_MAX_CONSECUTIVE_FAILURES, QR_MAX_POLLS, QR_POLL_INTERVAL_SECONDS,
 };

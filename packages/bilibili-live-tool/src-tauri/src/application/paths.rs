@@ -14,7 +14,6 @@ pub enum PathPurpose {
     GiftSoundExport,
     HighlightExport,
     LocalFfmpegExecutable,
-    PluginPackage,
     SensitiveWordImport,
     SensitiveWordExport,
     BlacklistImport,

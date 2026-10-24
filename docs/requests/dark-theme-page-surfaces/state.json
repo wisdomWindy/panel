@@ -1,0 +1,43 @@
+{
+  "request_id": "dark-theme-page-surfaces",
+  "source": {
+    "type": "direct-user-bug-report",
+    "evidence": ["U1", "U2", "U3", "U4", "U5"]
+  },
+  "stage": "complete",
+  "status": "complete",
+  "artifacts": {
+    "request": "request.md",
+    "bugfix_source": "artifacts/bugfix-source.md",
+    "prd_snapshot": "artifacts/prd-snapshot.md",
+    "code_context": "artifacts/code-context.md",
+    "page_design": "design/page-design.md",
+    "spec": "spec/spec.md",
+    "clarifications": "spec/clarifications.md",
+    "plan": "plan/plan.md",
+    "task_board": "plan/task-board.md",
+    "execution": "execution/changelog.md",
+    "verification": "verification/verification.md",
+    "review": "review/review.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true,
+    "verification_passed": true,
+    "review_passed": true
+  },
+  "speed_profile": {
+    "level": "S2 scoped",
+    "reason": "One theme defect spans four pages plus chart and table surfaces; business behavior is unchanged but cross-page consistency requires runtime verification.",
+    "context_budget": "scoped",
+    "artifact_density": "full"
+  },
+  "module_flow": null,
+  "loop": {
+    "iteration": 12,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "verification_failed"
+  }
+}

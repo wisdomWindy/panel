@@ -12,7 +12,6 @@ export type ShellConfigScope =
   | 'giftSounds'
   | 'interfaceLayout'
   | 'recording'
-  | 'plugins'
   | 'ai'
   | 'moderation';
 

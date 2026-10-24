@@ -1,45 +1,27 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { CopyDocument, Delete, Document, Refresh, Setting } from '@element-plus/icons-vue';
+import { CopyDocument, Document, Refresh, Setting } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
-import type { AiConfigSaveRequest, AiContextItem, AsrModelManifest } from '@/platform/desktop';
-import MembershipPausedNotice from '@/components/member/MembershipPausedNotice.vue';
-import { useLiveFeedStore } from '@/stores/live-data/feed';
+import type {
+  AiConfigSaveRequest,
+  AiModelProfileId,
+  AiModelProfileSaveRequest,
+  AiOutputDeviceId,
+  AiVoiceId,
+  AiVoiceReplyRules,
+  AsrModelId
+} from '@/platform/desktop';
 import { useAIStore } from '@/stores/ai';
-import { useMembershipStore } from '@/stores/membership';
-import AiContextList from './components/AiContextList.vue';
+import AiModelProfilesDialog from './components/AiModelProfilesDialog.vue';
 import AiPersonaConfigDialog from './components/AiPersonaConfigDialog.vue';
+import AiVoiceReplyControl from './components/AiVoiceReplyControl.vue';
 import AsrModelDownloadDialog from './components/AsrModelDownloadDialog.vue';
 
 const router = useRouter();
 const store = useAIStore();
-const membership = useMembershipStore();
-const feed = useLiveFeedStore();
-const prompt = ref('');
-const selectedIds = ref<ReadonlySet<string>>(new Set());
 const configVisible = ref(false);
+const modelsVisible = ref(false);
 const asrDialogVisible = ref(false);
-const manifest = ref<AsrModelManifest | null>(null);
-
-const capability = computed(() => membership.status.capabilities.ai);
-const isReady = computed(() => capability.value === 'ready');
-const contexts = computed<readonly AiContextItem[]>(() => {
-  const limit = store.config?.danmakuContextCount ?? 20;
-  return feed.danmu
-    .slice(-limit)
-    .reverse()
-    .map(event =>
-      Object.freeze({
-        id: event.eventId,
-        source: 'danmaku' as const,
-        content: `${event.audience.username}: ${event.content}`
-      })
-    );
-});
-const selectedContexts = computed(() =>
-  contexts.value.filter(item => selectedIds.value.has(item.id))
-);
-const canGenerate = computed(() => Boolean(prompt.value.trim() || selectedContexts.value.length));
 const result = computed(() => {
   const generation = store.generation;
   return generation?.status === 'streaming' || generation?.status === 'completed'
@@ -48,7 +30,7 @@ const result = computed(() => {
 });
 const generationError = computed(() => {
   if (store.generation?.errorCode === 'rate_limited') return '服务限流，请稍后重试';
-  return store.error?.message ?? store.generation?.errorCode ?? null;
+  return store.errorFor('generate')?.message ?? store.generation?.errorCode ?? null;
 });
 const asrEnabled = computed(
   () => store.asr?.state === 'listening' || store.asr?.state === 'starting'
@@ -65,34 +47,21 @@ const asrLabel = computed(
       error: '异常'
     })[store.asr?.state ?? 'unavailable']
 );
-
-function toggleContext(item: AiContextItem): void {
-  const next = new Set(selectedIds.value);
-  if (next.has(item.id)) {
-    next.delete(item.id);
-  } else {
-    next.add(item.id);
-    prompt.value = [prompt.value.trimEnd(), item.content].filter(Boolean).join('\n');
+const asrErrorMessage = computed(() => {
+  const messages: Readonly<Record<string, string>> = {
+    asr_engine_initialization_failed: '语音识别引擎初始化失败，请检查模型文件',
+    asr_microphone_unavailable: '无法打开默认麦克风，请检查设备和麦克风权限',
+    asr_audio_capture_failed: '麦克风采集中断，请检查设备后重新开启',
+    asr_audio_format_unsupported: '默认麦克风的音频格式暂不支持',
+    asr_inference_failed: '语音识别失败，请重新开启'
+  };
+  if (store.asr?.errorCode && messages[store.asr.errorCode]) return messages[store.asr.errorCode];
+  if (store.asr?.errorCode === 'asr_engine_unavailable') {
+    return '模型已就绪，但语音识别引擎暂不可用';
   }
-  selectedIds.value = next;
-}
-
-async function generate(): Promise<void> {
-  if (!canGenerate.value || store.isGenerating) return;
-  await store.generate(prompt.value.trim(), selectedContexts.value).catch(() => undefined);
-}
-
-async function regenerate(): Promise<void> {
-  const generationId = store.generation?.generationId;
-  if (!generationId || store.isGenerating) return;
-  await store.regenerate(generationId).catch(() => undefined);
-}
-
-function clear(): void {
-  prompt.value = '';
-  selectedIds.value = new Set();
-  store.clear();
-}
+  if (store.asr?.errorCode === 'asr_model_missing') return null;
+  return store.asr?.state === 'error' ? (store.error?.message ?? '语音识别启动失败') : null;
+});
 
 async function copyResult(): Promise<void> {
   if (!result.value) return;
@@ -114,21 +83,91 @@ async function saveConfig(request: AiConfigSaveRequest): Promise<void> {
   }
 }
 
+async function saveProfile(request: AiModelProfileSaveRequest): Promise<void> {
+  try {
+    const profile = await store.saveProfile(request);
+    if (!store.profiles.some(value => value.isDefault)) {
+      await store.setDefaultProfile(profile.profileId);
+    }
+    ElMessage.success('模型档案已保存');
+  } catch {
+    // The dialog renders the normalized desktop error.
+  }
+}
+
+async function deleteProfile(profileId: AiModelProfileId): Promise<void> {
+  try {
+    await store.deleteProfile(profileId);
+    ElMessage.success('模型档案已删除');
+  } catch {
+    // The dialog renders the normalized desktop error.
+  }
+}
+
+async function setDefaultProfile(profileId: AiModelProfileId): Promise<void> {
+  await store.setDefaultProfile(profileId).catch(() => undefined);
+}
+
+async function testProfile(profileId: AiModelProfileId): Promise<void> {
+  try {
+    await store.testProfile(profileId);
+    ElMessage.success('模型连接正常');
+  } catch {
+    ElMessage.error(store.error?.message ?? '模型连接失败');
+  }
+}
+
+async function setVoiceReplyEnabled(isEnabled: boolean, confirmed: boolean): Promise<void> {
+  await store.setVoiceReplyEnabled(isEnabled, confirmed).catch(() => undefined);
+}
+
+async function confirmAudioRoute(
+  deviceId: AiOutputDeviceId,
+  voiceId: AiVoiceId,
+  volume: number,
+  enableAfterSave: boolean
+): Promise<void> {
+  try {
+    await store.setOutputDevice(deviceId, voiceId, volume, true);
+    if (enableAfterSave) await store.setVoiceReplyEnabled(true, true);
+    ElMessage.success('音频路由已确认');
+  } catch {
+    // The page readiness alert renders the normalized desktop error.
+  }
+}
+
+async function testAudioRoute(
+  deviceId: AiOutputDeviceId,
+  voiceId: AiVoiceId,
+  volume: number
+): Promise<void> {
+  await store.testOutputDevice(deviceId, voiceId, volume).catch(() => undefined);
+}
+
+async function updateVoiceRules(rules: AiVoiceReplyRules): Promise<void> {
+  await store.updateVoiceRules(rules).catch(() => undefined);
+}
+
 async function toggleAsr(value: boolean | string | number): Promise<void> {
   if (!value) {
     await store.stopAsr().catch(() => undefined);
     return;
   }
-  if (store.asr?.state !== 'ready') {
+  const hasInstalledModel = store.asrModels.some(model => model.isInstalled);
+  if (!hasInstalledModel) {
     asrDialogVisible.value = true;
     return;
   }
-  await store.startAsr().catch(() => undefined);
+  try {
+    await store.startAsr();
+  } catch {
+    ElMessage.error(asrErrorMessage.value ?? '语音识别启动失败');
+  }
 }
 
-async function downloadModel(nextManifest: AsrModelManifest, accepted: boolean): Promise<void> {
+async function downloadModel(modelId: AsrModelId, accepted: boolean): Promise<void> {
   try {
-    await store.downloadModel(nextManifest, accepted);
+    await store.downloadModel(modelId, accepted);
     asrDialogVisible.value = false;
   } catch {
     // Download state and normalized error remain owned by the AI store.
@@ -136,7 +175,7 @@ async function downloadModel(nextManifest: AsrModelManifest, accepted: boolean):
 }
 
 onMounted(() => {
-  if (isReady.value) void store.bootstrap().catch(() => undefined);
+  void store.bootstrap().catch(() => undefined);
 });
 </script>
 
@@ -148,7 +187,7 @@ onMounted(() => {
           AI 助手
         </h2>
         <p class="mb-0 mt-1 text-sm text-gray-500">
-          主播主动生成的本地文案建议
+          自动生成并播报直播互动回复
         </p>
       </div>
       <div class="flex gap-2">
@@ -161,119 +200,113 @@ onMounted(() => {
       </div>
     </header>
 
-    <MembershipPausedNotice
-      v-if="!isReady"
-      :reason="capability"
-      @renew="router.push('/membership')"
+    <AiVoiceReplyControl
+      :snapshot="store.voiceReply"
+      :profiles="store.profiles"
+      :pending="store.pendingOperations"
+      @open-models="modelsVisible = true"
+      @set-enabled="setVoiceReplyEnabled"
+      @confirm-route="confirmAudioRoute"
+      @test-output="testAudioRoute"
+      @update-rules="updateVoiceRules"
+      @pause="store.pauseVoiceQueue"
+      @skip="store.skipVoiceQueue"
+      @clear="store.clearVoiceQueue"
     />
 
-    <template v-else>
+    <el-alert
+      v-if="store.error && !store.config"
+      class="mb-4"
+      type="error"
+      :closable="false"
+      :title="store.error.message"
+      show-icon
+    >
+      <el-button size="small" :icon="Refresh" @click="store.bootstrap()">
+        重试
+      </el-button>
+    </el-alert>
+
+    <section
+      class="flex flex-wrap items-center gap-4 border-y border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900"
+    >
+      <span class="font-medium">ASR</span>
+      <el-switch
+        :model-value="asrEnabled"
+        :loading="store.pendingOperations.has('asr')"
+        @change="toggleAsr"
+      />
+      <el-tag effect="plain">
+        {{ asrLabel }}
+      </el-tag>
+      <span class="text-sm text-gray-500">{{ store.asr?.modelName ?? '-' }}</span>
+      <span class="text-sm text-gray-500">{{ store.asr?.language ?? '-' }}</span>
+      <span v-if="asrErrorMessage" class="text-sm text-red-600 dark:text-red-400">
+        {{ asrErrorMessage }}
+      </span>
+    </section>
+
+    <section v-if="store.asrTranscript" class="mt-4" aria-live="polite">
+      <h3 class="mb-2 text-base font-semibold">
+        语音识别结果
+      </h3>
+      <el-input
+        :model-value="store.asrTranscript"
+        type="textarea"
+        readonly
+        :rows="3"
+      />
+    </section>
+
+    <section class="mt-5 border-t border-gray-200 pt-4 dark:border-gray-700">
+      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h3 class="m-0 text-base font-semibold">
+          结果·仅本地预览，不发送
+        </h3>
+        <el-button :icon="CopyDocument" :disabled="!result" @click="copyResult">
+          复制
+        </el-button>
+      </div>
       <el-alert
-        v-if="store.error && !store.config"
-        class="mb-4"
+        v-if="generationError"
+        class="mb-3"
         type="error"
         :closable="false"
-        :title="store.error.message"
+        :title="generationError"
         show-icon
-      >
-        <el-button size="small" :icon="Refresh" @click="store.bootstrap()">
-          重试
-        </el-button>
-      </el-alert>
-
-      <section
-        class="flex flex-wrap items-center gap-4 border-y border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900"
-      >
-        <span class="font-medium">ASR</span>
-        <el-switch
-          :model-value="asrEnabled"
-          :loading="store.pendingOperations.has('asr')"
-          @change="toggleAsr"
-        />
-        <el-tag effect="plain">
-          {{ asrLabel }}
-        </el-tag>
-        <span class="text-sm text-gray-500">{{ store.asr?.modelName ?? '-' }}</span>
-        <span class="text-sm text-gray-500">{{ store.asr?.language ?? '-' }}</span>
-      </section>
-
-      <section class="mt-5">
-        <h3 class="mb-2 mt-0 text-base font-semibold">
-          当前上下文
-        </h3>
-        <AiContextList :items="contexts" :selected-ids="selectedIds" @select="toggleContext" />
-      </section>
-
-      <section class="mt-5">
-        <label class="mb-2 block text-base font-semibold" for="ai-prompt">输入</label>
-        <el-input
-          id="ai-prompt"
-          v-model="prompt"
-          type="textarea"
-          :rows="5"
-          resize="vertical"
-        />
-        <div class="mt-3 flex flex-wrap gap-2">
-          <el-button
-            type="primary"
-            :loading="store.isGenerating"
-            :disabled="!canGenerate"
-            @click="generate"
-          >
-            生成
-          </el-button>
-          <el-button
-            :icon="Refresh"
-            :disabled="!store.generation || store.isGenerating"
-            @click="regenerate"
-          >
-            重新生成
-          </el-button>
-          <el-button :icon="Delete" :disabled="store.isGenerating" @click="clear">
-            清空
-          </el-button>
-        </div>
-      </section>
-
-      <section class="mt-5 border-t border-gray-200 pt-4 dark:border-gray-700">
-        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h3 class="m-0 text-base font-semibold">
-            结果·仅本地预览，不发送
-          </h3>
-          <el-button :icon="CopyDocument" :disabled="!result" @click="copyResult">
-            复制
-          </el-button>
-        </div>
-        <el-alert
-          v-if="generationError"
-          class="mb-3"
-          type="error"
-          :closable="false"
-          :title="generationError"
-          show-icon
-        />
-        <el-input
-          :model-value="result"
-          type="textarea"
-          readonly
-          :rows="8"
-          resize="vertical"
-        />
-      </section>
-    </template>
+      />
+      <el-input
+        :model-value="result"
+        type="textarea"
+        readonly
+        :rows="8"
+        resize="vertical"
+      />
+    </section>
 
     <AiPersonaConfigDialog
       v-model:visible="configVisible"
       :config="store.config"
       :pending="store.pendingOperations.has('saveConfig')"
-      :error-message="store.error?.message ?? null"
+      :error-message="store.errorFor('saveConfig')?.message ?? null"
       @save="saveConfig"
+    />
+    <AiModelProfilesDialog
+      v-model:visible="modelsVisible"
+      :profiles="store.profiles"
+      :pending="store.pendingOperations.has('saveProfile')"
+      :error-message="store.errorFor('saveProfile', 'deleteProfile', 'setDefaultProfile', 'testProfile')?.message ?? null"
+      @save="saveProfile"
+      @delete="deleteProfile"
+      @set-default="setDefaultProfile"
+      @test="testProfile"
     />
     <AsrModelDownloadDialog
       v-model:visible="asrDialogVisible"
-      :manifest="manifest"
+      :models="store.asrModels"
       :status="store.asr"
       :pending="store.pendingOperations.has('downloadModel')"
+      :error-message="store.errorFor('downloadModel')?.message ?? null"
       @download="downloadModel"
     />
   </div>

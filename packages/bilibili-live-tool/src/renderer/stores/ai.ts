@@ -8,7 +8,16 @@ import {
   type AiContextItem,
   type AiGeneration,
   type AiLogEntry,
+  type AiModelProfile,
+  type AiModelProfileId,
+  type AiModelProfileSaveRequest,
+  type AiOutputDevice,
+  type AiOutputDeviceId,
+  type AiVoiceId,
+  type AiVoiceReplyRules,
+  type AiVoiceReplySnapshot,
   type AsrModelManifest,
+  type AsrModelId,
   type AsrStatus,
   type DesktopError,
   type GenerationId,
@@ -18,16 +27,36 @@ import {
   adaptAiConfig,
   adaptAiGeneration,
   adaptAiLogs,
+  adaptAiModelProfile,
+  adaptAiModelProfiles,
+  adaptAiOutputDevice,
+  adaptAiVoiceReplySnapshot,
+  adaptAsrModels,
   adaptAsrStatus
-} from '@/modules/member/adapters';
+} from '@/modules/ai/adapters';
 
-export const useAIStore = defineStore('member-ai', () => {
+export const useAIStore = defineStore('ai', () => {
   const config = ref<AiConfig | null>(null);
+  const profiles = ref<readonly AiModelProfile[]>([]);
+  const voiceReply = ref<AiVoiceReplySnapshot | null>(null);
   const generation = ref<AiGeneration | null>(null);
   const asr = ref<AsrStatus | null>(null);
+  const asrModels = ref<readonly AsrModelManifest[]>([]);
+  const asrTranscript = ref('');
+
+  function acceptAsrTranscript(text: string): void {
+    asrTranscript.value = `${asrTranscript.value}${asrTranscript.value ? '\n' : ''}${text}`.slice(-10000);
+  }
   const logs = ref<readonly AiLogEntry[]>([]);
   const pendingOperations = ref<ReadonlySet<string>>(new Set());
   const error = ref<DesktopError | null>(null);
+  const operationErrors = ref<Readonly<Record<string, DesktopError>>>({});
+
+  function errorFor(...keys: string[]): DesktopError | null {
+    return Object.entries(operationErrors.value).find(([operation]) =>
+      keys.some(key => operation === key || operation.startsWith(`${key}:`))
+    )?.[1] ?? null;
+  }
   const operations = new Map<string, Promise<unknown>>();
   let revision = 0;
 
@@ -40,11 +69,17 @@ export const useAIStore = defineStore('member-ai', () => {
     if (existing) return existing;
     const localRevision = revision;
     error.value = null;
+    const nextErrors = { ...operationErrors.value };
+    delete nextErrors[key];
+    operationErrors.value = nextErrors;
     pendingOperations.value = new Set([...pendingOperations.value, key]);
     const current = effect()
       .catch(reason => {
         const mapped = normalizeDesktopError(reason);
-        if (localRevision === revision) error.value = mapped;
+        if (localRevision === revision) {
+          error.value = mapped;
+          operationErrors.value = { ...operationErrors.value, [key]: mapped };
+        }
         throw mapped;
       })
       .finally(() => {
@@ -61,13 +96,138 @@ export const useAIStore = defineStore('member-ai', () => {
 
   function bootstrap(): Promise<void> {
     return run('bootstrap', async () => {
-      const [nextConfig, nextAsr] = await Promise.all([
+      const [nextConfig, nextProfiles, nextVoiceReply, nextAsr, nextAsrModels] = await Promise.all([
         invokeDesktop('ai_config_get', undefined),
-        invokeDesktop('asr_status', undefined)
+        invokeDesktop('ai_model_profile_list', undefined),
+        invokeDesktop('ai_voice_reply_get', undefined),
+        invokeDesktop('asr_status', undefined),
+        invokeDesktop('asr_model_list', undefined)
       ]);
       config.value = adaptAiConfig(nextConfig);
+      profiles.value = adaptAiModelProfiles(nextProfiles);
+      voiceReply.value = adaptAiVoiceReplySnapshot(nextVoiceReply);
       asr.value = adaptAsrStatus(nextAsr);
+      asrModels.value = adaptAsrModels(nextAsrModels);
     });
+  }
+
+  function saveProfile(request: AiModelProfileSaveRequest): Promise<AiModelProfile> {
+    return run('saveProfile', async () => {
+      const next = adaptAiModelProfile(await invokeDesktop('ai_model_profile_save', request));
+      profiles.value = Object.freeze([
+        ...profiles.value.filter(profile => profile.profileId !== next.profileId),
+        next
+      ]);
+      return next;
+    });
+  }
+
+  function deleteProfile(profileId: AiModelProfileId): Promise<boolean> {
+    return run(`deleteProfile:${profileId}`, async () => {
+      const result = await invokeDesktop('ai_model_profile_delete', { profileId });
+      if (result.deleted) {
+        profiles.value = Object.freeze(profiles.value.filter(profile => profile.profileId !== profileId));
+      }
+      return result.deleted;
+    });
+  }
+
+  function setDefaultProfile(profileId: AiModelProfileId): Promise<readonly AiModelProfile[]> {
+    return run('setDefaultProfile', async () => {
+      const next = adaptAiModelProfiles(await invokeDesktop('ai_model_set_default', { profileId }));
+      profiles.value = next;
+      if (voiceReply.value) {
+        voiceReply.value = Object.freeze({ ...voiceReply.value, defaultProfileId: profileId });
+      }
+      return next;
+    });
+  }
+
+  function testProfile(profileId: AiModelProfileId): Promise<AiModelProfile> {
+    return run(`testProfile:${profileId}`, async () => {
+      const next = adaptAiModelProfile(await invokeDesktop('ai_model_test', { profileId }));
+      profiles.value = Object.freeze(profiles.value.map(profile =>
+        profile.profileId === next.profileId ? next : profile
+      ));
+      return next;
+    });
+  }
+
+  function commitVoiceReply(
+    key: string,
+    effect: () => Promise<unknown>
+  ): Promise<AiVoiceReplySnapshot> {
+    return run(key, async () => {
+      const next = adaptAiVoiceReplySnapshot(await effect());
+      voiceReply.value = next;
+      return next;
+    });
+  }
+
+  function setVoiceReplyEnabled(
+    isEnabled: boolean,
+    isAudioRouteConfirmed: boolean
+  ): Promise<AiVoiceReplySnapshot> {
+    return commitVoiceReply('setVoiceReplyEnabled', () =>
+      invokeDesktop('ai_voice_reply_set_enabled', { isEnabled, isAudioRouteConfirmed })
+    );
+  }
+
+  function refreshVoiceReply(): Promise<AiVoiceReplySnapshot> {
+    return commitVoiceReply('refreshVoiceReply', () => invokeDesktop('ai_voice_reply_get', undefined));
+  }
+
+  function updateVoiceRules(rules: AiVoiceReplyRules): Promise<AiVoiceReplySnapshot> {
+    return commitVoiceReply('updateVoiceRules', () =>
+      invokeDesktop('ai_voice_reply_update_rules', { rules })
+    );
+  }
+
+  function loadOutputDevices(): Promise<readonly AiOutputDevice[]> {
+    return run('loadOutputDevices', async () => {
+      const value = await invokeDesktop('ai_tts_list_output_devices', undefined);
+      const devices = Object.freeze(value.map(adaptAiOutputDevice));
+      if (voiceReply.value) voiceReply.value = Object.freeze({ ...voiceReply.value, devices });
+      return devices;
+    });
+  }
+
+  function setOutputDevice(
+    deviceId: AiOutputDeviceId,
+    voiceId: AiVoiceId,
+    volume: number,
+    isAudioRouteConfirmed: boolean
+  ): Promise<AiVoiceReplySnapshot> {
+    return commitVoiceReply('setOutputDevice', () =>
+      invokeDesktop('ai_tts_set_output_device', {
+        deviceId,
+        voiceId,
+        volume,
+        isAudioRouteConfirmed
+      })
+    );
+  }
+
+  function testOutputDevice(
+    deviceId: AiOutputDeviceId,
+    voiceId: AiVoiceId,
+    volume: number
+  ): Promise<AiVoiceReplySnapshot> {
+    return commitVoiceReply('testOutputDevice', () =>
+      invokeDesktop('ai_tts_test', { deviceId, voiceId, volume })
+    );
+  }
+
+  function pauseVoiceQueue(isPaused: boolean): Promise<AiVoiceReplySnapshot> {
+    return commitVoiceReply('pauseVoiceQueue', () => invokeDesktop('ai_tts_pause', { isPaused }));
+  }
+
+  function skipVoiceQueue(): Promise<AiVoiceReplySnapshot> {
+    return commitVoiceReply('skipVoiceQueue', () => invokeDesktop('ai_tts_skip', undefined));
+  }
+
+  function clearVoiceQueue(): Promise<AiVoiceReplySnapshot> {
+    return commitVoiceReply('clearVoiceQueue', () => invokeDesktop('ai_tts_clear_queue', undefined));
   }
 
   function saveConfig(request: AiConfigSaveRequest): Promise<AiConfig> {
@@ -106,15 +266,21 @@ export const useAIStore = defineStore('member-ai', () => {
     });
   }
 
-  function downloadModel(
-    manifest: AsrModelManifest,
-    isLicenseAccepted: boolean
-  ): Promise<AsrStatus> {
+  function loadAsrModels(): Promise<readonly AsrModelManifest[]> {
+    return run('loadAsrModels', async () => {
+      const next = adaptAsrModels(await invokeDesktop('asr_model_list', undefined));
+      asrModels.value = next;
+      return next;
+    });
+  }
+
+  function downloadModel(modelId: AsrModelId, isLicenseAccepted: boolean): Promise<AsrStatus> {
     return run('downloadModel', async () => {
       const next = adaptAsrStatus(
-        await invokeDesktop('asr_model_download', { manifest, isLicenseAccepted })
+        await invokeDesktop('asr_model_download', { modelId, isLicenseAccepted })
       );
       asr.value = next;
+      asrModels.value = adaptAsrModels(await invokeDesktop('asr_model_list', undefined));
       return next;
     });
   }
@@ -155,6 +321,7 @@ export const useAIStore = defineStore('member-ai', () => {
     const next = adaptAiGeneration(value);
     if (generation.value && generation.value.generationId !== next.generationId) return;
     generation.value = next;
+    void refreshVoiceReply().catch(() => undefined);
   }
 
   function acceptAsr(value: unknown): void {
@@ -162,12 +329,16 @@ export const useAIStore = defineStore('member-ai', () => {
   }
 
   function clear(): void {
+    asrTranscript.value = '';
+    operationErrors.value = {};
     generation.value = null;
     logs.value = [];
     error.value = null;
   }
 
   function dispose(): void {
+    asrTranscript.value = '';
+    operationErrors.value = {};
     revision += 1;
     operations.clear();
     pendingOperations.value = new Set();
@@ -177,17 +348,37 @@ export const useAIStore = defineStore('member-ai', () => {
 
   return {
     config,
+    profiles,
+    voiceReply,
     generation,
     asr,
+    asrModels,
+    asrTranscript,
+    acceptAsrTranscript,
     logs,
     pendingOperations,
     error,
+    errorFor,
     isGenerating,
     bootstrap,
     saveConfig,
+    saveProfile,
+    deleteProfile,
+    setDefaultProfile,
+    testProfile,
+    setVoiceReplyEnabled,
+    refreshVoiceReply,
+    updateVoiceRules,
+    loadOutputDevices,
+    setOutputDevice,
+    testOutputDevice,
+    pauseVoiceQueue,
+    skipVoiceQueue,
+    clearVoiceQueue,
     generate,
     regenerate,
     loadLogs,
+    loadAsrModels,
     downloadModel,
     startAsr,
     stopAsr,

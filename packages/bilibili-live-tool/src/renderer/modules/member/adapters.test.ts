@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adaptAiLogs, adaptMemberStatus, adaptModerationSummary } from './adapters';
+import { adaptMemberStatus, adaptModerationSummary } from './adapters';
 
 describe('member adapters', () => {
   it('freezes a valid member projection without inventing optional data', () => {
@@ -19,7 +19,7 @@ describe('member adapters', () => {
         lastVerifiedAt: 1,
         isOfflineValid: true
       },
-      capabilities: { ai: 'ready', moderation: 'missingModule' },
+      capabilities: { moderation: 'missingModule' },
       serviceErrorCode: null
     });
 
@@ -35,7 +35,7 @@ describe('member adapters', () => {
         shellState: 'paid',
         account: null,
         entitlement: null,
-        capabilities: { ai: 'ready', moderation: 'ready' },
+        capabilities: { moderation: 'ready' },
         serviceErrorCode: null
       })
     ).toThrow(TypeError);
@@ -63,23 +63,4 @@ describe('member adapters', () => {
     ).toThrow(TypeError);
   });
 
-  it('normalizes and freezes AI audit rows', () => {
-    const logs = adaptAiLogs([
-      {
-        id: 1,
-        operationType: 'generate',
-        username: null,
-        userUid: null,
-        originalContent: '问候',
-        aiContent: '你好',
-        generationStatus: 'completed',
-        rejectReason: null,
-        roomId: '123',
-        createdAt: 1
-      }
-    ]);
-    expect(logs[0]?.aiContent).toBe('你好');
-    expect(Object.isFrozen(logs)).toBe(true);
-    expect(() => adaptAiLogs([{ id: '1' }])).toThrow(TypeError);
-  });
 });

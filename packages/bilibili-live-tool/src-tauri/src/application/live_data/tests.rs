@@ -29,10 +29,7 @@ struct RetryableTransport {
 
 #[async_trait]
 impl RoomTransport for RetryableTransport {
-    async fn connect(
-        &self,
-        _: &crate::domain::live_data::RoomId,
-    ) -> Result<RoomConnection, LiveRuntimeError> {
+    async fn connect(&self, _: &str) -> Result<RoomConnection, LiveRuntimeError> {
         self.attempts.fetch_add(1, Ordering::SeqCst);
         Err(LiveRuntimeError::new(
             "transport_unavailable",
@@ -44,11 +41,9 @@ impl RoomTransport for RetryableTransport {
 
 #[async_trait]
 impl RoomTransport for FakeTransport {
-    async fn connect(
-        &self,
-        _: &crate::domain::live_data::RoomId,
-    ) -> Result<RoomConnection, LiveRuntimeError> {
+    async fn connect(&self, _: &str) -> Result<RoomConnection, LiveRuntimeError> {
         Ok(RoomConnection {
+            room_id: crate::domain::live_data::RoomId::parse("100").unwrap(),
             room_name: Some("room".into()),
             online_count: Some(10),
             events: self.receiver.lock().unwrap().take().unwrap(),

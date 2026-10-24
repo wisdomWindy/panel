@@ -1,0 +1,43 @@
+{
+  "request_id": "ai-voice-tone-selection",
+  "source": {
+    "type": "direct_user_instruction",
+    "reference": "chat:2026-10-23",
+    "verbatim": "添加ASR声色选择，默认温柔桃子"
+  },
+  "stage": "complete",
+  "status": "completed",
+  "artifacts": {
+    "request": "request.md",
+    "source_snapshot": "artifacts/prd-snapshot.md",
+    "page_design": "design/page-design.md",
+    "spec": "spec/spec.md",
+    "clarifications": "spec/clarifications.md",
+    "code_context": "artifacts/code-context.md",
+    "architecture_design": "design/architecture-design.md",
+    "plan": "plan/plan.md",
+    "task_board": "plan/task-board.md",
+    "execution_changelog": "execution/changelog.md",
+    "verification": "verification/verification.md",
+    "review": "review/review.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "speed_profile": {
+    "level": "S2 scoped",
+    "reason": "The visible selector crosses the existing Vue form, TypeScript IPC contract, Rust persistence, and playback adapter.",
+    "context_budget": "scoped",
+    "artifact_density": "compact"
+  },
+  "architecture_design_required": true,
+  "module_flow": null,
+  "loop": {
+    "iteration": 7,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "new_request"
+  }
+}

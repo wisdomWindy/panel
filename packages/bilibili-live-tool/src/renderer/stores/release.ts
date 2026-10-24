@@ -5,20 +5,17 @@ import {
   normalizeDesktopError,
   type AboutSnapshot,
   type DesktopError,
-  type PluginSnapshot,
   type ResilienceSnapshot,
   type UpdateSnapshot
 } from '@/platform/desktop';
 import {
   adaptAboutSnapshot,
-  adaptPluginSnapshot,
   adaptResilienceSnapshot,
   adaptUpdateSnapshot
 } from '@/modules/release/adapters';
 
 export const useReleaseStore = defineStore('release', () => {
   const update = ref<UpdateSnapshot | null>(null);
-  const plugins = ref<readonly PluginSnapshot[]>([]);
   const about = ref<AboutSnapshot | null>(null);
   const resilience = ref<ResilienceSnapshot | null>(null);
   const pending = ref<ReadonlySet<string>>(new Set());
@@ -33,21 +30,21 @@ export const useReleaseStore = defineStore('release', () => {
     pending.value = next;
   }
 
-  function captureError(value: unknown): DesktopError {
-    const mapped = normalizeDesktopError(value);
-    error.value = mapped;
-    return mapped;
-  }
-
   function run<T>(key: string, effect: () => Promise<T>): Promise<T> {
     const existing = operations.get(key) as Promise<T> | undefined;
     if (existing) return existing;
+    const localGeneration = generation;
     error.value = null;
     setPending(key, true);
     const current = effect()
-      .catch(value => { throw captureError(value); })
+      .catch(value => {
+        const mapped = normalizeDesktopError(value);
+        if (generation === localGeneration) error.value = mapped;
+        throw mapped;
+      })
       .finally(() => {
-        if (operations.get(key) === current) operations.delete(key);
+        if (operations.get(key) !== current) return;
+        operations.delete(key);
         setPending(key, false);
       });
     operations.set(key, current);
@@ -57,23 +54,23 @@ export const useReleaseStore = defineStore('release', () => {
   async function bootstrap(): Promise<void> {
     const localGeneration = ++generation;
     await run('bootstrap', async () => {
-      const [updateValue, pluginValues, aboutValue, resilienceValue] = await Promise.all([
+      const [updateValue, aboutValue, resilienceValue] = await Promise.all([
         invokeDesktop('update_status', undefined),
-        invokeDesktop('plugin_list', undefined),
         invokeDesktop('about_info', undefined),
         invokeDesktop('resilience_status', undefined)
       ]);
       if (generation !== localGeneration) return;
       update.value = adaptUpdateSnapshot(updateValue);
-      plugins.value = Object.freeze(pluginValues.map(adaptPluginSnapshot));
       about.value = adaptAboutSnapshot(aboutValue);
       resilience.value = adaptResilienceSnapshot(resilienceValue);
     });
   }
 
   async function checkUpdate(): Promise<void> {
+    const localGeneration = generation;
     await run('checkUpdate', async () => {
-      update.value = adaptUpdateSnapshot(await invokeDesktop('update_check', undefined));
+      const nextUpdate = adaptUpdateSnapshot(await invokeDesktop('update_check', undefined));
+      if (generation === localGeneration) update.value = nextUpdate;
     });
   }
 
@@ -95,51 +92,8 @@ export const useReleaseStore = defineStore('release', () => {
     });
   }
 
-  async function refreshPlugins(): Promise<void> {
-    await run('refreshPlugins', async () => {
-      plugins.value = Object.freeze((await invokeDesktop('plugin_list', undefined)).map(adaptPluginSnapshot));
-    });
-  }
-
-  async function selectPluginInstall(): Promise<PluginSnapshot> {
-    return run('selectPluginInstall', async () =>
-      adaptPluginSnapshot(await invokeDesktop('plugin_select_install', undefined))
-    );
-  }
-
-  async function installPlugin(pluginId: string): Promise<void> {
-    await run(`plugin:${pluginId}`, async () => {
-      replacePlugin(adaptPluginSnapshot(await invokeDesktop('plugin_install', { pluginId })));
-    });
-  }
-
-  async function togglePlugin(plugin: PluginSnapshot): Promise<void> {
-    await run(`plugin:${plugin.id}`, async () => {
-      replacePlugin(adaptPluginSnapshot(await invokeDesktop('plugin_toggle', {
-        pluginId: plugin.id,
-        isEnabled: plugin.status !== 'enabled'
-      })));
-    });
-  }
-
-  async function uninstallPlugin(pluginId: string): Promise<void> {
-    await run(`plugin:${pluginId}`, async () => {
-      if (await invokeDesktop('plugin_uninstall', { pluginId })) {
-        plugins.value = Object.freeze(plugins.value.filter(plugin => plugin.id !== pluginId));
-      }
-    });
-  }
-
   function replaceUpdate(value: unknown): void {
     update.value = adaptUpdateSnapshot(value);
-  }
-
-  function replacePlugin(value: unknown): void {
-    const adapted = adaptPluginSnapshot(value);
-    const index = plugins.value.findIndex(plugin => plugin.id === adapted.id);
-    plugins.value = Object.freeze(index < 0
-      ? [...plugins.value, adapted]
-      : plugins.value.map(plugin => plugin.id === adapted.id ? adapted : plugin));
   }
 
   function dispose(): void {
@@ -149,9 +103,8 @@ export const useReleaseStore = defineStore('release', () => {
   }
 
   return {
-    update, plugins, about, resilience, pending, error,
+    update, about, resilience, pending, error,
     bootstrap, checkUpdate, downloadUpdate, installUpdate, skipUpdate,
-    refreshPlugins, selectPluginInstall, installPlugin, togglePlugin, uninstallPlugin,
-    replaceUpdate, replacePlugin, dispose
+    replaceUpdate, dispose
   };
 });

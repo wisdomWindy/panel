@@ -1,7 +1,11 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "effect",
-  "description": "Display-only effect windows with no IPC command access",
+  "description": "Display-only effect windows with read-only access to the active captain effect",
   "windows": ["effect-*"],
-  "permissions": []
+  "permissions": [
+    "captain-effect-current",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
 }

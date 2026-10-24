@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Delete, Download, Plus, Upload } from '@element-plus/icons-vue';
-import {
-  normalizeDesktopError,
-  type BlacklistEntry,
-  type UserUid
-} from '@/platform/desktop';
+import { normalizeDesktopError, type BlacklistEntry, type UserUid } from '@/platform/desktop';
 import { useLiveSafetyStore } from '@/stores/live-data/safety';
 import { userUidError, usernameError } from '@/modules/live-data/validation';
 
 const safety = useLiveSafetyStore();
+const { locale, t } = useI18n();
 const search = ref('');
 const dialogVisible = ref(false);
 const importResult = ref('');
@@ -27,7 +25,8 @@ const duplicate = computed(() => safety.blacklist.items.find(row => row.uid === 
 
 function showError(value: unknown): void {
   const error = normalizeDesktopError(value);
-  if (error.code !== 'dialog_cancelled') ElMessage.error(error.message ?? '操作失败，请稍后重试');
+  if (error.code !== 'dialog_cancelled')
+    ElMessage.error(error.message ?? t('common.operationFailed'));
 }
 
 function openDialog(): void {
@@ -58,10 +57,10 @@ async function submit(): Promise<void> {
 
 async function remove(row: BlacklistEntry): Promise<void> {
   try {
-    await ElMessageBox.confirm(`${row.username} · ${row.uid}`, '移除黑名单', {
+    await ElMessageBox.confirm(`${row.username} · ${row.uid}`, t('blacklist.removeTitle'), {
       type: 'warning',
-      confirmButtonText: '移除',
-      cancelButtonText: '取消'
+      confirmButtonText: t('common.remove'),
+      cancelButtonText: t('common.cancel')
     });
     await safety.removeBlacklist(row.uid);
   } catch (error) {
@@ -73,7 +72,11 @@ async function importRows(): Promise<void> {
   try {
     const result = await safety.importBlacklist();
     if (result)
-      importResult.value = `导入 ${result.importedCount}，重复 ${result.duplicateCount}，失败 ${result.errorCount}`;
+      importResult.value = t('blacklist.importSummary', {
+        imported: result.importedCount,
+        duplicates: result.duplicateCount,
+        failed: result.errorCount
+      });
   } catch (error) {
     showError(error);
   }
@@ -88,7 +91,7 @@ async function exportRows(): Promise<void> {
 }
 
 function formatDate(value: number): string {
-  return new Intl.DateTimeFormat('zh-CN', {
+  return new Intl.DateTimeFormat(locale.value, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -105,30 +108,30 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="mx-auto flex h-full min-h-[560px] max-w-7xl flex-col bg-white">
-    <header class="flex min-h-14 flex-wrap items-center gap-3 border-b border-gray-200 py-2">
-      <h2 class="mr-auto m-0 text-lg font-semibold text-gray-900">
-        黑名单管理
+  <section class="mx-auto flex h-full min-h-[560px] max-w-7xl flex-col bg-white dark:bg-zinc-900">
+    <header class="flex min-h-14 flex-wrap items-center gap-3 border-b border-gray-200 py-2 dark:border-zinc-800">
+      <h2 class="mr-auto m-0 text-lg font-semibold text-gray-900 dark:text-zinc-100">
+        {{ t('blacklist.title') }}
       </h2>
       <el-input
         v-model="search"
         clearable
         class="!w-56"
-        placeholder="搜索用户名或 UID"
-        aria-label="搜索用户名或 UID"
+        :placeholder="t('blacklist.searchPlaceholder')"
+        :aria-label="t('blacklist.searchPlaceholder')"
       />
       <el-button :icon="Upload" :loading="safety.mutationPending" @click="importRows">
-        导入
+        {{ t('common.import') }}
       </el-button>
       <el-button :icon="Download" :loading="safety.mutationPending" @click="exportRows">
-        导出
+        {{ t('common.export') }}
       </el-button>
       <el-button type="primary" :icon="Plus" @click="openDialog">
-        手动添加
+        {{ t('blacklist.manualAdd') }}
       </el-button>
     </header>
 
-    <p v-if="importResult" class="my-2 text-sm text-gray-600">
+    <p v-if="importResult" class="my-2 text-sm text-gray-600 dark:text-zinc-400">
       {{ importResult }}
     </p>
     <el-alert
@@ -148,24 +151,24 @@ onMounted(() => {
         row-key="uid"
       >
         <el-table-column prop="uid" label="UID" width="180" />
-        <el-table-column prop="username" label="用户名" min-width="160" />
-        <el-table-column label="原因" min-width="220">
+        <el-table-column prop="username" :label="t('blacklist.username')" min-width="160" />
+        <el-table-column :label="t('blacklist.reason')" min-width="220">
           <template #default="{ row }">
             {{ row.reason ?? '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="加入时间" width="190">
+        <el-table-column :label="t('blacklist.createdAt')" width="190">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="90" fixed="right">
+        <el-table-column :label="t('common.actions')" width="90" fixed="right">
           <template #default="{ row }">
             <el-button
               :icon="Delete"
               link
               type="danger"
-              aria-label="移除黑名单"
+              :aria-label="t('blacklist.removeTitle')"
               @click="remove(row)"
             />
           </template>
@@ -174,15 +177,15 @@ onMounted(() => {
     </div>
 
     <footer
-      class="flex min-h-11 items-center gap-6 border-t border-gray-200 px-3 text-sm text-gray-600"
+      class="flex min-h-11 items-center gap-6 border-t border-gray-200 px-3 text-sm text-gray-600 dark:border-zinc-800 dark:text-zinc-400"
     >
-      <span>总数 {{ safety.blacklist.items.length }}</span>
-      <span>今日新增 {{ safety.blacklist.todayAddedCount }}</span>
+      <span>{{ t('common.total') }} {{ safety.blacklist.items.length }}</span>
+      <span>{{ t('common.todayAdded') }} {{ safety.blacklist.todayAddedCount }}</span>
     </footer>
 
     <el-dialog
       v-model="dialogVisible"
-      title="手动添加"
+      :title="t('blacklist.manualAdd')"
       width="min(480px, 92vw)"
       @keydown.enter="submit"
     >
@@ -196,25 +199,25 @@ onMounted(() => {
             @blur="validate"
           />
         </el-form-item>
-        <el-form-item label="用户名" :error="errors.username">
+        <el-form-item :label="t('blacklist.username')" :error="errors.username">
           <el-input v-model="form.username" maxlength="50" @blur="validate" />
         </el-form-item>
-        <el-form-item label="原因">
+        <el-form-item :label="t('blacklist.reason')">
           <el-input v-model="form.reason" maxlength="200" />
         </el-form-item>
       </el-form>
       <el-alert
         v-if="duplicate"
-        :title="`UID 已存在：${duplicate.username}`"
+        :title="t('blacklist.duplicate', { username: duplicate.username })"
         type="warning"
         :closable="false"
       />
       <template #footer>
         <el-button @click="dialogVisible = false">
-          取消
+          {{ t('common.cancel') }}
         </el-button>
         <el-button type="primary" :loading="safety.mutationPending" @click="submit">
-          {{ duplicate ? '更新原因' : '添加' }}
+          {{ duplicate ? t('blacklist.updateReason') : t('common.add') }}
         </el-button>
       </template>
     </el-dialog>

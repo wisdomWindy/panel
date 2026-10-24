@@ -43,6 +43,12 @@ function string(value: unknown, field: string, allowEmpty = false): string {
   return value;
 }
 
+function hexColor(value: unknown, field: string): string {
+  const result = string(value, field);
+  if (!/^#[0-9a-fA-F]{6}$/.test(result)) fail(field);
+  return result;
+}
+
 function boolean(value: unknown, field: string): boolean {
   if (typeof value !== 'boolean') fail(field);
   return value;
@@ -98,16 +104,20 @@ export function adaptCaptainEffectConfig(value: unknown): CaptainEffectConfig {
   const source = record(value, 'captainEffectConfig');
   const durationSeconds = numberChoice(source.durationSeconds, [3, 5, 8, 10], 'durationSeconds');
   const comboWindowSeconds = numberChoice(source.comboWindowSeconds, [5, 10, 30], 'comboWindowSeconds');
+  const windowWidth = integer(source.windowWidth, 'windowWidth', 320);
+  const windowHeight = integer(source.windowHeight, 'windowHeight', 180);
+  if (windowWidth > 1920) fail('windowWidth');
+  if (windowHeight > 1080) fail('windowHeight');
   const volume = number(source.volume, 'volume');
   if (volume > 1) fail('volume');
-  const primaryColor = string(source.primaryColor, 'primaryColor');
-  const secondaryColor = string(source.secondaryColor, 'secondaryColor');
-  if (!/^#[0-9a-fA-F]{6}$/.test(primaryColor)) fail('primaryColor');
-  if (!/^#[0-9a-fA-F]{6}$/.test(secondaryColor)) fail('secondaryColor');
+  const primaryColor = hexColor(source.primaryColor, 'primaryColor');
+  const secondaryColor = hexColor(source.secondaryColor, 'secondaryColor');
   return frozen({
     presetId: string(source.presetId, 'presetId'),
     durationSeconds,
     position: enumeration(source.position, ['topLeft', 'topRight', 'bottomLeft', 'bottomRight', 'center'], 'position'),
+    windowWidth,
+    windowHeight,
     primaryColor,
     secondaryColor,
     firstSound: soundBinding(source.firstSound, 'firstSound'),
@@ -151,6 +161,7 @@ export function adaptGiftEvent(value: unknown): GiftEvent {
     audience: audience(source.audience),
     giftId: string(source.giftId, 'giftEvent.giftId') as GiftEvent['giftId'],
     giftName: string(source.giftName, 'giftEvent.giftName'),
+    giftIconUrl: nullableString(source.giftIconUrl, 'giftEvent.giftIconUrl'),
     quantity: integer(source.quantity, 'giftEvent.quantity', 1),
     valueMinor: integer(source.valueMinor, 'giftEvent.valueMinor')
   });
@@ -180,7 +191,9 @@ export function adaptCaptainEffectSnapshot(value: unknown): CaptainEffectSnapsho
     const preset = record(item, `presets.${index}`);
     return frozen({
       presetId: string(preset.presetId, `presets.${index}.presetId`),
-      displayName: string(preset.displayName, `presets.${index}.displayName`)
+      displayName: string(preset.displayName, `presets.${index}.displayName`),
+      primaryColor: hexColor(preset.primaryColor, `presets.${index}.primaryColor`),
+      secondaryColor: hexColor(preset.secondaryColor, `presets.${index}.secondaryColor`)
     });
   });
   return frozen({
@@ -200,6 +213,10 @@ export function adaptCaptainEffectPayload(value: unknown): CaptainEffectPayload 
     config: adaptCaptainEffectConfig(source.config),
     isPreview: boolean(source.isPreview, 'captainEffectPayload.isPreview')
   });
+}
+
+export function adaptCaptainEffectPayloadOrNull(value: unknown): CaptainEffectPayload | null {
+  return value === null ? null : adaptCaptainEffectPayload(value);
 }
 
 export function adaptGiftNotifySnapshot(value: unknown): GiftNotifySnapshot {

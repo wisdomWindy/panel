@@ -5,7 +5,7 @@ use tokio::sync::{watch, Mutex, Notify, RwLock};
 use crate::{
     application::media::{AudioOutputPort, AudioRequest, EffectWindowPort, EffectWindowSpec},
     domain::{
-        live_data::{CaptainAction, CaptainLevel, LiveEvent},
+        live_data::{AudienceIdentity, CaptainAction, CaptainLevel, LiveEvent},
         media::{CaptainEffectConfig, MediaSoundBinding},
     },
 };
@@ -17,8 +17,16 @@ const EFFECT_WINDOW_LABEL: &str = "effect-captain";
 pub struct EffectItem {
     pub event_id: String,
     pub username: String,
+    pub audience: Option<AudienceIdentity>,
     pub action: CaptainAction,
     pub level: CaptainLevel,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ActiveCaptainEffect {
+    pub item: EffectItem,
+    pub config: CaptainEffectConfig,
+    pub is_preview: bool,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -33,6 +41,7 @@ pub struct EffectRuntimeSnapshot {
 struct EffectQueueState {
     pending: VecDeque<EffectQueueEntry>,
     snapshot: EffectRuntimeSnapshot,
+    active: Option<ActiveCaptainEffect>,
 }
 
 struct EffectQueueEntry {
@@ -97,6 +106,7 @@ impl EffectRuntime {
         let item = EffectItem {
             event_id: base.event_id.clone(),
             username: base.audience.username.clone(),
+            audience: Some(base.audience.clone()),
             action: *action,
             level: *level,
         };
@@ -108,6 +118,7 @@ impl EffectRuntime {
             EffectItem {
                 event_id,
                 username: "用户A".into(),
+                audience: None,
                 action: CaptainAction::Purchase,
                 level: CaptainLevel::Captain,
             },
@@ -133,6 +144,10 @@ impl EffectRuntime {
 
     pub async fn snapshot(&self) -> EffectRuntimeSnapshot {
         self.queue.lock().await.snapshot.clone()
+    }
+
+    pub async fn active_effect(&self) -> Option<ActiveCaptainEffect> {
+        self.queue.lock().await.active.clone()
     }
 
     pub async fn set_config(&self, config: CaptainEffectConfig) {
@@ -174,6 +189,7 @@ impl EffectWorker {
                 break;
             }
             let item = entry.item;
+            let is_preview = entry.config_override.is_some();
             let current_config = match entry.config_override {
                 Some(config) => config,
                 None => self.config.read().await.clone(),
@@ -181,11 +197,17 @@ impl EffectWorker {
             {
                 let mut state = self.queue.lock().await;
                 state.snapshot.current = Some(item.clone());
+                state.active = Some(ActiveCaptainEffect {
+                    item: item.clone(),
+                    config: current_config.clone(),
+                    is_preview,
+                });
             }
             let spec = EffectWindowSpec {
                 label: EFFECT_WINDOW_LABEL.into(),
-                width: 560,
-                height: 280,
+                width: current_config.window_width,
+                height: current_config.window_height,
+                position: current_config.position,
             };
             let uses_fallback = self.window.ensure(&spec).await.is_err()
                 || self.window.show(EFFECT_WINDOW_LABEL).await.is_err();
@@ -217,6 +239,7 @@ impl EffectWorker {
             let mut state = self.queue.lock().await;
             state.snapshot.current = None;
             state.snapshot.fallback_current = None;
+            state.active = None;
             if *shutdown.borrow() {
                 state.pending.clear();
                 state.snapshot.pending_count = 0;

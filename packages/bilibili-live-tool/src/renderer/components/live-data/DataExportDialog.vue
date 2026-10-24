@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { DataRange } from '@/platform/desktop';
 import DataRangeControl from './DataRangeControl.vue';
 
@@ -16,6 +17,7 @@ defineEmits<{
   }>();
 const types = ref<('statistics' | 'rankings')[]>([props.initialType]);
 const localRange = ref<DataRange>({ ...props.range });
+const { t } = useI18n();
 
 watch(
   () => props.visible,
@@ -30,7 +32,7 @@ watch(
 <template>
   <el-dialog
     :model-value="visible"
-    title="导出数据"
+    :title="t('liveData.exportTitle')"
     width="min(560px, 92vw)"
     @close="$emit('close')"
   >
@@ -38,10 +40,10 @@ watch(
       <DataRangeControl v-model="localRange" />
       <el-checkbox-group v-model="types">
         <el-checkbox value="statistics">
-          数据看板
+          {{ t('liveData.statistics') }}
         </el-checkbox>
         <el-checkbox value="rankings">
-          排行榜
+          {{ t('liveData.rankings') }}
         </el-checkbox>
       </el-checkbox-group>
       <div v-if="paths.length" class="border-y border-gray-200 py-3 text-sm text-gray-600">
@@ -52,7 +54,7 @@ watch(
     </div>
     <template #footer>
       <el-button @click="$emit('close')">
-        取消
+        {{ t('common.cancel') }}
       </el-button>
       <el-button
         type="primary"
@@ -60,7 +62,7 @@ watch(
         :disabled="types.length === 0"
         @click="$emit('submit', types, localRange)"
       >
-        导出 CSV
+        {{ t('liveData.exportCsv') }}
       </el-button>
     </template>
   </el-dialog>

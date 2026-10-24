@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adaptPluginSnapshot, adaptUpdateSnapshot } from './adapters';
+import { adaptUpdateSnapshot } from './adapters';
 
 describe('release adapters', () => {
   it('accepts a strict unavailable update snapshot', () => {
@@ -13,13 +13,6 @@ describe('release adapters', () => {
     expect(() => adaptUpdateSnapshot({
       currentVersion: '0.1.0', channel: 'free', status: 'downloading',
       candidate: null, progressPercent: 101, errorCode: null
-    })).toThrow();
-  });
-
-  it('rejects unknown plugin permissions', () => {
-    expect(() => adaptPluginSnapshot({
-      id: 'demo', name: 'Demo', version: '1.0.0', status: 'enabled',
-      permissions: ['filesystem'], errorCode: null
     })).toThrow();
   });
 });

@@ -5,26 +5,29 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use tokio::sync::Mutex;
+use tokio::sync::{watch, Mutex, Notify};
 
 use crate::{
     application::{
         live_data::{AcceptedLiveEventConsumer, LiveRuntimeError},
         member::{
-            AiConfigRecord, AiGenerationRecord, AiGenerationStatus, AsrProvider, AsrState,
+            AiConfigRecord, AiGenerationRecord, AiGenerationStatus, AiModelConnectionState,
+            AiModelProfileRecord, AiOutputDeviceRecord, AiSecretStore, AiSpeechOutput,
+            AiVoiceConfigRecord, AiVoiceQueueItemRecord, AiVoiceQueueSnapshotRecord,
+            AiVoiceQueueState, AiVoiceRecord, AsrModelRecord, AsrProvider, AsrState,
             AsrStatusRecord, AuthProvider, EntitlementVerifier, LlmProvider, MemberEventSink,
             MemberRepository, MemberServiceError, MembershipProvider, ModerationAlertRecord,
             ModerationAlertStatus, ModerationConfigRecord, ModerationProvider, NoopMemberEventSink,
-            OrderRecord,
+            OrderRecord, UnavailableAiSecretStore, UnavailableAiSpeechOutput,
         },
     },
     domain::{
-        live_data::LiveEvent,
+        live_data::{IdentityTag, LiveEvent},
         member::{
             derive_capability, evaluate_entitlement, filter_and_truncate, moderation_defaults,
-            AiCapabilityState, EntitlementValidity, MemberAccount, MemberCapabilities,
-            MemberModule, MemberModuleStatus, MemberShellState, MemberSnapshot, ModuleId, OrderId,
-            DEFAULT_LLM_TIMEOUT_MILLIS,
+            truncate_sentences, AiCapabilityState, EntitlementValidity, MemberAccount,
+            MemberCapabilities, MemberModule, MemberModuleStatus, MemberShellState, MemberSnapshot,
+            ModuleId, OrderId, DEFAULT_LLM_TIMEOUT_MILLIS,
         },
     },
 };
@@ -107,7 +110,6 @@ impl MembershipState {
             account: Some(account),
             entitlement: Some(stored.entitlement),
             capabilities: MemberCapabilities {
-                ai: derive_capability(validity, module_status(&modules, "ai")),
                 moderation: derive_capability(validity, module_status(&modules, "moderation")),
             },
             modules,
@@ -179,6 +181,210 @@ impl MembershipState {
 #[derive(Default)]
 struct AiRuntime {
     last_request: Option<(String, Vec<String>, String)>,
+    last_auto_at: Option<i64>,
+    user_last_auto_at: HashMap<String, i64>,
+    recent_auto_prompts: VecDeque<String>,
+}
+
+#[derive(Default)]
+struct AiVoiceRuntimeState {
+    queue: Vec<AiVoiceQueueItemRecord>,
+    current: Option<AiVoiceQueueItemRecord>,
+    is_paused: bool,
+    last_error_code: Option<String>,
+    next_sequence: u64,
+}
+
+struct AiVoiceRuntime {
+    repository: Arc<dyn MemberRepository>,
+    speech: Arc<dyn AiSpeechOutput>,
+    state: Arc<Mutex<AiVoiceRuntimeState>>,
+    wake: Arc<Notify>,
+    shutdown: watch::Sender<bool>,
+    worker: Mutex<Option<tokio::task::JoinHandle<()>>>,
+}
+
+impl AiVoiceRuntime {
+    fn start(repository: Arc<dyn MemberRepository>, speech: Arc<dyn AiSpeechOutput>) -> Arc<Self> {
+        let (shutdown, receiver) = watch::channel(false);
+        let runtime = Arc::new(Self {
+            repository,
+            speech,
+            state: Arc::new(Mutex::new(AiVoiceRuntimeState::default())),
+            wake: Arc::new(Notify::new()),
+            shutdown,
+            worker: Mutex::new(None),
+        });
+        let worker_runtime = runtime.clone();
+        let worker = tokio::spawn(async move { worker_runtime.run(receiver).await });
+        if let Ok(mut slot) = runtime.worker.try_lock() {
+            slot.replace(worker);
+        }
+        runtime
+    }
+
+    async fn enqueue(&self, text: String, priority: u8) -> Result<(), MemberServiceError> {
+        let config = self.repository.load_ai_voice_config().await?;
+        if !config.is_enabled {
+            return Ok(());
+        }
+        let mut state = self.state.lock().await;
+        state.next_sequence += 1;
+        let item = AiVoiceQueueItemRecord {
+            item_id: format!("ai-voice-{}", state.next_sequence),
+            text,
+            priority,
+            created_at: now_millis(),
+        };
+        if state.queue.len() >= config.queue_capacity as usize {
+            if let Some((index, _)) = state
+                .queue
+                .iter()
+                .enumerate()
+                .min_by_key(|(_, queued)| (queued.priority, queued.created_at))
+            {
+                if state.queue[index].priority <= item.priority {
+                    state.queue.remove(index);
+                } else {
+                    state.last_error_code = Some("ai_voice_queue_full".to_owned());
+                    return Ok(());
+                }
+            }
+        }
+        let insert_at = state
+            .queue
+            .iter()
+            .position(|queued| queued.priority < item.priority)
+            .unwrap_or(state.queue.len());
+        state.queue.insert(insert_at, item);
+        drop(state);
+        self.wake.notify_one();
+        Ok(())
+    }
+
+    async fn set_paused(&self, is_paused: bool) {
+        self.state.lock().await.is_paused = is_paused;
+        if !is_paused {
+            self.wake.notify_one();
+        }
+    }
+
+    async fn skip(&self) -> Result<(), MemberServiceError> {
+        self.speech.stop().await?;
+        self.state.lock().await.current = None;
+        self.wake.notify_one();
+        Ok(())
+    }
+
+    async fn clear(&self) {
+        self.state.lock().await.queue.clear();
+    }
+
+    async fn snapshot(&self, config: &AiVoiceConfigRecord) -> AiVoiceQueueSnapshotRecord {
+        let state = self.state.lock().await;
+        AiVoiceQueueSnapshotRecord {
+            state: if state.is_paused {
+                AiVoiceQueueState::Paused
+            } else if state.current.is_some() {
+                AiVoiceQueueState::Speaking
+            } else if config.output_device_id.is_none() {
+                AiVoiceQueueState::Unavailable
+            } else {
+                AiVoiceQueueState::Idle
+            },
+            current: state.current.clone(),
+            pending: state.queue.clone(),
+            capacity: config.queue_capacity,
+            volume: config.volume,
+            selected_device_id: config.output_device_id.clone(),
+            selected_voice_id: config.voice_id.clone(),
+            is_audio_route_confirmed: config.is_audio_route_confirmed,
+            last_error_code: state.last_error_code.clone(),
+        }
+    }
+
+    async fn run(self: Arc<Self>, mut shutdown: watch::Receiver<bool>) {
+        loop {
+            let config = match self.repository.load_ai_voice_config().await {
+                Ok(config) => config,
+                Err(_) => {
+                    self.state.lock().await.last_error_code =
+                        Some("ai_voice_config_unavailable".to_owned());
+                    tokio::select! {
+                        _ = self.wake.notified() => continue,
+                        changed = shutdown.changed() => {
+                            if changed.is_err() || *shutdown.borrow() { break; }
+                        }
+                    }
+                    continue;
+                }
+            };
+            let next = {
+                let mut state = self.state.lock().await;
+                if !config.is_enabled || state.is_paused || state.current.is_some() {
+                    None
+                } else {
+                    state.queue.first().cloned().inspect(|item| {
+                        state.queue.remove(0);
+                        state.current = Some(item.clone());
+                    })
+                }
+            };
+            let Some(item) = next else {
+                tokio::select! {
+                    _ = self.wake.notified() => continue,
+                    changed = shutdown.changed() => {
+                        if changed.is_err() || *shutdown.borrow() { break; }
+                    }
+                }
+                continue;
+            };
+            let result = match config.output_device_id.as_deref() {
+                Some(device_id) if config.is_audio_route_confirmed => {
+                    self.speech
+                        .speak(&item.text, device_id, &config.voice_id, config.volume)
+                        .await
+                }
+                _ => Err(MemberServiceError::invalid("ai_audio_route_unconfirmed")),
+            };
+            let error = result.err();
+            let lost_device = error.as_ref().is_some_and(|error| {
+                matches!(
+                    error.code,
+                    "ai_audio_device_invalid" | "ai_audio_device_unavailable"
+                )
+            });
+            if lost_device {
+                let mut degraded = config.clone();
+                degraded.is_enabled = false;
+                degraded.is_audio_route_confirmed = false;
+                degraded.updated_at = now_millis();
+                let _ = self.repository.save_ai_voice_config(&degraded).await;
+            }
+            let mut state = self.state.lock().await;
+            state.current = None;
+            state.last_error_code = error.map(|error| {
+                if lost_device {
+                    "ai_audio_device_missing".to_owned()
+                } else {
+                    error.code.to_owned()
+                }
+            });
+            if *shutdown.borrow() {
+                state.queue.clear();
+                break;
+            }
+        }
+    }
+
+    async fn shutdown(&self) {
+        let _ = self.shutdown.send(true);
+        self.wake.notify_waiters();
+        let _ = self.speech.stop().await;
+        if let Some(worker) = self.worker.lock().await.take() {
+            let _ = worker.await;
+        }
+    }
 }
 
 struct ActiveGenerationGuard<'a>(&'a AtomicBool);
@@ -192,7 +398,10 @@ impl Drop for ActiveGenerationGuard<'_> {
 pub struct AiState {
     repository: Arc<dyn MemberRepository>,
     llm: Arc<dyn LlmProvider>,
+    secrets: Arc<dyn AiSecretStore>,
     asr: Arc<dyn AsrProvider>,
+    speech: Arc<dyn AiSpeechOutput>,
+    voice: Arc<AiVoiceRuntime>,
     event_sink: Arc<dyn MemberEventSink>,
     runtime: Mutex<AiRuntime>,
     active_generation: AtomicBool,
@@ -200,15 +409,45 @@ pub struct AiState {
 }
 
 impl AiState {
+    pub async fn query_logs(
+        &self,
+        user_uid: Option<&str>,
+        started_at: Option<i64>,
+        ended_at: Option<i64>,
+    ) -> Result<Vec<super::AiLogRecord>, MemberServiceError> {
+        self.repository
+            .query_ai_logs(user_uid, started_at, ended_at)
+            .await
+    }
     pub fn new(
         repository: Arc<dyn MemberRepository>,
         llm: Arc<dyn LlmProvider>,
         asr: Arc<dyn AsrProvider>,
     ) -> Self {
+        Self::new_with_services(
+            repository,
+            llm,
+            Arc::new(UnavailableAiSecretStore),
+            asr,
+            Arc::new(UnavailableAiSpeechOutput),
+        )
+    }
+
+    pub fn new_with_services(
+        repository: Arc<dyn MemberRepository>,
+        llm: Arc<dyn LlmProvider>,
+        secrets: Arc<dyn AiSecretStore>,
+        asr: Arc<dyn AsrProvider>,
+        speech: Arc<dyn AiSpeechOutput>,
+    ) -> Self {
+        let voice = AiVoiceRuntime::start(repository.clone(), speech.clone());
         Self {
             repository,
             llm,
+            secrets,
             asr,
+            speech,
+            voice,
             event_sink: Arc::new(NoopMemberEventSink),
             runtime: Mutex::new(AiRuntime::default()),
             active_generation: AtomicBool::new(false),
@@ -243,15 +482,269 @@ impl AiState {
         Ok(config)
     }
 
+    pub async fn model_profiles(&self) -> Result<Vec<AiModelProfileRecord>, MemberServiceError> {
+        self.repository.list_ai_model_profiles().await
+    }
+
+    pub async fn save_model_profile(
+        &self,
+        mut profile: AiModelProfileRecord,
+        api_key_replacement: Option<String>,
+    ) -> Result<AiModelProfileRecord, MemberServiceError> {
+        let existing = self
+            .repository
+            .load_ai_model_profile(&profile.profile_id)
+            .await?;
+        profile.is_default = existing.as_ref().is_some_and(|value| value.is_default);
+        profile.has_api_key = existing.as_ref().is_some_and(|value| value.has_api_key);
+        if profile.provider_kind != "local" && api_key_replacement.is_none() && !profile.has_api_key
+        {
+            return Err(MemberServiceError::invalid("ai_api_key_required"));
+        }
+        if let Some(api_key) = api_key_replacement {
+            let api_key = api_key.trim();
+            if api_key.is_empty() {
+                return Err(MemberServiceError::invalid("ai_api_key_invalid"));
+            }
+            self.secrets.set(&profile.profile_id, api_key).await?;
+            profile.has_api_key = true;
+        }
+        self.repository.save_ai_model_profile(&profile).await?;
+        Ok(profile)
+    }
+
+    pub async fn delete_model_profile(&self, profile_id: &str) -> Result<bool, MemberServiceError> {
+        let profile = self
+            .repository
+            .load_ai_model_profile(profile_id)
+            .await?
+            .ok_or_else(|| MemberServiceError::invalid("ai_model_profile_not_found"))?;
+        if profile.is_default {
+            return Err(MemberServiceError::invalid(
+                "ai_default_profile_delete_forbidden",
+            ));
+        }
+        let deleted = self.repository.delete_ai_model_profile(profile_id).await?;
+        if deleted {
+            self.secrets.delete(profile_id).await?;
+        }
+        Ok(deleted)
+    }
+
+    pub async fn set_default_model_profile(
+        &self,
+        profile_id: &str,
+    ) -> Result<Vec<AiModelProfileRecord>, MemberServiceError> {
+        self.repository
+            .set_default_ai_model_profile(profile_id, now_millis())
+            .await?;
+        self.repository.list_ai_model_profiles().await
+    }
+
+    pub async fn test_model_profile(
+        &self,
+        profile_id: &str,
+    ) -> Result<AiModelProfileRecord, MemberServiceError> {
+        let mut profile = self
+            .repository
+            .load_ai_model_profile(profile_id)
+            .await?
+            .ok_or_else(|| MemberServiceError::invalid("ai_model_profile_not_found"))?;
+        let api_key = if profile.has_api_key {
+            self.secrets.get(profile_id).await?
+        } else {
+            None
+        };
+        let result = self.llm.test_profile(&profile, api_key.as_deref()).await;
+        profile.connection_state = if result.is_ok() {
+            AiModelConnectionState::Available
+        } else {
+            AiModelConnectionState::Unavailable
+        };
+        profile.updated_at = now_millis();
+        self.repository.save_ai_model_profile(&profile).await?;
+        result.map(|_| profile)
+    }
+
+    pub async fn voice_config(&self) -> Result<AiVoiceConfigRecord, MemberServiceError> {
+        self.repository.load_ai_voice_config().await
+    }
+
+    pub async fn set_voice_enabled(
+        &self,
+        is_enabled: bool,
+        is_audio_route_confirmed: bool,
+    ) -> Result<AiVoiceConfigRecord, MemberServiceError> {
+        let mut config = self.repository.load_ai_voice_config().await?;
+        if is_enabled {
+            let profile = self.repository.load_default_ai_model_profile().await?;
+            if !profile.is_some_and(|profile| profile.is_enabled) {
+                return Err(MemberServiceError::invalid("ai_model_not_configured"));
+            }
+            if config.output_device_id.is_none()
+                || !config.is_audio_route_confirmed
+                || !is_audio_route_confirmed
+            {
+                return Err(MemberServiceError::invalid("ai_audio_route_unconfirmed"));
+            }
+            let devices = self.speech.devices().await?;
+            if !devices.iter().any(|device| {
+                Some(device.device_id.as_str()) == config.output_device_id.as_deref()
+                    && device.is_available
+            }) {
+                config.is_enabled = false;
+                config.is_audio_route_confirmed = false;
+                config.updated_at = now_millis();
+                self.repository.save_ai_voice_config(&config).await?;
+                return Err(MemberServiceError::unavailable("ai_audio_device_missing"));
+            }
+            let voices = self.speech.voices().await?;
+            if !voices
+                .iter()
+                .any(|voice| voice.voice_id == config.voice_id && voice.is_available)
+            {
+                config.is_enabled = false;
+                config.is_audio_route_confirmed = false;
+                config.updated_at = now_millis();
+                self.repository.save_ai_voice_config(&config).await?;
+                return Err(MemberServiceError::unavailable("ai_tts_voice_invalid"));
+            }
+        }
+        config.is_enabled = is_enabled;
+        config.updated_at = now_millis();
+        self.repository.save_ai_voice_config(&config).await?;
+        if !is_enabled {
+            self.voice.clear().await;
+            let _ = self.speech.stop().await;
+        } else {
+            self.voice.wake.notify_one();
+        }
+        Ok(config)
+    }
+
+    pub async fn update_voice_rules(
+        &self,
+        mut rules: AiVoiceConfigRecord,
+    ) -> Result<AiVoiceConfigRecord, MemberServiceError> {
+        let current = self.repository.load_ai_voice_config().await?;
+        rules.is_enabled = current.is_enabled;
+        rules.output_device_id = current.output_device_id;
+        rules.volume = current.volume;
+        rules.is_audio_route_confirmed = current.is_audio_route_confirmed;
+        rules.updated_at = now_millis();
+        self.repository.save_ai_voice_config(&rules).await?;
+        Ok(rules)
+    }
+
+    pub async fn output_devices(&self) -> Result<Vec<AiOutputDeviceRecord>, MemberServiceError> {
+        self.speech.devices().await
+    }
+
+    pub async fn voices(&self) -> Result<Vec<AiVoiceRecord>, MemberServiceError> {
+        self.speech.voices().await
+    }
+
+    pub async fn set_output_device(
+        &self,
+        device_id: String,
+        voice_id: String,
+        volume: f64,
+        is_audio_route_confirmed: bool,
+    ) -> Result<AiVoiceConfigRecord, MemberServiceError> {
+        let devices = self.speech.devices().await?;
+        let voices = self.speech.voices().await?;
+        if !devices
+            .iter()
+            .any(|device| device.device_id == device_id && device.is_available)
+            || !volume.is_finite()
+            || !(0.0..=1.0).contains(&volume)
+        {
+            return Err(MemberServiceError::invalid("ai_audio_device_invalid"));
+        }
+        if !voices
+            .iter()
+            .any(|voice| voice.voice_id == voice_id && voice.is_available)
+        {
+            return Err(MemberServiceError::invalid("ai_tts_voice_invalid"));
+        }
+        let mut config = self.repository.load_ai_voice_config().await?;
+        if config.output_device_id.as_deref() != Some(&device_id) || config.voice_id != voice_id {
+            config.is_enabled = false;
+        }
+        config.output_device_id = Some(device_id);
+        config.voice_id = voice_id;
+        config.volume = volume;
+        config.is_audio_route_confirmed = is_audio_route_confirmed;
+        config.updated_at = now_millis();
+        self.repository.save_ai_voice_config(&config).await?;
+        Ok(config)
+    }
+
+    pub async fn test_output_device(
+        &self,
+        device_id: &str,
+        voice_id: &str,
+        volume: f64,
+    ) -> Result<(), MemberServiceError> {
+        let devices = self.speech.devices().await?;
+        if !devices
+            .iter()
+            .any(|device| device.device_id == device_id && device.is_available)
+            || !volume.is_finite()
+            || !(0.0..=1.0).contains(&volume)
+        {
+            return Err(MemberServiceError::invalid("ai_audio_device_invalid"));
+        }
+        let voices = self.speech.voices().await?;
+        if !voices
+            .iter()
+            .any(|voice| voice.voice_id == voice_id && voice.is_available)
+        {
+            return Err(MemberServiceError::invalid("ai_tts_voice_invalid"));
+        }
+        self.speech
+            .speak(
+                "AI 语音回复测试，音频路由正常。",
+                device_id,
+                voice_id,
+                volume,
+            )
+            .await
+    }
+
+    pub async fn pause_voice(&self, is_paused: bool) {
+        self.voice.set_paused(is_paused).await;
+    }
+
+    pub async fn skip_voice(&self) -> Result<(), MemberServiceError> {
+        self.voice.skip().await
+    }
+
+    pub async fn clear_voice(&self) {
+        self.voice.clear().await;
+    }
+
+    pub async fn voice_queue_snapshot(
+        &self,
+    ) -> Result<AiVoiceQueueSnapshotRecord, MemberServiceError> {
+        let config = self.repository.load_ai_voice_config().await?;
+        Ok(self.voice.snapshot(&config).await)
+    }
+
     pub async fn generate(
         &self,
         prompt: String,
         context: Vec<String>,
-        capability: AiCapabilityState,
     ) -> Result<AiGenerationRecord, MemberServiceError> {
-        if capability != AiCapabilityState::Ready {
-            return Err(MemberServiceError::invalid("ai_capability_unavailable"));
-        }
+        self.generate_with_priority(prompt, context, 1).await
+    }
+
+    async fn generate_with_priority(
+        &self,
+        prompt: String,
+        context: Vec<String>,
+        priority: u8,
+    ) -> Result<AiGenerationRecord, MemberServiceError> {
         if prompt.trim().is_empty() && context.is_empty() {
             return Err(MemberServiceError::invalid("ai_input_required"));
         }
@@ -266,13 +759,20 @@ impl AiState {
         let _active = ActiveGenerationGuard(&self.active_generation);
 
         let generation_id = uuid::Uuid::new_v4().to_string();
-        let assembled = context
+        let input = context
             .iter()
             .chain(std::iter::once(&prompt))
             .filter(|value| !value.trim().is_empty())
             .cloned()
             .collect::<Vec<_>>()
             .join("\n");
+        let assembled = format!(
+            "主播身份：{}\n主播人设：{}\n说话风格：{}\n观众输入：{}",
+            config.identity.trim(),
+            config.system_prompt.trim(),
+            config.speaking_style,
+            input
+        );
         let generated = tokio::time::timeout(
             std::time::Duration::from_millis(u64::from(DEFAULT_LLM_TIMEOUT_MILLIS)),
             self.llm.generate(&assembled),
@@ -290,6 +790,7 @@ impl AiState {
                 },
                 config.max_length as usize,
             )
+            .map(|value| truncate_sentences(&value, config.max_sentences as usize))
             .map_err(|error| match error {
                 crate::domain::member::AiTextError::SensitiveTerm => {
                     MemberServiceError::invalid("ai_sensitive_output")
@@ -312,6 +813,9 @@ impl AiState {
                     last_sequence: 1,
                     error_code: None,
                 };
+                self.voice
+                    .enqueue(generation.result.clone(), priority)
+                    .await?;
                 self.event_sink.publish_ai_generation(&generation);
                 Ok(generation)
             }
@@ -322,7 +826,6 @@ impl AiState {
     pub async fn regenerate(
         &self,
         generation_id: &str,
-        capability: AiCapabilityState,
     ) -> Result<AiGenerationRecord, MemberServiceError> {
         let request = self
             .runtime
@@ -332,24 +835,125 @@ impl AiState {
             .clone()
             .filter(|(_, _, id)| id == generation_id)
             .ok_or_else(|| MemberServiceError::invalid("ai_generation_not_found"))?;
-        self.generate(request.0, request.1, capability).await
+        self.generate(request.0, request.1).await
+    }
+
+    pub async fn asr_models(&self) -> Result<Vec<AsrModelRecord>, MemberServiceError> {
+        self.asr.list_models().await
     }
 
     pub async fn asr_status(&self) -> AsrStatusRecord {
-        self.asr_status.lock().await.clone()
+        if let Some(status) = self.asr.runtime_status() {
+            *self.asr_status.lock().await = status.clone();
+            return status;
+        }
+        let current = self.asr_status.lock().await.clone();
+        if matches!(
+            current.state,
+            AsrState::Downloading | AsrState::Starting | AsrState::Listening
+        ) {
+            return current;
+        }
+        let status = match self.asr.list_models().await {
+            Ok(models) => match models.into_iter().find(|model| model.is_installed) {
+                Some(model) => AsrStatusRecord {
+                    state: AsrState::Ready,
+                    model_name: Some(model.model_name),
+                    language: "zh".to_owned(),
+                    progress_percent: 100,
+                    error_code: None,
+                },
+                None => AsrStatusRecord {
+                    state: AsrState::ModelMissing,
+                    model_name: None,
+                    language: "zh".to_owned(),
+                    progress_percent: 0,
+                    error_code: Some("asr_model_missing".to_owned()),
+                },
+            },
+            Err(error) => AsrStatusRecord {
+                state: AsrState::Unavailable,
+                model_name: None,
+                language: "zh".to_owned(),
+                progress_percent: 0,
+                error_code: Some(error.code.to_owned()),
+            },
+        };
+        *self.asr_status.lock().await = status.clone();
+        status
     }
 
-    pub async fn start_asr(
+    pub async fn download_asr_model(
         &self,
-        capability: AiCapabilityState,
+        model_id: &str,
     ) -> Result<AsrStatusRecord, MemberServiceError> {
-        if capability != AiCapabilityState::Ready {
-            return Err(MemberServiceError::invalid("asr_capability_unavailable"));
+        let downloading = AsrStatusRecord {
+            state: AsrState::Downloading,
+            model_name: None,
+            language: "zh".to_owned(),
+            progress_percent: 0,
+            error_code: None,
+        };
+        *self.asr_status.lock().await = downloading.clone();
+        self.event_sink.publish_asr_status(&downloading);
+
+        match self.asr.download_model(model_id).await {
+            Ok(model) => {
+                let status = AsrStatusRecord {
+                    state: AsrState::Ready,
+                    model_name: Some(model.model_name),
+                    language: "zh".to_owned(),
+                    progress_percent: 100,
+                    error_code: None,
+                };
+                *self.asr_status.lock().await = status.clone();
+                self.event_sink.publish_asr_status(&status);
+                Ok(status)
+            }
+            Err(error) => {
+                let status = AsrStatusRecord {
+                    state: AsrState::Error,
+                    model_name: None,
+                    language: "zh".to_owned(),
+                    progress_percent: 0,
+                    error_code: Some(error.code.to_owned()),
+                };
+                *self.asr_status.lock().await = status.clone();
+                self.event_sink.publish_asr_status(&status);
+                Err(error)
+            }
         }
-        self.asr.start().await?;
+    }
+
+    pub async fn start_asr(&self) -> Result<AsrStatusRecord, MemberServiceError> {
+        let ready = self.asr_status().await;
+        if ready.model_name.is_none() {
+            return Err(MemberServiceError::invalid("asr_model_missing"));
+        }
+        let starting = AsrStatusRecord {
+            state: AsrState::Starting,
+            model_name: ready.model_name.clone(),
+            language: "zh".to_owned(),
+            progress_percent: 100,
+            error_code: None,
+        };
+        *self.asr_status.lock().await = starting.clone();
+        self.event_sink.publish_asr_status(&starting);
+        if let Err(error) = self.asr.start().await {
+            let status = AsrStatusRecord {
+                state: AsrState::Error,
+                model_name: ready.model_name,
+                language: "zh".to_owned(),
+                progress_percent: 100,
+                error_code: Some(error.code.to_owned()),
+            };
+            *self.asr_status.lock().await = status.clone();
+            self.event_sink.publish_asr_status(&status);
+            return Err(error);
+        }
         let status = AsrStatusRecord {
             state: AsrState::Listening,
-            model_name: self.asr_status.lock().await.model_name.clone(),
+            model_name: ready.model_name,
             language: "zh".to_owned(),
             progress_percent: 100,
             error_code: None,
@@ -374,7 +978,120 @@ impl AiState {
 
     pub async fn shutdown(&self) {
         let _ = self.asr.stop().await;
+        self.voice.shutdown().await;
         self.active_generation.store(false, Ordering::Release);
+    }
+}
+
+#[async_trait::async_trait]
+impl AcceptedLiveEventConsumer for AiState {
+    async fn consume_accepted(&self, event: &LiveEvent) -> Result<(), LiveRuntimeError> {
+        let LiveEvent::Danmu { base, content } = event else {
+            return Ok(());
+        };
+        let config = match self.repository.load_ai_voice_config().await {
+            Ok(config) if config.is_enabled => config,
+            Ok(_) => return Ok(()),
+            Err(error) => {
+                log::warn!("AI voice config degraded: {}", error.code);
+                return Ok(());
+            }
+        };
+        if !trigger_matches(&config, event, content) {
+            return Ok(());
+        }
+        let now = now_millis();
+        let uid = base.audience.user_uid.as_str().to_owned();
+        {
+            let mut runtime = self.runtime.lock().await;
+            if runtime
+                .last_auto_at
+                .is_some_and(|last| now - last < i64::from(config.global_cooldown_seconds) * 1_000)
+                || runtime.user_last_auto_at.get(&uid).is_some_and(|last| {
+                    now - *last < i64::from(config.user_cooldown_seconds) * 1_000
+                })
+            {
+                return Ok(());
+            }
+            let normalized = content.trim().to_lowercase();
+            if config.is_duplicate_filter_enabled
+                && runtime
+                    .recent_auto_prompts
+                    .iter()
+                    .any(|recent| recent == &normalized)
+            {
+                return Ok(());
+            }
+            runtime.last_auto_at = Some(now);
+            runtime.user_last_auto_at.insert(uid, now);
+            runtime.recent_auto_prompts.push_back(normalized);
+            while runtime.recent_auto_prompts.len() > 20 {
+                runtime.recent_auto_prompts.pop_front();
+            }
+        }
+        let priority = ai_event_priority(event);
+        if let Err(error) = self
+            .generate_with_priority(
+                content.clone(),
+                vec![format!("{}：{}", base.audience.username, content)],
+                priority,
+            )
+            .await
+        {
+            log::warn!("AI voice reply skipped: {}", error.code);
+        }
+        Ok(())
+    }
+}
+
+fn trigger_matches(config: &AiVoiceConfigRecord, event: &LiveEvent, content: &str) -> bool {
+    let tags = &event.base().audience.tags;
+    match config.trigger_scope.as_str() {
+        "all" => true,
+        "questions" => {
+            let value = content.trim();
+            value.ends_with('?')
+                || value.ends_with('？')
+                || ["吗", "呢", "怎么", "为什么", "多少", "哪里", "谁"]
+                    .iter()
+                    .any(|marker| value.contains(marker))
+        }
+        "captains" => tags.iter().any(|tag| {
+            matches!(
+                tag,
+                IdentityTag::Governor | IdentityTag::Admiral | IdentityTag::Captain
+            )
+        }),
+        "keywords" => config
+            .keywords
+            .iter()
+            .any(|keyword| content.contains(keyword)),
+        "high_value" => tags.iter().any(|tag| {
+            matches!(
+                tag,
+                IdentityTag::Governor
+                    | IdentityTag::Admiral
+                    | IdentityTag::Captain
+                    | IdentityTag::Admin
+                    | IdentityTag::Vip
+            )
+        }),
+        _ => false,
+    }
+}
+
+fn ai_event_priority(event: &LiveEvent) -> u8 {
+    let tags = &event.base().audience.tags;
+    if tags.contains(&IdentityTag::Governor) || tags.contains(&IdentityTag::Admiral) {
+        5
+    } else if tags.contains(&IdentityTag::Captain) {
+        4
+    } else if tags.contains(&IdentityTag::Admin) {
+        3
+    } else if tags.contains(&IdentityTag::Vip) {
+        2
+    } else {
+        1
     }
 }
 
@@ -590,20 +1307,14 @@ impl AcceptedLiveEventConsumer for ModerationState {
 
 pub struct MemberStates {
     pub membership: Arc<MembershipState>,
-    pub ai: Arc<AiState>,
     pub moderation: Arc<ModerationState>,
     validation_task: Mutex<Option<tokio::task::JoinHandle<()>>>,
 }
 
 impl MemberStates {
-    pub fn new(
-        membership: Arc<MembershipState>,
-        ai: Arc<AiState>,
-        moderation: Arc<ModerationState>,
-    ) -> Self {
+    pub fn new(membership: Arc<MembershipState>, moderation: Arc<ModerationState>) -> Self {
         Self {
             membership,
-            ai,
             moderation,
             validation_task: Mutex::new(None),
         }
@@ -635,7 +1346,6 @@ impl MemberStates {
         if let Some(task) = self.validation_task.lock().await.take() {
             task.abort();
         }
-        self.ai.shutdown().await;
     }
 }
 
@@ -720,7 +1430,6 @@ const fn shell_state(validity: EntitlementValidity) -> MemberShellState {
 
 const fn unavailable_capabilities() -> MemberCapabilities {
     MemberCapabilities {
-        ai: AiCapabilityState::Unavailable,
         moderation: AiCapabilityState::Unavailable,
     }
 }
@@ -736,6 +1445,7 @@ fn default_ai_config() -> AiConfigRecord {
         api_key_ciphertext: None,
         temperature: 0.7,
         max_length: 100,
+        max_sentences: 2,
         is_sensitive_filter_enabled: true,
         banned_words: Vec::new(),
         danmaku_context_count: 20,

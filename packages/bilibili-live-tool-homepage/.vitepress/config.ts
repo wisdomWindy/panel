@@ -25,8 +25,7 @@ export default defineConfig({
             { text: '弹幕管理', link: '/features/danmaku' },
             { text: '礼物音效', link: '/features/gift-sound' },
             { text: '录制功能', link: '/features/recording' },
-            { text: 'AI 对话', link: '/features/ai' },
-            { text: '插件系统', link: '/features/plugins' }
+            { text: 'AI 对话', link: '/features/ai' }
           ]
         }
       ],

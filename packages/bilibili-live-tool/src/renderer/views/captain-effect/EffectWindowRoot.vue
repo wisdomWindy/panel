@@ -1,22 +1,56 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
-import { listenDesktop, type CaptainEffectPayload } from '@/platform/desktop';
+import { invokeDesktop, listenDesktop, type CaptainEffectPayload } from '@/platform/desktop';
+import {
+  adaptCaptainEffectPayload,
+  adaptCaptainEffectPayloadOrNull
+} from '@/modules/media/adapters';
 import CaptainEffectSurface from '@/components/media/CaptainEffectSurface.vue';
 
 const payload = ref<CaptainEffectPayload | null>(null);
 let dispose: (() => void) | null = null;
 let active = true;
+let eventRevision = 0;
 
-onMounted(async () => {
+async function registerTriggerListener(): Promise<void> {
   try {
     const unlisten = await listenDesktop('captain_effect_trigger', next => {
-      if (active) payload.value = next;
+      try {
+        const adapted = adaptCaptainEffectPayload(next);
+        eventRevision += 1;
+        if (active) payload.value = adapted;
+      } catch {
+        // Ignore malformed events at the desktop boundary.
+      }
     });
-    if (active) dispose = unlisten;
-    else unlisten();
+    if (!active) {
+      unlisten();
+      return;
+    }
+    dispose = unlisten;
   } catch {
-    payload.value = null;
+    // The current payload query still provides the preview's first frame.
   }
+}
+
+async function loadCurrentEffect(): Promise<void> {
+  if (!active) return;
+  const revisionBeforeQuery = eventRevision;
+  try {
+    const current = adaptCaptainEffectPayloadOrNull(
+      await invokeDesktop('captain_effect_current', undefined)
+    );
+    if (active && eventRevision === revisionBeforeQuery && current) {
+      payload.value = current;
+    }
+  } catch {
+    if (active && eventRevision === 0) payload.value = null;
+  }
+}
+
+onMounted(async () => {
+  await registerTriggerListener();
+  await loadCurrentEffect();
 });
 
 onUnmounted(() => {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ArrowDown, ArrowUp, Download, Minus, Plus } from '@element-plus/icons-vue';
 import { normalizeDesktopError, type DataRange, type UserUid } from '@/platform/desktop';
 import { formatCount, formatMoneyMinor, formatTimestamp } from '@/modules/live-data/formatters';
@@ -13,6 +14,7 @@ import DataRangeControl from '@/components/live-data/DataRangeControl.vue';
   type TopLimit = 10 | 20 | 50 | 100;
 
 const analytics = useLiveAnalyticsStore();
+const { t } = useI18n();
 const room = useLiveRoomStore();
 const range = ref<DataRange>({ kind: 'liveSession' });
 const activeTab = ref<RankTab>('gift');
@@ -30,7 +32,8 @@ const totalUsers = computed(() => {
 
 function showError(value: unknown): void {
   const error = normalizeDesktopError(value);
-  if (error.code !== 'dialog_cancelled') ElMessage.error(error.message ?? '操作失败，请稍后重试');
+  if (error.code !== 'dialog_cancelled')
+    ElMessage.error(error.message ?? t('common.operationFailed'));
 }
 
 async function query(): Promise<void> {
@@ -60,7 +63,7 @@ function movementIcon(change: 'new' | 'up' | 'down' | 'same') {
 }
 
 function movementText(change: 'new' | 'up' | 'down' | 'same'): string {
-  return { new: '新入榜', up: '上升', down: '下降', same: '无变化' }[change];
+  return t(`rankings.${change}`);
 }
 
 watch(
@@ -76,19 +79,21 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="mx-auto flex h-full min-h-[560px] max-w-7xl flex-col bg-white">
-    <header class="flex min-h-14 flex-wrap items-center gap-3 border-b border-gray-200 py-2">
-      <h2 class="mr-auto m-0 text-lg font-semibold text-gray-900">
-        排行榜
+  <section class="mx-auto flex h-full min-h-[560px] max-w-7xl flex-col bg-white dark:bg-zinc-900">
+    <header
+      class="flex min-h-14 flex-wrap items-center gap-3 border-b border-gray-200 py-2 dark:border-zinc-800"
+    >
+      <h2 class="mr-auto m-0 text-lg font-semibold text-gray-900 dark:text-zinc-100">
+        {{ t('rankings.title') }}
       </h2>
       <DataRangeControl v-model="range" />
       <el-segmented
         v-model="limit"
         :options="[10, 20, 50, 100].map(value => ({ label: `TOP ${value}`, value }))"
-        aria-label="排行榜数量"
+        :aria-label="t('rankings.limitLabel')"
       />
       <el-button type="primary" :icon="Download" @click="exportVisible = true">
-        导出 CSV
+        {{ t('liveData.exportCsv') }}
       </el-button>
     </header>
 
@@ -102,15 +107,15 @@ onMounted(() => {
     <el-alert
       v-if="analytics.rankings && !analytics.rankings.isHistoricalDataAvailable"
       class="mt-4"
-      title="历史数据暂不可用"
+      :title="t('rankings.historyUnavailable')"
       type="warning"
       :closable="false"
     />
 
     <el-tabs v-model="activeTab" class="mt-3 shrink-0">
-      <el-tab-pane label="送礼榜" name="gift" />
-      <el-tab-pane label="弹幕互动榜" name="danmu" />
-      <el-tab-pane label="舰长贡献榜" name="captain" />
+      <el-tab-pane :label="t('rankings.gift')" name="gift" />
+      <el-tab-pane :label="t('rankings.danmaku')" name="danmu" />
+      <el-tab-pane :label="t('rankings.captain')" name="captain" />
     </el-tabs>
 
     <div class="min-h-0 flex-1 overflow-x-auto">
@@ -119,15 +124,16 @@ onMounted(() => {
         :data="rows"
         height="100%"
         class="min-w-[720px]"
+        :empty-text="t('liveData.empty')"
         row-key="userUid"
       >
         <el-table-column
           prop="rank"
-          label="排名"
+          :label="t('rankings.rank')"
           width="90"
           align="center"
         />
-        <el-table-column label="用户" min-width="220">
+        <el-table-column :label="t('rankings.user')" min-width="220">
           <template #default="{ row }">
             <button
               type="button"
@@ -139,18 +145,18 @@ onMounted(() => {
             <span class="ml-2 text-xs tabular-nums text-gray-400">{{ row.userUid }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="数值" width="190" align="right">
+        <el-table-column :label="t('rankings.metric')" width="190" align="right">
           <template #default="{ row }">
             <strong class="tabular-nums">
               {{
                 activeTab === 'danmu'
-                  ? `${formatCount(row.danmuCount)} 条`
+                  ? t('rankings.danmakuUnit', { count: formatCount(row.danmuCount) })
                   : formatMoneyMinor(row.amountMinor)
               }}
             </strong>
           </template>
         </el-table-column>
-        <el-table-column label="变化" width="150" align="center">
+        <el-table-column :label="t('rankings.change')" width="150" align="center">
           <template #default="{ row }">
             <span
               class="inline-flex items-center gap-1"
@@ -170,20 +176,18 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
-      <div
-        v-if="!analytics.rankPending && rows.length === 0"
-        class="flex min-h-56 items-center justify-center text-sm text-gray-400"
-      >
-        暂无数据
-      </div>
     </div>
 
     <footer
-      class="flex min-h-11 items-center justify-between border-t border-gray-200 px-3 text-sm text-gray-600"
+      class="flex min-h-11 items-center justify-between border-t border-gray-200 px-3 text-sm text-gray-600 dark:border-zinc-800 dark:text-zinc-400"
     >
-      <span>共 {{ formatCount(totalUsers) }} 人</span>
+      <span>{{ t('rankings.totalUsers', { count: formatCount(totalUsers) }) }}</span>
       <span>
-        更新时间 {{ analytics.rankings ? formatTimestamp(analytics.rankings.generatedAt) : '-' }}
+        {{
+          t('rankings.updatedAt', {
+            time: analytics.rankings ? formatTimestamp(analytics.rankings.generatedAt) : '-'
+          })
+        }}
       </span>
     </footer>
 

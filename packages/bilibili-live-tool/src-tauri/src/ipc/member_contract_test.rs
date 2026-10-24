@@ -1,4 +1,5 @@
-use crate::build_channel::member_command_names;
+use super::member::AI_EVENT_NAMES;
+use crate::build_channel::{ai_command_names, member_command_names};
 
 #[cfg(feature = "member")]
 use super::member::{
@@ -11,14 +12,38 @@ use super::member::{
 fn member_build_exposes_the_approved_member_surface() {
     let commands = member_command_names();
 
-    assert_eq!(commands.len(), 28);
+    assert_eq!(commands.len(), 19);
     assert_eq!(commands.first(), Some(&"member_status"));
     assert_eq!(commands.last(), Some(&"moderate_mark_false_positive"));
     assert!(!commands.iter().any(|command| command.contains("send")));
-    assert_eq!(MEMBER_EVENT_NAMES.len(), 11);
+    assert_eq!(MEMBER_EVENT_NAMES.len(), 8);
     assert!(!MEMBER_EVENT_NAMES
         .iter()
         .any(|event| event.contains("send")));
+}
+
+#[test]
+fn both_builds_expose_the_shared_ai_surface() {
+    let commands = ai_command_names();
+
+    assert_eq!(commands.len(), 24);
+    assert_eq!(commands.first(), Some(&"ai_config_get"));
+    assert_eq!(commands.last(), Some(&"asr_stop"));
+    assert!(commands.contains(&"ai_model_profile_save"));
+    assert!(commands.contains(&"ai_voice_reply_set_enabled"));
+    assert!(commands.contains(&"ai_tts_set_output_device"));
+    assert!(commands.contains(&"asr_model_list"));
+    assert!(!commands.iter().any(|command| command.contains("send")));
+    assert_eq!(AI_EVENT_NAMES.len(), 4);
+    assert!(AI_EVENT_NAMES.contains(&"asr_transcript"));
+
+    let ipc = include_str!("member.rs");
+    let provider = include_str!("../infrastructure/member/ai.rs");
+    assert!(ipc.contains("AiReasoningEffortDto"));
+    assert!(ipc.contains("pub voice_id: String"));
+    assert!(ipc.contains("pub voices: Vec<AiVoiceDto>"));
+    assert!(provider.contains("\"reasoning_effort\": profile.reasoning_effort.as_str()"));
+    assert!(!provider.contains("\"temperature\": profile.temperature"));
 }
 
 #[cfg(feature = "member")]
@@ -35,7 +60,6 @@ fn serializes_safe_member_status_and_tagged_qr_states() {
         account: None,
         entitlement: None,
         capabilities: MemberCapabilitiesDto {
-            ai: MemberCapabilityStateDto::Unavailable,
             moderation: MemberCapabilityStateDto::Unavailable,
         },
         service_error_code: Some("external_service_unavailable".into()),

@@ -151,14 +151,14 @@ impl MediaEventSink for TauriMediaEventSink {
         };
         self.emit_effect(
             "captain_effect_trigger",
-            CaptainEffectPayloadDto {
-                event_id: base.event_id.clone(),
-                audience: audience_identity(&base.audience),
-                action: captain_action_dto(*action),
-                level: captain_level_dto(*level),
-                config: captain_config(config.clone()),
-                is_preview: false,
-            },
+            build_captain_effect_payload(
+                base.event_id.clone(),
+                audience_identity(&base.audience),
+                *action,
+                *level,
+                config.clone(),
+                false,
+            ),
         )
     }
 
@@ -225,6 +225,18 @@ pub async fn captain_effect_get(
 }
 
 #[tauri::command]
+pub async fn captain_effect_current(
+    state: State<'_, AppState>,
+) -> Result<Option<CaptainEffectPayloadDto>, DesktopError> {
+    Ok(state
+        .media()
+        .effects()
+        .active_effect()
+        .await
+        .map(captain_effect_payload))
+}
+
+#[tauri::command]
 pub async fn captain_effect_save(
     state: State<'_, AppState>,
     request: CaptainEffectConfigRequestDto,
@@ -277,16 +289,21 @@ pub async fn gift_notify_save(
 pub async fn gift_notify_test(
     state: State<'_, AppState>,
     request: GiftNotifyConfigRequestDto,
-) -> Result<TriggeredResultDto, DesktopError> {
+) -> Result<GiftAlertPayloadDto, DesktopError> {
     let config = gift_notify_from_dto(request.config);
     crate::domain::media::validate_gift_notify_config(&config)
         .map_err(|error| DesktopError::from(MediaIoError::invalid(error.to_string())))?;
-    state
+    let record = state
         .media()
         .gifts()
-        .preview(config, format!("preview-{}", now_millis()))
+        .preview(config.clone(), format!("preview-{}", now_millis()))
         .await;
-    Ok(TriggeredResultDto { triggered: true })
+    Ok(GiftAlertPayloadDto {
+        event: gift_record(record),
+        popup_position: position(config.popup_position),
+        popup_duration_seconds: config.popup_duration_seconds,
+        is_preview: true,
+    })
 }
 
 #[tauri::command]
@@ -657,6 +674,8 @@ async fn captain_from_dto(
         preset_id: dto.preset_id,
         duration_seconds: dto.duration_seconds,
         position: position_from_dto(dto.position),
+        window_width: dto.window_width,
+        window_height: dto.window_height,
         primary_color: dto.primary_color,
         secondary_color: dto.secondary_color,
         first_sound: sound_from_dto(media, dto.first_sound, current.first_sound.as_ref())?,
@@ -690,9 +709,79 @@ fn sound_from_dto(
 fn captain_snapshot(config: CaptainEffectConfig, updated_at: i64) -> CaptainEffectSnapshotDto {
     CaptainEffectSnapshotDto {
         config: captain_config(config),
-        presets: Vec::new(),
+        presets: captain_effect_presets(),
         updated_at,
     }
+}
+
+pub(super) fn captain_effect_payload(
+    active: crate::application::media::ActiveCaptainEffect,
+) -> CaptainEffectPayloadDto {
+    let audience = active
+        .item
+        .audience
+        .as_ref()
+        .map(audience_identity)
+        .unwrap_or_else(|| AudienceIdentityDto {
+            user_uid: "preview-user".into(),
+            username: active.item.username.clone(),
+            user_level: None,
+            medal: None,
+            tags: vec![IdentityTagDto::Captain],
+        });
+    build_captain_effect_payload(
+        active.item.event_id,
+        audience,
+        active.item.action,
+        active.item.level,
+        active.config,
+        active.is_preview,
+    )
+}
+
+fn build_captain_effect_payload(
+    event_id: String,
+    audience: AudienceIdentityDto,
+    action: crate::domain::live_data::CaptainAction,
+    level: crate::domain::live_data::CaptainLevel,
+    config: CaptainEffectConfig,
+    is_preview: bool,
+) -> CaptainEffectPayloadDto {
+    CaptainEffectPayloadDto {
+        event_id,
+        audience,
+        action: captain_action_dto(action),
+        level: captain_level_dto(level),
+        config: captain_config(config),
+        is_preview,
+    }
+}
+
+pub(super) fn captain_effect_presets() -> Vec<CaptainEffectPresetDto> {
+    [
+        ("captain-default", "经典应援", "#00AEEC", "#FB7299"),
+        ("golden-premium", "金色尊享", "#FFD700", "#FFA500"),
+        ("starlight-blue", "星海蓝耀", "#38BDF8", "#6366F1"),
+        ("cherry-blossom", "樱花绽放", "#FB7185", "#F9A8D4"),
+        ("violet-galaxy", "紫曜星河", "#A78BFA", "#7C3AED"),
+        ("emerald-stream", "翡翠流光", "#34D399", "#0F766E"),
+        ("crimson-celebration", "赤焰庆典", "#F43F5E", "#F97316"),
+        ("silver-frost", "冰晶银辉", "#E2E8F0", "#94A3B8"),
+        ("neon-party", "霓虹派对", "#22D3EE", "#F472B6"),
+        ("aurora-dream", "极光幻彩", "#2DD4BF", "#C084FC"),
+        ("sunset-flare", "落日鎏光", "#FB923C", "#EAB308"),
+        ("midnight-crown", "午夜王冠", "#818CF8", "#312E81"),
+    ]
+    .into_iter()
+    .map(
+        |(preset_id, display_name, primary_color, secondary_color)| CaptainEffectPresetDto {
+            preset_id: preset_id.to_owned(),
+            display_name: display_name.to_owned(),
+            primary_color: primary_color.to_owned(),
+            secondary_color: secondary_color.to_owned(),
+        },
+    )
+    .collect()
 }
 
 fn captain_config(config: CaptainEffectConfig) -> CaptainEffectConfigDto {
@@ -700,6 +789,8 @@ fn captain_config(config: CaptainEffectConfig) -> CaptainEffectConfigDto {
         preset_id: config.preset_id,
         duration_seconds: config.duration_seconds,
         position: position(config.position),
+        window_width: config.window_width,
+        window_height: config.window_height,
         primary_color: config.primary_color,
         secondary_color: config.secondary_color,
         first_sound: sound_summary(config.first_sound),
@@ -1057,6 +1148,7 @@ fn gift_record(record: crate::domain::media::GiftRecord) -> GiftEventDto {
         },
         gift_id: record.gift_id,
         gift_name: record.gift_name,
+        gift_icon_url: record.gift_icon_url,
         quantity: record.quantity,
         value_minor: record.value_minor,
     }
@@ -1067,6 +1159,7 @@ fn gift_event_dto(event: &crate::domain::live_data::LiveEvent) -> Option<GiftEve
         base,
         gift_id,
         gift_name,
+        gift_icon_url,
         quantity,
         value_minor,
     } = event
@@ -1081,6 +1174,7 @@ fn gift_event_dto(event: &crate::domain::live_data::LiveEvent) -> Option<GiftEve
         audience: audience_identity(&base.audience),
         gift_id: gift_id.clone(),
         gift_name: gift_name.clone(),
+        gift_icon_url: gift_icon_url.clone(),
         quantity: *quantity,
         value_minor: *value_minor,
     })

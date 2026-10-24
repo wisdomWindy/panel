@@ -1,0 +1,35 @@
+{
+  "request_id": "doubao-gentle-peach-voice-alignment",
+  "source": {
+    "type": "direct_user_defect",
+    "reference": "chat:2026-10-24",
+    "verbatim": "温柔桃子声色怎么与豆包的温柔桃子声音不一样，预期是与豆包的温柔桃子声色一致"
+  },
+  "stage": "spec",
+  "status": "blocked",
+  "artifacts": {
+    "request": "request.md",
+    "bugfix_source": "artifacts/bugfix-source.md",
+    "source_snapshot": "artifacts/prd-snapshot.md",
+    "code_context": "artifacts/code-context.md"
+  },
+  "approvals": {
+    "spec_approved": false,
+    "plan_approved": false
+  },
+  "speed_profile": {
+    "level": "S2 scoped",
+    "reason": "The root cause is local, but an exact repair crosses authenticated cloud synthesis, platform playback, persistence, and UI configuration ownership.",
+    "context_budget": "scoped",
+    "artifact_density": "compact"
+  },
+  "architecture_design_required": true,
+  "module_flow": null,
+  "loop": {
+    "iteration": 1,
+    "state": "blocked",
+    "last_completed_stage": "bugfix-intake",
+    "pending_gate": "official_doubao_voice_contract_and_credential_source",
+    "reentry_reason": "new_request"
+  }
+}

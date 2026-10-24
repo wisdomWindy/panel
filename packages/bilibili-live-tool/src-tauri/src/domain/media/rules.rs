@@ -22,6 +22,12 @@ pub fn validate_captain_effect_config(
     if ![3, 5, 8, 10].contains(&config.duration_seconds) {
         return Err(MediaDomainError::InvalidField("durationSeconds"));
     }
+    if !(320..=1920).contains(&config.window_width) {
+        return Err(MediaDomainError::InvalidField("windowWidth"));
+    }
+    if !(180..=1080).contains(&config.window_height) {
+        return Err(MediaDomainError::InvalidField("windowHeight"));
+    }
     if !is_hex_color(&config.primary_color) || !is_hex_color(&config.secondary_color) {
         return Err(MediaDomainError::InvalidField("color"));
     }

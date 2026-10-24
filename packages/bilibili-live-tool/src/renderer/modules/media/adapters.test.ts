@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { CaptainEffectSnapshot, GiftNotifySnapshot, RecordingConfig, TtsSnapshot } from '@/platform/desktop';
+import type {
+  CaptainEffectPayload,
+  CaptainEffectSnapshot,
+  GiftNotifySnapshot,
+  RecordingConfig,
+  TtsSnapshot
+} from '@/platform/desktop';
 import {
+  adaptCaptainEffectPayloadOrNull,
   adaptCaptainEffectSnapshot,
   adaptGiftNotifySnapshot,
   adaptRecordingConfig,
@@ -13,6 +20,8 @@ const captainSnapshot = (): CaptainEffectSnapshot => ({
     presetId: 'gold',
     durationSeconds: 5,
     position: 'topRight',
+    windowWidth: 560,
+    windowHeight: 280,
     primaryColor: '#FFD700',
     secondaryColor: '#FFA500',
     firstSound: null,
@@ -22,11 +31,87 @@ const captainSnapshot = (): CaptainEffectSnapshot => ({
     comboEnabled: true,
     comboWindowSeconds: 10
   },
-  presets: [{ presetId: 'gold', displayName: 'Gold' }],
+  presets: [
+    {
+      presetId: 'gold',
+      displayName: 'Gold',
+      primaryColor: '#FFD700',
+      secondaryColor: '#FFA500'
+    }
+  ],
   updatedAt: 1
 });
 
 describe('media adapters', () => {
+  it('preserves the nullable gift image URL at the desktop boundary', () => {
+    const base = {
+      kind: 'gift',
+      eventId: 'event-1',
+      roomId: '100',
+      occurredAt: 1,
+      audience: {
+        userUid: '2',
+        username: 'viewer',
+        userLevel: null,
+        medal: null,
+        tags: []
+      },
+      giftId: 'gift-1',
+      giftName: '小花花',
+      quantity: 1,
+      valueMinor: 100
+    };
+    const snapshot = {
+      config: {
+        isEnabled: true,
+        highValueThresholdMinor: 100,
+        methods: { systemNotification: true, localPopup: true, sound: true },
+        comboEnabled: true,
+        comboWindowSeconds: 10,
+        popupPosition: 'center',
+        popupDurationSeconds: 5
+      },
+      totalValueMinor: 100,
+      donorCount: 1,
+      giftCount: 1,
+      latestGifts: [{ ...base, giftIconUrl: 'https://i0.hdslb.com/bfs/live/gift.png' }],
+      updatedAt: 1
+    };
+
+    expect(adaptGiftNotifySnapshot(snapshot).latestGifts[0]?.giftIconUrl).toBe(
+      'https://i0.hdslb.com/bfs/live/gift.png'
+    );
+    expect(
+      adaptGiftNotifySnapshot({
+        ...snapshot,
+        latestGifts: [{ ...base, giftIconUrl: null }]
+      }).latestGifts[0]?.giftIconUrl
+    ).toBeNull();
+  });
+
+  it('preserves a missing active captain effect and validates a present payload', () => {
+    const payload: CaptainEffectPayload = {
+      eventId: 'preview-active' as never,
+      audience: {
+        userUid: 'preview-user' as never,
+        username: '用户A',
+        userLevel: null,
+        medal: null,
+        tags: ['captain']
+      },
+      action: 'purchase',
+      level: 'captain',
+      config: captainSnapshot().config,
+      isPreview: true
+    };
+
+    expect(adaptCaptainEffectPayloadOrNull(null)).toBeNull();
+    expect(adaptCaptainEffectPayloadOrNull(payload)).toEqual(payload);
+    expect(() => adaptCaptainEffectPayloadOrNull({ ...payload, action: 'unknown' })).toThrow(
+      MalformedMediaPayloadError
+    );
+  });
+
   it('returns a frozen captain snapshot without sharing nested data', () => {
     const source = captainSnapshot();
     const result = adaptCaptainEffectSnapshot(source);
@@ -35,6 +120,35 @@ describe('media adapters', () => {
     expect(result.config).not.toBe(source.config);
     expect(Object.isFrozen(result)).toBe(true);
     expect(Object.isFrozen(result.presets)).toBe(true);
+  });
+
+  it('rejects captain effect window sizes outside the supported range', () => {
+    expect(() =>
+      adaptCaptainEffectSnapshot({
+        ...captainSnapshot(),
+        config: { ...captainSnapshot().config, windowWidth: 319 }
+      })
+    ).toThrow(MalformedMediaPayloadError);
+    expect(() =>
+      adaptCaptainEffectSnapshot({
+        ...captainSnapshot(),
+        config: { ...captainSnapshot().config, windowHeight: 1081 }
+      })
+    ).toThrow(MalformedMediaPayloadError);
+  });
+
+  it('rejects malformed captain preset colors at the desktop boundary', () => {
+    expect(() =>
+      adaptCaptainEffectSnapshot({
+        ...captainSnapshot(),
+        presets: [
+          {
+            ...captainSnapshot().presets[0],
+            primaryColor: 'gold'
+          }
+        ]
+      })
+    ).toThrow(MalformedMediaPayloadError);
   });
 
   it('rejects malformed nested gift DTOs and keeps room IDs closed', () => {
@@ -51,17 +165,26 @@ describe('media adapters', () => {
       totalValueMinor: 100,
       donorCount: 1,
       giftCount: 1,
-      latestGifts: [{
-        kind: 'gift',
-        eventId: 'event-1' as never,
-        roomId: '' as never,
-        occurredAt: 1,
-        audience: { userUid: '2' as never, username: 'viewer', userLevel: null, medal: null, tags: [] },
-        giftId: 'gift-1' as never,
-        giftName: 'gift',
-        quantity: 1,
-        valueMinor: 100
-      }],
+      latestGifts: [
+        {
+          kind: 'gift',
+          eventId: 'event-1' as never,
+          roomId: '' as never,
+          occurredAt: 1,
+          audience: {
+            userUid: '2' as never,
+            username: 'viewer',
+            userLevel: null,
+            medal: null,
+            tags: []
+          },
+          giftId: 'gift-1' as never,
+          giftName: 'gift',
+          giftIconUrl: null,
+          quantity: 1,
+          valueMinor: 100
+        }
+      ],
       updatedAt: 1
     };
     expect(() => adaptGiftNotifySnapshot(value)).toThrow(MalformedMediaPayloadError);
@@ -77,10 +200,20 @@ describe('media adapters', () => {
         volume: 0.8,
         eventKinds: ['danmu'],
         identityKinds: ['ordinary'],
-        templates: { danmu: '{用户}说：{内容}', gift: '{用户}送出{礼物}×{数量}', captain: '{用户}开通{等级}' }
+        templates: {
+          danmu: '{用户}说：{内容}',
+          gift: '{用户}送出{礼物}×{数量}',
+          captain: '{用户}开通{等级}'
+        }
       },
       voices: [],
-      status: { state: 'idle', currentText: null, pendingCount: 0, activeEngine: 'system', fallbackReasonCode: null },
+      status: {
+        state: 'idle',
+        currentText: null,
+        pendingCount: 0,
+        activeEngine: 'system',
+        fallbackReasonCode: null
+      },
       updatedAt: 1
     } as unknown as TtsSnapshot;
     expect(() => adaptTtsSnapshot(tts)).toThrow(MalformedMediaPayloadError);

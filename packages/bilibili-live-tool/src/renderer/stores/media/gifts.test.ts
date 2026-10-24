@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
-import { invokeDesktop, type GiftNotifySnapshot, type PathGrantId } from '@/platform/desktop';
+import {
+  invokeDesktop,
+  type GiftAlertPayload,
+  type GiftNotifySnapshot,
+  type PathGrantId
+} from '@/platform/desktop';
 import { useMediaGiftsStore } from './gifts';
 
 vi.mock('@/platform/desktop', async () => {
@@ -37,6 +42,38 @@ describe('media gifts store', () => {
     store.replaceNotify({ ...notifySnapshot(), totalValueMinor: Number.NaN });
     expect(store.notifySnapshot?.totalValueMinor).toBe(0);
     expect(store.error?.code).toBe('desktop_transport_error');
+  });
+
+  it('applies the test reminder payload to the local popup state', async () => {
+    const alert: GiftAlertPayload = {
+      event: {
+        kind: 'gift',
+        eventId: 'preview-alert' as never,
+        roomId: '1' as never,
+        occurredAt: 1,
+        audience: {
+          userUid: '0' as never,
+          username: '用户A',
+          userLevel: null,
+          medal: null,
+          tags: []
+        },
+        giftId: 'preview' as never,
+        giftName: '礼物',
+        giftIconUrl: null,
+        quantity: 1,
+        valueMinor: 10_000
+      },
+      popupPosition: 'center',
+      popupDurationSeconds: 5,
+      isPreview: true
+    };
+    vi.mocked(invokeDesktop).mockResolvedValueOnce(alert);
+    const store = useMediaGiftsStore();
+
+    await store.testNotify({ ...notifySnapshot().config, popupPosition: 'center' });
+
+    expect(store.latestAlert).toEqual(alert);
   });
 
   it('deduplicates import and revokes its path grant after failure', async () => {

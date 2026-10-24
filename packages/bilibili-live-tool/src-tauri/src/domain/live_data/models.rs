@@ -143,6 +143,7 @@ pub enum LiveEvent {
         base: LiveEventBase,
         gift_id: String,
         gift_name: String,
+        gift_icon_url: Option<String>,
         quantity: u32,
         value_minor: i64,
     },

@@ -5,11 +5,16 @@ import { describe, expect, it } from 'vitest';
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
 
 describe('member build channel boundary', () => {
-  it('keeps the free channel empty and independent from member stores and routes', () => {
+  it('exposes shared AI routes in both channels without leaking membership into free', () => {
     const free = source('src/renderer/platform/desktop/channel.free.ts');
     const member = source('src/renderer/platform/desktop/channel.member.ts');
-    expect(free).toContain('routes: Object.freeze([])');
-    expect(free).not.toMatch(/useMembershipStore|useMemberRuntime|views\/membership|views\/ai|views\/moderation|\/membership|AI assistant|Membership/);
+    const shared = source('src/renderer/platform/desktop/channel.shared.ts');
+    expect(shared).toMatch(/path:\s*['"]\/ai['"]/);
+    expect(shared).toMatch(/path:\s*['"]\/ai\/log['"]/);
+    expect(free).toContain('routes: aiRoutes');
+    expect(member).toContain('...aiRoutes');
+    expect(free).not.toMatch(/useMembershipStore|useMemberRuntime|views\/membership|views\/moderation|\/membership|Membership/);
+    expect(shared).not.toMatch(/memberCapability|useMembershipStore|useMemberRuntime/);
     expect(member).toContain('item(\'membership\', \'/membership\')');
     expect(member).toContain('navigationMessages');
     expect(member).toMatch(/buildNavigation:\s*\([^)]*common[^)]*\)\s*=>/);

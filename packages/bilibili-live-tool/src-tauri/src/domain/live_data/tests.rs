@@ -38,7 +38,11 @@ fn danmu(event_id: &str, uid: &str, content: &str, occurred_at: i64) -> LiveEven
 fn validates_ids_and_downgrades_invalid_optional_identity_fields() {
     assert_eq!(super::RoomId::parse(" 123 ").unwrap().as_str(), "123");
     assert!(super::RoomId::parse("１２３").is_err());
-    assert!(UserUid::parse("abc").is_err());
+    assert_eq!(UserUid::parse(" open-id ").unwrap().as_str(), "open-id");
+    assert!(UserUid::parse("").is_err());
+    assert!(UserUid::parse("open id").is_err());
+    assert!(UserUid::parse("open\nid").is_err());
+    assert!(UserUid::parse(&"x".repeat(129)).is_err());
 
     let audience = identity("9");
     assert_eq!(audience.user_level, Some(12));
@@ -133,6 +137,7 @@ fn aggregates_each_event_once_and_builds_the_five_metrics() {
         },
         gift_id: "gift-31036".into(),
         gift_name: "gift".into(),
+        gift_icon_url: None,
         quantity: 2,
         value_minor: 300,
     };

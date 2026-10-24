@@ -135,6 +135,7 @@ impl LiveEventSink for TauriLiveEventSink {
                 base,
                 gift_id,
                 gift_name,
+                gift_icon_url,
                 quantity,
                 value_minor,
             } => self.emit(
@@ -147,6 +148,7 @@ impl LiveEventSink for TauriLiveEventSink {
                     audience: audience(&base.audience),
                     gift_id: gift_id.clone(),
                     gift_name: gift_name.clone(),
+                    gift_icon_url: gift_icon_url.clone(),
                     quantity: *quantity,
                     value_minor: *value_minor,
                 },
@@ -232,7 +234,7 @@ pub async fn room_connect(
 ) -> Result<RoomSnapshotDto, DesktopError> {
     state
         .live_data()
-        .connect_room(&request.room_id)
+        .connect_room(&request.identity_code)
         .await
         .map(room_snapshot)
         .map_err(Into::into)

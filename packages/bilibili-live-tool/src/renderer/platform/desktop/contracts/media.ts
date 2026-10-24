@@ -8,11 +8,18 @@ export type CaptainEffectPosition = 'topLeft' | 'topRight' | 'bottomLeft' | 'bot
 export type GiftPopupPosition = CaptainEffectPosition;
 
 export interface SoundBindingSummary { bindingId: string; fileName: string; isMissing: boolean }
-export interface CaptainEffectPreset { presetId: string; displayName: string }
+export interface CaptainEffectPreset {
+  presetId: string;
+  displayName: string;
+  primaryColor: string;
+  secondaryColor: string;
+}
 export interface CaptainEffectConfig {
   presetId: string;
   durationSeconds: 3 | 5 | 8 | 10;
   position: CaptainEffectPosition;
+  windowWidth: number;
+  windowHeight: number;
   primaryColor: string;
   secondaryColor: string;
   firstSound: SoundBindingSummary | null;
@@ -160,7 +167,7 @@ export interface HighlightSummary {
 export interface PreviewSession { sessionId: PreviewSessionId; url: string; expiresAt: number }
 
 export const MEDIA_COMMAND_NAMES = [
-  'captain_effect_get', 'captain_effect_save', 'captain_effect_preview',
+  'captain_effect_get', 'captain_effect_current', 'captain_effect_save', 'captain_effect_preview',
   'gift_notify_get', 'gift_notify_save', 'gift_notify_test',
   'gift_sound_list', 'gift_sound_set', 'gift_sound_remove', 'gift_sound_save',
   'gift_sound_import', 'gift_sound_export', 'sound_preview',
@@ -181,6 +188,7 @@ export type SoundPreviewTarget =
 
 export interface MediaCommandRequestMap {
   captain_effect_get: undefined;
+  captain_effect_current: undefined;
   captain_effect_save: { config: CaptainEffectConfig };
   captain_effect_preview: { config: CaptainEffectConfig };
   gift_notify_get: undefined;
@@ -218,11 +226,12 @@ export interface MediaCommandRequestMap {
 
 export interface MediaCommandResultMap {
   captain_effect_get: CaptainEffectSnapshot;
+  captain_effect_current: CaptainEffectPayload | null;
   captain_effect_save: CaptainEffectSnapshot;
   captain_effect_preview: { queued: boolean };
   gift_notify_get: GiftNotifySnapshot;
   gift_notify_save: GiftNotifySnapshot;
-  gift_notify_test: { triggered: boolean };
+  gift_notify_test: GiftAlertPayload;
   gift_sound_list: GiftSoundSnapshot;
   gift_sound_set: GiftSoundBinding;
   gift_sound_remove: { deleted: boolean };

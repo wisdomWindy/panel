@@ -1,16 +1,11 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import type { AudienceIdentity } from '@/platform/desktop';
 
 defineProps<{ identity: AudienceIdentity; interactive?: boolean }>();
 defineEmits<{ select: [] }>();
 
-const labels = {
-  admin: '房管',
-  governor: '总督',
-  admiral: '提督',
-  captain: '舰长',
-  vip: '老爷'
-} as const;
+const { t } = useI18n();
 </script>
 
 <template>
@@ -31,7 +26,7 @@ const labels = {
                 : 'danger'
         "
       >
-        {{ labels[tag] }}
+        {{ t(`liveData.tags.${tag}`) }}
       </el-tag>
     </div>
     <button

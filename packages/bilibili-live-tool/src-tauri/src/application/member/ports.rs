@@ -68,12 +68,141 @@ pub struct AiConfigRecord {
     pub api_key_ciphertext: Option<Vec<u8>>,
     pub temperature: f64,
     pub max_length: u32,
+    pub max_sentences: u32,
     pub is_sensitive_filter_enabled: bool,
     pub banned_words: Vec<String>,
     pub danmaku_context_count: u32,
     pub asr_context_count: u32,
     pub manual_context_count: u32,
     pub updated_at: i64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AiLogRecord {
+    pub id: i64,
+    pub operation_type: String,
+    pub username: Option<String>,
+    pub user_uid: Option<String>,
+    pub original_content: Option<String>,
+    pub ai_content: Option<String>,
+    pub generation_status: String,
+    pub reject_reason: Option<String>,
+    pub room_id: String,
+    pub created_at: i64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AiModelConnectionState {
+    Untested,
+    Available,
+    Unavailable,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AiReasoningEffort {
+    None,
+    Minimal,
+    Low,
+    Medium,
+    High,
+    XHigh,
+    Max,
+}
+
+impl AiReasoningEffort {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Minimal => "minimal",
+            Self::Low => "low",
+            Self::Medium => "medium",
+            Self::High => "high",
+            Self::XHigh => "xhigh",
+            Self::Max => "max",
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AiModelProfileRecord {
+    pub profile_id: String,
+    pub name: String,
+    pub provider_kind: String,
+    pub base_url: String,
+    pub model: String,
+    pub reasoning_effort: AiReasoningEffort,
+    pub max_tokens: u32,
+    pub timeout_seconds: u32,
+    pub proxy_url: Option<String>,
+    pub is_enabled: bool,
+    pub is_default: bool,
+    pub connection_state: AiModelConnectionState,
+    pub has_api_key: bool,
+    pub updated_at: i64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AiVoiceConfigRecord {
+    pub is_enabled: bool,
+    pub trigger_scope: String,
+    pub keywords: Vec<String>,
+    pub global_cooldown_seconds: u32,
+    pub user_cooldown_seconds: u32,
+    pub queue_capacity: u32,
+    pub is_duplicate_filter_enabled: bool,
+    pub output_device_id: Option<String>,
+    pub voice_id: String,
+    pub volume: f64,
+    pub is_audio_route_confirmed: bool,
+    pub updated_at: i64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AiOutputDeviceRecord {
+    pub device_id: String,
+    pub display_name: String,
+    pub is_available: bool,
+    pub is_default: bool,
+}
+
+pub const DEFAULT_AI_VOICE_ID: &str = "gentle-peach";
+pub const DEFAULT_AI_VOICE_DISPLAY_NAME: &str = "温柔桃子";
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AiVoiceRecord {
+    pub voice_id: String,
+    pub display_name: String,
+    pub is_available: bool,
+    pub is_default: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AiVoiceQueueItemRecord {
+    pub item_id: String,
+    pub text: String,
+    pub priority: u8,
+    pub created_at: i64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AiVoiceQueueState {
+    Idle,
+    Speaking,
+    Paused,
+    Unavailable,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AiVoiceQueueSnapshotRecord {
+    pub state: AiVoiceQueueState,
+    pub current: Option<AiVoiceQueueItemRecord>,
+    pub pending: Vec<AiVoiceQueueItemRecord>,
+    pub capacity: u32,
+    pub volume: f64,
+    pub selected_device_id: Option<String>,
+    pub selected_voice_id: String,
+    pub is_audio_route_confirmed: bool,
+    pub last_error_code: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -119,6 +248,16 @@ pub struct AsrStatusRecord {
     pub error_code: Option<String>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AsrModelRecord {
+    pub model_id: String,
+    pub model_name: String,
+    pub size_bytes: u64,
+    pub license: String,
+    pub source_label: String,
+    pub is_installed: bool,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AsrState {
     Unavailable,
@@ -152,6 +291,7 @@ pub enum ModerationAlertStatus {
 }
 
 pub trait MemberEventSink: Send + Sync {
+    fn publish_asr_transcript(&self, _text: &str) {}
     fn publish_status(&self, snapshot: &crate::domain::member::MemberSnapshot);
     fn publish_ai_generation(&self, generation: &AiGenerationRecord);
     fn publish_asr_status(&self, status: &AsrStatusRecord);
@@ -169,6 +309,12 @@ impl MemberEventSink for NoopMemberEventSink {
 
 #[async_trait::async_trait]
 pub trait MemberRepository: Send + Sync {
+    async fn query_ai_logs(
+        &self,
+        user_uid: Option<&str>,
+        started_at: Option<i64>,
+        ended_at: Option<i64>,
+    ) -> Result<Vec<AiLogRecord>, MemberServiceError>;
     async fn load_account(&self) -> Result<Option<MemberAccount>, MemberServiceError>;
     async fn save_account(&self, account: &MemberAccount) -> Result<(), MemberServiceError>;
     async fn remove_account(&self) -> Result<bool, MemberServiceError>;
@@ -192,6 +338,63 @@ pub trait MemberRepository: Send + Sync {
     async fn upsert_order(&self, order: &OrderRecord) -> Result<(), MemberServiceError>;
     async fn load_ai_config(&self) -> Result<Option<AiConfigRecord>, MemberServiceError>;
     async fn save_ai_config(&self, config: &AiConfigRecord) -> Result<(), MemberServiceError>;
+    async fn list_ai_model_profiles(
+        &self,
+    ) -> Result<Vec<AiModelProfileRecord>, MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_model_storage_unavailable",
+        ))
+    }
+    async fn load_ai_model_profile(
+        &self,
+        _profile_id: &str,
+    ) -> Result<Option<AiModelProfileRecord>, MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_model_storage_unavailable",
+        ))
+    }
+    async fn load_default_ai_model_profile(
+        &self,
+    ) -> Result<Option<AiModelProfileRecord>, MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_model_storage_unavailable",
+        ))
+    }
+    async fn save_ai_model_profile(
+        &self,
+        _profile: &AiModelProfileRecord,
+    ) -> Result<(), MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_model_storage_unavailable",
+        ))
+    }
+    async fn delete_ai_model_profile(&self, _profile_id: &str) -> Result<bool, MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_model_storage_unavailable",
+        ))
+    }
+    async fn set_default_ai_model_profile(
+        &self,
+        _profile_id: &str,
+        _updated_at: i64,
+    ) -> Result<(), MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_model_storage_unavailable",
+        ))
+    }
+    async fn load_ai_voice_config(&self) -> Result<AiVoiceConfigRecord, MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_voice_storage_unavailable",
+        ))
+    }
+    async fn save_ai_voice_config(
+        &self,
+        _config: &AiVoiceConfigRecord,
+    ) -> Result<(), MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_voice_storage_unavailable",
+        ))
+    }
     async fn load_moderation_config(
         &self,
     ) -> Result<Option<ModerationConfigRecord>, MemberServiceError>;
@@ -248,10 +451,95 @@ pub trait ArtifactVerifier: Send + Sync {
 #[async_trait::async_trait]
 pub trait LlmProvider: Send + Sync {
     async fn generate(&self, prompt: &str) -> Result<String, MemberServiceError>;
+    async fn test_profile(
+        &self,
+        _profile: &AiModelProfileRecord,
+        _api_key: Option<&str>,
+    ) -> Result<(), MemberServiceError> {
+        Err(MemberServiceError::unavailable("llm_unavailable"))
+    }
+}
+
+#[async_trait::async_trait]
+pub trait AiSecretStore: Send + Sync {
+    async fn get(&self, profile_id: &str) -> Result<Option<String>, MemberServiceError>;
+    async fn set(&self, profile_id: &str, secret: &str) -> Result<(), MemberServiceError>;
+    async fn delete(&self, profile_id: &str) -> Result<(), MemberServiceError>;
+}
+
+#[async_trait::async_trait]
+pub trait AiSpeechOutput: Send + Sync {
+    async fn devices(&self) -> Result<Vec<AiOutputDeviceRecord>, MemberServiceError>;
+    async fn voices(&self) -> Result<Vec<AiVoiceRecord>, MemberServiceError>;
+    async fn speak(
+        &self,
+        text: &str,
+        device_id: &str,
+        voice_id: &str,
+        volume: f64,
+    ) -> Result<(), MemberServiceError>;
+    async fn stop(&self) -> Result<(), MemberServiceError>;
+}
+
+pub struct UnavailableAiSecretStore;
+
+#[async_trait::async_trait]
+impl AiSecretStore for UnavailableAiSecretStore {
+    async fn get(&self, _profile_id: &str) -> Result<Option<String>, MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_secret_store_unavailable",
+        ))
+    }
+
+    async fn set(&self, _profile_id: &str, _secret: &str) -> Result<(), MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_secret_store_unavailable",
+        ))
+    }
+
+    async fn delete(&self, _profile_id: &str) -> Result<(), MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_secret_store_unavailable",
+        ))
+    }
+}
+
+pub struct UnavailableAiSpeechOutput;
+
+#[async_trait::async_trait]
+impl AiSpeechOutput for UnavailableAiSpeechOutput {
+    async fn devices(&self) -> Result<Vec<AiOutputDeviceRecord>, MemberServiceError> {
+        Err(MemberServiceError::unavailable(
+            "ai_audio_device_unavailable",
+        ))
+    }
+
+    async fn voices(&self) -> Result<Vec<AiVoiceRecord>, MemberServiceError> {
+        Err(MemberServiceError::unavailable("ai_tts_unavailable"))
+    }
+
+    async fn speak(
+        &self,
+        _text: &str,
+        _device_id: &str,
+        _voice_id: &str,
+        _volume: f64,
+    ) -> Result<(), MemberServiceError> {
+        Err(MemberServiceError::unavailable("ai_tts_unavailable"))
+    }
+
+    async fn stop(&self) -> Result<(), MemberServiceError> {
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
 pub trait AsrProvider: Send + Sync {
+    fn runtime_status(&self) -> Option<AsrStatusRecord> {
+        None
+    }
+    async fn list_models(&self) -> Result<Vec<AsrModelRecord>, MemberServiceError>;
+    async fn download_model(&self, model_id: &str) -> Result<AsrModelRecord, MemberServiceError>;
     async fn start(&self) -> Result<(), MemberServiceError>;
     async fn stop(&self) -> Result<(), MemberServiceError>;
 }

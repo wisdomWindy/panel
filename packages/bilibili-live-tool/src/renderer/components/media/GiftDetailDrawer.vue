@@ -1,26 +1,28 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import type { GiftEvent } from '@/platform/desktop';
 import { formatClockTime, formatMoneyMinor } from '@/modules/media/formatters';
 
 defineProps<{
-  modelValue: boolean;
-  gift: GiftEvent | null;
-}>();
+    modelValue: boolean;
+    gift: GiftEvent | null;
+  }>();
 
 defineEmits<{ 'update:modelValue': [value: boolean] }>();
+const { t } = useI18n();
 </script>
 
 <template>
   <el-drawer
     :model-value="modelValue"
-    title="礼物详情"
+    :title="t('gift.detailTitle')"
     size="360px"
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <dl v-if="gift" class="m-0 divide-y divide-gray-200 border-y border-gray-200">
       <div class="grid grid-cols-[88px_minmax(0,1fr)] gap-3 py-3">
         <dt class="text-sm text-gray-500">
-          用户
+          {{ t('gift.user') }}
         </dt>
         <dd class="m-0 break-words text-sm text-gray-900">
           {{ gift.audience.username }}
@@ -28,7 +30,7 @@ defineEmits<{ 'update:modelValue': [value: boolean] }>();
       </div>
       <div class="grid grid-cols-[88px_minmax(0,1fr)] gap-3 py-3">
         <dt class="text-sm text-gray-500">
-          礼物
+          {{ t('tts.events.gift') }}
         </dt>
         <dd class="m-0 break-words text-sm text-gray-900">
           {{ gift.giftName }}
@@ -36,7 +38,7 @@ defineEmits<{ 'update:modelValue': [value: boolean] }>();
       </div>
       <div class="grid grid-cols-[88px_minmax(0,1fr)] gap-3 py-3">
         <dt class="text-sm text-gray-500">
-          数量
+          {{ t('gift.quantity') }}
         </dt>
         <dd class="m-0 text-sm tabular-nums text-gray-900">
           {{ gift.quantity }}
@@ -44,7 +46,7 @@ defineEmits<{ 'update:modelValue': [value: boolean] }>();
       </div>
       <div class="grid grid-cols-[88px_minmax(0,1fr)] gap-3 py-3">
         <dt class="text-sm text-gray-500">
-          价值
+          {{ t('common.value') }}
         </dt>
         <dd class="m-0 text-sm tabular-nums text-gray-900">
           {{ formatMoneyMinor(gift.valueMinor) }}
@@ -52,7 +54,7 @@ defineEmits<{ 'update:modelValue': [value: boolean] }>();
       </div>
       <div class="grid grid-cols-[88px_minmax(0,1fr)] gap-3 py-3">
         <dt class="text-sm text-gray-500">
-          时间
+          {{ t('common.time') }}
         </dt>
         <dd class="m-0 text-sm tabular-nums text-gray-900">
           {{ formatClockTime(gift.occurredAt) }}

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useConfigStore } from '../../stores/config';
 
 const configStore = useConfigStore();
+const { locale, t } = useI18n();
 
 const logContainer = ref<HTMLElement>();
 const filterLevel = ref('');
@@ -10,12 +12,12 @@ const filterKeyword = ref('');
 const autoScroll = ref(true);
 const showHighlights = ref(true);
 
-interface LogEntry {
-  timestamp: number;
-  level: 'debug' | 'info' | 'warn' | 'error';
-  message: string;
-  isHighlight?: boolean;
-}
+  interface LogEntry {
+    timestamp: number;
+    level: 'debug' | 'info' | 'warn' | 'error';
+    message: string;
+    isHighlight?: boolean;
+  }
 
 const logs = ref<LogEntry[]>([]);
 
@@ -39,7 +41,7 @@ const filteredLogs = computed(() => {
 });
 
 function formatTime(timestamp: number) {
-  return new Date(timestamp).toLocaleTimeString('zh-CN', {
+  return new Date(timestamp).toLocaleTimeString(locale.value, {
     hour12: false,
     hour: '2-digit',
     minute: '2-digit',
@@ -93,7 +95,7 @@ function handleScroll() {
 
 function handleClear() {
   logs.value = [];
-  ElMessage.success('已清空日志');
+  ElMessage.success(t('logs.cleared'));
 }
 
 function handleExport() {
@@ -108,13 +110,13 @@ function handleExport() {
   link.download = `bilibili-live-logs-${Date.now()}.txt`;
   link.click();
   URL.revokeObjectURL(url);
-  ElMessage.success('导出成功');
+  ElMessage.success(t('logs.exported'));
 }
 
 function handleMarkHighlight() {
-  addLog('info', '🎬 高光时刻已标记');
+  addLog('info', t('logs.highlightMarked'));
   logs.value[logs.value.length - 1].isHighlight = true;
-  ElMessage.success('高光时刻已标记');
+  ElMessage.success(t('logs.highlightMarked'));
 }
 
 function toggleHighlights() {
@@ -122,11 +124,11 @@ function toggleHighlights() {
 }
 
 onMounted(() => {
-  addLog('info', '日志系统已启动');
+  addLog('info', t('logs.started'));
 });
 
 onUnmounted(() => {
-  addLog('info', '日志系统已停止');
+  addLog('info', t('logs.stopped'));
 });
 </script>
 
@@ -135,14 +137,10 @@ onUnmounted(() => {
     <el-card>
       <template #header>
         <div class="flex justify-between items-center">
-          <span class="font-semibold text-gray-700">日志监控</span>
+          <span class="font-semibold text-gray-700">{{ t('logs.title') }}</span>
           <div class="flex items-center gap-2">
-            <el-select
-              v-model="filterLevel"
-              placeholder="筛选级别"
-              width="120"
-            >
-              <el-option label="全部" value="" />
+            <el-select v-model="filterLevel" :placeholder="t('logs.filterLevel')" width="120">
+              <el-option :label="t('logs.all')" value="" />
               <el-option label="Debug" value="debug" />
               <el-option label="Info" value="info" />
               <el-option label="Warning" value="warn" />
@@ -150,22 +148,22 @@ onUnmounted(() => {
             </el-select>
             <el-input
               v-model="filterKeyword"
-              placeholder="关键词"
+              :placeholder="t('logs.keyword')"
               width="200"
               clearable
             />
-            <el-switch v-model="autoScroll" active-text="自动滚动" />
+            <el-switch v-model="autoScroll" :active-text="t('logs.autoScroll')" />
             <el-button @click="handleClear">
-              清空
+              {{ t('logs.clear') }}
             </el-button>
             <el-button @click="handleMarkHighlight">
-              🎬 打点标记
+              {{ t('logs.markHighlight') }}
             </el-button>
             <el-button :type="showHighlights ? 'primary' : 'default'" @click="toggleHighlights">
-              显示标记
+              {{ t('logs.showHighlights') }}
             </el-button>
             <el-button @click="handleExport">
-              导出
+              {{ t('common.export') }}
             </el-button>
           </div>
         </div>
@@ -209,7 +207,7 @@ onUnmounted(() => {
             {{ log.message }}
           </span>
         </div>
-        <el-empty v-if="filteredLogs.length === 0" description="暂无日志" />
+        <el-empty v-if="filteredLogs.length === 0" :description="t('logs.noLogs')" />
       </div>
     </el-card>
   </div>

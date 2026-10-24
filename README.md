@@ -1,6 +1,6 @@
 # Bilibili 直播助手
 
-基于 Tauri 2、Rust、Vue 3 和 TypeScript 的桌面直播辅助工具。项目已从 Electron/Node 运行时迁移到 Tauri：Rust 负责 SQLite、直播事件、媒体进程、文件权限、插件/更新和系统边界，Vue WebView 只负责界面、状态展示与用户交互。
+基于 Tauri 2、Rust、Vue 3 和 TypeScript 的桌面直播辅助工具。项目已从 Electron/Node 运行时迁移到 Tauri：Rust 负责 SQLite、直播事件、媒体进程、文件权限、更新和系统边界，Vue WebView 只负责界面、状态展示与用户交互。
 
 ## 当前状态
 
@@ -11,12 +11,12 @@
 - 弹幕/礼物数据契约、敏感词、黑名单、统计、排行和导出。
 - 上舰特效、礼物提醒/音效、系统 TTS、本地 FFmpeg 录制与高光管理边界。
 - Tauri Updater 签名校验、GitHub Actions 双通道发布、官方 FFmpeg/Whisper 资产目录。
+- 本地 Whisper CPU 语音识别：下载模型后采集默认麦克风，识别结果显示在 AI 助手页；关闭 ASR 时释放采集资源。
 
 下列成功路径需要额外的生产契约或二进制资源，当前会明确返回 `unavailable` / degraded 状态，不会伪造成功：
 
 - Bilibili 真实直播间传输与需要凭据的开放平台接口。
-- 会员登录/支付/权益校验、LLM、Whisper 模型下载与云端审核服务。
-- 签名 WASM 插件运行时；在 ABI、包和独立验签契约完整前保持不可用。
+- 会员登录/支付/权益校验、LLM 与云端审核服务。
 
 ## 技术栈
 
@@ -64,16 +64,17 @@ Vue View -> Pinia/Runtime -> Desktop Adapter -> Tauri IPC
 
 - Node.js `>=24 <25`
 - pnpm 9
-- Rust stable，项目最低 Rust 版本 `1.77.2`
+- Rust stable，项目最低 Rust 版本 `1.88`（Whisper 绑定要求）
 - 对应平台的 Tauri 2 系统构建依赖
 - Windows 运行需要 WebView2；Windows 构建使用 MSVC 工具链
+- Whisper 原生编译需要 CMake 和 LLVM/libclang；将 `LIBCLANG_PATH` 指向包含 `libclang.dll` 的目录（标准 LLVM 安装通常为 `C:\Program Files\LLVM\bin`）。这些是构建依赖，终端用户无需安装。
 
 Ubuntu 构建与 CI 使用的系统依赖：
 
 ```bash
 sudo apt-get install -y \
   libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
-  patchelf xdg-utils libasound2-dev libspeechd-dev
+  patchelf xdg-utils libasound2-dev libspeechd-dev cmake libclang-dev
 ```
 
 ## 安装与开发

@@ -1,8 +1,4 @@
 import type {
-  AiConfig,
-  AiGeneration,
-  AiLogEntry,
-  AsrStatus,
   AuthQrStatus,
   MemberAccount,
   MemberModule,
@@ -20,24 +16,6 @@ const MEMBER_SHELL_STATES = ['unavailable', 'loggedOut', 'unpaid', 'active', 'ex
 const CAPABILITY_STATES = ['unavailable', 'missingModule', 'ready', 'expired'] as const;
 const MODULE_STATES = ['missing', 'downloading', 'verifying', 'installed', 'failed'] as const;
 const ORDER_STATES = ['pending', 'paid', 'cancelled', 'failed', 'timedOut'] as const;
-const AI_STYLES = ['short', 'humorous', 'formal', 'casual'] as const;
-const GENERATION_STATES = [
-  'assembling',
-  'streaming',
-  'completed',
-  'failed',
-  'rejected',
-  'cancelled'
-] as const;
-const ASR_STATES = [
-  'unavailable',
-  'modelMissing',
-  'downloading',
-  'ready',
-  'starting',
-  'listening',
-  'error'
-] as const;
 const ALERT_STATES = ['pending', 'executing', 'muted', 'ignored', 'failed'] as const;
 const MUTE_DURATIONS = ['10m', '1h', 'permanent'] as const;
 const MODERATION_ACTIONS = ['autoMute', 'manualMute', 'ignore', 'falsePositive'] as const;
@@ -91,11 +69,6 @@ function enumeration<const T extends readonly string[]>(
 
 function nullableInteger(value: unknown, label: string): number | null {
   return value === null ? null : integer(value, label);
-}
-
-function stringArray(value: unknown, label: string): readonly string[] {
-  if (!Array.isArray(value)) throw new TypeError(`${label} must be an array`);
-  return Object.freeze(value.map((item, index) => string(item, `${label}[${index}]`)));
 }
 
 export function adaptMemberAccount(value: unknown): MemberAccount {
@@ -157,7 +130,6 @@ export function adaptMemberStatus(value: unknown): MemberStatus {
           isOfflineValid: boolean(entitlement.isOfflineValid, 'entitlement.isOfflineValid')
         }),
     capabilities: Object.freeze({
-      ai: enumeration(capabilities.ai, CAPABILITY_STATES, 'capabilities.ai'),
       moderation: enumeration(capabilities.moderation, CAPABILITY_STATES, 'capabilities.moderation')
     }),
     serviceErrorCode: nullableString(source.serviceErrorCode, 'serviceErrorCode')
@@ -204,70 +176,6 @@ export function adaptMembershipOrder(value: unknown): MembershipOrder {
 export function adaptMembershipOrders(value: unknown): readonly MembershipOrder[] {
   if (!Array.isArray(value)) throw new TypeError('orders must be an array');
   return Object.freeze(value.map(adaptMembershipOrder));
-}
-
-export function adaptAiConfig(value: unknown): AiConfig {
-  const source = record(value, 'AI config');
-  return Object.freeze({
-    identity: string(source.identity, 'identity', true),
-    speakingStyle: enumeration(source.speakingStyle, AI_STYLES, 'speakingStyle'),
-    systemPrompt: string(source.systemPrompt, 'systemPrompt', true),
-    provider: string(source.provider, 'provider', true),
-    model: string(source.model, 'model', true),
-    temperature: number(source.temperature, 'temperature'),
-    maxLength: integer(source.maxLength, 'maxLength', 1),
-    isSensitiveFilterEnabled: boolean(source.isSensitiveFilterEnabled, 'isSensitiveFilterEnabled'),
-    bannedWords: stringArray(source.bannedWords, 'bannedWords'),
-    danmakuContextCount: integer(source.danmakuContextCount, 'danmakuContextCount'),
-    asrContextCount: integer(source.asrContextCount, 'asrContextCount'),
-    manualContextCount: integer(source.manualContextCount, 'manualContextCount'),
-    isApiKeyConfigured: boolean(source.isApiKeyConfigured, 'isApiKeyConfigured')
-  });
-}
-
-export function adaptAiGeneration(value: unknown): AiGeneration {
-  const source = record(value, 'AI generation');
-  return Object.freeze({
-    generationId: string(source.generationId, 'generationId') as AiGeneration['generationId'],
-    status: enumeration(source.status, GENERATION_STATES, 'status'),
-    result: string(source.result, 'result', true),
-    lastSequence: integer(source.lastSequence, 'lastSequence'),
-    errorCode: nullableString(source.errorCode, 'errorCode')
-  });
-}
-
-export function adaptAiLogEntry(value: unknown): AiLogEntry {
-  const source = record(value, 'AI log entry');
-  return Object.freeze({
-    id: integer(source.id, 'id'),
-    operationType: string(source.operationType, 'operationType'),
-    username: nullableString(source.username, 'username'),
-    userUid: nullableString(source.userUid, 'userUid') as AiLogEntry['userUid'],
-    originalContent: nullableString(source.originalContent, 'originalContent'),
-    aiContent: nullableString(source.aiContent, 'aiContent'),
-    generationStatus: string(source.generationStatus, 'generationStatus'),
-    rejectReason: nullableString(source.rejectReason, 'rejectReason'),
-    roomId: string(source.roomId, 'roomId'),
-    createdAt: integer(source.createdAt, 'createdAt', 1)
-  });
-}
-
-export function adaptAiLogs(value: unknown): readonly AiLogEntry[] {
-  if (!Array.isArray(value)) throw new TypeError('AI logs must be an array');
-  return Object.freeze(value.map(adaptAiLogEntry));
-}
-
-export function adaptAsrStatus(value: unknown): AsrStatus {
-  const source = record(value, 'ASR status');
-  const progressPercent = integer(source.progressPercent, 'progressPercent');
-  if (progressPercent > 100) throw new TypeError('progressPercent is invalid');
-  return Object.freeze({
-    state: enumeration(source.state, ASR_STATES, 'state'),
-    modelName: nullableString(source.modelName, 'modelName'),
-    language: string(source.language, 'language'),
-    progressPercent,
-    errorCode: nullableString(source.errorCode, 'errorCode')
-  });
 }
 
 export function adaptModerationRules(value: unknown): ModerationRules {

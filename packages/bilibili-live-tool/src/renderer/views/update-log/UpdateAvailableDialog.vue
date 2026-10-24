@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { UpdateSnapshot } from '@/platform/desktop';
 import { useI18n } from 'vue-i18n';
 
-defineProps<{ modelValue: boolean; snapshot: UpdateSnapshot; isPending: boolean }>();
+const props = defineProps<{ modelValue: boolean; snapshot: UpdateSnapshot; isPending: boolean }>();
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   download: [];
@@ -10,12 +11,16 @@ const emit = defineEmits<{
   skip: [];
 }>();
 const { t } = useI18n();
+const isForced = computed(() => props.snapshot.candidate?.isForced ?? false);
 </script>
 
 <template>
   <el-dialog
     :model-value="modelValue"
     :title="t('update.availableTitle')"
+    :show-close="!isForced"
+    :close-on-click-modal="!isForced"
+    :close-on-press-escape="!isForced"
     width="min(90vw, 40rem)"
     @update:model-value="emit('update:modelValue', $event)"
   >
@@ -45,10 +50,10 @@ const { t } = useI18n();
     <el-progress v-if="snapshot.progressPercent !== null" class="mt-5" :percentage="snapshot.progressPercent" />
     <template #footer>
       <div class="flex flex-wrap justify-end gap-2">
-        <el-button v-if="!snapshot.candidate?.isForced" :disabled="isPending" @click="emit('update:modelValue', false)">
+        <el-button v-if="!isForced" :disabled="isPending" @click="emit('update:modelValue', false)">
           {{ t('update.later') }}
         </el-button>
-        <el-button v-if="!snapshot.candidate?.isForced" :disabled="isPending" @click="emit('skip')">
+        <el-button v-if="!isForced" :disabled="isPending" @click="emit('skip')">
           {{ t('update.skipVersion') }}
         </el-button>
         <el-button

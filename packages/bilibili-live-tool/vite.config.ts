@@ -1,3 +1,5 @@
+/// <reference types="vitest/config" />
+
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import path from 'path';
@@ -35,6 +37,13 @@ export default defineConfig(({ mode }) => ({
     strictPort: true,
     watch: {
       ignored: ['**/src-tauri/target/**']
+    }
+  },
+  test: {
+    server: {
+      deps: {
+        inline: ['element-plus']
+      }
     }
   },
   root: '.',

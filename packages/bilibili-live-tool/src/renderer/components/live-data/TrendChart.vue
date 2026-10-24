@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { init, use, type ECharts } from 'echarts/core';
 import { LineChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent } from 'echarts/components';
@@ -16,6 +17,7 @@ const props = defineProps<{
     color: string;
   }>();
 const chartRoot = ref<HTMLDivElement | null>(null);
+const { t } = useI18n();
 let chart: ECharts | null = null;
 let observer: ResizeObserver | null = null;
 
@@ -41,15 +43,15 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="border-t border-gray-200 py-4">
-    <h3 class="m-0 mb-2 text-sm font-medium text-gray-700">
+  <section class="border-t border-gray-200 py-4 dark:border-zinc-800">
+    <h3 class="m-0 mb-2 text-sm font-medium text-gray-700 dark:text-zinc-200">
       {{ title }}
     </h3>
     <div
       v-if="points.length === 0"
-      class="flex min-h-[280px] items-center justify-center text-sm text-gray-400"
+      class="flex min-h-[280px] items-center justify-center text-sm text-gray-400 dark:text-zinc-400"
     >
-      暂无数据
+      {{ t('liveData.empty') }}
     </div>
     <div
       v-else

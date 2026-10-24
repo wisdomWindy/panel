@@ -8,6 +8,7 @@ fn gift(id: usize, uid: &str, gift_id: &str, value_minor: i64) -> GiftRecord {
         username: format!("user-{uid}"),
         gift_id: gift_id.into(),
         gift_name: "辣条".into(),
+        gift_icon_url: None,
         quantity: 1,
         value_minor,
         occurred_at: id as i64 * 1_000,
@@ -20,6 +21,8 @@ fn validates_effect_and_gift_configuration_without_clamping() {
         preset_id: "gold".into(),
         duration_seconds: 5,
         position: MediaPosition::TopRight,
+        window_width: 560,
+        window_height: 280,
         primary_color: "#FFD700".into(),
         secondary_color: "#FFA500".into(),
         first_sound: None,
@@ -36,6 +39,30 @@ fn validates_effect_and_gift_configuration_without_clamping() {
     let mut invalid = effect;
     invalid.duration_seconds = 6;
     assert!(validate_captain_effect_config(&invalid).is_err());
+
+    let legacy_json = r##"{
+        "presetId":"gold",
+        "durationSeconds":5,
+        "position":"topRight",
+        "primaryColor":"#FFD700",
+        "secondaryColor":"#FFA500",
+        "firstSound":null,
+        "renewalSound":null,
+        "comboSound":null,
+        "volume":0.7,
+        "comboEnabled":true,
+        "comboWindowSeconds":10
+    }"##;
+    let legacy: CaptainEffectConfig = serde_json::from_str(legacy_json).unwrap();
+    assert_eq!(legacy.window_width, 560);
+    assert_eq!(legacy.window_height, 280);
+
+    let mut invalid_size = legacy;
+    invalid_size.window_width = 319;
+    assert!(validate_captain_effect_config(&invalid_size).is_err());
+    invalid_size.window_width = 560;
+    invalid_size.window_height = 1081;
+    assert!(validate_captain_effect_config(&invalid_size).is_err());
 
     let notify = GiftNotifyConfig {
         is_enabled: true,

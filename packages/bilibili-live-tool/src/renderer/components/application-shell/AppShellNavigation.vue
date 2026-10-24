@@ -2,7 +2,7 @@
 import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
-  Bell, Box, ChatDotRound, Connection, DataAnalysis, MagicStick,
+  Bell, ChatDotRound, Connection, Cpu, DataAnalysis, MagicStick,
   Microphone, Present, Setting, TrendCharts, UserFilled, VideoCamera, Warning
 } from '@element-plus/icons-vue';
 import type { ShellNavigationItem } from '@/modules/application-shell/navigation';
@@ -25,7 +25,7 @@ const icons: Readonly<Record<string, Component>> = {
   giftSound: Present,
   tts: Microphone,
   recording: VideoCamera,
-  plugins: Box,
+  ai: Cpu,
   settings: Setting
 };
 </script>

@@ -15,7 +15,10 @@ export type DataRange =
 
 export type IdentityTag = 'admin' | 'governor' | 'admiral' | 'captain' | 'vip';
 
-export interface FanMedal { name: string; level: number | null }
+export interface FanMedal {
+  name: string;
+  level: number | null;
+}
 export interface AudienceIdentity {
   userUid: UserUid;
   username: string;
@@ -31,11 +34,15 @@ interface LiveEventBase {
   audience: AudienceIdentity;
 }
 
-export interface DanmuEvent extends LiveEventBase { kind: 'danmu'; content: string }
+export interface DanmuEvent extends LiveEventBase {
+  kind: 'danmu';
+  content: string;
+}
 export interface GiftEvent extends LiveEventBase {
   kind: 'gift';
   giftId: GiftId;
   giftName: string;
+  giftIconUrl: string | null;
   quantity: number;
   valueMinor: number;
 }
@@ -45,7 +52,9 @@ export interface CaptainEvent extends LiveEventBase {
   level: 'governor' | 'admiral' | 'captain';
   valueMinor: number;
 }
-export interface EnterEvent extends LiveEventBase { kind: 'enter' }
+export interface EnterEvent extends LiveEventBase {
+  kind: 'enter';
+}
 export type LiveEvent = DanmuEvent | GiftEvent | CaptainEvent | EnterEvent;
 
 export interface RoomSnapshot {
@@ -60,8 +69,17 @@ export interface RoomSnapshot {
 export type SensitiveWordCategory = 'illegal' | 'advertising' | 'personal_attack' | 'custom';
 export type SensitiveMatchType = 'exact' | 'fuzzy';
 export type SensitiveFileFormat = 'csv' | 'json' | 'txt';
-export interface SensitiveWord { id: number; word: string; category: SensitiveWordCategory; matchType: SensitiveMatchType; isEnabled: boolean }
-export interface SensitiveWordSnapshot { items: readonly SensitiveWord[]; todayHitCount: number }
+export interface SensitiveWord {
+  id: number;
+  word: string;
+  category: SensitiveWordCategory;
+  matchType: SensitiveMatchType;
+  isEnabled: boolean;
+}
+export interface SensitiveWordSnapshot {
+  items: readonly SensitiveWord[];
+  todayHitCount: number;
+}
 export interface ImportResult {
   importedCount: number;
   duplicateCount: number;
@@ -69,9 +87,22 @@ export interface ImportResult {
   errors: readonly { line: number; code: string }[];
   isRolledBack: boolean;
 }
-export interface BlacklistEntry { uid: UserUid; username: string; reason: string | null; createdAt: number }
-export interface BlacklistSnapshot { items: readonly BlacklistEntry[]; todayAddedCount: number }
-export interface AudienceDetail { identity: AudienceIdentity; sessionDanmuCount: number; giftValueMinor: number; isBlacklisted: boolean }
+export interface BlacklistEntry {
+  uid: UserUid;
+  username: string;
+  reason: string | null;
+  createdAt: number;
+}
+export interface BlacklistSnapshot {
+  items: readonly BlacklistEntry[];
+  todayAddedCount: number;
+}
+export interface AudienceDetail {
+  identity: AudienceIdentity;
+  sessionDanmuCount: number;
+  giftValueMinor: number;
+  isBlacklisted: boolean;
+}
 export interface StatMetrics {
   onlineCount: number;
   danmuCount: number;
@@ -80,7 +111,9 @@ export interface StatMetrics {
   captainCount: number;
   filteredCount: number;
 }
-export interface StatTrendPoint extends StatMetrics { occurredAt: number }
+export interface StatTrendPoint extends StatMetrics {
+  occurredAt: number;
+}
 export interface StatSnapshot {
   range: DataRange;
   metrics: StatMetrics;
@@ -90,8 +123,22 @@ export interface StatSnapshot {
   isStale: boolean;
 }
 export type RankChange = 'new' | 'up' | 'down' | 'same';
-export interface MoneyRankingEntry { rank: number; userUid: UserUid; username: string; amountMinor: number; previousRank: number | null; change: RankChange }
-export interface DanmuRankingEntry { rank: number; userUid: UserUid; username: string; danmuCount: number; previousRank: number | null; change: RankChange }
+export interface MoneyRankingEntry {
+  rank: number;
+  userUid: UserUid;
+  username: string;
+  amountMinor: number;
+  previousRank: number | null;
+  change: RankChange;
+}
+export interface DanmuRankingEntry {
+  rank: number;
+  userUid: UserUid;
+  username: string;
+  danmuCount: number;
+  previousRank: number | null;
+  change: RankChange;
+}
 export interface RankingSnapshot {
   range: DataRange;
   gift: readonly MoneyRankingEntry[];
@@ -105,27 +152,64 @@ export interface RankingSnapshot {
   isStale: boolean;
 }
 export type ExportType = 'sensitiveWords' | 'blacklist' | 'statistics' | 'rankings';
-export interface ExportResult { exportType: ExportType; displayPath: string; exportedCount: number }
+export interface ExportResult {
+  exportType: ExportType;
+  displayPath: string;
+  exportedCount: number;
+}
 
 export const LIVE_DATA_COMMAND_NAMES = [
-  'room_connect', 'room_disconnect', 'audience_detail_query', 'sensitive_word_list',
-  'sensitive_word_add', 'sensitive_word_update', 'sensitive_word_delete',
-  'sensitive_word_toggle', 'sensitive_word_import', 'sensitive_word_export',
-  'blacklist_list', 'blacklist_add', 'blacklist_remove', 'blacklist_export',
-  'blacklist_import', 'stat_query', 'stat_refresh', 'stat_export', 'rank_query', 'rank_export'
+  'room_connect',
+  'room_disconnect',
+  'audience_detail_query',
+  'sensitive_word_list',
+  'sensitive_word_add',
+  'sensitive_word_update',
+  'sensitive_word_delete',
+  'sensitive_word_toggle',
+  'sensitive_word_import',
+  'sensitive_word_export',
+  'blacklist_list',
+  'blacklist_add',
+  'blacklist_remove',
+  'blacklist_export',
+  'blacklist_import',
+  'stat_query',
+  'stat_refresh',
+  'stat_export',
+  'rank_query',
+  'rank_export'
 ] as const;
 export const LIVE_DATA_EVENT_NAMES = [
-  'room_status_changed', 'danmu_received', 'gift_received', 'captain_received', 'enter_received',
-  'sensitive_word_compile_progress', 'stat_updated', 'rank_updated', 'export_done'
+  'room_status_changed',
+  'danmu_received',
+  'gift_received',
+  'captain_received',
+  'enter_received',
+  'sensitive_word_compile_progress',
+  'stat_updated',
+  'rank_updated',
+  'export_done'
 ] as const;
 
 export interface LiveDataCommandRequestMap {
-  room_connect: { roomId: RoomId };
+  room_connect: { identityCode: string };
   room_disconnect: undefined;
   audience_detail_query: { roomId: RoomId; userUid: UserUid };
   sensitive_word_list: { category?: SensitiveWordCategory; search?: string };
-  sensitive_word_add: { word: string; category: SensitiveWordCategory; matchType: SensitiveMatchType; isEnabled: boolean };
-  sensitive_word_update: { id: number; word: string; category: SensitiveWordCategory; matchType: SensitiveMatchType; isEnabled: boolean };
+  sensitive_word_add: {
+    word: string;
+    category: SensitiveWordCategory;
+    matchType: SensitiveMatchType;
+    isEnabled: boolean;
+  };
+  sensitive_word_update: {
+    id: number;
+    word: string;
+    category: SensitiveWordCategory;
+    matchType: SensitiveMatchType;
+    isEnabled: boolean;
+  };
   sensitive_word_delete: { id: number };
   sensitive_word_toggle: { id: number; isEnabled: boolean };
   sensitive_word_import: { grantId: PathGrantId; format: SensitiveFileFormat };
@@ -166,7 +250,12 @@ export interface LiveDataCommandResultMap {
 }
 
 export interface LiveDataEventPayloadMap {
-  room_status_changed: { status: ConnectionStatus; roomId: RoomId | null; attempt: number; errorCode: string | null };
+  room_status_changed: {
+    status: ConnectionStatus;
+    roomId: RoomId | null;
+    attempt: number;
+    errorCode: string | null;
+  };
   danmu_received: DanmuEvent;
   gift_received: GiftEvent;
   captain_received: CaptainEvent;

@@ -102,6 +102,7 @@ impl GiftMediaRuntime {
             base,
             gift_id,
             gift_name,
+            gift_icon_url,
             quantity,
             value_minor,
         } = event
@@ -115,6 +116,7 @@ impl GiftMediaRuntime {
             username: base.audience.username.clone(),
             gift_id: gift_id.clone(),
             gift_name: gift_name.clone(),
+            gift_icon_url: gift_icon_url.clone(),
             quantity: *quantity,
             value_minor: *value_minor,
             occurred_at: base.occurred_at,
@@ -146,29 +148,32 @@ impl GiftMediaRuntime {
         self.wake.notify_one();
     }
 
-    pub async fn preview(&self, config: GiftNotifyConfig, event_id: String) {
+    pub async fn preview(&self, config: GiftNotifyConfig, event_id: String) -> GiftRecord {
+        let gift = GiftRecord {
+            event_id,
+            room_id: "1".into(),
+            user_uid: "0".into(),
+            username: "用户A".into(),
+            gift_id: "preview".into(),
+            gift_name: "礼物".into(),
+            gift_icon_url: None,
+            quantity: 1,
+            value_minor: config.high_value_threshold_minor,
+            occurred_at: 1,
+        };
         let mut state = self.state.lock().await;
         if state.pending.len() >= GIFT_WORK_QUEUE_CAPACITY {
             state.pending.pop_front();
             state.snapshot.dropped_count += 1;
         }
         state.pending.push_back(GiftWorkItem {
-            gift: GiftRecord {
-                event_id,
-                room_id: "1".into(),
-                user_uid: "0".into(),
-                username: "用户A".into(),
-                gift_id: "preview".into(),
-                gift_name: "礼物".into(),
-                quantity: 1,
-                value_minor: config.high_value_threshold_minor,
-                occurred_at: 1,
-            },
+            gift: gift.clone(),
             config_override: Some(config),
         });
         state.snapshot.pending_count = state.pending.len();
         drop(state);
         self.wake.notify_one();
+        gift
     }
 
     pub async fn snapshot(&self) -> GiftRuntimeSnapshot {
@@ -242,8 +247,12 @@ impl GiftWorker {
                 let notification_failed = if config.methods.system_notification {
                     self.notifications
                         .show(NotificationRequest {
-                            title: gift.username.clone(),
-                            body: format!("{} x{}", gift.gift_name, gift.quantity),
+                            title: "礼物提醒".into(),
+                            body: format!(
+                                "{} 送出 {} ×{}",
+                                gift.username, gift.gift_name, gift.quantity
+                            ),
+                            image_url: gift.gift_icon_url.clone(),
                         })
                         .await
                         .is_err()
@@ -258,22 +267,52 @@ impl GiftWorker {
                     }
                 }
             }
-            let binding = if config.methods.sound {
-                self.bindings.read().await.get(&gift.gift_id).cloned()
-            } else {
-                None
-            };
-            if let Some(binding) = binding.filter(|binding| binding.is_enabled) {
-                if let Some(source) = binding.sound_path {
-                    let volume =
-                        (binding.volume * self.sound_policy.read().await.global_volume).min(1.0);
-                    if let Ok(playback) = self.audio.play(AudioRequest { source, volume }).await {
-                        while !playback.is_finished() && !*shutdown.borrow() {
-                            tokio::time::sleep(Duration::from_millis(20)).await;
+            if config.methods.sound {
+                let global_volume = self.sound_policy.read().await.global_volume;
+                let binding = self.bindings.read().await.get(&gift.gift_id).cloned();
+                let playback = if let Some(binding) = binding.filter(|binding| binding.is_enabled) {
+                    if let Some(source) = binding.sound_path {
+                        let volume = (binding.volume * global_volume).min(1.0);
+                        match self.audio.play(AudioRequest { source, volume }).await {
+                            Ok(playback) => Some(playback),
+                            Err(error) => {
+                                log::warn!("gift sound binding is degraded: {}", error.code);
+                                self.audio
+                                    .play_alert(global_volume)
+                                    .await
+                                    .map_err(|error| {
+                                        log::warn!(
+                                            "default gift alert sound is degraded: {}",
+                                            error.code
+                                        )
+                                    })
+                                    .ok()
+                            }
                         }
-                        if *shutdown.borrow() {
-                            playback.stop();
-                        }
+                    } else {
+                        self.audio
+                            .play_alert(global_volume)
+                            .await
+                            .map_err(|error| {
+                                log::warn!("default gift alert sound is degraded: {}", error.code)
+                            })
+                            .ok()
+                    }
+                } else {
+                    self.audio
+                        .play_alert(global_volume)
+                        .await
+                        .map_err(|error| {
+                            log::warn!("default gift alert sound is degraded: {}", error.code)
+                        })
+                        .ok()
+                };
+                if let Some(playback) = playback {
+                    while !playback.is_finished() && !*shutdown.borrow() {
+                        tokio::time::sleep(Duration::from_millis(20)).await;
+                    }
+                    if *shutdown.borrow() {
+                        playback.stop();
                     }
                 }
             }

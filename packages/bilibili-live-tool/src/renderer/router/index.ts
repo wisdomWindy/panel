@@ -14,97 +14,91 @@ const routes: RouteRecordRaw[] = [
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('@/views/dashboard/index.vue'),
-    meta: { title: '仪表盘' }
+    meta: { titleKey: 'dashboard.title' }
   },
   {
     path: '/rankings',
     name: 'Rankings',
     component: () => import('@/views/rankings/index.vue'),
-    meta: { title: '排行榜' }
+    meta: { titleKey: 'rankings.title' }
   },
   {
     path: '/connection',
     name: 'Connection',
     component: () => import('@/views/connection/index.vue'),
-    meta: { title: '连接配置' }
+    meta: { titleKey: 'connection.title' }
   },
   {
     path: '/danmaku-list',
     name: 'DanmakuList',
     component: () => import('@/views/danmaku-list/index.vue'),
-    meta: { title: '弹幕列表' }
+    meta: { titleKey: 'danmakuPanel.title' }
   },
   {
     path: '/gift-list',
     name: 'GiftList',
     component: () => import('@/views/gift-list/index.vue'),
-    meta: { title: '礼物列表' }
+    meta: { titleKey: 'gift.title' }
   },
   {
     path: '/settings',
     name: 'Settings',
     component: () => import('@/views/settings/index.vue'),
-    meta: { title: '设置' }
+    meta: { titleKey: 'settings.title' }
   },
   {
     path: '/logs',
     name: 'Logs',
     component: () => import('@/views/logs/index.vue'),
-    meta: { title: '日志监控' }
+    meta: { titleKey: 'logs.title' }
   },
   {
     path: '/sensitive-words',
     name: 'SensitiveWords',
     component: () => import('@/views/sensitive-words/index.vue'),
-    meta: { title: '敏感词管理' }
+    meta: { titleKey: 'sensitiveWords.title' }
   },
   {
     path: '/blacklist',
     name: 'Blacklist',
     component: () => import('@/views/blacklist/index.vue'),
-    meta: { title: '黑名单管理' }
+    meta: { titleKey: 'blacklist.title' }
   },
   {
     path: '/captain-effect',
     name: 'CaptainEffect',
     component: () => import('@/views/captain-effect/index.vue'),
-    meta: { title: '上舰特效' }
+    meta: { titleKey: 'captainEffect.title' }
   },
   {
     path: '/gift-reminder',
     name: 'GiftReminder',
     component: () => import('@/views/gift-reminder/index.vue'),
-    meta: { title: '礼物提醒' }
+    meta: { titleKey: 'giftReminder.title' }
   },
   {
     path: '/update-log',
     name: 'UpdateLog',
     component: () => import('@/views/update-log/index.vue'),
-    meta: { title: '更新日志' }
-  },
-  {
-    path: '/plugins',
-    name: 'PluginManager',
-    component: () => import('@/views/plugin-manager/index.vue'),
-    meta: { title: '插件管理' }
+    meta: { titleKey: 'update.title' }
   },
   {
     path: '/tts',
     name: 'Tts',
     component: () => import('@/views/tts/index.vue'),
-    meta: { title: '语音播报' }
+    meta: { titleKey: 'tts.title' }
   },
   {
     path: '/recording',
     name: 'Recording',
     component: () => import('@/views/recording/index.vue'),
-    meta: { title: '录制管理' }
+    meta: { titleKey: 'recording.title' }
   },
   {
     path: '/gift-sound',
     name: 'GiftSound',
     component: () => import('@/views/gift-sound/index.vue'),
-    meta: { title: '礼物音效配置' }
+    meta: { titleKey: 'giftSound.title' }
   },
   ...memberChannel.routes
 ];
@@ -116,10 +110,6 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, _from, next) => {
-  // 设置页面标题
-  if (to.meta.title) {
-    document.title = `${to.meta.title} - biliLiveHelper`;
-  }
   if (!memberChannel.canAccess(to.path)) {
     next(memberChannel.deniedRoute);
     return;

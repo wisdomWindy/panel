@@ -151,6 +151,7 @@ pub const LIVE_DATA_EVENT_NAMES: &[&str] = &[
 
 pub const MEDIA_COMMAND_NAMES: &[&str] = &[
     "captain_effect_get",
+    "captain_effect_current",
     "captain_effect_save",
     "captain_effect_preview",
     "gift_notify_get",
@@ -279,6 +280,7 @@ pub struct GiftEventDto {
     pub audience: AudienceIdentityDto,
     pub gift_id: String,
     pub gift_name: String,
+    pub gift_icon_url: Option<String>,
     pub quantity: u32,
     pub value_minor: i64,
 }
@@ -399,6 +401,8 @@ pub struct CaptainEffectConfigDto {
     pub preset_id: String,
     pub duration_seconds: u8,
     pub position: MediaPositionDto,
+    pub window_width: u32,
+    pub window_height: u32,
     pub primary_color: String,
     pub secondary_color: String,
     pub first_sound: Option<SoundBindingSummaryDto>,
@@ -534,6 +538,8 @@ pub struct RecordingStatusDto {
 pub struct CaptainEffectPresetDto {
     pub preset_id: String,
     pub display_name: String,
+    pub primary_color: String,
+    pub secondary_color: String,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -1031,7 +1037,7 @@ pub struct ExportResultDto {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct RoomConnectRequestDto {
-    pub room_id: String,
+    pub identity_code: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]

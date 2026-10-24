@@ -15,6 +15,7 @@ export function createApplicationShellRuntime(
   let unlisteners: Unlisten[] = [];
   let timer: ReturnType<typeof setInterval> | null = null;
   let stopProjectionWatches: Array<() => void> = [];
+  let stopSystemThemeListener: (() => void) | null = null;
   let pending: Promise<void> | null = null;
 
   async function startGeneration(localGeneration: number): Promise<void> {
@@ -40,6 +41,16 @@ export function createApplicationShellRuntime(
       if (failed) throw failed.reason;
       return;
     }
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      if (typeof mediaQuery.addEventListener === 'function') {
+        const handleSystemThemeChange = () => {
+          if (store.previewUi?.theme === 'system') applyUiProjection(store.previewUi);
+        };
+        mediaQuery.addEventListener('change', handleSystemThemeChange);
+        stopSystemThemeListener = () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
+      }
+    }
     unlisteners = completed;
     timer = setInterval(() => { void store.refreshMetrics(); }, 1_000);
     active = true;
@@ -61,6 +72,8 @@ export function createApplicationShellRuntime(
     active = false;
     unlisteners.splice(0).forEach(unlisten => unlisten());
     stopProjectionWatches.splice(0).forEach(stopWatch => stopWatch());
+    stopSystemThemeListener?.();
+    stopSystemThemeListener = null;
     if (timer) clearInterval(timer);
     timer = null;
     store.dispose();

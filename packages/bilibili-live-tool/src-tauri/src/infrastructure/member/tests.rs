@@ -1,8 +1,55 @@
 use ed25519_dalek::{Signer, SigningKey};
 
+#[tokio::test]
+async fn ai_logs_are_queryable_without_membership_and_filter_by_uid_and_time() {
+    let directory = tempfile::tempdir().unwrap();
+    let pool = open_database(&directory.path().join("logs.db"))
+        .await
+        .unwrap();
+    let repository = SqliteMemberRepository::new(pool.clone());
+    assert!(repository
+        .query_ai_logs(None, None, None)
+        .await
+        .unwrap()
+        .is_empty());
+    for (uid, time) in [
+        ("123", "2026-01-01 00:00:00"),
+        ("456", "2026-01-02 00:00:00"),
+    ] {
+        sqlx::query("INSERT INTO t_ai_log (operation_type, user_uid, generation_status, room_id, create_time) VALUES ('reply', ?, 'completed', '1', ?)")
+            .bind(uid).bind(time).execute(&pool).await.unwrap();
+    }
+    let logs = repository.query_ai_logs(None, None, None).await.unwrap();
+    assert_eq!(logs.len(), 2);
+    assert_eq!(logs[0].user_uid.as_deref(), Some("456"));
+    assert_eq!(logs[0].created_at, 1767312000000);
+    assert_eq!(
+        repository
+            .query_ai_logs(Some("123"), None, None)
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        repository
+            .query_ai_logs(None, Some(1767312000000), Some(1767312000000))
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
+    assert!(repository
+        .query_ai_logs(Some("789"), None, None)
+        .await
+        .unwrap()
+        .is_empty());
+}
+
 use crate::{
     application::member::{
-        AiConfigRecord, ArtifactVerifier, AuthProvider, EntitlementVerifier, LlmProvider,
+        AiConfigRecord, AiModelConnectionState, AiModelProfileRecord, AiReasoningEffort,
+        ArtifactVerifier, AsrProvider, AuthProvider, EntitlementVerifier, LlmProvider,
         MemberRepository, ModerationConfigRecord, ModerationProvider, OrderRecord, OrderStatus,
         StoredEntitlement,
     },
@@ -165,6 +212,7 @@ async fn repository_round_trips_member_records_without_plaintext_secrets() {
         api_key_ciphertext: Some(vec![9, 8, 7]),
         temperature: 0.7,
         max_length: 100,
+        max_sentences: 2,
         is_sensitive_filter_enabled: true,
         banned_words: vec!["敏感".to_owned()],
         danmaku_context_count: 20,
@@ -174,6 +222,52 @@ async fn repository_round_trips_member_records_without_plaintext_secrets() {
     };
     repository.save_ai_config(&ai_config).await.unwrap();
     assert_eq!(repository.load_ai_config().await.unwrap(), Some(ai_config));
+
+    let profile = AiModelProfileRecord {
+        profile_id: "00000000-0000-4000-8000-000000000001".to_owned(),
+        name: "Local model".to_owned(),
+        provider_kind: "local".to_owned(),
+        base_url: "http://127.0.0.1:11434/v1".to_owned(),
+        model: "qwen".to_owned(),
+        reasoning_effort: AiReasoningEffort::Medium,
+        max_tokens: 512,
+        timeout_seconds: 30,
+        proxy_url: None,
+        is_enabled: true,
+        is_default: false,
+        connection_state: AiModelConnectionState::Untested,
+        has_api_key: false,
+        updated_at: 13_000,
+    };
+    repository.save_ai_model_profile(&profile).await.unwrap();
+    repository
+        .set_default_ai_model_profile(&profile.profile_id, 14_000)
+        .await
+        .unwrap();
+    let default = repository
+        .load_default_ai_model_profile()
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(default.profile_id, profile.profile_id);
+    assert!(default.is_default);
+
+    let voice = repository.load_ai_voice_config().await.unwrap();
+    assert!(!voice.is_enabled);
+    assert_eq!(voice.trigger_scope, "questions");
+    assert_eq!(voice.queue_capacity, 20);
+    assert_eq!(voice.voice_id, "gentle-peach");
+    let mut updated_voice = voice.clone();
+    updated_voice.voice_id = "system-voice-2".to_owned();
+    updated_voice.updated_at += 1;
+    repository
+        .save_ai_voice_config(&updated_voice)
+        .await
+        .unwrap();
+    assert_eq!(
+        repository.load_ai_voice_config().await.unwrap().voice_id,
+        "system-voice-2"
+    );
 
     let moderation = ModerationConfigRecord {
         is_auto_enabled: false,
@@ -255,5 +349,53 @@ async fn unavailable_adapters_return_stable_redacted_errors() {
             .unwrap_err()
             .code,
         "moderation_api_unavailable"
+    );
+}
+
+#[tokio::test]
+async fn whisper_asr_catalog_is_closed_and_reports_installed_models() {
+    let directory = tempfile::tempdir().unwrap();
+    let provider = super::WhisperAsrProvider::new(directory.path().to_path_buf());
+
+    let models = provider.list_models().await.unwrap();
+    assert_eq!(
+        models
+            .iter()
+            .map(|model| model.model_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["tiny", "base", "small"]
+    );
+    assert!(models.iter().all(|model| !model.is_installed));
+
+    let partial = directory.path().join("ggml-tiny.bin.part");
+    tokio::fs::File::create(&partial)
+        .await
+        .unwrap()
+        .set_len(77_691_713)
+        .await
+        .unwrap();
+    assert!(!provider.list_models().await.unwrap()[0].is_installed);
+
+    let installed = directory.path().join("ggml-tiny.bin");
+    tokio::fs::File::create(&installed)
+        .await
+        .unwrap()
+        .set_len(77_691_713)
+        .await
+        .unwrap();
+    tokio::fs::write(
+        directory.path().join("ggml-tiny.bin.sha1"),
+        "bd577a113a864445d4c299885e0cb97d4ba92b5f",
+    )
+    .await
+    .unwrap();
+    assert!(provider.list_models().await.unwrap()[0].is_installed);
+    assert_eq!(
+        provider
+            .download_model("../unknown")
+            .await
+            .unwrap_err()
+            .code,
+        "asr_model_unknown"
     );
 }

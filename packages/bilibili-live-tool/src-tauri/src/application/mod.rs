@@ -2,7 +2,6 @@ pub mod bootstrap;
 pub mod config;
 pub mod live_data;
 pub mod media;
-#[cfg(feature = "member")]
 pub mod member;
 pub mod paths;
 pub mod ports;

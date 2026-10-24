@@ -4,6 +4,7 @@ import type { ShellNavigationItem } from '@/modules/application-shell/navigation
 import { useMemberRuntime } from '@/composables/useMemberRuntime';
 import { useMembershipStore } from '@/stores/membership';
 import MemberToolbarControl from '@/components/member/MemberToolbarControl.vue';
+import { aiNavigationMessages, aiRoutes } from './channel.shared';
 
 const item = (id: string, route: string, isDisabled = false): ShellNavigationItem => ({
   id,
@@ -14,23 +15,12 @@ const item = (id: string, route: string, isDisabled = false): ShellNavigationIte
 
 export const memberChannel: MemberChannel = Object.freeze({
   routes: Object.freeze([
+    ...aiRoutes,
     {
       path: '/membership',
       name: 'Membership',
       component: () => import('@/views/membership/index.vue'),
       meta: { title: '会员中心' }
-    },
-    {
-      path: '/ai',
-      name: 'AiAssistant',
-      component: () => import('@/views/ai/index.vue'),
-      meta: { title: 'AI 助手', memberCapability: 'ai' }
-    },
-    {
-      path: '/ai/log',
-      name: 'AiLog',
-      component: () => import('@/views/ai/log.vue'),
-      meta: { title: 'AI 记录', memberCapability: 'ai' }
     },
     {
       path: '/moderation',
@@ -47,13 +37,12 @@ export const memberChannel: MemberChannel = Object.freeze({
   ]),
   toolbarComponent: MemberToolbarControl,
   navigationMessages: Object.freeze({
-    'zh-CN': Object.freeze({ moderation: '禁言防护', ai: 'AI 助手', membership: '会员中心' }),
-    'en-US': Object.freeze({ moderation: 'Moderation', ai: 'AI assistant', membership: 'Membership' })
+    'zh-CN': Object.freeze({ ...aiNavigationMessages['zh-CN'], moderation: '禁言防护', membership: '会员中心' }),
+    'en-US': Object.freeze({ ...aiNavigationMessages['en-US'], moderation: 'Moderation', membership: 'Membership' })
   }),
   deniedRoute: '/membership',
   buildNavigation: (common: readonly ShellNavigationItem[]) => {
     const status = useMembershipStore().status;
-    const hasAi = status.capabilities.ai === 'ready' || status.capabilities.ai === 'expired';
     const hasModeration = status.capabilities.moderation === 'ready' || status.capabilities.moderation === 'expired';
     const isExpired = status.shellState === 'expired';
     const risk = common.find(entry => entry.id === 'risk');
@@ -68,7 +57,6 @@ export const memberChannel: MemberChannel = Object.freeze({
       : entry);
     return Object.freeze([
       ...withRisk.slice(0, -1),
-      ...(hasAi ? [item('ai', '/ai', isExpired)] : []),
       item('membership', '/membership'),
       withRisk.at(-1) as ShellNavigationItem
     ]);
@@ -77,7 +65,6 @@ export const memberChannel: MemberChannel = Object.freeze({
   canAccess: (path: string) => {
     const status = useMembershipStore().status;
     if (path === '/membership') return true;
-    if (path === '/ai' || path.startsWith('/ai/')) return status.capabilities.ai === 'ready';
     if (path === '/moderation' || path.startsWith('/moderation/')) {
       return status.capabilities.moderation === 'ready';
     }

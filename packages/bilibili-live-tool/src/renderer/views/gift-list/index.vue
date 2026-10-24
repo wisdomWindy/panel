@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Delete } from '@element-plus/icons-vue';
 import { useLiveFeedStore } from '@/stores/live-data/feed';
 import { formatMoneyMinor, formatTimestamp } from '@/modules/live-data/formatters';
 
 const feed = useLiveFeedStore();
+const { t } = useI18n();
 const gifts = computed(() => feed.gifts);
 const totalValueMinor = computed(() =>
   gifts.value.reduce((sum, gift) => sum + gift.valueMinor, 0)
@@ -15,13 +17,13 @@ const highestValueMinor = computed(() =>
 
 async function clearGifts(): Promise<void> {
   try {
-    await ElMessageBox.confirm('清空后仅移除当前会话中的礼物记录，是否继续？', '清空礼物记录', {
-      confirmButtonText: '清空',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('gift.clearConfirm'), t('gift.clearTitle'), {
+      confirmButtonText: t('logs.clear'),
+      cancelButtonText: t('common.cancel'),
       type: 'warning'
     });
     feed.clearKind('gift');
-    ElMessage.success('礼物记录已清空');
+    ElMessage.success(t('gift.cleared'));
   } catch {
     // Cancellation does not need user feedback.
   }
@@ -33,28 +35,28 @@ async function clearGifts(): Promise<void> {
     <header class="mb-5 flex items-start justify-between gap-4">
       <div>
         <h2 class="m-0 text-[22px] text-gray-800">
-          礼物列表
+          {{ t('gift.title') }}
         </h2>
         <p class="mb-0 mt-1.5 text-[13px] text-gray-500">
-          当前直播会话中由 Rust 接收并通过风控的礼物事件
+          {{ t('gift.description') }}
         </p>
       </div>
       <el-button :icon="Delete" :disabled="gifts.length === 0" @click="clearGifts">
-        清空
+        {{ t('logs.clear') }}
       </el-button>
     </header>
 
     <div class="mb-4 grid grid-cols-3 border-y border-gray-200">
       <div class="flex flex-col gap-1.5 px-[18px] py-3.5">
-        <span class="text-xs text-gray-500">礼物事件</span>
+        <span class="text-xs text-gray-500">{{ t('gift.events') }}</span>
         <strong class="text-xl text-gray-900">{{ gifts.length }}</strong>
       </div>
       <div class="flex flex-col gap-1.5 border-l border-gray-200 px-[18px] py-3.5">
-        <span class="text-xs text-gray-500">总价值</span>
+        <span class="text-xs text-gray-500">{{ t('dashboard.totalValue') }}</span>
         <strong class="text-xl text-gray-900">{{ formatMoneyMinor(totalValueMinor) }}</strong>
       </div>
       <div class="flex flex-col gap-1.5 border-l border-gray-200 px-[18px] py-3.5">
-        <span class="text-xs text-gray-500">单次最高</span>
+        <span class="text-xs text-gray-500">{{ t('gift.highestValue') }}</span>
         <strong class="text-xl text-gray-900">{{ formatMoneyMinor(highestValueMinor) }}</strong>
       </div>
     </div>
@@ -65,32 +67,32 @@ async function clearGifts(): Promise<void> {
       row-key="eventId"
       height="calc(100vh - 292px)"
     >
-      <el-table-column prop="occurredAt" label="时间" width="110">
+      <el-table-column prop="occurredAt" :label="t('common.time')" width="110">
         <template #default="{ row }">
           {{ formatTimestamp(row.occurredAt) }}
         </template>
       </el-table-column>
       <el-table-column
         prop="audience.username"
-        label="用户"
+        :label="t('gift.user')"
         min-width="160"
         show-overflow-tooltip
       />
       <el-table-column
         prop="giftName"
-        label="礼物"
+        :label="t('tts.events.gift')"
         min-width="150"
         show-overflow-tooltip
       />
       <el-table-column
         prop="quantity"
-        label="数量"
+        :label="t('gift.quantity')"
         width="90"
         align="right"
       />
       <el-table-column
         prop="valueMinor"
-        label="价值"
+        :label="t('common.value')"
         width="130"
         align="right"
       >
@@ -99,10 +101,10 @@ async function clearGifts(): Promise<void> {
         </template>
       </el-table-column>
     </el-table>
-    <el-empty v-else description="当前会话暂无礼物记录" />
+    <el-empty v-else :description="t('gift.empty')" />
 
     <footer class="pt-3 text-right text-xs text-gray-500">
-      共 {{ gifts.length }} 条礼物事件
+      {{ t('gift.footer', { count: gifts.length }) }}
     </footer>
   </section>
 </template>

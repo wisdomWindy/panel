@@ -3,12 +3,13 @@ import { computed, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import type { FourRegionLayout, UiPreferences } from '@/platform/desktop';
+import { cloneUiPreferences } from '@/modules/application-shell/adapters';
 import { useApplicationShellStore } from '@/stores/application-shell';
 import LayoutEditorDialog from './LayoutEditorDialog.vue';
 
 const defaultUi = (): UiPreferences => ({
-  theme: 'dark',
-  accentColor: '#FF6699',
+  theme: 'system',
+  accentColor: '#FB7299',
   opacity: 0.95,
   fontSize: 'medium',
   layoutMode: 'default',
@@ -37,7 +38,7 @@ const isPending = computed(() =>
 watch(
   () => shell.savedUi,
   value => {
-    if (value) draft.value = structuredClone(value);
+    if (value) draft.value = cloneUiPreferences(value);
   },
   { immediate: true }
 );
@@ -45,9 +46,9 @@ watch(
 async function preview(): Promise<void> {
   if (!shell.savedUi) return;
   try {
-    await shell.previewPreferences(structuredClone(draft.value));
+    await shell.previewPreferences(cloneUiPreferences(draft.value));
   } catch {
-    if (shell.savedUi) draft.value = structuredClone(shell.savedUi);
+    if (shell.savedUi) draft.value = cloneUiPreferences(shell.savedUi);
     ElMessage.error(t('settings.feedback.operationFailed'));
   }
 }
@@ -68,10 +69,10 @@ function saveLayout(value: FourRegionLayout): void {
 
 async function save(): Promise<void> {
   try {
-    await shell.saveUi(structuredClone(draft.value));
+    await shell.saveUi(cloneUiPreferences(draft.value));
     ElMessage.success(t('settings.feedback.saved'));
   } catch {
-    if (shell.savedUi) draft.value = structuredClone(shell.savedUi);
+    if (shell.savedUi) draft.value = cloneUiPreferences(shell.savedUi);
     ElMessage.error(t('settings.feedback.operationFailed'));
   }
 }
@@ -79,7 +80,7 @@ async function save(): Promise<void> {
 async function reset(): Promise<void> {
   try {
     const value = await shell.resetUi();
-    draft.value = structuredClone(value);
+    draft.value = cloneUiPreferences(value);
     ElMessage.success(t('settings.feedback.reset'));
   } catch {
     ElMessage.error(t('settings.feedback.operationFailed'));

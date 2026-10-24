@@ -1,0 +1,58 @@
+{
+  "request_id": "bilibili-open-live-websocket",
+  "source": {
+    "type": "direct-user-request-with-local-protocol-docs",
+    "paths": [
+      "description-doc/哔哩哔哩直播开放文档 (3).md",
+      "description-doc/哔哩哔哩直播开放文档 (4).md",
+      "description-doc/哔哩哔哩直播开放文档 (6).md",
+      "description-doc/哔哩哔哩直播开放文档 (7).md"
+    ]
+  },
+  "stage": "complete",
+  "status": "completed",
+  "artifacts": {
+    "request": "request.md",
+    "prd_snapshot": "artifacts/prd-snapshot.md",
+    "requirement_analysis": "requirements/requirement-analysis.md",
+    "requirement_map": "requirements/requirement-map.md",
+    "module_requirement": "requirements/modules/open-live-session.md",
+    "architecture_design": "modules/open-live-session/design/architecture-design.md",
+    "code_context": "artifacts/code-context.md",
+    "spec": "modules/open-live-session/spec/spec.md",
+    "clarifications": "modules/open-live-session/spec/clarifications.md",
+    "plan": "modules/open-live-session/plan/plan.md",
+    "task_board": "modules/open-live-session/plan/task-board.md",
+    "changelog": "modules/open-live-session/execution/changelog.md",
+    "verification": "modules/open-live-session/verification/verification.md",
+    "review": "modules/open-live-session/review/review.md",
+    "release_readiness": "modules/open-live-session/release/release-readiness.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "loop": {
+    "iteration": 9,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "requirement_changed"
+  },
+  "module_execution": {
+    "mode": "sequential",
+    "active_module_id": null,
+    "module_order": ["open-live-session"],
+    "pending_modules": [],
+    "completed_modules": ["open-live-session"],
+    "module_states": {
+      "open-live-session": {
+        "requirement_file": "requirements/modules/open-live-session.md",
+        "workspace": "modules/open-live-session",
+        "entry_stage": "architecture-design",
+        "current_stage": "complete",
+        "status": "completed"
+      }
+    }
+  }
+}

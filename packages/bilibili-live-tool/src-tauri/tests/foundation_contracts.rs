@@ -10,7 +10,10 @@ use bilibili_live_tool_lib::{
         paths::PathState,
         ports::{DatabasePort, StoragePortError, StoredConfig},
     },
-    build_channel::{foundation_command_names, member_command_names, BuildChannel},
+    build_channel::{
+        ai_command_names, foundation_command_names, member_command_names, release_command_names,
+        BuildChannel,
+    },
     domain::validation::{RoomId, SensitiveWord, Threshold, UserId, Username, Volume},
     infrastructure::{
         database::SqliteDatabase,
@@ -154,6 +157,10 @@ fn build_channel_controls_member_command_availability() {
             "rank_export"
         ]
     );
+    assert_eq!(ai_command_names().len(), 24);
+    assert!(!ai_command_names()
+        .iter()
+        .any(|command| command.contains("send")));
 
     #[cfg(feature = "free")]
     {
@@ -164,7 +171,7 @@ fn build_channel_controls_member_command_availability() {
     #[cfg(feature = "member")]
     {
         assert_eq!(BuildChannel::current(), BuildChannel::Member);
-        assert_eq!(member_command_names().len(), 28);
+        assert_eq!(member_command_names().len(), 19);
         assert_eq!(member_command_names().first(), Some(&"member_status"));
         assert_eq!(
             member_command_names().last(),
@@ -427,7 +434,7 @@ fn application_path_use_case_returns_only_display_data_and_revoke_status() {
 }
 
 #[test]
-fn capabilities_limit_foundation_commands_to_main_and_leave_effect_empty() {
+fn capabilities_limit_foundation_to_main_and_effect_to_current_read_access() {
     let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let main: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(manifest_dir.join("capabilities/main.json")).unwrap(),
@@ -450,7 +457,14 @@ fn capabilities_limit_foundation_commands_to_main_and_leave_effect_empty() {
         serde_json::json!(["core:default", "foundation"])
     );
     assert_eq!(effect["windows"], serde_json::json!(["effect-*"]));
-    assert_eq!(effect["permissions"], serde_json::json!([]));
+    assert_eq!(
+        effect["permissions"],
+        serde_json::json!([
+            "captain-effect-current",
+            "core:event:allow-listen",
+            "core:event:allow-unlisten"
+        ])
+    );
     assert_eq!(
         tauri_config["app"]["security"]["capabilities"],
         serde_json::json!(["main", "effect"])
@@ -458,5 +472,39 @@ fn capabilities_limit_foundation_commands_to_main_and_leave_effect_empty() {
     for command in foundation_command_names() {
         assert!(permission.contains(command));
     }
+    for command in release_command_names() {
+        assert!(permission.contains(command));
+    }
     assert!(!permission.contains("send_danmaku"));
+}
+
+#[test]
+fn base_tauri_configuration_initializes_updater_in_disabled_mode() {
+    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let tauri_config: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(manifest_dir.join("tauri.conf.json")).unwrap(),
+    )
+    .unwrap();
+    let updater = tauri_config
+        .get("plugins")
+        .and_then(|plugins| plugins.get("updater"))
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+
+    let updater: tauri_plugin_updater::Config = serde_json::from_value(updater).unwrap();
+
+    assert!(updater.endpoints.is_empty());
+    assert!(updater.pubkey.is_empty());
+}
+
+#[test]
+fn startup_resolves_the_database_location_through_the_infrastructure_boundary() {
+    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let lib = std::fs::read_to_string(manifest_dir.join("src/lib.rs")).unwrap();
+    let infrastructure =
+        std::fs::read_to_string(manifest_dir.join("src/infrastructure/mod.rs")).unwrap();
+
+    assert!(lib.contains("database_location::resolve_database_path"));
+    assert!(!lib.contains("app.path().app_data_dir()?.join(\"app.db\")"));
+    assert!(infrastructure.contains("pub mod database_location;"));
 }

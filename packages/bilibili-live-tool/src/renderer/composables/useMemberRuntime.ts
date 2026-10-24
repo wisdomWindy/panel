@@ -3,7 +3,6 @@ import {
   type EventName,
   type EventPayloadMap
 } from '@/platform/desktop';
-import { useAIStore } from '@/stores/ai';
 import { useMembershipStore } from '@/stores/membership';
 import { useModerationStore } from '@/stores/moderation';
 
@@ -19,9 +18,6 @@ export interface MemberRuntimeTargets {
   status(payload: EventPayloadMap['membership_expired']): void;
   modules(payload: EventPayloadMap['module_download_progress']): void;
   installed(payload: EventPayloadMap['module_installed']): void;
-  aiDelta(payload: EventPayloadMap['ai_generation_delta']): void;
-  aiFinished(payload: EventPayloadMap['ai_generation_finished']): void;
-  asr(payload: EventPayloadMap['asr_status_changed']): void;
   alert(payload: EventPayloadMap['moderation_alert']): void;
   action(payload: EventPayloadMap['moderation_action_result']): void;
   bootstrap(): Promise<void>;
@@ -49,9 +45,6 @@ export function createMemberRuntime(listen: Listen, targets: MemberRuntimeTarget
       () => listen('membership_renewed', guarded<'membership_renewed'>(targets.status)),
       () => listen('module_download_progress', guarded<'module_download_progress'>(targets.modules)),
       () => listen('module_installed', guarded<'module_installed'>(targets.installed)),
-      () => listen('ai_generation_delta', guarded<'ai_generation_delta'>(targets.aiDelta)),
-      () => listen('ai_generation_finished', guarded<'ai_generation_finished'>(targets.aiFinished)),
-      () => listen('asr_status_changed', guarded<'asr_status_changed'>(targets.asr)),
       () => listen('moderation_alert', guarded<'moderation_alert'>(targets.alert)),
       () => listen('moderation_action_result', guarded<'moderation_action_result'>(targets.action))
     ];
@@ -95,7 +88,6 @@ let rootRuntime: ReturnType<typeof createMemberRuntime> | null = null;
 export function useMemberRuntime() {
   if (rootRuntime) return rootRuntime;
   const membership = useMembershipStore();
-  const ai = useAIStore();
   const moderation = useModerationStore();
   rootRuntime = createMemberRuntime(listenDesktop, {
     qr: membership.replaceQrStatus,
@@ -103,9 +95,6 @@ export function useMemberRuntime() {
     status: membership.replaceStatus,
     modules: payload => membership.replaceModules(payload.modules),
     installed: membership.acceptModule,
-    aiDelta: ai.acceptDelta,
-    aiFinished: ai.acceptGeneration,
-    asr: ai.acceptAsr,
     alert: moderation.replaceAlert,
     action: moderation.replaceAlert,
     bootstrap: async () => {
@@ -113,13 +102,11 @@ export function useMemberRuntime() {
       await Promise.allSettled([
         membership.loadModules(),
         membership.loadOrders(),
-        ai.bootstrap(),
         moderation.bootstrap()
       ]);
     },
     dispose: () => {
       membership.dispose();
-      ai.dispose();
       moderation.dispose();
     }
   });

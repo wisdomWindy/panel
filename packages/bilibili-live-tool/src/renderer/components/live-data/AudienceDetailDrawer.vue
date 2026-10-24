@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   invokeDesktop,
   type AudienceDetail,
@@ -13,6 +14,7 @@ import AudienceIdentityView from './AudienceIdentityView.vue';
 const props = defineProps<{ visible: boolean; roomId: RoomId | null; userUid: UserUid | null }>();
 const emit = defineEmits<{ close: []; blacklisted: [uid: UserUid] }>();
 const safety = useLiveSafetyStore();
+const { t } = useI18n();
 const detail = ref<AudienceDetail | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -27,7 +29,7 @@ watch(
     try {
       detail.value = await invokeDesktop('audience_detail_query', { roomId, userUid });
     } catch (value) {
-      error.value = (value as { message?: string }).message ?? '操作失败，请稍后重试';
+      error.value = (value as { message?: string }).message ?? t('common.operationFailed');
     } finally {
       loading.value = false;
     }
@@ -50,7 +52,7 @@ async function addToBlacklist(): Promise<void> {
 <template>
   <el-drawer
     :model-value="visible"
-    title="用户详情"
+    :title="t('liveData.audienceDetails')"
     size="min(420px, 92vw)"
     @close="$emit('close')"
   >
@@ -71,22 +73,22 @@ async function addToBlacklist(): Promise<void> {
           {{ detail.identity.userUid }}
         </dd>
         <dt class="text-gray-500">
-          本场弹幕
+          {{ t('liveData.sessionDanmaku') }}
         </dt>
         <dd class="m-0 tabular-nums text-gray-900">
           {{ formatCount(detail.sessionDanmuCount) }}
         </dd>
         <dt class="text-gray-500">
-          送礼总额
+          {{ t('liveData.giftTotal') }}
         </dt>
         <dd class="m-0 tabular-nums text-gray-900">
           {{ formatMoneyMinor(detail.giftValueMinor) }}
         </dd>
         <dt class="text-gray-500">
-          黑名单状态
+          {{ t('liveData.blacklistStatus') }}
         </dt>
         <dd class="m-0 text-gray-900">
-          {{ detail.isBlacklisted ? '已加入' : '未加入' }}
+          {{ detail.isBlacklisted ? t('liveData.blacklisted') : t('liveData.notBlacklisted') }}
         </dd>
       </dl>
       <el-button
@@ -95,7 +97,7 @@ async function addToBlacklist(): Promise<void> {
         :loading="safety.mutationPending"
         @click="addToBlacklist"
       >
-        加入黑名单
+        {{ t('liveData.addToBlacklist') }}
       </el-button>
     </div>
   </el-drawer>

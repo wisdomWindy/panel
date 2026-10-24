@@ -14,13 +14,6 @@ fn registers_the_exact_common_release_surface() {
             "update_download",
             "update_install",
             "update_skip",
-            "plugin_list",
-            "plugin_select_install",
-            "plugin_install",
-            "plugin_toggle",
-            "plugin_uninstall",
-            "plugin_config_get",
-            "plugin_config_save",
             "about_info",
             "resilience_status",
         ]

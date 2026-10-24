@@ -80,15 +80,6 @@ struct GiftSoundEntry {
     enable: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, FromRow, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PluginEntry {
-    name: String,
-    app_version: Option<String>,
-    enabled: bool,
-    permissions_json: Option<String>,
-}
-
 enum PreparedSection {
     Room(Vec<RoomEntry>),
     SensitiveWords(Vec<SensitiveWordEntry>),
@@ -96,7 +87,6 @@ enum PreparedSection {
     GiftSounds(Vec<GiftSoundEntry>),
     InterfaceLayout(Vec<ConfigEntry>),
     Recording(Vec<ConfigEntry>),
-    Plugins(Vec<PluginEntry>),
 }
 
 impl SqliteShellRepository {
@@ -161,9 +151,6 @@ impl SqliteShellRepository {
             ShellConfigScope::Recording => serde_json::to_value(sqlx::query_as::<_, ConfigEntry>(
                 "SELECT key, value, scope FROM t_app_setting WHERE key = ? ORDER BY key",
             ).bind(RECORDING_KEY).fetch_all(&self.pool).await.map_err(query_error)?),
-            ShellConfigScope::Plugins => serde_json::to_value(sqlx::query_as::<_, PluginEntry>(
-                "SELECT name, app_version, enabled, permissions_json FROM t_plugin ORDER BY name",
-            ).fetch_all(&self.pool).await.map_err(query_error)?),
             #[cfg(feature = "member")]
             ShellConfigScope::Ai | ShellConfigScope::Moderation => unreachable!(),
         }.map_err(invalid_data)?;
@@ -206,9 +193,6 @@ impl SqliteShellRepository {
                     ));
                 }
                 Ok(PreparedSection::Recording(entries))
-            }
-            ShellConfigScope::Plugins => {
-                decode_entries(&section.entries).map(PreparedSection::Plugins)
             }
             #[cfg(feature = "member")]
             ShellConfigScope::Ai | ShellConfigScope::Moderation => Err(unavailable_scope_error()),
@@ -274,16 +258,6 @@ impl SqliteShellRepository {
             }
             PreparedSection::Recording(entries) => {
                 replace_config_entries(transaction, &[RECORDING_KEY], entries).await?
-            }
-            PreparedSection::Plugins(entries) => {
-                sqlx::query("DELETE FROM t_plugin")
-                    .execute(&mut **transaction)
-                    .await
-                    .map_err(query_error)?;
-                for entry in entries {
-                    sqlx::query("INSERT INTO t_plugin (name, app_version, enabled, permissions_json) VALUES (?, ?, ?, ?)")
-                        .bind(entry.name).bind(entry.app_version).bind(entry.enabled).bind(entry.permissions_json).execute(&mut **transaction).await.map_err(query_error)?;
-                }
             }
         }
         Ok(())
@@ -356,7 +330,6 @@ impl ShellRepository for SqliteShellRepository {
             "t_sensitive_word",
             "t_black_user",
             "t_gift_sound",
-            "t_plugin",
         ] {
             sqlx::query(&format!("DELETE FROM {table}"))
                 .execute(&mut *transaction)

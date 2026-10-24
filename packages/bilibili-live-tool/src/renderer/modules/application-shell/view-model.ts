@@ -4,6 +4,16 @@ export type RoomInputResult =
   | { readonly ok: true; readonly value: string }
   | { readonly ok: false; readonly code: 'roomRequired' | 'roomInvalid' };
 
+export type ConnectionErrorMessageKey =
+  | 'openLiveConfigMissing'
+  | 'openLiveAppIdInvalid'
+  | 'openLiveRejected'
+  | 'openLiveAuthFailed'
+  | 'openLiveNetworkFailed'
+  | 'openLiveResponseInvalid'
+  | 'reconnectFailed'
+  | 'operationFailed';
+
 export interface StatusBarItem {
   readonly id: 'connection' | 'room' | 'danmakuRate' | 'online' | 'recording' | 'memory' | 'cpu';
   readonly value: string;
@@ -13,8 +23,32 @@ export interface StatusBarItem {
 export function normalizeRoomInput(value: string): RoomInputResult {
   const normalized = value.trim();
   if (normalized.length === 0) return { ok: false, code: 'roomRequired' };
-  if (!/^\d{1,20}$/.test(normalized)) return { ok: false, code: 'roomInvalid' };
+  if (!/^[A-Za-z0-9]{1,128}$/.test(normalized)) return { ok: false, code: 'roomInvalid' };
   return { ok: true, value: normalized };
+}
+
+export function connectionErrorMessageKey(code: string | null): ConnectionErrorMessageKey | null {
+  if (code === null) return null;
+  if (code === 'missing_open_live_credentials') return 'openLiveConfigMissing';
+  if (code === 'invalid_open_live_app_id') return 'openLiveAppIdInvalid';
+  if (code === 'open_live_api_error') return 'openLiveRejected';
+  if (code === 'open_live_auth_failed') return 'openLiveAuthFailed';
+  if (
+    [
+      'open_live_network_error',
+      'open_live_http_error',
+      'open_live_websocket_unavailable',
+      'open_live_websocket_closed',
+      'open_live_auth_timeout'
+    ].includes(code)
+  ) {
+    return 'openLiveNetworkFailed';
+  }
+  if (['invalid_open_live_response', 'invalid_open_live_packet'].includes(code)) {
+    return 'openLiveResponseInvalid';
+  }
+  if (code === 'reconnect_failed') return 'reconnectFailed';
+  return 'operationFailed';
 }
 
 function formatMemory(value: number | null): string {
@@ -24,16 +58,34 @@ function formatMemory(value: number | null): string {
 }
 
 function connectionValue(status: RoomSnapshot['status'], locale: LocaleCode): string {
-  const labels = locale === 'en-US'
-    ? { disconnected: 'disconnected', connecting: 'connecting', connected: 'connected', reconnecting: 'reconnecting', error: 'error' }
-    : { disconnected: '已断开', connecting: '连接中', connected: '已连接', reconnecting: '重连中', error: '连接错误' };
+  const labels =
+    locale === 'en-US'
+      ? {
+        disconnected: 'disconnected',
+        connecting: 'connecting',
+        connected: 'connected',
+        reconnecting: 'reconnecting',
+        error: 'error'
+      }
+      : {
+        disconnected: '已断开',
+        connecting: '连接中',
+        connected: '已连接',
+        reconnecting: '重连中',
+        error: '连接错误'
+      };
   return labels[status];
 }
 
 function recordingValue(state: string, locale: LocaleCode): string {
   const labels: Record<string, readonly [string, string]> = {
-    idle: ['未录制', 'idle'], starting: ['启动中', 'starting'], recording: ['录制中', 'recording'],
-    paused: ['暂停', 'paused'], stopping: ['停止中', 'stopping'], finalizing: ['处理中', 'finalizing'], error: ['录制异常', 'error']
+    idle: ['未录制', 'idle'],
+    starting: ['启动中', 'starting'],
+    recording: ['录制中', 'recording'],
+    paused: ['暂停', 'paused'],
+    stopping: ['停止中', 'stopping'],
+    finalizing: ['处理中', 'finalizing'],
+    error: ['录制异常', 'error']
   };
   const pair = labels[state] ?? ['不可用', 'unavailable'];
   return pair[locale === 'en-US' ? 1 : 0];
@@ -48,14 +100,43 @@ export function buildStatusBarView(input: {
 }): readonly StatusBarItem[] {
   const status = input.room.status;
   const number = new Intl.NumberFormat(input.locale);
-  const tone = status === 'connected' ? 'success' : status === 'reconnecting' || status === 'connecting' ? 'warning' : 'danger';
+  const tone =
+    status === 'connected'
+      ? 'success'
+      : status === 'reconnecting' || status === 'connecting'
+        ? 'warning'
+        : 'danger';
   return Object.freeze([
     { id: 'connection', value: connectionValue(status, input.locale), tone },
     { id: 'room', value: input.room.roomId ?? '--', tone: 'neutral' },
-    { id: 'danmakuRate', value: `${Math.max(0, Math.trunc(input.acceptedDanmakuCount))} ${input.locale === 'en-US' ? 'msg/s' : '条/秒'}`, tone: 'neutral' },
-    { id: 'online', value: input.room.onlineCount === null ? '--' : number.format(input.room.onlineCount), tone: 'neutral' },
-    { id: 'recording', value: recordingValue(input.recordingState, input.locale), tone: input.recordingState === 'recording' ? 'success' : input.recordingState === 'error' ? 'danger' : 'neutral' },
+    {
+      id: 'danmakuRate',
+      value: `${Math.max(0, Math.trunc(input.acceptedDanmakuCount))} ${input.locale === 'en-US' ? 'msg/s' : '条/秒'}`,
+      tone: 'neutral'
+    },
+    {
+      id: 'online',
+      value: input.room.onlineCount === null ? '--' : number.format(input.room.onlineCount),
+      tone: 'neutral'
+    },
+    {
+      id: 'recording',
+      value: recordingValue(input.recordingState, input.locale),
+      tone:
+        input.recordingState === 'recording'
+          ? 'success'
+          : input.recordingState === 'error'
+            ? 'danger'
+            : 'neutral'
+    },
     { id: 'memory', value: formatMemory(input.metrics?.memoryBytes ?? null), tone: 'neutral' },
-    { id: 'cpu', value: input.metrics?.cpuPercent === null || input.metrics?.cpuPercent === undefined ? '--' : `${input.metrics.cpuPercent.toFixed(1)}%`, tone: 'neutral' }
+    {
+      id: 'cpu',
+      value:
+        input.metrics?.cpuPercent === null || input.metrics?.cpuPercent === undefined
+          ? '--'
+          : `${input.metrics.cpuPercent.toFixed(1)}%`,
+      tone: 'neutral'
+    }
   ]);
 }

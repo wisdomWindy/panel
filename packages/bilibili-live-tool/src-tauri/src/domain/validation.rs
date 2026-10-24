@@ -69,7 +69,29 @@ macro_rules! numeric_id {
 
 numeric_id!(RoomId, "room id");
 numeric_id!(UserId, "user id");
-numeric_id!(UserUid, "user uid");
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct UserUid(String);
+
+impl UserUid {
+    pub fn parse(value: &str) -> Result<Self, ValidationError> {
+        let normalized = value.trim();
+        let length = normalized.chars().count();
+        if length == 0
+            || length > 128
+            || normalized
+                .chars()
+                .any(|character| character.is_control() || character.is_whitespace())
+        {
+            return Err(ValidationError::new("user uid"));
+        }
+        Ok(Self(normalized.to_owned()))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
 
 macro_rules! validated_text {
     ($name:ident, $field:literal, $max_length:literal) => {

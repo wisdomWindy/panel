@@ -32,6 +32,7 @@ describe('live feed store', () => {
       audience,
       giftId: 'gift-31036' as GiftEvent['giftId'],
       giftName: '辣条',
+      giftIconUrl: null,
       quantity: 1,
       valueMinor: 100
     });

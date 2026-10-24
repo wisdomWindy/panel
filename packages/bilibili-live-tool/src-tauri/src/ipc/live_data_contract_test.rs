@@ -1,8 +1,8 @@
 use serde_json::json;
 
 use super::dto::{
-    AudienceIdentityDto, ConnectionStatusDto, DataRangeDto, GiftEventDto, RoomSnapshotDto,
-    LIVE_DATA_COMMAND_NAMES, LIVE_DATA_EVENT_NAMES,
+    AudienceIdentityDto, ConnectionStatusDto, DataRangeDto, GiftEventDto, RoomConnectRequestDto,
+    RoomSnapshotDto, LIVE_DATA_COMMAND_NAMES, LIVE_DATA_EVENT_NAMES,
 };
 use crate::build_channel::foundation_command_names;
 
@@ -20,6 +20,15 @@ fn exposes_the_approved_live_data_surface_only() {
         assert!(common_commands.contains(command));
         assert!(permissions.contains(&format!("\"{command}\"")));
     }
+}
+
+#[test]
+fn deserializes_room_connect_from_an_identity_code() {
+    let request: RoomConnectRequestDto = serde_json::from_value(json!({
+        "identityCode": "ABC123"
+    }))
+    .unwrap();
+    assert_eq!(request.identity_code, "ABC123");
 }
 
 #[test]
@@ -74,6 +83,7 @@ fn serializes_gift_identity_separately_from_its_display_name() {
         },
         gift_id: "gift-31036".into(),
         gift_name: "辣条".into(),
+        gift_icon_url: Some("https://i0.hdslb.com/bfs/live/gift.png".into()),
         quantity: 2,
         value_minor: 200,
     };
@@ -81,4 +91,8 @@ fn serializes_gift_identity_separately_from_its_display_name() {
     let value = serde_json::to_value(event).unwrap();
     assert_eq!(value["giftId"], "gift-31036");
     assert_eq!(value["giftName"], "辣条");
+    assert_eq!(
+        value["giftIconUrl"],
+        "https://i0.hdslb.com/bfs/live/gift.png"
+    );
 }

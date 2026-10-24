@@ -13,8 +13,8 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 use tokio::sync::Mutex;
 
 use crate::application::{
-    release::{PluginSnapshot, ResilienceSnapshot, UpdateSnapshot},
-    release_ports::{PluginProvider, ReleaseServiceError, UpdateProvider},
+    release::{ResilienceSnapshot, UpdateSnapshot},
+    release_ports::{ReleaseServiceError, UpdateProvider},
 };
 use crate::{
     build_channel::BuildChannel,
@@ -64,16 +64,10 @@ impl UpdateProvider for TauriUpdateProvider {
             .app
             .updater()
             .map_err(|_| ReleaseServiceError::unavailable("update_provider_unavailable"))?;
-        let update = match updater.check().await {
-            Ok(update) => update,
-            Err(error) if is_transient_check_error(&error) => {
-                self.ensure_current_generation(generation).await?;
-                return Ok(current_update_snapshot());
-            }
-            Err(_) => {
-                return Err(ReleaseServiceError::invalid("invalid_update_manifest"));
-            }
-        };
+        let update = updater
+            .check()
+            .await
+            .map_err(|error| map_update_check_error(&error))?;
 
         let Some(update) = update else {
             self.ensure_current_generation(generation).await?;
@@ -147,7 +141,7 @@ impl UpdateProvider for TauriUpdateProvider {
         if pending
             .candidate
             .as_ref()
-            .map_or(true, |candidate| candidate.version != version)
+            .is_none_or(|candidate| candidate.version != version)
         {
             return Err(ReleaseServiceError::invalid("update_candidate_mismatch"));
         }
@@ -156,13 +150,19 @@ impl UpdateProvider for TauriUpdateProvider {
     }
 }
 
-fn is_transient_check_error(error: &tauri_plugin_updater::Error) -> bool {
-    matches!(
+fn map_update_check_error(error: &tauri_plugin_updater::Error) -> ReleaseServiceError {
+    if matches!(
         error,
         tauri_plugin_updater::Error::Reqwest(_)
             | tauri_plugin_updater::Error::Network(_)
             | tauri_plugin_updater::Error::ReleaseNotFound
-    )
+    ) {
+        return ReleaseServiceError {
+            code: "update_check_failed",
+            retryable: true,
+        };
+    }
+    ReleaseServiceError::invalid("invalid_update_manifest")
 }
 
 fn candidate_from_metadata(
@@ -257,44 +257,8 @@ fn candidate_snapshot(
     }
 }
 
-pub struct UnavailablePluginProvider;
-
-#[async_trait]
-impl PluginProvider for UnavailablePluginProvider {
-    async fn select_install(&self) -> Result<PluginSnapshot, ReleaseServiceError> {
-        Err(ReleaseServiceError::unavailable(
-            "plugin_signature_unavailable",
-        ))
-    }
-
-    async fn install(&self, _plugin_id: &str) -> Result<PluginSnapshot, ReleaseServiceError> {
-        Err(ReleaseServiceError::unavailable(
-            "plugin_runtime_unavailable",
-        ))
-    }
-
-    async fn toggle(
-        &self,
-        _plugin_id: &str,
-        _is_enabled: bool,
-    ) -> Result<PluginSnapshot, ReleaseServiceError> {
-        Err(ReleaseServiceError::unavailable(
-            "plugin_runtime_unavailable",
-        ))
-    }
-
-    async fn uninstall(&self, _plugin_id: &str) -> Result<bool, ReleaseServiceError> {
-        Err(ReleaseServiceError::unavailable(
-            "plugin_runtime_unavailable",
-        ))
-    }
-}
-
-pub fn release_providers(app: AppHandle) -> (Arc<dyn UpdateProvider>, Arc<dyn PluginProvider>) {
-    (
-        Arc::new(TauriUpdateProvider::new(app)),
-        Arc::new(UnavailablePluginProvider),
-    )
+pub fn update_provider(app: AppHandle) -> Arc<dyn UpdateProvider> {
+    Arc::new(TauriUpdateProvider::new(app))
 }
 
 pub fn installation_bucket(database_path: &Path) -> u8 {
@@ -418,12 +382,17 @@ mod tests {
     }
 
     #[test]
-    fn offline_update_checks_are_silent_but_configuration_errors_are_not() {
-        assert!(is_transient_check_error(
-            &tauri_plugin_updater::Error::ReleaseNotFound
-        ));
-        assert!(!is_transient_check_error(
-            &tauri_plugin_updater::Error::EmptyEndpoints
-        ));
+    fn updater_check_errors_preserve_transient_and_configuration_semantics() {
+        assert_eq!(
+            map_update_check_error(&tauri_plugin_updater::Error::ReleaseNotFound),
+            ReleaseServiceError {
+                code: "update_check_failed",
+                retryable: true,
+            }
+        );
+        assert_eq!(
+            map_update_check_error(&tauri_plugin_updater::Error::EmptyEndpoints),
+            ReleaseServiceError::invalid("invalid_update_manifest")
+        );
     }
 }

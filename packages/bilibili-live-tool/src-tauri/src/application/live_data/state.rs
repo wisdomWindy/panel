@@ -134,8 +134,8 @@ impl LiveDataState {
             .await
             .sensitive_rules
             .iter()
-            .filter(|rule| category.map_or(true, |category| rule.category == category))
-            .filter(|rule| query.map_or(true, |query| rule.word.contains(query)))
+            .filter(|rule| category.is_none_or(|category| rule.category == category))
+            .filter(|rule| query.is_none_or(|query| rule.word.contains(query)))
             .cloned()
             .collect()
     }
@@ -457,10 +457,19 @@ impl LiveDataState {
 
     pub async fn connect_room(
         self: &Arc<Self>,
-        room_id: &str,
+        identity_code: &str,
     ) -> Result<RoomSnapshot, LiveRuntimeError> {
-        let room_id = RoomId::parse(room_id)
-            .map_err(|_| LiveRuntimeError::new("invalid_room_id", "room id is invalid", false))?;
+        let identity_code = identity_code.trim();
+        if identity_code.is_empty()
+            || identity_code.chars().count() > 128
+            || identity_code.chars().any(char::is_control)
+        {
+            return Err(LiveRuntimeError::new(
+                "invalid_identity_code",
+                "identity code is invalid",
+                false,
+            ));
+        }
         let (snapshot, generation, cancel) = {
             let mut runtime = self.runtime.lock().await;
             if matches!(
@@ -481,7 +490,7 @@ impl LiveDataState {
             runtime.cancel = Some(cancel);
             runtime.room = RoomSnapshot {
                 status: ConnectionStatus::Connecting,
-                room_id: Some(room_id.clone()),
+                room_id: None,
                 room_name: None,
                 online_count: None,
                 reconnect_attempt: 0,
@@ -491,7 +500,12 @@ impl LiveDataState {
         };
         self.events.publish_room_status(&snapshot)?;
         let state = Arc::clone(self);
-        tokio::spawn(async move { state.run_room_session(room_id, generation, cancel).await });
+        let identity_code = identity_code.to_owned();
+        tokio::spawn(async move {
+            state
+                .run_room_session(identity_code, generation, cancel)
+                .await
+        });
         Ok(snapshot)
     }
 
@@ -519,7 +533,7 @@ impl LiveDataState {
 
     async fn run_room_session(
         self: Arc<Self>,
-        room_id: RoomId,
+        identity_code: String,
         generation: u64,
         mut cancel: watch::Receiver<bool>,
     ) {
@@ -528,14 +542,10 @@ impl LiveDataState {
             if *cancel.borrow() || !self.is_current(generation).await {
                 return;
             }
-            match self.transport.connect(&room_id).await {
+            match self.transport.connect(&identity_code).await {
                 Ok(connection) => {
                     attempt = 0;
-                    if self
-                        .set_connected(generation, &room_id, &connection)
-                        .await
-                        .is_err()
-                    {
+                    if self.set_connected(generation, &connection).await.is_err() {
                         return;
                     }
                     if self
@@ -680,7 +690,6 @@ impl LiveDataState {
     async fn set_connected(
         &self,
         generation: u64,
-        room_id: &RoomId,
         connection: &RoomConnection,
     ) -> Result<(), LiveRuntimeError> {
         let snapshot = {
@@ -694,7 +703,7 @@ impl LiveDataState {
             }
             runtime.room = RoomSnapshot {
                 status: ConnectionStatus::Connected,
-                room_id: Some(room_id.clone()),
+                room_id: Some(connection.room_id.clone()),
                 room_name: connection.room_name.clone(),
                 online_count: connection.online_count,
                 reconnect_attempt: 0,

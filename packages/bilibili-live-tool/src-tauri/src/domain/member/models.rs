@@ -80,7 +80,6 @@ pub enum AiCapabilityState {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MemberCapabilities {
-    pub ai: AiCapabilityState,
     pub moderation: AiCapabilityState,
 }
 

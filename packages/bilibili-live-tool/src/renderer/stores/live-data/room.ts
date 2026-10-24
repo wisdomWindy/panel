@@ -46,13 +46,13 @@ export const useLiveRoomStore = defineStore('live-room', () => {
     };
   }
 
-  async function connect(roomId: RoomId): Promise<void> {
+  async function connect(identityCode: string): Promise<void> {
     if (pending.value) return;
     const requestGeneration = ++generation.value;
     pending.value = true;
     error.value = null;
     try {
-      const result = await invokeDesktop('room_connect', { roomId });
+      const result = await invokeDesktop('room_connect', { identityCode });
       if (requestGeneration === generation.value) replaceSnapshot(result);
     } catch (value) {
       if (requestGeneration === generation.value) error.value = normalizeDesktopError(value);

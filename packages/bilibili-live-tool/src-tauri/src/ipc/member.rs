@@ -3,9 +3,12 @@ use tauri::{AppHandle, Emitter, EventTarget, State};
 
 use crate::{
     application::member::{
-        now_millis, AiConfigRecord, AiGenerationRecord, AiGenerationStatus, AsrState,
-        AsrStatusRecord, MemberEventSink, MemberServiceError, ModerationAlertRecord,
-        ModerationAlertStatus, ModerationConfigRecord, OrderRecord, OrderStatus,
+        now_millis, AiConfigRecord, AiGenerationRecord, AiGenerationStatus, AiModelConnectionState,
+        AiModelProfileRecord, AiOutputDeviceRecord, AiReasoningEffort, AiVoiceConfigRecord,
+        AiVoiceQueueItemRecord, AiVoiceQueueSnapshotRecord, AiVoiceQueueState, AiVoiceRecord,
+        AsrModelRecord, AsrState, AsrStatusRecord, MemberEventSink, MemberServiceError,
+        ModerationAlertRecord, ModerationAlertStatus, ModerationConfigRecord, OrderRecord,
+        OrderStatus,
     },
     domain::{
         live_data::UserUid,
@@ -26,11 +29,15 @@ pub const MEMBER_EVENT_NAMES: &[&str] = &[
     "membership_renewed",
     "module_download_progress",
     "module_installed",
+    "moderation_alert",
+    "moderation_action_result",
+];
+
+pub const AI_EVENT_NAMES: &[&str] = &[
     "ai_generation_delta",
     "ai_generation_finished",
     "asr_status_changed",
-    "moderation_alert",
-    "moderation_action_result",
+    "asr_transcript",
 ];
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -82,7 +89,6 @@ pub enum MemberEntitlementStateDto {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct MemberCapabilitiesDto {
-    pub ai: MemberCapabilityStateDto,
     pub moderation: MemberCapabilityStateDto,
 }
 
@@ -200,10 +206,9 @@ pub struct ModuleCleanupResultDto {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum AiSpeakingStyleDto {
-    Short,
-    Humorous,
-    Formal,
-    Casual,
+    Concise,
+    Natural,
+    Detailed,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -212,23 +217,19 @@ pub struct AiConfigDto {
     pub identity: String,
     pub speaking_style: AiSpeakingStyleDto,
     pub system_prompt: String,
-    pub provider: String,
-    pub model: String,
-    pub temperature: f64,
     pub max_length: u32,
+    pub max_sentences: u32,
     pub is_sensitive_filter_enabled: bool,
     pub banned_words: Vec<String>,
     pub danmaku_context_count: u32,
     pub asr_context_count: u32,
     pub manual_context_count: u32,
-    pub is_api_key_configured: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AiConfigSaveRequestDto {
     pub config: AiConfigWritableDto,
-    pub api_key_replacement: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -237,15 +238,214 @@ pub struct AiConfigWritableDto {
     pub identity: String,
     pub speaking_style: AiSpeakingStyleDto,
     pub system_prompt: String,
-    pub provider: String,
-    pub model: String,
-    pub temperature: f64,
     pub max_length: u32,
+    pub max_sentences: u32,
     pub is_sensitive_filter_enabled: bool,
     pub banned_words: Vec<String>,
     pub danmaku_context_count: u32,
     pub asr_context_count: u32,
     pub manual_context_count: u32,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AiProviderKindDto {
+    Cloud,
+    Aggregator,
+    Local,
+    CustomOpenAi,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AiModelConnectionStateDto {
+    Untested,
+    Available,
+    Unavailable,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AiReasoningEffortDto {
+    None,
+    Minimal,
+    Low,
+    Medium,
+    High,
+    #[serde(rename = "xhigh")]
+    XHigh,
+    Max,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiModelProfileDto {
+    pub profile_id: String,
+    pub name: String,
+    pub provider_kind: AiProviderKindDto,
+    pub base_url: String,
+    pub model: String,
+    pub reasoning_effort: AiReasoningEffortDto,
+    pub max_tokens: u32,
+    pub timeout_seconds: u32,
+    pub proxy_url: Option<String>,
+    pub is_enabled: bool,
+    pub is_default: bool,
+    pub connection_state: AiModelConnectionStateDto,
+    pub is_api_key_configured: bool,
+    pub updated_at: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiModelProfileWritableDto {
+    pub profile_id: Option<String>,
+    pub name: String,
+    pub provider_kind: AiProviderKindDto,
+    pub base_url: String,
+    pub model: String,
+    pub reasoning_effort: AiReasoningEffortDto,
+    pub max_tokens: u32,
+    pub timeout_seconds: u32,
+    pub proxy_url: Option<String>,
+    pub is_enabled: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiModelProfileSaveRequestDto {
+    pub profile: AiModelProfileWritableDto,
+    pub api_key_replacement: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiProfileIdRequestDto {
+    pub profile_id: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AiTriggerScopeDto {
+    All,
+    Questions,
+    Captains,
+    Keywords,
+    HighValue,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiVoiceReplyRulesDto {
+    pub trigger_scope: AiTriggerScopeDto,
+    pub keywords: Vec<String>,
+    pub global_cooldown_seconds: u32,
+    pub user_cooldown_seconds: u32,
+    pub queue_capacity: u32,
+    pub is_duplicate_filter_enabled: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiOutputDeviceDto {
+    pub device_id: String,
+    pub display_name: String,
+    pub is_available: bool,
+    pub is_default: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiVoiceDto {
+    pub voice_id: String,
+    pub display_name: String,
+    pub is_available: bool,
+    pub is_default: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiVoiceQueueItemDto {
+    pub item_id: String,
+    pub text: String,
+    pub priority: u8,
+    pub created_at: i64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AiVoiceQueueStateDto {
+    Idle,
+    Speaking,
+    Paused,
+    Unavailable,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiVoiceQueueSnapshotDto {
+    pub state: AiVoiceQueueStateDto,
+    pub current: Option<AiVoiceQueueItemDto>,
+    pub pending: Vec<AiVoiceQueueItemDto>,
+    pub capacity: u32,
+    pub volume: f64,
+    pub selected_device_id: Option<String>,
+    pub selected_voice_id: String,
+    pub is_audio_route_confirmed: bool,
+    pub last_error_code: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiVoiceReplySnapshotDto {
+    pub is_enabled: bool,
+    pub default_profile_id: Option<String>,
+    pub rules: AiVoiceReplyRulesDto,
+    pub devices: Vec<AiOutputDeviceDto>,
+    pub voices: Vec<AiVoiceDto>,
+    pub queue: AiVoiceQueueSnapshotDto,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiVoiceEnabledRequestDto {
+    pub is_enabled: bool,
+    pub is_audio_route_confirmed: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiVoiceRulesRequestDto {
+    pub rules: AiVoiceReplyRulesDto,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiOutputDeviceRequestDto {
+    pub device_id: String,
+    pub voice_id: String,
+    pub volume: f64,
+    pub is_audio_route_confirmed: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiTtsTestRequestDto {
+    pub device_id: String,
+    pub voice_id: String,
+    pub volume: f64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiTtsPauseRequestDto {
+    pub is_paused: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DeletedResultDto {
+    pub deleted: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -332,10 +532,12 @@ pub struct AsrStatusDto {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AsrModelManifestDto {
+    pub model_id: String,
     pub model_name: String,
     pub size_bytes: u64,
     pub license: String,
     pub source_label: String,
+    pub is_installed: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -435,7 +637,7 @@ pub struct BindAccountRequestDto {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AsrDownloadRequestDto {
-    pub manifest: AsrModelManifestDto,
+    pub model_id: String,
     pub is_license_accepted: bool,
 }
 
@@ -526,6 +728,10 @@ impl MemberEventSink for TauriMemberEventSink {
 
     fn publish_asr_status(&self, status: &AsrStatusRecord) {
         self.emit("asr_status_changed", asr_status_dto(status.clone()));
+    }
+
+    fn publish_asr_transcript(&self, text: &str) {
+        self.emit("asr_transcript", text.to_owned());
     }
 
     fn publish_moderation_alert(&self, alert: &ModerationAlertRecord) {
@@ -662,8 +868,7 @@ pub async fn module_cleanup(
 #[tauri::command]
 pub async fn ai_config_get(state: State<'_, AppState>) -> Result<AiConfigDto, DesktopError> {
     state
-        .member()?
-        .ai
+        .ai()?
         .config()
         .await
         .map(ai_config_dto)
@@ -675,14 +880,10 @@ pub async fn ai_config_save(
     state: State<'_, AppState>,
     request: AiConfigSaveRequestDto,
 ) -> Result<AiConfigDto, DesktopError> {
-    if request.api_key_replacement.is_some() {
-        return Err(MemberServiceError::unavailable("secret_store_unavailable").into());
-    }
-    let current = state.member()?.ai.config().await?;
+    let current = state.ai()?.config().await?;
     let config = ai_config_from_dto(request.config, current.api_key_ciphertext);
     state
-        .member()?
-        .ai
+        .ai()?
         .save_config(config)
         .await
         .map(ai_config_dto)
@@ -690,20 +891,181 @@ pub async fn ai_config_save(
 }
 
 #[tauri::command]
+pub async fn ai_model_profile_list(
+    state: State<'_, AppState>,
+) -> Result<Vec<AiModelProfileDto>, DesktopError> {
+    Ok(state
+        .ai()?
+        .model_profiles()
+        .await?
+        .into_iter()
+        .map(ai_model_profile_dto)
+        .collect())
+}
+
+#[tauri::command]
+pub async fn ai_model_profile_save(
+    state: State<'_, AppState>,
+    request: AiModelProfileSaveRequestDto,
+) -> Result<AiModelProfileDto, DesktopError> {
+    let profile = ai_model_profile_from_dto(request.profile)?;
+    state
+        .ai()?
+        .save_model_profile(profile, request.api_key_replacement)
+        .await
+        .map(ai_model_profile_dto)
+        .map_err(Into::into)
+}
+
+#[tauri::command]
+pub async fn ai_model_profile_delete(
+    state: State<'_, AppState>,
+    request: AiProfileIdRequestDto,
+) -> Result<DeletedResultDto, DesktopError> {
+    validate_profile_id(&request.profile_id)?;
+    Ok(DeletedResultDto {
+        deleted: state
+            .ai()?
+            .delete_model_profile(&request.profile_id)
+            .await?,
+    })
+}
+
+#[tauri::command]
+pub async fn ai_model_set_default(
+    state: State<'_, AppState>,
+    request: AiProfileIdRequestDto,
+) -> Result<Vec<AiModelProfileDto>, DesktopError> {
+    validate_profile_id(&request.profile_id)?;
+    Ok(state
+        .ai()?
+        .set_default_model_profile(&request.profile_id)
+        .await?
+        .into_iter()
+        .map(ai_model_profile_dto)
+        .collect())
+}
+
+#[tauri::command]
+pub async fn ai_model_test(
+    state: State<'_, AppState>,
+    request: AiProfileIdRequestDto,
+) -> Result<AiModelProfileDto, DesktopError> {
+    validate_profile_id(&request.profile_id)?;
+    state
+        .ai()?
+        .test_model_profile(&request.profile_id)
+        .await
+        .map(ai_model_profile_dto)
+        .map_err(Into::into)
+}
+
+#[tauri::command]
+pub async fn ai_voice_reply_get(
+    state: State<'_, AppState>,
+) -> Result<AiVoiceReplySnapshotDto, DesktopError> {
+    ai_voice_reply_snapshot(state.ai()?).await
+}
+
+#[tauri::command]
+pub async fn ai_voice_reply_set_enabled(
+    state: State<'_, AppState>,
+    request: AiVoiceEnabledRequestDto,
+) -> Result<AiVoiceReplySnapshotDto, DesktopError> {
+    state
+        .ai()?
+        .set_voice_enabled(request.is_enabled, request.is_audio_route_confirmed)
+        .await?;
+    ai_voice_reply_snapshot(state.ai()?).await
+}
+
+#[tauri::command]
+pub async fn ai_voice_reply_update_rules(
+    state: State<'_, AppState>,
+    request: AiVoiceRulesRequestDto,
+) -> Result<AiVoiceReplySnapshotDto, DesktopError> {
+    let current = state.ai()?.voice_config().await?;
+    state
+        .ai()?
+        .update_voice_rules(ai_voice_config_from_rules(request.rules, current))
+        .await?;
+    ai_voice_reply_snapshot(state.ai()?).await
+}
+
+#[tauri::command]
+pub async fn ai_tts_list_output_devices(
+    state: State<'_, AppState>,
+) -> Result<Vec<AiOutputDeviceDto>, DesktopError> {
+    Ok(state
+        .ai()?
+        .output_devices()
+        .await?
+        .into_iter()
+        .map(ai_output_device_dto)
+        .collect())
+}
+
+#[tauri::command]
+pub async fn ai_tts_set_output_device(
+    state: State<'_, AppState>,
+    request: AiOutputDeviceRequestDto,
+) -> Result<AiVoiceReplySnapshotDto, DesktopError> {
+    state
+        .ai()?
+        .set_output_device(
+            request.device_id,
+            request.voice_id,
+            request.volume,
+            request.is_audio_route_confirmed,
+        )
+        .await?;
+    ai_voice_reply_snapshot(state.ai()?).await
+}
+
+#[tauri::command]
+pub async fn ai_tts_test(
+    state: State<'_, AppState>,
+    request: AiTtsTestRequestDto,
+) -> Result<AiVoiceReplySnapshotDto, DesktopError> {
+    state
+        .ai()?
+        .test_output_device(&request.device_id, &request.voice_id, request.volume)
+        .await?;
+    ai_voice_reply_snapshot(state.ai()?).await
+}
+
+#[tauri::command]
+pub async fn ai_tts_pause(
+    state: State<'_, AppState>,
+    request: AiTtsPauseRequestDto,
+) -> Result<AiVoiceReplySnapshotDto, DesktopError> {
+    state.ai()?.pause_voice(request.is_paused).await;
+    ai_voice_reply_snapshot(state.ai()?).await
+}
+
+#[tauri::command]
+pub async fn ai_tts_skip(
+    state: State<'_, AppState>,
+) -> Result<AiVoiceReplySnapshotDto, DesktopError> {
+    state.ai()?.skip_voice().await?;
+    ai_voice_reply_snapshot(state.ai()?).await
+}
+
+#[tauri::command]
+pub async fn ai_tts_clear_queue(
+    state: State<'_, AppState>,
+) -> Result<AiVoiceReplySnapshotDto, DesktopError> {
+    state.ai()?.clear_voice().await;
+    ai_voice_reply_snapshot(state.ai()?).await
+}
+
+#[tauri::command]
 pub async fn ai_generate(
     state: State<'_, AppState>,
     request: AiGenerateRequestDto,
 ) -> Result<AiGenerationDto, DesktopError> {
-    let capability = state
-        .member()?
-        .membership
-        .status(now_millis(), false)
-        .await?
-        .capabilities
-        .ai;
     state
-        .member()?
-        .ai
+        .ai()?
         .generate(
             request.prompt,
             request
@@ -711,7 +1073,6 @@ pub async fn ai_generate(
                 .into_iter()
                 .map(|item| item.content)
                 .collect(),
-            capability,
         )
         .await
         .map(ai_generation_dto)
@@ -723,17 +1084,9 @@ pub async fn ai_regenerate(
     state: State<'_, AppState>,
     request: RegenerateRequestDto,
 ) -> Result<AiGenerationDto, DesktopError> {
-    let capability = state
-        .member()?
-        .membership
-        .status(now_millis(), false)
-        .await?
-        .capabilities
-        .ai;
     state
-        .member()?
-        .ai
-        .regenerate(&request.generation_id, capability)
+        .ai()?
+        .regenerate(&request.generation_id)
         .await
         .map(ai_generation_dto)
         .map_err(Into::into)
@@ -741,45 +1094,73 @@ pub async fn ai_regenerate(
 
 #[tauri::command]
 pub async fn ai_log_query(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     request: LogQueryRequestDto,
 ) -> Result<Vec<AiLogEntryDto>, DesktopError> {
     validate_log_query(&request)?;
-    Err(MemberServiceError::unavailable("ai_log_unavailable").into())
+    let logs = state
+        .ai()?
+        .query_logs(
+            request.user_uid.as_deref(),
+            request.started_at,
+            request.ended_at,
+        )
+        .await?;
+    Ok(logs
+        .into_iter()
+        .map(|entry| AiLogEntryDto {
+            id: entry.id,
+            operation_type: entry.operation_type,
+            username: entry.username,
+            user_uid: entry.user_uid,
+            original_content: entry.original_content,
+            ai_content: entry.ai_content,
+            generation_status: entry.generation_status,
+            reject_reason: entry.reject_reason,
+            room_id: entry.room_id,
+            created_at: entry.created_at,
+        })
+        .collect())
 }
 
 #[tauri::command]
 pub async fn asr_status(state: State<'_, AppState>) -> Result<AsrStatusDto, DesktopError> {
-    Ok(asr_status_dto(state.member()?.ai.asr_status().await))
+    Ok(asr_status_dto(state.ai()?.asr_status().await))
+}
+
+#[tauri::command]
+pub async fn asr_model_list(
+    state: State<'_, AppState>,
+) -> Result<Vec<AsrModelManifestDto>, DesktopError> {
+    state
+        .ai()?
+        .asr_models()
+        .await
+        .map(|models| models.into_iter().map(asr_model_dto).collect())
+        .map_err(Into::into)
 }
 
 #[tauri::command]
 pub async fn asr_model_download(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     request: AsrDownloadRequestDto,
 ) -> Result<AsrStatusDto, DesktopError> {
     if !request.is_license_accepted {
         return Err(MemberServiceError::invalid("asr_license_required").into());
     }
-    if request.manifest.model_name.trim().is_empty() || request.manifest.size_bytes == 0 {
-        return Err(MemberServiceError::invalid("asr_manifest_invalid").into());
-    }
-    Err(MemberServiceError::unavailable("asr_manifest_unavailable").into())
+    state
+        .ai()?
+        .download_asr_model(request.model_id.trim())
+        .await
+        .map(asr_status_dto)
+        .map_err(Into::into)
 }
 
 #[tauri::command]
 pub async fn asr_start(state: State<'_, AppState>) -> Result<AsrStatusDto, DesktopError> {
-    let capability = state
-        .member()?
-        .membership
-        .status(now_millis(), false)
-        .await?
-        .capabilities
-        .ai;
     state
-        .member()?
-        .ai
-        .start_asr(capability)
+        .ai()?
+        .start_asr()
         .await
         .map(asr_status_dto)
         .map_err(Into::into)
@@ -788,8 +1169,7 @@ pub async fn asr_start(state: State<'_, AppState>) -> Result<AsrStatusDto, Deskt
 #[tauri::command]
 pub async fn asr_stop(state: State<'_, AppState>) -> Result<AsrStatusDto, DesktopError> {
     state
-        .member()?
-        .ai
+        .ai()?
         .stop_asr()
         .await
         .map(asr_status_dto)
@@ -924,7 +1304,6 @@ fn member_status_dto(snapshot: MemberSnapshot, now: i64) -> MemberStatusDto {
                 is_offline_valid: matches!(validity, Some(EntitlementValidity::ActiveOffline)),
             }),
         capabilities: MemberCapabilitiesDto {
-            ai: capability_dto(snapshot.capabilities.ai),
             moderation: capability_dto(snapshot.capabilities.moderation),
         },
         service_error_code: snapshot.service_error_code,
@@ -1014,16 +1393,13 @@ fn ai_config_dto(config: AiConfigRecord) -> AiConfigDto {
         identity: config.identity,
         speaking_style: speaking_style_dto(&config.speaking_style),
         system_prompt: config.system_prompt,
-        provider: config.provider,
-        model: config.model,
-        temperature: config.temperature,
         max_length: config.max_length,
+        max_sentences: config.max_sentences,
         is_sensitive_filter_enabled: config.is_sensitive_filter_enabled,
         banned_words: config.banned_words,
         danmaku_context_count: config.danmaku_context_count,
         asr_context_count: config.asr_context_count,
         manual_context_count: config.manual_context_count,
-        is_api_key_configured: config.api_key_ciphertext.is_some(),
     }
 }
 
@@ -1035,12 +1411,13 @@ fn ai_config_from_dto(
         identity: config.identity,
         speaking_style: speaking_style_name(config.speaking_style).to_owned(),
         system_prompt: config.system_prompt,
-        provider: config.provider,
+        provider: String::new(),
         endpoint: None,
-        model: config.model,
+        model: String::new(),
         api_key_ciphertext,
-        temperature: config.temperature,
+        temperature: 0.7,
         max_length: config.max_length,
+        max_sentences: config.max_sentences,
         is_sensitive_filter_enabled: config.is_sensitive_filter_enabled,
         banned_words: config.banned_words,
         danmaku_context_count: config.danmaku_context_count,
@@ -1052,20 +1429,216 @@ fn ai_config_from_dto(
 
 fn speaking_style_dto(value: &str) -> AiSpeakingStyleDto {
     match value {
-        "humorous" => AiSpeakingStyleDto::Humorous,
-        "formal" => AiSpeakingStyleDto::Formal,
-        "casual" => AiSpeakingStyleDto::Casual,
-        _ => AiSpeakingStyleDto::Short,
+        "short" => AiSpeakingStyleDto::Concise,
+        "formal" => AiSpeakingStyleDto::Detailed,
+        _ => AiSpeakingStyleDto::Natural,
     }
 }
 
 const fn speaking_style_name(value: AiSpeakingStyleDto) -> &'static str {
     match value {
-        AiSpeakingStyleDto::Short => "short",
-        AiSpeakingStyleDto::Humorous => "humorous",
-        AiSpeakingStyleDto::Formal => "formal",
-        AiSpeakingStyleDto::Casual => "casual",
+        AiSpeakingStyleDto::Concise => "short",
+        AiSpeakingStyleDto::Natural => "casual",
+        AiSpeakingStyleDto::Detailed => "formal",
     }
+}
+
+fn ai_model_profile_dto(profile: AiModelProfileRecord) -> AiModelProfileDto {
+    AiModelProfileDto {
+        profile_id: profile.profile_id,
+        name: profile.name,
+        provider_kind: match profile.provider_kind.as_str() {
+            "cloud" => AiProviderKindDto::Cloud,
+            "aggregator" => AiProviderKindDto::Aggregator,
+            "local" => AiProviderKindDto::Local,
+            _ => AiProviderKindDto::CustomOpenAi,
+        },
+        base_url: profile.base_url,
+        model: profile.model,
+        reasoning_effort: match profile.reasoning_effort {
+            AiReasoningEffort::None => AiReasoningEffortDto::None,
+            AiReasoningEffort::Minimal => AiReasoningEffortDto::Minimal,
+            AiReasoningEffort::Low => AiReasoningEffortDto::Low,
+            AiReasoningEffort::Medium => AiReasoningEffortDto::Medium,
+            AiReasoningEffort::High => AiReasoningEffortDto::High,
+            AiReasoningEffort::XHigh => AiReasoningEffortDto::XHigh,
+            AiReasoningEffort::Max => AiReasoningEffortDto::Max,
+        },
+        max_tokens: profile.max_tokens,
+        timeout_seconds: profile.timeout_seconds,
+        proxy_url: profile.proxy_url,
+        is_enabled: profile.is_enabled,
+        is_default: profile.is_default,
+        connection_state: match profile.connection_state {
+            AiModelConnectionState::Untested => AiModelConnectionStateDto::Untested,
+            AiModelConnectionState::Available => AiModelConnectionStateDto::Available,
+            AiModelConnectionState::Unavailable => AiModelConnectionStateDto::Unavailable,
+        },
+        is_api_key_configured: profile.has_api_key,
+        updated_at: profile.updated_at,
+    }
+}
+
+fn ai_model_profile_from_dto(
+    profile: AiModelProfileWritableDto,
+) -> Result<AiModelProfileRecord, DesktopError> {
+    let profile_id = profile
+        .profile_id
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    validate_profile_id(&profile_id)?;
+    Ok(AiModelProfileRecord {
+        profile_id,
+        name: profile.name.trim().to_owned(),
+        provider_kind: match profile.provider_kind {
+            AiProviderKindDto::Cloud => "cloud",
+            AiProviderKindDto::Aggregator => "aggregator",
+            AiProviderKindDto::Local => "local",
+            AiProviderKindDto::CustomOpenAi => "custom_openai",
+        }
+        .to_owned(),
+        base_url: profile.base_url.trim().to_owned(),
+        model: profile.model.trim().to_owned(),
+        reasoning_effort: match profile.reasoning_effort {
+            AiReasoningEffortDto::None => AiReasoningEffort::None,
+            AiReasoningEffortDto::Minimal => AiReasoningEffort::Minimal,
+            AiReasoningEffortDto::Low => AiReasoningEffort::Low,
+            AiReasoningEffortDto::Medium => AiReasoningEffort::Medium,
+            AiReasoningEffortDto::High => AiReasoningEffort::High,
+            AiReasoningEffortDto::XHigh => AiReasoningEffort::XHigh,
+            AiReasoningEffortDto::Max => AiReasoningEffort::Max,
+        },
+        max_tokens: profile.max_tokens,
+        timeout_seconds: profile.timeout_seconds,
+        proxy_url: profile
+            .proxy_url
+            .map(|value| value.trim().to_owned())
+            .filter(|value| !value.is_empty()),
+        is_enabled: profile.is_enabled,
+        is_default: false,
+        connection_state: AiModelConnectionState::Untested,
+        has_api_key: false,
+        updated_at: now_millis(),
+    })
+}
+
+fn validate_profile_id(profile_id: &str) -> Result<(), DesktopError> {
+    uuid::Uuid::parse_str(profile_id)
+        .map(|_| ())
+        .map_err(|_| MemberServiceError::invalid("ai_model_profile_invalid").into())
+}
+
+fn ai_voice_rules_dto(config: &AiVoiceConfigRecord) -> AiVoiceReplyRulesDto {
+    AiVoiceReplyRulesDto {
+        trigger_scope: match config.trigger_scope.as_str() {
+            "all" => AiTriggerScopeDto::All,
+            "captains" => AiTriggerScopeDto::Captains,
+            "keywords" => AiTriggerScopeDto::Keywords,
+            "high_value" => AiTriggerScopeDto::HighValue,
+            _ => AiTriggerScopeDto::Questions,
+        },
+        keywords: config.keywords.clone(),
+        global_cooldown_seconds: config.global_cooldown_seconds,
+        user_cooldown_seconds: config.user_cooldown_seconds,
+        queue_capacity: config.queue_capacity,
+        is_duplicate_filter_enabled: config.is_duplicate_filter_enabled,
+    }
+}
+
+fn ai_voice_config_from_rules(
+    rules: AiVoiceReplyRulesDto,
+    current: AiVoiceConfigRecord,
+) -> AiVoiceConfigRecord {
+    AiVoiceConfigRecord {
+        trigger_scope: match rules.trigger_scope {
+            AiTriggerScopeDto::All => "all",
+            AiTriggerScopeDto::Questions => "questions",
+            AiTriggerScopeDto::Captains => "captains",
+            AiTriggerScopeDto::Keywords => "keywords",
+            AiTriggerScopeDto::HighValue => "high_value",
+        }
+        .to_owned(),
+        keywords: rules
+            .keywords
+            .into_iter()
+            .map(|keyword| keyword.trim().to_owned())
+            .filter(|keyword| !keyword.is_empty())
+            .collect(),
+        global_cooldown_seconds: rules.global_cooldown_seconds,
+        user_cooldown_seconds: rules.user_cooldown_seconds,
+        queue_capacity: rules.queue_capacity,
+        is_duplicate_filter_enabled: rules.is_duplicate_filter_enabled,
+        ..current
+    }
+}
+
+fn ai_output_device_dto(device: AiOutputDeviceRecord) -> AiOutputDeviceDto {
+    AiOutputDeviceDto {
+        device_id: device.device_id,
+        display_name: device.display_name,
+        is_available: device.is_available,
+        is_default: device.is_default,
+    }
+}
+
+fn ai_voice_dto(voice: AiVoiceRecord) -> AiVoiceDto {
+    AiVoiceDto {
+        voice_id: voice.voice_id,
+        display_name: voice.display_name,
+        is_available: voice.is_available,
+        is_default: voice.is_default,
+    }
+}
+
+fn ai_voice_queue_item_dto(item: AiVoiceQueueItemRecord) -> AiVoiceQueueItemDto {
+    AiVoiceQueueItemDto {
+        item_id: item.item_id,
+        text: item.text,
+        priority: item.priority,
+        created_at: item.created_at,
+    }
+}
+
+fn ai_voice_queue_dto(queue: AiVoiceQueueSnapshotRecord) -> AiVoiceQueueSnapshotDto {
+    AiVoiceQueueSnapshotDto {
+        state: match queue.state {
+            AiVoiceQueueState::Idle => AiVoiceQueueStateDto::Idle,
+            AiVoiceQueueState::Speaking => AiVoiceQueueStateDto::Speaking,
+            AiVoiceQueueState::Paused => AiVoiceQueueStateDto::Paused,
+            AiVoiceQueueState::Unavailable => AiVoiceQueueStateDto::Unavailable,
+        },
+        current: queue.current.map(ai_voice_queue_item_dto),
+        pending: queue
+            .pending
+            .into_iter()
+            .map(ai_voice_queue_item_dto)
+            .collect(),
+        capacity: queue.capacity,
+        volume: queue.volume,
+        selected_device_id: queue.selected_device_id,
+        selected_voice_id: queue.selected_voice_id,
+        is_audio_route_confirmed: queue.is_audio_route_confirmed,
+        last_error_code: queue.last_error_code,
+    }
+}
+
+async fn ai_voice_reply_snapshot(
+    state: &crate::application::member::AiState,
+) -> Result<AiVoiceReplySnapshotDto, DesktopError> {
+    let config = state.voice_config().await?;
+    let profiles = state.model_profiles().await?;
+    let devices = state.output_devices().await.unwrap_or_default();
+    let voices = state.voices().await.unwrap_or_default();
+    Ok(AiVoiceReplySnapshotDto {
+        is_enabled: config.is_enabled,
+        default_profile_id: profiles
+            .iter()
+            .find(|profile| profile.is_default)
+            .map(|profile| profile.profile_id.clone()),
+        rules: ai_voice_rules_dto(&config),
+        devices: devices.into_iter().map(ai_output_device_dto).collect(),
+        voices: voices.into_iter().map(ai_voice_dto).collect(),
+        queue: ai_voice_queue_dto(state.voice_queue_snapshot().await?),
+    })
 }
 
 fn ai_generation_dto(generation: AiGenerationRecord) -> AiGenerationDto {
@@ -1100,6 +1673,17 @@ fn asr_status_dto(status: AsrStatusRecord) -> AsrStatusDto {
         language: status.language,
         progress_percent: status.progress_percent,
         error_code: status.error_code,
+    }
+}
+
+fn asr_model_dto(model: AsrModelRecord) -> AsrModelManifestDto {
+    AsrModelManifestDto {
+        model_id: model.model_id,
+        model_name: model.model_name,
+        size_bytes: model.size_bytes,
+        license: model.license,
+        source_label: model.source_label,
+        is_installed: model.is_installed,
     }
 }
 

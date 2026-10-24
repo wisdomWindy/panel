@@ -202,9 +202,9 @@ impl RecordingRuntime {
             state.danmaku_timestamps.pop_front();
         }
         state.danmaku_timestamps.push_back(base.occurred_at);
-        let cooled_down = state.last_automatic_highlight_at.map_or(true, |last| {
-            base.occurred_at.saturating_sub(last) >= HEAT_WINDOW_MS
-        });
+        let cooled_down = state
+            .last_automatic_highlight_at
+            .is_none_or(|last| base.occurred_at.saturating_sub(last) >= HEAT_WINDOW_MS);
         let timestamps = state.danmaku_timestamps.make_contiguous();
         if !cooled_down || !is_danmaku_surge(timestamps, base.occurred_at, config.danmaku_threshold)
         {

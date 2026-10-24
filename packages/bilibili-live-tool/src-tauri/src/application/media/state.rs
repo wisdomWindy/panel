@@ -312,7 +312,7 @@ impl MediaState {
             gift_name,
             sound_path: Some(source),
             volume: existing.as_ref().map_or(0.8, |value| value.volume),
-            is_enabled: existing.as_ref().map_or(true, |value| value.is_enabled),
+            is_enabled: existing.as_ref().is_none_or(|value| value.is_enabled),
         };
         services.repository.upsert_gift_sound(&binding).await?;
         let bindings = services.repository.list_gift_sounds().await?;
@@ -747,6 +747,8 @@ pub fn default_captain_effect_config() -> CaptainEffectConfig {
         preset_id: "captain-default".into(),
         duration_seconds: 5,
         position: MediaPosition::Center,
+        window_width: 560,
+        window_height: 280,
         primary_color: "#00AEEC".into(),
         secondary_color: "#FB7299".into(),
         first_sound: None,

@@ -15,7 +15,6 @@
 ### Fixed
 
 - 修复所有 TypeScript 类型错误 (100+ 错误)
-- 修复插件系统类型错误
 
 ### Removed
 

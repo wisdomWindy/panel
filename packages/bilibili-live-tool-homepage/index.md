@@ -42,11 +42,6 @@ hero:
     <p>集成 AI 大模型，在本地生成回复预览</p>
   </div>
   <div class="feature-item">
-    <div class="feature-icon"><el-icon :size="16"><Connection /></el-icon></div>
-    <h3>插件系统</h3>
-    <p>可扩展的插件架构，支持自定义功能</p>
-  </div>
-  <div class="feature-item">
     <div class="feature-icon"><el-icon :size="16"><Globe /></el-icon></div>
     <h3>多语言支持</h3>
     <p>支持中文和英文界面，满足不同用户需求</p>

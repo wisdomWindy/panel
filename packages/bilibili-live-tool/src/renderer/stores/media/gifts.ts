@@ -105,9 +105,11 @@ export const useMediaGiftsStore = defineStore('media-gifts', () => {
   }
 
   function testNotify(config: GiftNotifyConfig): Promise<void> {
-    return runOperation('testNotify', () =>
-      invokeDesktop('gift_notify_test', { config }).then(() => undefined)
-    );
+    return runOperation('testNotify', async () => {
+      latestAlert.value = adaptGiftAlertPayload(
+        await invokeDesktop('gift_notify_test', { config })
+      );
+    });
   }
 
   async function withGrant<T>(purpose: PathPurpose, effect: (grantId: PathGrantId) => Promise<T>): Promise<T> {
@@ -187,6 +189,10 @@ export const useMediaGiftsStore = defineStore('media-gifts', () => {
     }
   }
 
+  function dismissAlert(): void {
+    latestAlert.value = null;
+  }
+
   function replaceNotify(value: unknown): void {
     try {
       notifySnapshot.value = adaptGiftNotifySnapshot(value);
@@ -222,6 +228,7 @@ export const useMediaGiftsStore = defineStore('media-gifts', () => {
     exportSounds,
     previewSound,
     acceptAlert,
+    dismissAlert,
     replaceNotify,
     dispose
   };

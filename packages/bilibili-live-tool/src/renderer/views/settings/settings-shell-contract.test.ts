@@ -10,7 +10,7 @@ describe('system settings shell contract', () => {
     expect(page).toContain('ConfigManagementPanel');
     expect(page).toContain('LanguageSettings');
     expect(page).toContain('InterfaceSettingsPanel');
-    expect(page).not.toMatch(/LogSettings|UpdateSettings|PluginSettings|ASRSettings|AISettings|ModerationSettings/);
+    expect(page).not.toMatch(/LogSettings|UpdateSettings|ASRSettings|AISettings|ModerationSettings/);
     expect(page).not.toMatch(/useConfigStore|createObjectURL|new Blob|importPlaceholder/);
   });
 
@@ -46,11 +46,23 @@ describe('system settings shell contract', () => {
     expect(panel).toContain('saveUi');
     expect(panel).toContain('resetUi');
     expect(panel).toContain('LayoutEditorDialog');
+    expect(panel).toContain('theme: \'system\'');
     expect(panel).toContain('navigationWidth: 208');
     expect(layout).toContain('role="separator"');
     expect(layout).toContain('@pointerdown');
     expect(layout).toContain('setPointerCapture');
     expect(layout).toContain('ArrowRight');
     expect(layout).toContain('--layout-preview-navigation');
+  });
+
+  it('exposes a deduplicated native update check from the about section', () => {
+    const page = source('./index.vue');
+    expect(page).toContain('release.checkUpdate()');
+    expect(page).toContain('release.pending.has(\'checkUpdate\')');
+    expect(page).toContain('t(\'update.noUpdate\')');
+    expect(page).toContain('t(\'update.hasUpdate\')');
+    expect(page).not.toContain('settings.aboutInfo.channel');
+    expect(page).not.toContain('release.about?.channel');
+    expect(page).not.toContain('invokeDesktop');
   });
 });

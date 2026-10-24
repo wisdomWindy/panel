@@ -1,0 +1,29 @@
+{
+  "request_id": "gift-alert-tone-and-media",
+  "stage": "verify",
+  "status": "complete",
+  "source": {
+    "type": "direct-user-change",
+    "reference": "current Codex thread",
+    "approval": "confirmed"
+  },
+  "approvals": {
+    "design_approved": true,
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "speed_profile": {
+    "level": "S2 scoped",
+    "reason": "cross-layer gift event contract plus renderer, notification network/cache, and audio output",
+    "context_budget": "scoped",
+    "artifact_density": "compact"
+  },
+  "module_flow": null,
+  "loop": {
+    "iteration": 1,
+    "state": "complete",
+    "last_completed_stage": "verify",
+    "pending_gate": null,
+    "reentry_reason": null
+  }
+}

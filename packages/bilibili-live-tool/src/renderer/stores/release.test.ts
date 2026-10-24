@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PluginSnapshot } from '@/platform/desktop';
+import type { UpdateSnapshot } from '@/platform/desktop';
 
 const invokeDesktop = vi.hoisted(() => vi.fn());
 
@@ -16,13 +16,13 @@ vi.mock('@/platform/desktop', async () => ({
 
 import { useReleaseStore } from './release';
 
-function plugin(status: PluginSnapshot['status']): PluginSnapshot {
+function currentUpdate(currentVersion = '0.1.0'): UpdateSnapshot {
   return {
-    id: 'captain-effect',
-    name: 'Captain Effect',
-    version: '1.0.0',
-    status,
-    permissions: ['effect'],
+    currentVersion,
+    channel: 'free',
+    status: 'current',
+    candidate: null,
+    progressPercent: null,
     errorCode: null
   };
 }
@@ -33,32 +33,54 @@ describe('release store', () => {
     invokeDesktop.mockReset();
   });
 
-  it('keeps the prior plugin snapshot until native toggle succeeds', async () => {
-    let resolveRequest!: (value: PluginSnapshot) => void;
+  it('ignores an update check that resolves after the store is disposed', async () => {
+    let resolveRequest!: (value: UpdateSnapshot) => void;
     invokeDesktop.mockReturnValue(new Promise(resolve => { resolveRequest = resolve; }));
     const store = useReleaseStore();
-    store.replacePlugin(plugin('disabled'));
-    const initialPlugin = store.plugins[0];
-    if (!initialPlugin) throw new Error('expected the seeded plugin');
 
-    const request = store.togglePlugin(initialPlugin);
-    expect(store.plugins[0]?.status).toBe('disabled');
-    expect(store.pending.has('plugin:captain-effect')).toBe(true);
-
-    resolveRequest(plugin('enabled'));
+    const request = store.checkUpdate();
+    store.dispose();
+    resolveRequest(currentUpdate());
     await request;
-    expect(store.plugins[0]?.status).toBe('enabled');
+
+    expect(store.update).toBeNull();
     expect(store.pending.size).toBe(0);
   });
 
-  it('removes a plugin only after native uninstall confirms success', async () => {
-    invokeDesktop.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+  it('does not let a disposed request clear a newer check pending state', async () => {
+    let resolveFirst!: (value: UpdateSnapshot) => void;
+    let resolveSecond!: (value: UpdateSnapshot) => void;
+    invokeDesktop
+      .mockReturnValueOnce(new Promise(resolve => { resolveFirst = resolve; }))
+      .mockReturnValueOnce(new Promise(resolve => { resolveSecond = resolve; }));
     const store = useReleaseStore();
-    store.replacePlugin(plugin('disabled'));
 
-    await store.uninstallPlugin('captain-effect');
-    expect(store.plugins).toHaveLength(1);
-    await store.uninstallPlugin('captain-effect');
-    expect(store.plugins).toHaveLength(0);
+    const firstRequest = store.checkUpdate();
+    store.dispose();
+    const secondRequest = store.checkUpdate();
+    resolveFirst(currentUpdate('0.1.0'));
+    await firstRequest;
+
+    expect(store.pending.has('checkUpdate')).toBe(true);
+    expect(store.update).toBeNull();
+
+    resolveSecond(currentUpdate('0.2.0'));
+    await secondRequest;
+    expect(store.update?.currentVersion).toBe('0.2.0');
+    expect(store.pending.size).toBe(0);
+  });
+
+  it('does not restore an error from a request rejected after dispose', async () => {
+    let rejectRequest!: (reason: unknown) => void;
+    invokeDesktop.mockReturnValue(new Promise((_, reject) => { rejectRequest = reject; }));
+    const store = useReleaseStore();
+
+    const request = store.checkUpdate();
+    store.dispose();
+    rejectRequest(new Error('offline'));
+    await expect(request).rejects.toMatchObject({ code: 'test_error' });
+
+    expect(store.error).toBeNull();
+    expect(store.pending.size).toBe(0);
   });
 });

@@ -1,0 +1,40 @@
+{
+  "request_id": "dark-theme-tts-recording-contrast",
+  "source": {
+    "type": "direct-user-defect",
+    "evidence": ["U1"]
+  },
+  "stage": "complete",
+  "status": "complete",
+  "artifacts": {
+    "request": "request.md",
+    "bugfix_source": "artifacts/bugfix-source.md",
+    "prd_snapshot": "artifacts/prd-snapshot.md",
+    "code_context": "artifacts/code-context.md",
+    "spec": "spec/spec.md",
+    "clarifications": "spec/clarifications.md",
+    "plan": "plan/plan.md",
+    "task_board": "plan/task-board.md",
+    "execution": "execution/changelog.md",
+    "verification": "verification/verification.md",
+    "review": "review/review.md"
+  },
+  "approvals": {
+    "spec_approved": true,
+    "plan_approved": true
+  },
+  "speed_profile": {
+    "level": "S1 local",
+    "reason": "两个已知页面及直接可见子组件的局部深色 utility 缺失，无业务逻辑、API、状态或架构变更",
+    "context_budget": "scoped",
+    "artifact_density": "compact"
+  },
+  "module_flow": null,
+  "loop": {
+    "iteration": 6,
+    "state": "complete",
+    "last_completed_stage": "review",
+    "pending_gate": null,
+    "reentry_reason": "new_request"
+  }
+}

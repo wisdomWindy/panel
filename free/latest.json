@@ -1,67 +1,31 @@
 {
-  "version": "0.1.2",
-  "notes": "Signed desktop installers and updater artifacts.",
-  "pub_date": "2026-09-16T06:32:53.299Z",
+  "version": "0.2.0",
+  "notes": "biliLiveHelper v0.2.0 for Windows x64, macOS Apple Silicon, and macOS Intel.",
+  "pub_date": "2026-10-24T10:49:08.226Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW9kY3ZwRk1DczhqMjhCb3VsVFQ4TkRoQlVaYUlyN0FrVkxoRStPclhmMEQrSWt0WWtIVy9DOWpqV0lVT05WSVNvRmVjdlJuTldyc1liMzFCbFBVTWdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5Mjk5CWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLLmFwcC50YXIuZ3oKU1dncm5CL2gwbEViKzRjSmp4MDg2S0hBN0QzVXcrNE94WVl2OGlOMWE5c0k4cS93MERoYitCNTcyTWRaemRTa0VGWHByakJKcUkxSGk0Wlc0SFAzRGc9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_aarch64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW13aWlwWVZ6MjJtUjhqZGFPeVRTclN5eWxSNmhMSHVEOW9WcnYweHR2VUVNWnlGcTZDZ1pwc3B3bzZONVRoK1RjTnJndUYzZHYranBIdzJkbDNZQ2dzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM3OTQzCWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negpwdGdHUlRsTGRSVmZvaVNtbzRVM3NmYkkzYVNxdGdJVG43WTR0alBheDAyWHo2SVlFbWwra1NveG91TXdxQ2FDNUFwd0VhaTFVeFU4WG9PaStGWktEdz09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiveHelper_0.2.0_aarch64.app.tar.gz"
     },
     "darwin-aarch64-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW9kY3ZwRk1DczhqMjhCb3VsVFQ4TkRoQlVaYUlyN0FrVkxoRStPclhmMEQrSWt0WWtIVy9DOWpqV0lVT05WSVNvRmVjdlJuTldyc1liMzFCbFBVTWdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5Mjk5CWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLLmFwcC50YXIuZ3oKU1dncm5CL2gwbEViKzRjSmp4MDg2S0hBN0QzVXcrNE94WVl2OGlOMWE5c0k4cS93MERoYitCNTcyTWRaemRTa0VGWHByakJKcUkxSGk0Wlc0SFAzRGc9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_aarch64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW13aWlwWVZ6MjJtUjhqZGFPeVRTclN5eWxSNmhMSHVEOW9WcnYweHR2VUVNWnlGcTZDZ1pwc3B3bzZONVRoK1RjTnJndUYzZHYranBIdzJkbDNZQ2dzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM3OTQzCWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negpwdGdHUlRsTGRSVmZvaVNtbzRVM3NmYkkzYVNxdGdJVG43WTR0alBheDAyWHo2SVlFbWwra1NveG91TXdxQ2FDNUFwd0VhaTFVeFU4WG9PaStGWktEdz09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiveHelper_0.2.0_aarch64.app.tar.gz"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW9NTTV6bk1IQ3E3WVJQNFFKT1FLeGtFNmNrWGZnQTVoVkVBMmJkK2tleW1XUmFMMTBDNnpnQ2l5U1YzVFYyRDF3R0g4UE1yWEhBb2U0TFUvZkhwblE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5Mjk1CWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLLmFwcC50YXIuZ3oKUkt4Ymd4VTBNcHRWa09GcXF1bnZKV2Q1MHdXTXJlMkVVR1JEaWJpQVk2ZWZXc1hHclFOTkFmZWFZZzdRcXFhaXRQbDBYVERoWk41UWJMKzJlWUtuQ3c9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_x64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXAxeTZLTkQreHFhdDFEOHlacEJpWlByRllKUldyandvaVJZWUYyNWJIelVKZFBIMFlzQTZVSnhacXg1ZktLMHgyWjZ5QVEyN1F1azM1bWh3NzZRMFFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM4ODQwCWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negovNVBORktjcXV4c1VlRGFkZllYWjZxTGFIUDBqNEliT2VWVU55anZ5STVoVXBQdERHR3o0QkdsK3VZdE8xK0hyVWRIZ2xaUTN4b2d6dy94ZXNqOWFBQT09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiveHelper_0.2.0_x64.app.tar.gz"
     },
     "darwin-x86_64-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW9NTTV6bk1IQ3E3WVJQNFFKT1FLeGtFNmNrWGZnQTVoVkVBMmJkK2tleW1XUmFMMTBDNnpnQ2l5U1YzVFYyRDF3R0g4UE1yWEhBb2U0TFUvZkhwblE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5Mjk1CWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLLmFwcC50YXIuZ3oKUkt4Ymd4VTBNcHRWa09GcXF1bnZKV2Q1MHdXTXJlMkVVR1JEaWJpQVk2ZWZXc1hHclFOTkFmZWFZZzdRcXFhaXRQbDBYVERoWk41UWJMKzJlWUtuQ3c9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_x64.app.tar.gz"
-    },
-    "linux-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWlyM1EyV0ltbVpZS0RLbXZBM2lKQlBrYjVMZmJvU0p0NVJJZzIvM1ZFdE4rT1d0eFgrZnh0VEgyaGpxeFlvTG1mS1VNOG1iQ1A2UC9QLzhHc1BjWXcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5Nzg3CWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLXzAuMS4yX2FhcmNoNjQuQXBwSW1hZ2UKdjd4c29OdW9CN2N4RldEMXB4YlNyRmJLTUxMOUdrQTBqcTQwMTJjdFgwL0RoM0drZTdhUmJWdUNkU3p5ZkRFSDJHQ2c0TnRHS2FiRHJPbENGdys1RFE9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_aarch64.AppImage"
-    },
-    "linux-aarch64-appimage": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWlyM1EyV0ltbVpZS0RLbXZBM2lKQlBrYjVMZmJvU0p0NVJJZzIvM1ZFdE4rT1d0eFgrZnh0VEgyaGpxeFlvTG1mS1VNOG1iQ1A2UC9QLzhHc1BjWXcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5Nzg3CWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLXzAuMS4yX2FhcmNoNjQuQXBwSW1hZ2UKdjd4c29OdW9CN2N4RldEMXB4YlNyRmJLTUxMOUdrQTBqcTQwMTJjdFgwL0RoM0drZTdhUmJWdUNkU3p5ZkRFSDJHQ2c0TnRHS2FiRHJPbENGdys1RFE9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_aarch64.AppImage"
-    },
-    "linux-aarch64-deb": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXRPaHBhbkd2TXZCcGd0Rmp0alIxNU5vUmF1T3Z5OVN4RmE4STQwWEFtRk5vaUhlekhRNHFZNkQ3Sk5Gb2ozaXdVWWYzbHJuaHlTUXRTbHhGNVQ0blFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5Nzg3CWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLXzAuMS4yX2FybTY0LmRlYgo4TzhCU1dnek4vWnBQNWhlcGd2dGZtdHFSdTdjeW41NlNJcnh4b0cvTXFkb0tmQzFmUXFrTWtLckdlM1l1OVZoU013VnRmT1g5aGE1YUx3cmRGZDZEQT09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_arm64.deb"
-    },
-    "linux-aarch64-rpm": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXFpU1dXQStGVXdGOVhVR01aN1A4OXNRSGpzUVJyMWxEMHQyVjdwQUxDeVlPN2xQT0F4OUg3ZXhyZmtRNjduL1h4SlA3dGZuTjVnclR4dWtnbG8vdHdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5Nzg3CWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLLTAuMS4yLTEuYWFyY2g2NC5ycG0KajFrUVpycjRkdGhQbXFYUURkWktTV29xZFFiMW5ZSTFwczVhdFdHZ1BjTVNaRWNOUkVjdDZ5Vitjdy9OTHhTZXlCMElhdjVjbllsMjM0K2dGNEtEQlE9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili.-0.1.2-1.aarch64.rpm"
-    },
-    "linux-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW4rZldobmt0RGxFZ2JleVh3SEJBaWowam5wNVRQQ0xlSG8wUXVHQ0tyUGswb2xBTElsU2tjS3FTRU9MbDBuRG53WmJPWHhEdXlXaDZneXEwTHNKdkE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5OTUwCWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLXzAuMS4yX2FtZDY0LkFwcEltYWdlCkl5cW5rYm8zd2dEdFp0UC91VzBjQ0V5YWUzUDdFZ3ROOWZCaXliNG1JTHFDZlJ6RkRrSS8zSVpDN052QW9xK0d6ZjRRWFYxN01xZEZCenU4WmtsNkRBPT0K",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_amd64.AppImage"
-    },
-    "linux-x86_64-appimage": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW4rZldobmt0RGxFZ2JleVh3SEJBaWowam5wNVRQQ0xlSG8wUXVHQ0tyUGswb2xBTElsU2tjS3FTRU9MbDBuRG53WmJPWHhEdXlXaDZneXEwTHNKdkE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5OTUwCWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLXzAuMS4yX2FtZDY0LkFwcEltYWdlCkl5cW5rYm8zd2dEdFp0UC91VzBjQ0V5YWUzUDdFZ3ROOWZCaXliNG1JTHFDZlJ6RkRrSS8zSVpDN052QW9xK0d6ZjRRWFYxN01xZEZCenU4WmtsNkRBPT0K",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_amd64.AppImage"
-    },
-    "linux-x86_64-deb": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXJXYU5tNkJLNElsTTdDbDQwWVByRlMvWE9najhzSC9pUy9kS20zU0c5N214ZXcrdWVxRmJ4a1hCck54Uk9pUTdWKzYwOUJ1dmxoRk1hVEN3L1lEYndzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5OTUwCWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLXzAuMS4yX2FtZDY0LmRlYgpRWWVjS3gzQ0E5SlZTUVErelNNc1dmSkdROGI0M2Q2UG44SEhuamVGLy9UNlc4dTc4bm00d1UwWUVSWWcvZFBLVURvVjF5VVZ6dDNObHhOUGxlUk1CZz09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_amd64.deb"
-    },
-    "linux-x86_64-rpm": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWx0MnFLUHNFSHlmYlVPbEdVN0FnZlhLR21NQm9ZM3RtcXRoQXphT0R2QTdJVU10emc1ZGpSZU1ZQlJyaEV1SEYyVVphRW53aDNzQ0F2RjNWbnZ4N1FBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTM5OTUwCWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLLTAuMS4yLTEueDg2XzY0LnJwbQpWTjU4UXI0T3RLUU9SVVlsQ05PYU5LN004VDZVT01pMWJTRkhmcUtXc0RPLzBQUEUzRUV0RDNwL21JWXFQQTMrWG16dFBxMkRCTllwVWxBTitXeTBBQT09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili.-0.1.2-1.x86_64.rpm"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXAxeTZLTkQreHFhdDFEOHlacEJpWlByRllKUldyandvaVJZWUYyNWJIelVKZFBIMFlzQTZVSnhacXg1ZktLMHgyWjZ5QVEyN1F1azM1bWh3NzZRMFFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM4ODQwCWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negovNVBORktjcXV4c1VlRGFkZllYWjZxTGFIUDBqNEliT2VWVU55anZ5STVoVXBQdERHR3o0QkdsK3VZdE8xK0hyVWRIZ2xaUTN4b2d6dy94ZXNqOWFBQT09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiveHelper_0.2.0_x64.app.tar.gz"
     },
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW55S2daazVzbGtVL2NZdHRxdlRXYmZoTkF4MkRvMXQ4aVdiUzRCMGN3MFNzaUprdFNlaG92VCtqb1ZNUWRyQlhPbERZK2hQRUwydmhrQjJUVm5xd2dBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTQwMzUzCWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLXzAuMS4yX3g2NF96aC1DTi5tc2kKS21GbHBkcU96RklvTmczNHlCNTUrNUVlWmxNaUtRcHVQWGZFcDVLbmZHTGhQTldzYjd4QWoydjV3c3pNUmh1TFprWDRrWHpnUkhDd2hLRHE2aWJSQkE9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_x64_zh-CN.msi"
-    },
-    "windows-x86_64-msi": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW55S2daazVzbGtVL2NZdHRxdlRXYmZoTkF4MkRvMXQ4aVdiUzRCMGN3MFNzaUprdFNlaG92VCtqb1ZNUWRyQlhPbERZK2hQRUwydmhrQjJUVm5xd2dBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTQwMzUzCWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLXzAuMS4yX3g2NF96aC1DTi5tc2kKS21GbHBkcU96RklvTmczNHlCNTUrNUVlWmxNaUtRcHVQWGZFcDVLbmZHTGhQTldzYjd4QWoydjV3c3pNUmh1TFprWDRrWHpnUkhDd2hLRHE2aWJSQkE9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_x64_zh-CN.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW1YNm5kZ0ZpQm1MR1AwK2VBY3ZNWEJDTXhhUkZJTTNOR3FJUVk1amMvQnpaempjZG9aTHF2UURMdUNXNG5WOWQ0R0JlWEpGREZlQXhpV3E1bkFrUEFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM4OTQ0CWZpbGU6YmlsaUxpdmVIZWxwZXJfMC4yLjBfeDY0LXNldHVwLmV4ZQptMVgyTlllQ2R5dGsvWStjaS9rT0U5M2RRaWp1ZEd3cUpEVWxBRDFEZm84STlFU2ZzbHI5NDBpK0Qvb2QvSmpZVXk0R2xaZkVjcHdvS1cveXFwcy9CZz09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiveHelper_0.2.0_x64-setup.exe"
     },
     "windows-x86_64-nsis": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWtxMVRZMzBsN1JWQ1FrUE4vNlRNUWVjMHRSMG00TVl0cTFZRExTUkhscU40QlVBTGIvN2pzdWZodFVQc00xOVNocUorKzEzSUF2SFBWaGdxNTJ1a3d3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5NTQwMzUzCWZpbGU6QmlsaWJpbGkg55u05pKt5Yqp5omLXzAuMS4yX3g2NC1zZXR1cC5leGUKalpnNTJZQS9MU2ViL1EvT0FtZ0JjeWhub2l2VThaaldCK3lteEtlQjNndEd5czZzK2JOSERMMmtNRjBRc2lVVi96ZlowdjNtVXprNlpGNEJKczN1RFE9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.1.2/Bilibili._0.1.2_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW1YNm5kZ0ZpQm1MR1AwK2VBY3ZNWEJDTXhhUkZJTTNOR3FJUVk1amMvQnpaempjZG9aTHF2UURMdUNXNG5WOWQ0R0JlWEpGREZlQXhpV3E1bkFrUEFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM4OTQ0CWZpbGU6YmlsaUxpdmVIZWxwZXJfMC4yLjBfeDY0LXNldHVwLmV4ZQptMVgyTlllQ2R5dGsvWStjaS9rT0U5M2RRaWp1ZEd3cUpEVWxBRDFEZm84STlFU2ZzbHI5NDBpK0Qvb2QvSmpZVXk0R2xaZkVjcHdvS1cveXFwcy9CZz09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiveHelper_0.2.0_x64-setup.exe"
     }
   },
   "rolloutPercent": 100,

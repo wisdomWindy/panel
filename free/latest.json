@@ -1,0 +1,31 @@
+{
+    "version":  "0.2.0",
+    "notes":  "biliLiverHelper v0.2.0 for Windows x64, macOS Apple Silicon, and macOS Intel.",
+    "pub_date":  "2026-10-24T10:49:08.226Z",
+    "platforms":  {
+                      "darwin-aarch64":  {
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW13aWlwWVZ6MjJtUjhqZGFPeVRTclN5eWxSNmhMSHVEOW9WcnYweHR2VUVNWnlGcTZDZ1pwc3B3bzZONVRoK1RjTnJndUYzZHYranBIdzJkbDNZQ2dzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM3OTQzCWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negpwdGdHUlRsTGRSVmZvaVNtbzRVM3NmYkkzYVNxdGdJVG43WTR0alBheDAyWHo2SVlFbWwra1NveG91TXdxQ2FDNUFwd0VhaTFVeFU4WG9PaStGWktEdz09Cg==",
+                                             "url":  "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_macOS_AppleSilicon.app.tar.gz"
+                                         },
+                      "darwin-aarch64-app":  {
+                                                 "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW13aWlwWVZ6MjJtUjhqZGFPeVRTclN5eWxSNmhMSHVEOW9WcnYweHR2VUVNWnlGcTZDZ1pwc3B3bzZONVRoK1RjTnJndUYzZHYranBIdzJkbDNZQ2dzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM3OTQzCWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negpwdGdHUlRsTGRSVmZvaVNtbzRVM3NmYkkzYVNxdGdJVG43WTR0alBheDAyWHo2SVlFbWwra1NveG91TXdxQ2FDNUFwd0VhaTFVeFU4WG9PaStGWktEdz09Cg==",
+                                                 "url":  "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_macOS_AppleSilicon.app.tar.gz"
+                                             },
+                      "darwin-x86_64":  {
+                                            "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXAxeTZLTkQreHFhdDFEOHlacEJpWlByRllKUldyandvaVJZWUYyNWJIelVKZFBIMFlzQTZVSnhacXg1ZktLMHgyWjZ5QVEyN1F1azM1bWh3NzZRMFFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM4ODQwCWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negovNVBORktjcXV4c1VlRGFkZllYWjZxTGFIUDBqNEliT2VWVU55anZ5STVoVXBQdERHR3o0QkdsK3VZdE8xK0hyVWRIZ2xaUTN4b2d6dy94ZXNqOWFBQT09Cg==",
+                                            "url":  "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_macOS_Intel.app.tar.gz"
+                                        },
+                      "darwin-x86_64-app":  {
+                                                "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXAxeTZLTkQreHFhdDFEOHlacEJpWlByRllKUldyandvaVJZWUYyNWJIelVKZFBIMFlzQTZVSnhacXg1ZktLMHgyWjZ5QVEyN1F1azM1bWh3NzZRMFFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM4ODQwCWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negovNVBORktjcXV4c1VlRGFkZllYWjZxTGFIUDBqNEliT2VWVU55anZ5STVoVXBQdERHR3o0QkdsK3VZdE8xK0hyVWRIZ2xaUTN4b2d6dy94ZXNqOWFBQT09Cg==",
+                                                "url":  "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_macOS_Intel.app.tar.gz"
+                                            },
+                      "windows-x86_64":  {
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW1YNm5kZ0ZpQm1MR1AwK2VBY3ZNWEJDTXhhUkZJTTNOR3FJUVk1amMvQnpaempjZG9aTHF2UURMdUNXNG5WOWQ0R0JlWEpGREZlQXhpV3E1bkFrUEFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM4OTQ0CWZpbGU6YmlsaUxpdmVIZWxwZXJfMC4yLjBfeDY0LXNldHVwLmV4ZQptMVgyTlllQ2R5dGsvWStjaS9rT0U5M2RRaWp1ZEd3cUpEVWxBRDFEZm84STlFU2ZzbHI5NDBpK0Qvb2QvSmpZVXk0R2xaZkVjcHdvS1cveXFwcy9CZz09Cg==",
+                                             "url":  "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_Windows_x64-setup.exe"
+                                         },
+                      "windows-x86_64-nsis":  {
+                                                  "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW1YNm5kZ0ZpQm1MR1AwK2VBY3ZNWEJDTXhhUkZJTTNOR3FJUVk1amMvQnpaempjZG9aTHF2UURMdUNXNG5WOWQ0R0JlWEpGREZlQXhpV3E1bkFrUEFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyODM4OTQ0CWZpbGU6YmlsaUxpdmVIZWxwZXJfMC4yLjBfeDY0LXNldHVwLmV4ZQptMVgyTlllQ2R5dGsvWStjaS9rT0U5M2RRaWp1ZEd3cUpEVWxBRDFEZm84STlFU2ZzbHI5NDBpK0Qvb2QvSmpZVXk0R2xaZkVjcHdvS1cveXFwcy9CZz09Cg==",
+                                                  "url":  "https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_Windows_x64-setup.exe"
+                                              }
+                  }
+}

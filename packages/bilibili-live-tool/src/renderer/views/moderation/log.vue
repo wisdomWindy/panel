@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ArrowLeft, Refresh, Search } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import type { UserUid } from '@/platform/desktop';
 import { useModerationStore } from '@/stores/moderation';
 
 const router = useRouter();
+const { t } = useI18n();
 const store = useModerationStore();
 const userUid = ref('');
 const startedAt = ref<number | null>(null);
@@ -36,91 +38,132 @@ onMounted(query);
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-6xl">
-    <header class="mb-5 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <el-button
-          circle
-          :icon="ArrowLeft"
-          title="返回刷屏防护"
-          @click="router.push('/moderation')"
-        />
-        <h2 class="m-0 text-xl font-semibold text-gray-900 dark:text-gray-100">
-          禁言日志
+  <section class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
+    <header class="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        class="app-icon-btn"
+        :aria-label="t('moderation.logTitle')"
+        :title="t('moderation.logTitle')"
+        @click="router.push('/moderation')"
+      >
+        <el-icon><ArrowLeft /></el-icon>
+      </button>
+      <div class="mr-auto min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">
+          {{ t('moderation.logTitle') }}
         </h2>
       </div>
-      <el-button :icon="Refresh" :loading="store.pendingOperations.has('loadLogs')" @click="query">
-        刷新
-      </el-button>
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="store.pendingOperations.has('loadLogs')"
+        :aria-busy="store.pendingOperations.has('loadLogs')"
+        @click="query"
+      >
+        <el-icon><Refresh /></el-icon>
+        {{ t('common.refresh') }}
+      </button>
     </header>
 
-    <section
-      class="mb-4 flex flex-wrap items-end gap-3 border-y border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900"
-    >
+    <section class="app-card flex flex-wrap items-end gap-3 px-4 py-3">
       <label class="text-sm">
-        <span class="mb-1 block text-gray-500">UID</span>
-        <el-input v-model="userUid" clearable class="w-48" />
+        <span class="app-muted mb-1 block text-xs">{{ t('moderation.filterUid') }}</span>
+        <el-input v-model="userUid" clearable class="w-44" />
       </label>
       <label class="text-sm">
-        <span class="mb-1 block text-gray-500">开始时间</span>
+        <span class="app-muted mb-1 block text-xs">{{ t('moderation.filterStart') }}</span>
         <el-date-picker v-model="startedAt" type="datetime" />
       </label>
       <label class="text-sm">
-        <span class="mb-1 block text-gray-500">结束时间</span>
+        <span class="app-muted mb-1 block text-xs">{{ t('moderation.filterEnd') }}</span>
         <el-date-picker v-model="endedAt" type="datetime" />
       </label>
-      <el-button type="primary" :icon="Search" @click="query">
-        查询
-      </el-button>
+      <button
+        type="button"
+        class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3.5 text-sm"
+        @click="query"
+      >
+        <el-icon><Search /></el-icon>
+        {{ t('common.search') }}
+      </button>
     </section>
 
     <el-alert
       v-if="store.error"
-      class="mb-4"
       type="error"
       :closable="false"
       :title="store.error.message"
       show-icon
     />
-    <div v-loading="store.pendingOperations.has('loadLogs')" class="overflow-x-auto">
-      <el-table :data="store.logs" class="min-w-[760px]">
-        <el-table-column label="时间" width="190">
-          <template #default="{ row }">
-            {{ dateTime(row.occurredAt) }}
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="username"
-          label="用户"
-          min-width="150"
-          show-overflow-tooltip
-        />
-        <el-table-column
-          prop="userUid"
-          label="UID"
-          width="140"
-          show-overflow-tooltip
-        />
-        <el-table-column prop="action" label="操作" width="130" />
-        <el-table-column label="误判" width="100">
-          <template #default="{ row }">
-            {{ row.isFalsePositive ? '是' : '否' }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              link
-              type="primary"
-              :disabled="row.isFalsePositive"
-              :loading="store.pendingOperations.has(`falsePositive:${row.id}`)"
-              @click="markFalsePositive(row.id)"
-            >
-              标记误判
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-  </div>
+
+    <section class="app-card flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div
+        v-loading="store.pendingOperations.has('loadLogs')"
+        class="min-h-0 flex-1 overflow-x-auto"
+      >
+        <el-table :data="store.logs" class="min-w-[760px]" header-cell-class-name="app-faint">
+          <el-table-column :label="t('common.time')" width="190">
+            <template #default="{ row }">
+              <span class="app-muted tabular-nums">{{ dateTime(row.occurredAt) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="username"
+            :label="t('moderation.columnUser')"
+            min-width="150"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="userUid"
+            :label="t('moderation.filterUid')"
+            width="140"
+            show-overflow-tooltip
+          />
+          <el-table-column :label="t('common.operation')" width="130">
+            <template #default="{ row }">
+              <span class="app-badge app-badge--plain">
+                {{ t(`moderation.logAction.${row.action}`) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('moderation.columnFalsePositive')" width="100">
+            <template #default="{ row }">
+              <span :style="row.isFalsePositive ? { color: 'var(--app-gold)' } : undefined">
+                {{ row.isFalsePositive ? t('moderation.yes') : t('moderation.no') }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('common.actions')" width="150" fixed="right">
+            <template #default="{ row }">
+              <button
+                type="button"
+                class="app-chip h-7 px-2.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="row.isFalsePositive || store.pendingOperations.has(`falsePositive:${row.id}`)"
+                :aria-busy="store.pendingOperations.has(`falsePositive:${row.id}`)"
+                @click="markFalsePositive(row.id)"
+              >
+                {{ t('moderation.markFalsePositive') }}
+              </button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </section>
+  </section>
 </template>
+
+<style scoped>
+.app-card :deep(.el-table) {
+  --el-table-border-color: var(--app-border);
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: transparent;
+  --el-table-header-text-color: var(--app-text-3);
+  --el-table-text-color: var(--app-text);
+  --el-table-row-hover-bg-color: var(--app-panel-2);
+}
+.app-card :deep(.el-table th.el-table__cell) {
+  font-weight: 500;
+}
+</style>

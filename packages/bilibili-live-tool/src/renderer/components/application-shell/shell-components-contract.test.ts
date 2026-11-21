@@ -49,7 +49,12 @@ describe('application shell component contract', () => {
     expect(navigation).toContain('w-[72px]');
     expect(navigation).toContain('md:w-[var(--shell-navigation-width,208px)]');
     expect(navigation).toContain('app-nav-link');
-    expect(connection).toContain('dark:text-zinc-100');
+    // The connection page is token-driven: one palette, no per-page dark: literals.
+    expect(connection).toContain('app-text');
+    expect(connection).toContain('app-muted');
+    expect(connection).toContain('app-card');
+    expect(connection).toContain('app-hairline');
+    expect(connection).not.toContain('dark:');
     expect(connection).toContain('grid-cols-1');
     expect(connection).toContain('<el-tag\n        class="shrink-0"');
     expect(main).toContain('document.documentElement.classList.toggle(\'dark\', prefersDark)');

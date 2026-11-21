@@ -1,43 +1,46 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import type { ModerationAlert } from '@/platform/desktop';
 
 defineProps<{
-    visible: boolean;
-    alert: ModerationAlert | null;
-  }>();
+  visible: boolean;
+  alert: ModerationAlert | null;
+}>();
 
 defineEmits<{
-    'update:visible': [value: boolean];
-  }>();
+  'update:visible': [value: boolean];
+}>();
+
+const { t } = useI18n();
 </script>
 
 <template>
   <el-drawer
     :model-value="visible"
-    title="用户详情"
+    :title="t('moderation.user.title')"
     size="min(460px, 92vw)"
     @update:model-value="$emit('update:visible', $event)"
   >
-    <template v-if="alert">
-      <div class="border-y border-gray-200 py-4 dark:border-gray-700">
-        <div class="font-semibold">
+    <div v-if="alert" class="flex flex-col gap-4">
+      <section class="app-card p-4">
+        <div class="app-text font-semibold">
           {{ alert.username }}
         </div>
-        <div class="mt-1 text-sm tabular-nums text-gray-500">
-          UID: {{ alert.userUid }}
+        <div class="app-faint mt-1 text-xs tabular-nums">
+          {{ t('moderation.user.uid') }}: {{ alert.userUid }}
         </div>
-      </div>
-      <section class="mt-5">
-        <h3 class="mb-2 mt-0 text-base font-semibold">
-          违规记录
+      </section>
+      <section class="app-card p-4">
+        <h3 class="app-text m-0 text-sm font-semibold">
+          {{ t('moderation.user.violation') }}
         </h3>
-        <p class="mb-2 text-sm">
+        <p class="app-muted mb-2 mt-2 text-sm">
           {{ alert.violationDescription }}
         </p>
-        <p class="m-0 break-words text-sm text-gray-500">
-          内容示例：{{ alert.contentExample }}
+        <p class="app-faint m-0 break-words text-sm">
+          {{ t('moderation.contentExample', { content: alert.contentExample }) }}
         </p>
       </section>
-    </template>
+    </div>
   </el-drawer>
 </template>

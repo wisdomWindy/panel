@@ -27,28 +27,30 @@
 
 | 检查 | 命令 | 结果 |
 | --- | --- | --- |
-| 前端测试 | `pnpm exec vitest run --mode free` | ✅ **49 files / 162 tests passed** |
+| 前端测试 | `pnpm exec vitest run --mode free` | ✅ **49 files / 164 tests passed** |
 | 类型检查 | `pnpm exec tsc --noEmit -p tsconfig.eslint.json` | ✅ exit 0 |
-| 生产构建 | `pnpm build:web:free` | ✅ `built in 6.33s` |
-| 双语键一致性 | 全量键集合比对 | ✅ 890 / 890，无单边键 |
+| 生产构建 | `pnpm build:web:free` | ✅ `built in 6.88s` |
+| 双语键一致性 | 全量键集合比对 | ✅ 1023 / 1023，无单边键 |
+| 旧配色残留 | `rg 'dark:'` 扫描 `src/renderer/**/*.vue` | ✅ **0 个文件** |
 
 改造前基线：47 files / 151 tests。新增/改写测试均表达新契约（如断言 `app-card`、`not.toContain('dark:')`），未删除既有断言。
 
-## 3. 仍未令牌化（已用脚本审计，非估计）
+## 3. 收尾范围（第二轮）
 
-以下文件仍含旧 `dark:` 类，但都已不在免费版主导航路径上，或属于成员态/覆盖层：
+在首批 10 页之后，补齐了剩余的旧配色文件，使 `src/renderer` 下**不再有任何 `.vue` 文件出现 `dark:` 字面量**：
 
-| 文件 | 影响面 |
+| 文件组 | 说明 |
 | --- | --- |
-| `views/settings/components/{ConfigManagementPanel,InterfaceSettingsPanel,LanguageSettings,LayoutEditorDialog}.vue` | 系统设置「配置/语言/界面/关于」面板内部 |
-| `views/ai/log.vue` | AI 审计日志页 |
-| `views/connection/index.vue` | 旧连接页（已从导航移除，仅保留路由） |
-| `components/media/GiftAlertOverlay.vue` | 礼物弹窗覆盖层 |
-| `views/moderation/*`、`views/membership/*`、`components/member/MembershipPausedNotice.vue` | 成员版专属 |
+| `views/settings/components/*`（4） | 配置/界面/语言/布局编辑器面板内部 |
+| `views/ai/log.vue` | AI 审计日志 |
+| `views/connection/index.vue` | 旧连接页 |
+| `components/media/GiftAlertOverlay.vue` | 礼物弹窗浮层（五个位置分支与超时清理逐条保留） |
+| `views/moderation/*`（5） | 风控中心（成员版） |
+| `views/membership/*`（5）+ `components/member/MembershipPausedNotice.vue` | 会员中心（成员版） |
 
-这些页面在 `html.dark` 下仍可读（走 Element Plus 深色变量），只是配色是 zinc 系而非设计图的 `#1c1f27` 系。
+同时删除 `docs/requirements/` 下已被 v2 取代的 v1 PRD，只保留 v2 作为唯一需求基线。
 
-## 4. 已知偏差
+## 4. 已知功能偏差（来自 PRD §9，非样式问题）
 
 - 设计图首页第 4 张卡是「新增关注」，后端事件流无关注数据，改为「在线人数」，未伪造指标。
 - 设计图看板底部的「礼物类型分布」没有对应后端聚合，未实现。

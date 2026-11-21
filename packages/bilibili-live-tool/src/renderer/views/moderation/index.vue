@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { Document, Refresh, Setting } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
+import { Document, Refresh, Setting, WarningFilled } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import type { ModerationAlert, ModerationRules, MuteDuration } from '@/platform/desktop';
 import MembershipPausedNotice from '@/components/member/MembershipPausedNotice.vue';
@@ -13,6 +14,7 @@ import ModerationRulesDialog from './components/ModerationRulesDialog.vue';
 import ModerationUserDrawer from './components/ModerationUserDrawer.vue';
 
 const router = useRouter();
+const { t } = useI18n();
 const store = useModerationStore();
 const membership = useMembershipStore();
 const safety = useLiveSafetyStore();
@@ -55,7 +57,7 @@ async function saveRules(rules: ModerationRules): Promise<void> {
   try {
     await store.updateRules(rules);
     rulesVisible.value = false;
-    ElMessage.success('规则已保存');
+    ElMessage.success(t('moderation.rulesSaved'));
   } catch {
     // The dialog renders the normalized native error and preserves its draft.
   }
@@ -105,28 +107,29 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-6xl">
-    <header class="mb-5 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="m-0 text-xl font-semibold text-gray-900 dark:text-gray-100">
-          刷屏防护
+  <section class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
+    <header class="flex flex-wrap items-center gap-2">
+      <div class="mr-auto min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">
+          {{ t('moderation.title') }}
         </h2>
-        <p class="mb-0 mt-1 text-sm text-gray-500">
-          本地规则检测与待处理告警
+        <p class="app-muted mt-1 mb-0 text-sm">
+          {{ t('moderation.description') }}
         </p>
       </div>
-      <div class="flex gap-2">
-        <el-button :icon="Document" @click="router.push('/moderation/log')">
-          日志
-        </el-button>
-        <el-button
-          :icon="Setting"
-          :disabled="!isReady || !store.rules"
-          @click="rulesVisible = true"
-        >
-          规则配置
-        </el-button>
-      </div>
+      <button type="button" class="app-chip" @click="router.push('/moderation/log')">
+        <el-icon><Document /></el-icon>
+        {{ t('moderation.log') }}
+      </button>
+      <button
+        type="button"
+        class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+        :disabled="!isReady || !store.rules"
+        @click="rulesVisible = true"
+      >
+        <el-icon><Setting /></el-icon>
+        {{ t('moderation.rules') }}
+      </button>
     </header>
 
     <MembershipPausedNotice
@@ -138,54 +141,58 @@ onMounted(() => {
     <template v-if="isReady">
       <el-alert
         v-if="store.error && !store.summary"
-        class="mb-4"
         type="error"
         :closable="false"
         :title="store.error.message"
         show-icon
       >
         <el-button size="small" :icon="Refresh" @click="store.bootstrap()">
-          重试
+          {{ t('common.retry') }}
         </el-button>
       </el-alert>
 
-      <section
-        class="flex flex-wrap items-center gap-4 border-y border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900"
-      >
-        <span class="font-medium">自动禁言</span>
+      <section class="app-card flex flex-wrap items-center gap-4 px-4 py-3">
+        <span class="app-text font-medium">{{ t('moderation.autoMute') }}</span>
         <el-switch
           :model-value="store.rules?.isAutoEnabled ?? false"
           :loading="store.pendingOperations.has('setAuto')"
           :disabled="!canMute"
-          :title="canMute ? '' : '本地账号凭证不可用'"
+          :aria-label="t('moderation.autoMute')"
+          :title="canMute ? '' : t('moderation.credentialUnavailable')"
           @change="requestAuto"
         />
-        <span class="text-sm text-gray-500">
-          禁言时长：{{ store.rules?.defaultMuteDuration ?? '-' }}
+        <span class="app-muted text-sm">
+          {{
+            t('moderation.muteDurationValue', {
+              duration: store.rules?.defaultMuteDuration ?? '-'
+            })
+          }}
         </span>
       </section>
 
-      <el-alert
-        class="my-4"
-        type="warning"
-        :closable="false"
-        title="自动禁言依赖本地账号 Cookie 能力，非开放平台标准 API；不承诺可用性，接口变动随时下线。首次启用需风险确认。"
-        show-icon
-      />
+      <section class="app-card flex items-start gap-2 px-4 py-3" role="note">
+        <el-icon class="mt-0.5 shrink-0" :size="16" style="color: var(--app-gold)">
+          <WarningFilled />
+        </el-icon>
+        <p class="app-muted m-0 text-sm">
+          {{ t('moderation.riskWarning') }}
+        </p>
+      </section>
       <el-alert
         v-if="store.summary && !store.summary.isCredentialAvailable"
-        class="mb-4"
         type="error"
         :closable="false"
-        title="本地账号凭证失效，请重新登录"
+        :title="t('moderation.credentialExpired')"
         show-icon
       />
     </template>
 
-    <section v-if="store.summary" class="mt-5">
-      <h3 class="mb-2 mt-0 text-base font-semibold">
-        待处理告警
-      </h3>
+    <section v-if="store.summary" class="app-card flex flex-col overflow-hidden">
+      <div class="app-surface-2 app-hairline flex flex-wrap items-center gap-2 border-b px-4 py-2.5">
+        <h3 class="app-text m-0 text-sm font-semibold">
+          {{ t('moderation.pendingAlerts') }}
+        </h3>
+      </div>
       <ModerationAlertList
         :alerts="store.alerts"
         :can-mute="canMute"
@@ -197,19 +204,19 @@ onMounted(() => {
         @blacklist="blacklistAlert"
       />
       <div
-        class="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-y border-gray-200 py-3 text-sm tabular-nums dark:border-gray-700"
+        class="app-faint app-hairline flex flex-wrap gap-x-6 gap-y-1 border-t px-4 py-2.5 text-xs tabular-nums"
       >
         <span>
-          今日识别：
-          <strong>{{ store.summary.recognizedToday }}</strong>
+          {{ t('moderation.recognizedToday') }}
+          <strong class="app-text">{{ store.summary.recognizedToday }}</strong>
         </span>
         <span>
-          自动禁言：
-          <strong>{{ store.summary.autoMutedToday }}</strong>
+          {{ t('moderation.autoMutedToday') }}
+          <strong class="app-text">{{ store.summary.autoMutedToday }}</strong>
         </span>
         <span>
-          手动禁言：
-          <strong>{{ store.summary.manualMutedToday }}</strong>
+          {{ t('moderation.manualMutedToday') }}
+          <strong class="app-text">{{ store.summary.manualMutedToday }}</strong>
         </span>
       </div>
     </section>
@@ -228,30 +235,41 @@ onMounted(() => {
     />
     <ModerationUserDrawer v-model:visible="drawerVisible" :alert="selectedAlert" />
 
-    <el-dialog v-model="muteVisible" title="确认禁言" width="min(440px, 94vw)">
-      <p class="mt-0 text-sm">
+    <el-dialog v-model="muteVisible" :title="t('moderation.confirmMute')" width="min(440px, 94vw)">
+      <p class="app-muted mt-0 text-sm">
         {{ selectedAlert?.username }}·UID: {{ selectedAlert?.userUid }}
       </p>
-      <el-select v-model="muteDuration" class="w-full" aria-label="禁言时长">
-        <el-option label="10 分钟" value="10m" />
-        <el-option label="1 小时" value="1h" />
-        <el-option label="永久" value="permanent" />
+      <el-select
+        v-model="muteDuration"
+        class="w-full"
+        :aria-label="t('moderation.muteDurationLabel')"
+      >
+        <el-option :label="t('moderation.muteDurations.tenMinutes')" value="10m" />
+        <el-option :label="t('moderation.muteDurations.oneHour')" value="1h" />
+        <el-option :label="t('moderation.muteDurations.permanent')" value="permanent" />
       </el-select>
       <template #footer>
-        <el-button
-          :disabled="store.pendingOperations.has(`mute:${selectedAlert?.alertId}`)"
-          @click="muteVisible = false"
-        >
-          取消
-        </el-button>
-        <el-button
-          type="danger"
-          :loading="store.pendingOperations.has(`mute:${selectedAlert?.alertId}`)"
-          @click="confirmMute"
-        >
-          确认
-        </el-button>
+        <div class="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            class="app-chip h-8 px-4"
+            :disabled="store.pendingOperations.has(`mute:${selectedAlert?.alertId}`)"
+            @click="muteVisible = false"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            style="background: var(--app-red)"
+            :disabled="store.pendingOperations.has(`mute:${selectedAlert?.alertId}`)"
+            :aria-busy="store.pendingOperations.has(`mute:${selectedAlert?.alertId}`)"
+            @click="confirmMute"
+          >
+            {{ t('common.confirm') }}
+          </button>
+        </div>
       </template>
     </el-dialog>
-  </div>
+  </section>
 </template>

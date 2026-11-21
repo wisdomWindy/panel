@@ -253,6 +253,25 @@
       "routeConfirmed": "Audio route confirmed"
     }
   },
+  "aiLog": {
+    "title": "AI Logs",
+    "backToAssistant": "Back to AI assistant",
+    "refresh": "Refresh",
+    "query": "Query",
+    "uid": "UID",
+    "startedAt": "Start time",
+    "endedAt": "End time",
+    "columns": {
+      "time": "Time",
+      "type": "Type",
+      "user": "User",
+      "uid": "UID",
+      "originalContent": "Original content",
+      "aiContent": "AI content",
+      "status": "Status",
+      "rejectReason": "Failure reason"
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "exportCsv": "Export CSV",
@@ -424,7 +443,11 @@
     },
     "locale": {
       "followSystem": "Follow system language",
-      "interfaceLanguage": "Interface language"
+      "interfaceLanguage": "Interface language",
+      "languages": {
+        "zhCN": "Chinese (Simplified)",
+        "enUS": "English"
+      }
     },
     "interface": {
       "theme": "Theme",
@@ -1039,6 +1062,154 @@
       "gift": "sent {name} ×{count}",
       "captain": "{action}{level}",
       "enter": "entered the room"
+    }
+  },
+  "moderation": {
+    "title": "Spam protection",
+    "description": "Local rule checks and pending alerts",
+    "log": "Logs",
+    "logTitle": "Mute log",
+    "rules": "Rule settings",
+    "autoMute": "Auto mute",
+    "credentialUnavailable": "Local account credentials are unavailable",
+    "credentialExpired": "Local account credentials expired, please sign in again",
+    "muteDurationLabel": "Mute duration",
+    "muteDurationValue": "Mute duration: {duration}",
+    "riskWarning": "Auto mute depends on local account cookie capabilities rather than the standard open-platform API; availability is not guaranteed and the interface may be withdrawn at any time. The first enable requires a risk confirmation.",
+    "pendingAlerts": "Pending alerts",
+    "recognizedToday": "Recognized today:",
+    "autoMutedToday": "Auto muted:",
+    "manualMutedToday": "Manually muted:",
+    "contentExample": "Sample content: {content}",
+    "confirmMute": "Confirm mute",
+    "rulesSaved": "Rules saved",
+    "markFalsePositive": "Mark as false positive",
+    "view": "View",
+    "mute": "Mute",
+    "ignore": "Ignore",
+    "blacklist": "Add to blacklist",
+    "filterUid": "UID",
+    "filterStart": "Start time",
+    "filterEnd": "End time",
+    "columnUser": "User",
+    "columnFalsePositive": "False positive",
+    "yes": "Yes",
+    "no": "No",
+    "muteDurations": {
+      "tenMinutes": "10 minutes",
+      "oneHour": "1 hour",
+      "permanent": "Permanent"
+    },
+    "status": {
+      "pending": "Pending",
+      "executing": "Running",
+      "muted": "Muted",
+      "ignored": "Ignored",
+      "failed": "Failed"
+    },
+    "logAction": {
+      "autoMute": "Auto mute",
+      "manualMute": "Manual mute",
+      "ignore": "Ignored",
+      "falsePositive": "False positive"
+    },
+    "risk": {
+      "title": "Auto mute risk confirmation",
+      "cookie": "This feature depends on local account cookie capabilities, not the standard Bilibili open-platform API.",
+      "availability": "Availability is not guaranteed; the interface may be withdrawn at any time.",
+      "accountRisk": "Using this feature may trigger platform risk controls on your account.",
+      "selfRisk": "Make sure you understand and accept the related risks yourself.",
+      "acknowledge": "I have read the above and accept the risks myself",
+      "confirm": "Enable anyway"
+    },
+    "user": {
+      "title": "User details",
+      "uid": "UID",
+      "violation": "Violation history"
+    }
+  },
+  "membership": {
+    "title": "Membership",
+    "description": "Account, membership state and downloaded modules",
+    "login": "Sign in",
+    "loginHint": "Enter a UID manually when QR sign-in is unavailable",
+    "logout": "Sign out",
+    "renew": "Renew",
+    "manageModules": "Manage modules",
+    "orders": "Order history",
+    "installedModules": "Installed modules",
+    "expiredNotice": "Membership features are paused; the free plan is unaffected. Downloaded modules stay installed and resume immediately after renewal.",
+    "serviceUnavailable": "The membership service is unavailable, please try again later",
+    "uid": "UID",
+    "plan": "Plan",
+    "expiresAt": "Expires",
+    "remainingDays": "Days left",
+    "days": "{count} days",
+    "shellState": {
+      "unavailable": "Service unavailable",
+      "loggedOut": "Not signed in",
+      "unpaid": "Not subscribed",
+      "active": "Membership active",
+      "expired": "Expired"
+    },
+    "moduleStatus": {
+      "missing": "Not downloaded",
+      "downloading": "Downloading",
+      "verifying": "Verifying",
+      "installed": "Installed",
+      "failed": "Failed"
+    },
+    "orderStatus": {
+      "pending": "Awaiting payment",
+      "paid": "Paid",
+      "cancelled": "Cancelled",
+      "failed": "Failed",
+      "timedOut": "Timed out"
+    },
+    "modules": {
+      "title": "Manage modules",
+      "name": "Module",
+      "version": "Version",
+      "progress": "Progress",
+      "cleanup": "Remove"
+    },
+    "orderDialog": {
+      "title": "Order history",
+      "id": "Order number",
+      "plan": "Plan",
+      "amount": "Amount",
+      "createdAt": "Created"
+    },
+    "plans": {
+      "title": "Choose a plan"
+    },
+    "paused": {
+      "expired": "Membership features are paused",
+      "missingModule": "The membership module is not downloaded",
+      "unavailable": "The membership service is unavailable",
+      "hint": "Downloaded modules stay installed and resume immediately after renewal.",
+      "renew": "Renew membership",
+      "goToCenter": "Open the membership page"
+    },
+    "qr": {
+      "alt": "Bilibili sign-in QR code",
+      "waiting": "Waiting for scan",
+      "scanned": "Waiting for confirmation",
+      "expired": "The QR code has expired",
+      "expiresIn": "Valid for {count} seconds",
+      "refresh": "Refresh QR code",
+      "manual": "Enter UID manually",
+      "back": "Back to QR sign-in",
+      "unavailable": "QR sign-in is unavailable",
+      "uidInvalid": "The UID is invalid or the lookup failed",
+      "bind": "Confirm binding"
+    },
+    "messages": {
+      "loginSuccess": "Signed in",
+      "logoutSuccess": "Signed out",
+      "logoutFailed": "Sign out failed",
+      "cleanupFailed": "Module cleanup failed",
+      "orderCancelFailed": "Order cancellation failed"
     }
   }
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { Loading } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import type { FourRegionLayout, UiPreferences } from '@/platform/desktop';
@@ -130,8 +131,8 @@ async function reset(): Promise<void> {
       </el-form-item>
     </div>
 
-    <div class="my-5 border-t border-gray-200 dark:border-gray-700" />
-    <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
+    <div class="app-hairline my-5 border-t" />
+    <h3 class="app-text m-0 mb-4 text-sm font-semibold">
       {{ t('settings.interface.layoutAndDisplay') }}
     </h3>
     <el-form-item :label="t('settings.interface.layout')">
@@ -144,14 +145,15 @@ async function reset(): Promise<void> {
         :disabled="!shell.savedUi || isPending"
         @change="selectLayoutMode($event as UiPreferences['layoutMode'])"
       />
-      <el-button
+      <button
         v-if="draft.layoutMode === 'custom'"
-        class="ml-3"
+        type="button"
+        class="app-chip ml-3 disabled:cursor-not-allowed disabled:opacity-50"
         :disabled="!shell.savedUi || isPending"
         @click="layoutVisible = true"
       >
         {{ t('settings.interface.editLayout') }}
-      </el-button>
+      </button>
     </el-form-item>
     <div class="grid grid-cols-2 gap-x-7">
       <el-form-item :label="t('settings.interface.danmakuFields')">
@@ -179,18 +181,31 @@ async function reset(): Promise<void> {
       </el-form-item>
     </div>
 
-    <div class="mt-5 flex gap-3 border-t border-gray-200 pt-5 dark:border-gray-700">
-      <el-button
-        type="primary"
-        :loading="shell.pendingOperations.has('saveUi')"
-        :disabled="!shell.savedUi"
+    <div class="app-hairline mt-5 flex flex-wrap items-center gap-2 border-t pt-5">
+      <button
+        type="button"
+        class="app-btn-primary inline-flex h-9 items-center gap-1.5 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+        :aria-busy="shell.pendingOperations.has('saveUi')"
+        :disabled="!shell.savedUi || isPending"
         @click="save"
       >
+        <el-icon v-if="shell.pendingOperations.has('saveUi')" class="is-loading">
+          <Loading />
+        </el-icon>
         {{ t('common.save') }}
-      </el-button>
-      <el-button :loading="shell.pendingOperations.has('resetUi')" :disabled="!shell.savedUi" @click="reset">
+      </button>
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :aria-busy="shell.pendingOperations.has('resetUi')"
+        :disabled="!shell.savedUi || isPending"
+        @click="reset"
+      >
+        <el-icon v-if="shell.pendingOperations.has('resetUi')" class="is-loading">
+          <Loading />
+        </el-icon>
         {{ t('settings.interface.restoreDefaults') }}
-      </el-button>
+      </button>
     </div>
   </el-form>
 

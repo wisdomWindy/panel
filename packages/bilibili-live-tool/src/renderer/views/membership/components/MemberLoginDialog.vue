@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
-import { ArrowLeft, Refresh, Search } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
+import { ArrowLeft, Loading, Refresh, Search } from '@element-plus/icons-vue';
 import type { AuthQrStatus, MemberAccount } from '@/platform/desktop';
 
 const props = defineProps<{
@@ -19,18 +20,24 @@ const emit = defineEmits<{
   bind: [account: MemberAccount];
 }>();
 
+const { t } = useI18n();
 const manual = ref(false);
 const uid = ref('');
 const validation = ref<string | null>(null);
 const uidInput = ref<{ focus?: () => void } | null>(null);
-const canRefresh = computed(() => !props.qrStatus || ['expired', 'error'].includes(props.qrStatus.state));
+const canRefresh = computed(
+  () => !props.qrStatus || ['expired', 'error'].includes(props.qrStatus.state)
+);
 
-watch(() => props.visible, visible => {
-  if (!visible) return;
-  manual.value = props.qrStatus?.state === 'error';
-  uid.value = '';
-  validation.value = null;
-});
+watch(
+  () => props.visible,
+  visible => {
+    if (!visible) return;
+    manual.value = props.qrStatus?.state === 'error';
+    uid.value = '';
+    validation.value = null;
+  }
+);
 
 function showManual(): void {
   manual.value = true;
@@ -41,7 +48,7 @@ function showManual(): void {
 function query(): void {
   const normalized = uid.value.trim();
   if (!/^[0-9]+$/.test(normalized)) {
-    validation.value = 'UID 无效或查询失败';
+    validation.value = t('membership.qr.uidInvalid');
     return;
   }
   validation.value = null;
@@ -57,7 +64,7 @@ function close(): void {
 <template>
   <el-dialog
     :model-value="visible"
-    title="登录"
+    :title="t('membership.login')"
     width="min(440px, calc(100vw - 32px))"
     destroy-on-close
     @close="close"
@@ -66,43 +73,57 @@ function close(): void {
       <img
         v-if="qrStatus && (qrStatus.state === 'pending' || qrStatus.state === 'scanned')"
         :src="`data:image/png;base64,${qrStatus.imageBase64}`"
-        alt="B 站登录二维码"
-        class="h-48 w-48 border border-gray-200 bg-white p-2"
+        :alt="t('membership.qr.alt')"
+        class="h-48 w-48 rounded-md border app-hairline p-1"
       >
-      <el-empty v-else :image-size="96" description="扫码登录暂不可用" />
-      <p v-if="qrStatus?.state === 'pending'" class="m-0 text-sm text-gray-600">
-        等待扫码
+      <el-empty v-else :image-size="96" :description="t('membership.qr.unavailable')" />
+      <p v-if="qrStatus?.state === 'pending'" class="app-muted m-0 text-sm">
+        {{ t('membership.qr.waiting') }}
       </p>
-      <p v-else-if="qrStatus?.state === 'scanned'" class="m-0 text-sm text-gray-600">
-        等待确认
+      <p v-else-if="qrStatus?.state === 'scanned'" class="app-muted m-0 text-sm">
+        {{ t('membership.qr.scanned') }}
       </p>
-      <p v-else-if="qrStatus?.state === 'expired'" class="m-0 text-sm text-amber-700">
-        二维码已失效
+      <p v-else-if="qrStatus?.state === 'expired'" class="m-0 text-sm" style="color: var(--app-gold)">
+        {{ t('membership.qr.expired') }}
       </p>
-      <p v-if="qrStatus && 'expiresInSeconds' in qrStatus" class="m-0 text-xs text-gray-500">
-        有效期 {{ qrStatus.expiresInSeconds }} 秒
+      <p
+        v-if="qrStatus && 'expiresInSeconds' in qrStatus"
+        class="app-faint m-0 text-xs tabular-nums"
+      >
+        {{ t('membership.qr.expiresIn', { count: qrStatus.expiresInSeconds }) }}
       </p>
       <div class="flex flex-wrap justify-center gap-2">
-        <el-button
+        <button
           v-if="canRefresh"
-          :icon="Refresh"
-          :loading="pending.has('generateQr')"
+          type="button"
+          class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="pending.has('generateQr')"
+          :aria-busy="pending.has('generateQr')"
           @click="emit('refresh')"
         >
-          刷新二维码
-        </el-button>
-        <el-button type="primary" plain @click="showManual">
-          手动输入 UID
-        </el-button>
+          <el-icon v-if="pending.has('generateQr')" class="is-loading">
+            <Loading />
+          </el-icon>
+          <el-icon v-else><Refresh /></el-icon>
+          {{ t('membership.qr.refresh') }}
+        </button>
+        <button
+          type="button"
+          class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3.5 text-sm"
+          @click="showManual"
+        >
+          {{ t('membership.qr.manual') }}
+        </button>
       </div>
     </div>
 
-    <div v-else class="space-y-4">
-      <el-button link :icon="ArrowLeft" @click="manual = false">
-        返回扫码
-      </el-button>
+    <div v-else class="flex flex-col gap-4">
+      <button type="button" class="app-chip self-start" @click="manual = false">
+        <el-icon><ArrowLeft /></el-icon>
+        {{ t('membership.qr.back') }}
+      </button>
       <el-form label-position="top" @submit.prevent="query">
-        <el-form-item label="UID" :error="validation">
+        <el-form-item :label="t('membership.uid')" :error="validation">
           <el-input
             ref="uidInput"
             v-model="uid"
@@ -112,25 +133,39 @@ function close(): void {
             @keyup.enter="query"
           />
         </el-form-item>
-        <el-button type="primary" :loading="pending.has('queryUid')" @click="query">
-          查询
-        </el-button>
+        <button
+          type="button"
+          class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="pending.has('queryUid')"
+          :aria-busy="pending.has('queryUid')"
+          @click="query"
+        >
+          <el-icon v-if="pending.has('queryUid')" class="is-loading"><Loading /></el-icon>
+          {{ t('common.search') }}
+        </button>
       </el-form>
-      <div v-if="candidate" class="flex items-center gap-3 border-t border-gray-200 pt-4">
+      <div v-if="candidate" class="app-card flex items-center gap-3 p-3">
         <el-avatar :size="44" :src="candidate.avatarUrl ?? undefined">
           {{ candidate.username.slice(0, 1) }}
         </el-avatar>
         <div class="min-w-0 flex-1">
-          <div class="truncate font-medium">
+          <div class="app-text truncate font-medium">
             {{ candidate.username }}
           </div>
-          <div class="text-xs text-gray-500">
-            UID: {{ candidate.userUid }}
+          <div class="app-faint text-xs tabular-nums">
+            {{ t('membership.uid') }}: {{ candidate.userUid }}
           </div>
         </div>
-        <el-button type="primary" :loading="pending.has('bindAccount')" @click="emit('bind', candidate)">
-          确认绑定
-        </el-button>
+        <button
+          type="button"
+          class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="pending.has('bindAccount')"
+          :aria-busy="pending.has('bindAccount')"
+          @click="emit('bind', candidate)"
+        >
+          <el-icon v-if="pending.has('bindAccount')" class="is-loading"><Loading /></el-icon>
+          {{ t('membership.qr.bind') }}
+        </button>
       </div>
       <el-alert
         v-if="errorMessage"
@@ -142,9 +177,11 @@ function close(): void {
     </div>
 
     <template #footer>
-      <el-button @click="close">
-        取消
-      </el-button>
+      <div class="flex items-center justify-end gap-2">
+        <button type="button" class="app-chip h-8 px-4" @click="close">
+          {{ t('common.cancel') }}
+        </button>
+      </div>
     </template>
   </el-dialog>
 </template>

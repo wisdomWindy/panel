@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { FolderOpened, Upload, Download, RefreshLeft } from '@element-plus/icons-vue';
+import { FolderOpened, Upload, Download, RefreshLeft, Loading } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import type { ShellConfigScope } from '@/platform/desktop';
@@ -123,64 +123,96 @@ onMounted(() => { void load(); });
       type="warning"
       show-icon
       :closable="false"
-      class="mb-6"
+      class="mb-5"
     />
-    <dl class="grid grid-cols-[9rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
-      <dt class="text-gray-500 dark:text-gray-400">
+    <dl class="m-0 grid grid-cols-[9rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
+      <dt class="app-muted">
         {{ t('settings.config.location') }}
       </dt>
-      <dd class="m-0 break-all text-gray-900 dark:text-gray-100">
+      <dd class="app-text m-0 break-all font-medium">
         {{ shell.configOverview?.displayPath ?? '--' }}
       </dd>
-      <dt class="text-gray-500 dark:text-gray-400">
+      <dt class="app-muted">
         {{ t('settings.config.lastBackup') }}
       </dt>
-      <dd class="m-0 tabular-nums text-gray-900 dark:text-gray-100">
+      <dd class="app-text m-0 font-medium tabular-nums">
         {{ formatBackupTime(shell.configOverview?.lastBackupAt ?? null) }}
       </dd>
     </dl>
 
-    <div class="my-6 border-t border-gray-200 dark:border-gray-700" />
-    <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
-      {{ t('settings.config.exportScope') }}
-    </h3>
-    <el-checkbox-group v-model="selectedScopes" class="grid grid-cols-2 gap-x-6 gap-y-2 lg:grid-cols-3">
-      <el-checkbox v-for="scope in availableScopes" :key="scope.id" :value="scope.id">
-        {{ t(`settings.config.scopes.${scope.id}`) }}
-      </el-checkbox>
-    </el-checkbox-group>
+    <div class="app-hairline my-5 border-t" />
 
-    <div class="mt-7 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-5 dark:border-gray-700">
-      <el-button :icon="FolderOpened" :disabled="!shell.configOverview || isPending" @click="openDirectory">
+    <section aria-labelledby="settings-config-export-title">
+      <h3 id="settings-config-export-title" class="app-text m-0 text-sm font-semibold">
+        {{ t('settings.config.exportScope') }}
+      </h3>
+      <div class="app-surface-2 app-hairline mt-3 rounded-lg border p-4">
+        <el-checkbox-group v-model="selectedScopes" class="grid grid-cols-2 gap-x-6 gap-y-2 lg:grid-cols-3">
+          <el-checkbox v-for="scope in availableScopes" :key="scope.id" :value="scope.id">
+            {{ t(`settings.config.scopes.${scope.id}`) }}
+          </el-checkbox>
+        </el-checkbox-group>
+      </div>
+    </section>
+
+    <div class="app-hairline mt-6 flex flex-wrap items-center gap-2 border-t pt-5">
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="!shell.configOverview || isPending"
+        @click="openDirectory"
+      >
+        <el-icon>
+          <FolderOpened />
+        </el-icon>
         {{ t('settings.config.openDirectory') }}
-      </el-button>
-      <el-button
-        :icon="Download"
-        :loading="shell.pendingOperations.has('exportConfig')"
-        :disabled="!shell.configOverview"
+      </button>
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :aria-busy="shell.pendingOperations.has('exportConfig')"
+        :disabled="!shell.configOverview || shell.pendingOperations.has('exportConfig')"
         @click="exportSelected"
       >
+        <el-icon v-if="shell.pendingOperations.has('exportConfig')" class="is-loading">
+          <Loading />
+        </el-icon>
+        <el-icon v-else>
+          <Download />
+        </el-icon>
         {{ t('common.export') }}
-      </el-button>
-      <el-button
-        :icon="Upload"
-        :loading="shell.pendingOperations.has('importConfig')"
-        :disabled="!shell.configOverview"
+      </button>
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :aria-busy="shell.pendingOperations.has('importConfig')"
+        :disabled="!shell.configOverview || shell.pendingOperations.has('importConfig')"
         @click="importSelected"
       >
+        <el-icon v-if="shell.pendingOperations.has('importConfig')" class="is-loading">
+          <Loading />
+        </el-icon>
+        <el-icon v-else>
+          <Upload />
+        </el-icon>
         {{ t('common.import') }}
-      </el-button>
-      <el-button
-        class="ml-auto"
-        type="danger"
-        plain
-        :icon="RefreshLeft"
-        :loading="shell.pendingOperations.has('resetConfig')"
-        :disabled="!shell.configOverview"
+      </button>
+      <button
+        type="button"
+        class="app-chip ml-auto disabled:cursor-not-allowed disabled:opacity-50"
+        style="color: var(--app-red); border-color: color-mix(in srgb, var(--app-red) 45%, transparent)"
+        :aria-busy="shell.pendingOperations.has('resetConfig')"
+        :disabled="!shell.configOverview || shell.pendingOperations.has('resetConfig')"
         @click="resetAll"
       >
+        <el-icon v-if="shell.pendingOperations.has('resetConfig')" class="is-loading">
+          <Loading />
+        </el-icon>
+        <el-icon v-else>
+          <RefreshLeft />
+        </el-icon>
         {{ t('settings.config.restoreDefaults') }}
-      </el-button>
+      </button>
     </div>
   </div>
 </template>

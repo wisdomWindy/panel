@@ -22,15 +22,16 @@ const statusText = computed(
 <template>
   <section class="mx-auto flex max-w-6xl flex-col gap-5">
     <header
-      class="flex min-h-14 items-center justify-between border-b border-zinc-200 pb-4 dark:border-zinc-800"
+      class="app-hairline flex min-h-14 items-center justify-between border-b pb-4"
     >
       <div class="flex items-center gap-3">
         <span
-          class="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+          class="app-surface-2 flex h-10 w-10 items-center justify-center rounded-lg"
+          style="color: var(--app-accent)"
         >
           <el-icon :size="20"><Connection /></el-icon>
         </span>
-        <h2 class="m-0 text-lg font-semibold text-zinc-950 dark:text-zinc-100">
+        <h2 class="app-text m-0 text-lg font-semibold">
           {{ t('connection.liveRoom') }}
         </h2>
       </div>
@@ -52,7 +53,6 @@ const statusText = computed(
 
     <el-alert
       v-if="room.error"
-      class="mt-5"
       :title="room.error.message"
       type="error"
       :closable="false"
@@ -60,48 +60,42 @@ const statusText = computed(
     />
 
     <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      <div
-        class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-      >
+      <div class="app-card p-5">
         <div class="flex items-center justify-between">
-          <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          <dt class="app-muted m-0 text-sm font-medium">
             {{ t('connection.roomId') }}
           </dt>
-          <el-icon class="text-sky-600 dark:text-sky-400">
+          <el-icon style="color: var(--app-accent)">
             <Connection />
           </el-icon>
         </div>
-        <dd class="m-0 mt-5 text-2xl font-semibold tabular-nums text-zinc-950 dark:text-zinc-100">
+        <dd class="app-text m-0 mt-5 text-2xl font-semibold tabular-nums">
           {{ room.snapshot.roomId ?? '-' }}
         </dd>
       </div>
-      <div
-        class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-      >
+      <div class="app-card p-5">
         <div class="flex items-center justify-between">
-          <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          <dt class="app-muted m-0 text-sm font-medium">
             {{ t('connection.roomName') }}
           </dt>
-          <el-icon class="text-amber-600 dark:text-amber-400">
+          <el-icon style="color: var(--app-gold)">
             <HomeFilled />
           </el-icon>
         </div>
-        <dd class="m-0 mt-5 truncate text-2xl font-semibold text-zinc-950 dark:text-zinc-100">
+        <dd class="app-text m-0 mt-5 truncate text-2xl font-semibold">
           {{ room.snapshot.roomName ?? '-' }}
         </dd>
       </div>
-      <div
-        class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-      >
+      <div class="app-card p-5">
         <div class="flex items-center justify-between">
-          <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          <dt class="app-muted m-0 text-sm font-medium">
             {{ t('connection.onlineCount') }}
           </dt>
-          <el-icon class="text-emerald-600 dark:text-emerald-400">
+          <el-icon style="color: var(--app-green)">
             <UserFilled />
           </el-icon>
         </div>
-        <dd class="m-0 mt-5 text-2xl font-semibold tabular-nums text-zinc-950 dark:text-zinc-100">
+        <dd class="app-text m-0 mt-5 text-2xl font-semibold tabular-nums">
           {{ room.snapshot.onlineCount === null ? '-' : formatCount(room.snapshot.onlineCount) }}
         </dd>
       </div>

@@ -1,90 +1,116 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import type { ModerationAlert } from '@/platform/desktop';
 
 defineProps<{
-    alerts: readonly ModerationAlert[];
-    canMute: boolean;
-    isExpired: boolean;
-    pending: ReadonlySet<string>;
-  }>();
+  alerts: readonly ModerationAlert[];
+  canMute: boolean;
+  isExpired: boolean;
+  pending: ReadonlySet<string>;
+}>();
 
 defineEmits<{
-    view: [alert: ModerationAlert];
-    mute: [alert: ModerationAlert];
-    ignore: [alert: ModerationAlert];
-    blacklist: [alert: ModerationAlert];
-  }>();
+  view: [alert: ModerationAlert];
+  mute: [alert: ModerationAlert];
+  ignore: [alert: ModerationAlert];
+  blacklist: [alert: ModerationAlert];
+}>();
+
+const { t } = useI18n();
 
 function dateTime(value: number): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'medium' }).format(
     value
   );
 }
+
+function statusBadge(status: ModerationAlert['status']): string {
+  return status === 'pending' || status === 'executing' ? 'app-badge--captain' : 'app-badge--plain';
+}
+
+function statusStyle(status: ModerationAlert['status']): Record<string, string> | undefined {
+  if (status === 'muted')
+    return {
+      background: 'color-mix(in srgb, var(--app-green) 20%, transparent)',
+      color: 'var(--app-green)'
+    };
+  if (status === 'failed')
+    return {
+      background: 'color-mix(in srgb, var(--app-red) 20%, transparent)',
+      color: 'var(--app-red)'
+    };
+  return undefined;
+}
 </script>
 
 <template>
-  <div
-    class="divide-y divide-gray-200 border-y border-gray-200 bg-white dark:divide-gray-700 dark:border-gray-700 dark:bg-gray-900"
-  >
+  <div>
     <article
       v-for="alert in alerts"
       :key="alert.alertId"
-      class="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"
+      class="app-hairline grid gap-3 border-b px-4 py-3 last:border-b-0 md:grid-cols-[minmax(0,1fr)_auto]"
     >
       <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <strong class="break-words">{{ alert.username }}</strong>
-          <span class="text-sm tabular-nums text-gray-500">UID: {{ alert.userUid }}</span>
-          <el-tag
-            size="small"
-            :type="
-              alert.status === 'failed'
-                ? 'danger'
-                : alert.status === 'muted'
-                  ? 'success'
-                  : 'warning'
-            "
-          >
-            {{ alert.status }}
-          </el-tag>
-          <span class="text-xs text-gray-500">{{ dateTime(alert.occurredAt) }}</span>
+          <strong class="app-text break-words">{{ alert.username }}</strong>
+          <span class="app-faint text-xs tabular-nums">UID: {{ alert.userUid }}</span>
+          <span class="app-badge" :class="statusBadge(alert.status)" :style="statusStyle(alert.status)">
+            {{ t(`moderation.status.${alert.status}`) }}
+          </span>
+          <span class="app-faint text-xs">{{ dateTime(alert.occurredAt) }}</span>
         </div>
-        <p class="mb-1 mt-2 text-sm">
+        <p class="app-muted mb-1 mt-2 text-sm">
           {{ alert.violationDescription }}
         </p>
-        <p class="m-0 break-words text-sm text-gray-500">
-          内容示例：{{ alert.contentExample }}
+        <p class="app-faint m-0 break-words text-sm">
+          {{ t('moderation.contentExample', { content: alert.contentExample }) }}
         </p>
-        <p v-if="alert.errorCode" class="mb-0 mt-1 text-sm text-red-600">
+        <p v-if="alert.errorCode" class="m-0 mt-1 text-sm" style="color: var(--app-red)">
           {{ alert.errorCode }}
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2 md:justify-end">
-        <el-button size="small" @click="$emit('view', alert)">
-          查看
-        </el-button>
-        <el-button
+        <button
+          type="button"
+          class="app-chip h-7 px-2.5 text-xs"
+          @click="$emit('view', alert)"
+        >
+          {{ t('moderation.view') }}
+        </button>
+        <button
           v-if="!isExpired"
-          size="small"
-          type="danger"
-          :disabled="!canMute"
-          :loading="pending.has(`mute:${alert.alertId}`)"
-          :title="canMute ? '' : '本地账号凭证不可用'"
+          type="button"
+          class="app-chip h-7 px-2.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+          style="color: var(--app-red); border-color: color-mix(in srgb, var(--app-red) 45%, transparent)"
+          :disabled="!canMute || pending.has(`mute:${alert.alertId}`)"
+          :aria-label="t('moderation.mute')"
+          :aria-busy="pending.has(`mute:${alert.alertId}`)"
+          :title="canMute ? '' : t('moderation.credentialUnavailable')"
           @click="$emit('mute', alert)"
         >
-          禁言
-        </el-button>
-        <el-button v-else size="small" @click="$emit('blacklist', alert)">
-          加入黑名单
-        </el-button>
-        <el-button
-          size="small"
-          :loading="pending.has(`ignore:${alert.alertId}`)"
+          {{ t('moderation.mute') }}
+        </button>
+        <button
+          v-else
+          type="button"
+          class="app-chip h-7 px-2.5 text-xs"
+          @click="$emit('blacklist', alert)"
+        >
+          {{ t('moderation.blacklist') }}
+        </button>
+        <button
+          type="button"
+          class="app-chip h-7 px-2.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="pending.has(`ignore:${alert.alertId}`)"
+          :aria-busy="pending.has(`ignore:${alert.alertId}`)"
           @click="$emit('ignore', alert)"
         >
-          忽略
-        </el-button>
+          {{ t('moderation.ignore') }}
+        </button>
       </div>
     </article>
+    <p v-if="alerts.length === 0" class="app-faint m-0 px-4 py-8 text-center text-sm">
+      {{ t('common.noData') }}
+    </p>
   </div>
 </template>

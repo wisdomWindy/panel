@@ -91,23 +91,23 @@ function save(): void {
     <div class="grid grid-cols-[minmax(0,1fr)_15rem] gap-7">
       <div
         ref="preview"
-        class="relative grid aspect-[8/5] min-h-0 touch-none grid-rows-[var(--layout-preview-toolbar)_minmax(0,1fr)_var(--layout-preview-status)] overflow-hidden border border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-950"
+        class="app-surface-2 app-hairline relative grid aspect-[8/5] min-h-0 touch-none grid-rows-[var(--layout-preview-toolbar)_minmax(0,1fr)_var(--layout-preview-status)] overflow-hidden rounded-lg border"
         @pointermove="handlePointerMove"
         @pointerup="handlePointerEnd"
         @pointercancel="handlePointerEnd"
       >
-        <div class="border-b border-gray-300 bg-white p-2 text-xs dark:border-gray-600 dark:bg-gray-900">
+        <div class="app-surface app-hairline app-muted border-b p-2 text-xs">
           {{ t('settings.interface.toolbarRegion') }}
         </div>
         <div class="flex min-h-0">
-          <div class="w-[var(--layout-preview-navigation)] border-r border-gray-300 bg-white p-2 text-xs dark:border-gray-600 dark:bg-gray-900">
+          <div class="app-surface app-hairline app-muted w-[var(--layout-preview-navigation)] border-r p-2 text-xs">
             {{ t('settings.interface.navigationRegion') }}
           </div>
-          <div class="flex-1 p-2 text-xs">
+          <div class="app-faint p-2 text-xs">
             {{ t('settings.interface.contentRegion') }}
           </div>
         </div>
-        <div class="border-t border-gray-300 bg-white p-2 text-xs dark:border-gray-600 dark:bg-gray-900">
+        <div class="app-surface app-hairline app-muted border-t p-2 text-xs">
           {{ t('settings.interface.statusRegion') }}
         </div>
         <button
@@ -118,7 +118,7 @@ function save(): void {
           :aria-valuemin="bounds.navigation.min"
           :aria-valuemax="bounds.navigation.max"
           :aria-valuenow="draft.navigationWidth"
-          class="absolute bottom-[var(--layout-preview-status)] top-[var(--layout-preview-toolbar)] z-10 w-2 -translate-x-1/2 cursor-col-resize bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 [left:var(--layout-preview-navigation)]"
+          class="absolute bottom-[var(--layout-preview-status)] top-[var(--layout-preview-toolbar)] z-10 w-2 -translate-x-1/2 cursor-col-resize bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--app-accent)] [left:var(--layout-preview-navigation)]"
           @pointerdown="handlePointerDown('navigation', $event)"
           @keydown="handleResizeKey('navigation', $event)"
         />
@@ -130,7 +130,7 @@ function save(): void {
           :aria-valuemin="bounds.toolbar.min"
           :aria-valuemax="bounds.toolbar.max"
           :aria-valuenow="draft.toolbarHeight"
-          class="absolute inset-x-0 top-[var(--layout-preview-toolbar)] z-10 h-2 -translate-y-1/2 cursor-row-resize bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+          class="absolute inset-x-0 top-[var(--layout-preview-toolbar)] z-10 h-2 -translate-y-1/2 cursor-row-resize bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--app-accent)]"
           @pointerdown="handlePointerDown('toolbar', $event)"
           @keydown="handleResizeKey('toolbar', $event)"
         />
@@ -142,7 +142,7 @@ function save(): void {
           :aria-valuemin="bounds.status.min"
           :aria-valuemax="bounds.status.max"
           :aria-valuenow="draft.statusHeight"
-          class="absolute bottom-[var(--layout-preview-status)] inset-x-0 z-10 h-2 translate-y-1/2 cursor-row-resize bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+          class="absolute bottom-[var(--layout-preview-status)] inset-x-0 z-10 h-2 translate-y-1/2 cursor-row-resize bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--app-accent)]"
           @pointerdown="handlePointerDown('status', $event)"
           @keydown="handleResizeKey('status', $event)"
         />
@@ -178,12 +178,14 @@ function save(): void {
       </el-form>
     </div>
     <template #footer>
-      <el-button @click="emit('update:visible', false)">
-        {{ t('common.cancel') }}
-      </el-button>
-      <el-button type="primary" @click="save">
-        {{ t('common.save') }}
-      </el-button>
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <button type="button" class="app-chip h-8 px-4" @click="emit('update:visible', false)">
+          {{ t('common.cancel') }}
+        </button>
+        <button type="button" class="app-btn-primary h-8 px-4 text-sm" @click="save">
+          {{ t('common.save') }}
+        </button>
+      </div>
     </template>
   </el-dialog>
 </template>

@@ -253,6 +253,25 @@
       "routeConfirmed": "音频路由已确认"
     }
   },
+  "aiLog": {
+    "title": "AI 日志",
+    "backToAssistant": "返回 AI 助手",
+    "refresh": "刷新",
+    "query": "查询",
+    "uid": "UID",
+    "startedAt": "开始时间",
+    "endedAt": "结束时间",
+    "columns": {
+      "time": "时间",
+      "type": "类型",
+      "user": "用户",
+      "uid": "UID",
+      "originalContent": "原始内容",
+      "aiContent": "AI 内容",
+      "status": "状态",
+      "rejectReason": "失败原因"
+    }
+  },
   "dashboard": {
     "title": "数据看板",
     "exportCsv": "导出 CSV",
@@ -424,7 +443,11 @@
     },
     "locale": {
       "followSystem": "跟随系统语言",
-      "interfaceLanguage": "界面语言"
+      "interfaceLanguage": "界面语言",
+      "languages": {
+        "zhCN": "简体中文",
+        "enUS": "English"
+      }
     },
     "interface": {
       "theme": "主题",
@@ -1039,6 +1062,154 @@
       "gift": "投喂 {name} ×{count}",
       "captain": "{action}{level}",
       "enter": "进入直播间"
+    }
+  },
+  "moderation": {
+    "title": "刷屏防护",
+    "description": "本地规则检测与待处理告警",
+    "log": "日志",
+    "logTitle": "禁言日志",
+    "rules": "规则配置",
+    "autoMute": "自动禁言",
+    "credentialUnavailable": "本地账号凭证不可用",
+    "credentialExpired": "本地账号凭证失效，请重新登录",
+    "muteDurationLabel": "禁言时长",
+    "muteDurationValue": "禁言时长：{duration}",
+    "riskWarning": "自动禁言依赖本地账号 Cookie 能力，非开放平台标准 API；不承诺可用性，接口变动随时下线。首次启用需风险确认。",
+    "pendingAlerts": "待处理告警",
+    "recognizedToday": "今日识别：",
+    "autoMutedToday": "自动禁言：",
+    "manualMutedToday": "手动禁言：",
+    "contentExample": "内容示例：{content}",
+    "confirmMute": "确认禁言",
+    "rulesSaved": "规则已保存",
+    "markFalsePositive": "标记误判",
+    "view": "查看",
+    "mute": "禁言",
+    "ignore": "忽略",
+    "blacklist": "加入黑名单",
+    "filterUid": "UID",
+    "filterStart": "开始时间",
+    "filterEnd": "结束时间",
+    "columnUser": "用户",
+    "columnFalsePositive": "误判",
+    "yes": "是",
+    "no": "否",
+    "muteDurations": {
+      "tenMinutes": "10 分钟",
+      "oneHour": "1 小时",
+      "permanent": "永久"
+    },
+    "status": {
+      "pending": "待处理",
+      "executing": "执行中",
+      "muted": "已禁言",
+      "ignored": "已忽略",
+      "failed": "失败"
+    },
+    "logAction": {
+      "autoMute": "自动禁言",
+      "manualMute": "手动禁言",
+      "ignore": "忽略",
+      "falsePositive": "误判"
+    },
+    "risk": {
+      "title": "自动禁言风险确认",
+      "cookie": "本功能依赖本地账号 Cookie 能力，非 B 站开放平台标准 API。",
+      "availability": "不承诺可用性，接口变动随时下线。",
+      "accountRisk": "使用本功能可能导致账号被平台风控。",
+      "selfRisk": "请确保你已了解并自行承担相关风险。",
+      "acknowledge": "我已阅读并同意自行承担风险",
+      "confirm": "确认启用"
+    },
+    "user": {
+      "title": "用户详情",
+      "uid": "UID",
+      "violation": "违规记录"
+    }
+  },
+  "membership": {
+    "title": "会员中心",
+    "description": "账号、会员状态与已下载模块",
+    "login": "登录",
+    "loginHint": "扫码登录不可用时可手动输入 UID",
+    "logout": "退出登录",
+    "renew": "续费",
+    "manageModules": "管理模块",
+    "orders": "订单记录",
+    "installedModules": "已安装模块",
+    "expiredNotice": "会员功能已暂停，免费版功能不受影响。已下载模块保留，续费后立即恢复。",
+    "serviceUnavailable": "会员服务暂不可用，请稍后重试",
+    "uid": "UID",
+    "plan": "套餐",
+    "expiresAt": "到期时间",
+    "remainingDays": "剩余天数",
+    "days": "{count} 天",
+    "shellState": {
+      "unavailable": "服务不可用",
+      "loggedOut": "未登录",
+      "unpaid": "未开通",
+      "active": "会员有效",
+      "expired": "已到期"
+    },
+    "moduleStatus": {
+      "missing": "未下载",
+      "downloading": "下载中",
+      "verifying": "校验中",
+      "installed": "已安装",
+      "failed": "失败"
+    },
+    "orderStatus": {
+      "pending": "待支付",
+      "paid": "已支付",
+      "cancelled": "已取消",
+      "failed": "失败",
+      "timedOut": "已超时"
+    },
+    "modules": {
+      "title": "管理模块",
+      "name": "模块",
+      "version": "版本",
+      "progress": "进度",
+      "cleanup": "清理"
+    },
+    "orderDialog": {
+      "title": "订单记录",
+      "id": "订单号",
+      "plan": "套餐",
+      "amount": "金额",
+      "createdAt": "创建时间"
+    },
+    "plans": {
+      "title": "选择套餐"
+    },
+    "paused": {
+      "expired": "会员功能已暂停",
+      "missingModule": "会员模块未下载",
+      "unavailable": "会员服务暂不可用",
+      "hint": "已下载模块保留，续费后立即恢复。",
+      "renew": "续费会员",
+      "goToCenter": "前往会员中心"
+    },
+    "qr": {
+      "alt": "B 站登录二维码",
+      "waiting": "等待扫码",
+      "scanned": "等待确认",
+      "expired": "二维码已失效",
+      "expiresIn": "有效期 {count} 秒",
+      "refresh": "刷新二维码",
+      "manual": "手动输入 UID",
+      "back": "返回扫码",
+      "unavailable": "扫码登录暂不可用",
+      "uidInvalid": "UID 无效或查询失败",
+      "bind": "确认绑定"
+    },
+    "messages": {
+      "loginSuccess": "登录成功",
+      "logoutSuccess": "已退出登录",
+      "logoutFailed": "退出登录失败",
+      "cleanupFailed": "模块清理失败",
+      "orderCancelFailed": "订单取消失败"
     }
   }
 }

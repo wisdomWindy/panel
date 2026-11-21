@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { Loading } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import type { LocaleCode } from '@/platform/desktop';
@@ -70,19 +71,23 @@ async function save(): Promise<void> {
         :disabled="!shell.locale || followSystem || isPending"
         @change="previewLocale($event as LocaleCode)"
       >
-        <el-option label="简体中文" value="zh-CN" />
-        <el-option label="English" value="en-US" />
+        <el-option :label="t('settings.locale.languages.zhCN')" value="zh-CN" />
+        <el-option :label="t('settings.locale.languages.enUS')" value="en-US" />
       </el-select>
     </el-form-item>
-    <div class="mt-6 border-t border-gray-200 pt-5 dark:border-gray-700">
-      <el-button
-        type="primary"
-        :loading="isPending"
-        :disabled="!shell.locale"
+    <div class="app-hairline mt-6 flex items-center gap-2 border-t pt-5">
+      <button
+        type="button"
+        class="app-btn-primary inline-flex h-9 items-center gap-1.5 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+        :aria-busy="isPending"
+        :disabled="!shell.locale || isPending"
         @click="save"
       >
+        <el-icon v-if="isPending" class="is-loading">
+          <Loading />
+        </el-icon>
         {{ t('common.save') }}
-      </el-button>
+      </button>
     </div>
   </el-form>
 </template>

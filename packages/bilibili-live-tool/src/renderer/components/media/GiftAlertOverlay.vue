@@ -57,41 +57,50 @@ onUnmounted(clearDismissTimer);
     v-if="payload"
     aria-live="assertive"
     :class="placement"
-    class="fixed z-[70] w-[min(360px,calc(100vw-40px))] rounded-lg border border-amber-200 bg-white p-4 shadow-xl dark:border-amber-700 dark:bg-zinc-900"
+    class="app-card fixed z-[70] w-[min(360px,calc(100vw-40px))] p-4 shadow-xl"
   >
     <div class="flex items-start gap-3">
       <img
         v-if="payload.event.giftIconUrl && !imageLoadFailed"
         :src="payload.event.giftIconUrl"
         :alt="payload.event.giftName"
-        class="size-12 shrink-0 rounded-lg bg-amber-50 object-contain p-1 dark:bg-amber-950"
+        class="app-surface-2 size-12 shrink-0 rounded-lg object-contain p-1"
         @error="imageLoadFailed = true"
       >
-      <span v-else class="flex size-12 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200">
-        <el-icon :size="22"><Present /></el-icon>
+      <span
+        v-else
+        class="app-surface-2 flex size-12 shrink-0 items-center justify-center rounded-lg"
+      >
+        <el-icon :size="22" style="color: var(--app-gold)"><Present /></el-icon>
       </span>
       <div class="min-w-0 flex-1">
         <div class="flex items-start justify-between gap-2">
-          <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 class="app-text m-0 text-sm font-semibold">
             {{ t('giftReminder.title') }}
           </h2>
           <button
             type="button"
             :aria-label="t('common.close')"
             :title="t('common.close')"
-            class="flex size-7 shrink-0 items-center justify-center rounded text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            class="app-icon-btn shrink-0"
             @click="emit('dismiss')"
           >
             <el-icon><Close /></el-icon>
           </button>
         </div>
-        <p class="mt-1 break-words text-sm text-zinc-600 dark:text-zinc-300">
-          {{ payload.event.audience.username }} 送出
+        <p class="app-muted mt-1 mb-0 break-words text-sm">
+          {{ payload.event.audience.username }}
         </p>
-        <p class="break-words text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          {{ payload.event.giftName }} ×{{ payload.event.quantity }}
+        <!-- Reuses the existing gift message copy so the overlay adds no locale keys. -->
+        <p class="app-text mb-0 break-words text-sm font-semibold">
+          {{
+            t('dashboard.giftMessage', {
+              giftName: payload.event.giftName,
+              count: payload.event.quantity
+            })
+          }}
         </p>
-        <p class="mt-2 text-base font-semibold text-amber-700 dark:text-amber-300">
+        <p class="mt-2 mb-0 text-base font-semibold" style="color: var(--app-gold)">
           {{ formatMoneyMinor(payload.event.valueMinor) }}
         </p>
       </div>

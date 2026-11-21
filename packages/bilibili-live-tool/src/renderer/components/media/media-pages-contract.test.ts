@@ -179,6 +179,11 @@ describe('interaction media page contracts', () => {
     expect(overlay).toContain('@error');
     expect(overlay).toContain('imageLoadFailed');
     expect(overlay).toContain('giftName');
+    // The popup is token-driven: one palette, no per-page dark: literals.
+    expect(overlay).toContain('app-card');
+    expect(overlay).toContain('app-text');
+    expect(overlay).toContain('app-surface-2');
+    expect(overlay).not.toContain('dark:');
   });
 
   it('exposes the approved reminder routes and navigation labels', () => {

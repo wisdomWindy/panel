@@ -556,3 +556,186 @@ async fn records_a_live_room_end_to_end() {
     assert!(!bytes.is_empty(), "no data was recorded; stderr={}", exit.stderr);
     assert_eq!(&bytes[..3], b"FLV", "output is not a playable FLV container");
 }
+
+/// PRD 9.12 requires a clip to be cut from the recent window of a recording.
+/// This drives the real FFmpeg through the production one-shot port so the
+/// seek accuracy of `-ss` on an FLV file is actually measured, not assumed.
+///
+/// ```text
+/// RECORDING_FFMPEG=<path to ffmpeg> \
+///   cargo test --lib --features free extracts_a_highlight_clip -- --ignored --nocapture
+/// ```
+#[tokio::test]
+#[ignore = "requires ffmpeg; set RECORDING_FFMPEG"]
+async fn extracts_a_highlight_clip_from_a_real_recording() {
+    use crate::{
+        application::media::RecorderProcessPort,
+        domain::media::{highlight_clip_arguments, HighlightClipInput},
+    };
+    use super::LocalFfmpegProcessPort;
+
+    let ffmpeg = std::env::var("RECORDING_FFMPEG").expect("RECORDING_FFMPEG");
+    let executable = PathBuf::from(&ffmpeg);
+    let directory = tempfile::tempdir().unwrap();
+    let recording = directory.path().join("synthetic.flv");
+    let clip = directory.path().join("synthetic-clip.flv");
+
+    // A 70 second synthetic live-like stream: FLV video + AAC audio.
+    let status = std::process::Command::new(&ffmpeg)
+        .args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=size=320x240:rate=10:duration=70",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=70",
+            "-c:v",
+            "flv",
+            "-c:a",
+            "aac",
+            "-y",
+        ])
+        .arg(&recording)
+        .status()
+        .expect("synthetic recording must be produced");
+    assert!(status.success(), "synthetic recording generation failed");
+    let recording_bytes = std::fs::metadata(&recording).unwrap().len();
+    println!("synthetic recording: {recording_bytes} bytes");
+
+    // Marker at 65s with a 60s look-behind and a 5s tail: start 10s, 65s long.
+    let arguments = highlight_clip_arguments(&HighlightClipInput {
+        source: &recording,
+        output: &clip,
+        position_seconds: 60,
+        before_seconds: 60,
+        after_seconds: 5,
+    })
+    .unwrap();
+    LocalFfmpegProcessPort
+        .run(&executable, &arguments)
+        .await
+        .expect("clip extraction must succeed");
+
+    let clip_bytes = std::fs::read(&clip).unwrap_or_default();
+    assert!(!clip_bytes.is_empty(), "clip extraction produced no data");
+    assert_eq!(&clip_bytes[..3], b"FLV", "clip is not a playable FLV");
+
+    // Measure the produced duration: a wrong seek shows up here.
+    let probe = std::process::Command::new(&ffmpeg)
+        .args(["-hide_banner", "-i"])
+        .arg(&clip)
+        .output()
+        .expect("ffmpeg must report clip metadata");
+    let stderr = String::from_utf8_lossy(&probe.stderr);
+    let duration = stderr
+        .split("Duration: ")
+        .nth(1)
+        .and_then(|rest| rest.split(',').next())
+        .expect("clip duration must be reported");
+    let parts: Vec<f64> = duration
+        .split(':')
+        .map(|part| part.trim().parse::<f64>().unwrap_or(0.0))
+        .collect();
+    let seconds = parts[0] * 3600.0 + parts[1] * 60.0 + parts[2];
+    println!("clip: {} bytes, duration {duration} ({seconds:.2}s)", clip_bytes.len());
+    assert!(
+        (62.0..=66.0).contains(&seconds),
+        "clip duration {seconds:.2}s is outside the expected 65s window"
+    );
+}
+/// The production path cuts a clip out of a file FFmpeg is still appending to.
+/// This test keeps the writer running while the clip is extracted, because an
+/// in-progress FLV has no completed index and may seek differently.
+///
+/// ```text
+/// RECORDING_FFMPEG=<path to ffmpeg> \
+///   cargo test --lib --features free extracts_a_clip_while_recording -- --ignored --nocapture
+/// ```
+#[tokio::test]
+#[ignore = "requires ffmpeg; set RECORDING_FFMPEG"]
+async fn extracts_a_clip_while_the_recording_is_still_writing() {
+    use crate::{
+        application::media::RecorderProcessPort,
+        domain::media::{highlight_clip_arguments, HighlightClipInput},
+    };
+    use super::LocalFfmpegProcessPort;
+
+    let ffmpeg = std::env::var("RECORDING_FFMPEG").expect("RECORDING_FFMPEG");
+    let executable = PathBuf::from(&ffmpeg);
+    let directory = tempfile::tempdir().unwrap();
+    let recording = directory.path().join("live.flv");
+    let clip = directory.path().join("live-clip.flv");
+
+    let mut writer = std::process::Command::new(&ffmpeg)
+        .args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-re",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=size=320x240:rate=10:duration=130",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=130",
+            "-c:v",
+            "flv",
+            "-c:a",
+            "aac",
+            "-y",
+        ])
+        .arg(&recording)
+        .spawn()
+        .expect("writer must start");
+
+    // Let it accumulate enough data for a 60s look-behind plus tail.
+    tokio::time::sleep(std::time::Duration::from_secs(72)).await;
+    let written = std::fs::metadata(&recording).map(|m| m.len()).unwrap_or(0);
+    println!("in-progress recording: {written} bytes");
+
+    let arguments = highlight_clip_arguments(&HighlightClipInput {
+        source: &recording,
+        output: &clip,
+        position_seconds: 60,
+        before_seconds: 60,
+        after_seconds: 5,
+    })
+    .unwrap();
+    let extraction = LocalFfmpegProcessPort.run(&executable, &arguments).await;
+    let _ = writer.kill();
+    let _ = writer.wait();
+    extraction.expect("clip extraction must succeed on an in-progress file");
+
+    let clip_bytes = std::fs::read(&clip).unwrap_or_default();
+    assert!(!clip_bytes.is_empty(), "clip extraction produced no data");
+    assert_eq!(&clip_bytes[..3], b"FLV", "clip is not a playable FLV");
+
+    let probe = std::process::Command::new(&ffmpeg)
+        .args(["-hide_banner", "-i"])
+        .arg(&clip)
+        .output()
+        .expect("ffmpeg must report clip metadata");
+    let stderr = String::from_utf8_lossy(&probe.stderr);
+    let duration = stderr
+        .split("Duration: ")
+        .nth(1)
+        .and_then(|rest| rest.split(',').next())
+        .expect("clip duration must be reported");
+    let parts: Vec<f64> = duration
+        .split(':')
+        .map(|part| part.trim().parse::<f64>().unwrap_or(0.0))
+        .collect();
+    let seconds = parts[0] * 3600.0 + parts[1] * 60.0 + parts[2];
+    println!("in-progress clip: {} bytes, duration {seconds:.2}s", clip_bytes.len());
+    assert!(
+        seconds >= 55.0,
+        "clip cut from a growing file is too short ({seconds:.2}s); the seek is unreliable"
+    );
+}

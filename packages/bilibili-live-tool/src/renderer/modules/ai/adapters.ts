@@ -208,10 +208,19 @@ export function adaptAiVoiceReplySnapshot(value: unknown): AiVoiceReplySnapshot 
 
 export function adaptAiGeneration(value: unknown): AiGeneration {
   const source = record(value, 'AI generation');
+  // Older payloads may omit the echo; an empty list keeps the UI honest.
+  const contextUsed = Array.isArray(source.contextUsed)
+    ? Object.freeze(
+        (source.contextUsed as unknown[]).map((line, index) =>
+          string(line, `contextUsed[${index}]`)
+        )
+      )
+    : Object.freeze([] as string[]);
   return Object.freeze({
     generationId: string(source.generationId, 'generationId') as AiGeneration['generationId'],
     status: enumeration(source.status, GENERATION_STATES, 'status'),
     result: string(source.result, 'result', true),
+    contextUsed,
     lastSequence: integer(source.lastSequence, 'lastSequence'),
     errorCode: nullableString(source.errorCode, 'errorCode')
   });

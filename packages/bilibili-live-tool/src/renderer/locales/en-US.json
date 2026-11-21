@@ -171,7 +171,9 @@
       "copy": "Copy",
       "copied": "Copied",
       "copyFailed": "Copy failed",
-      "rateLimited": "Service rate limited. Try again later."
+      "rateLimited": "Service rate limited. Try again later.",
+      "context": "Context used",
+      "contextHint": "These lines were sent to your configured model endpoint with this generation."
     },
     "persona": {
       "title": "AI persona settings",

@@ -1,4 +1,4 @@
-﻿import type { UserUid } from './base';
+import type { UserUid } from './base';
 
 export type GenerationId = string & { readonly __generationId: unique symbol };
 export type AiModelProfileId = string & { readonly __aiModelProfileId: unique symbol };
@@ -135,6 +135,8 @@ export interface AiGeneration {
   readonly generationId: GenerationId;
   readonly status: 'assembling' | 'streaming' | 'completed' | 'failed' | 'rejected' | 'cancelled';
   readonly result: string;
+  /** PRD 9.13: the context lines actually sent to the model. */
+  readonly contextUsed: readonly string[];
   readonly lastSequence: number;
   readonly errorCode: string | null;
 }

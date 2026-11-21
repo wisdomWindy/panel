@@ -484,6 +484,8 @@ pub struct AiGenerationDto {
     pub generation_id: String,
     pub status: AiGenerationStatusDto,
     pub result: String,
+    /// PRD 9.13: the context lines actually sent to the model.
+    pub context_used: Vec<String>,
     pub last_sequence: u64,
     pub error_code: Option<String>,
 }
@@ -1550,6 +1552,7 @@ fn ai_generation_dto(generation: AiGenerationRecord) -> AiGenerationDto {
             AiGenerationStatus::Cancelled => AiGenerationStatusDto::Cancelled,
         },
         result: generation.result,
+        context_used: generation.context_used,
         last_sequence: generation.last_sequence,
         error_code: generation.error_code,
     }

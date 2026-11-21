@@ -28,6 +28,8 @@ const result = computed(() => {
     ? generation.result
     : '';
 });
+const contextUsed = computed<readonly string[]>(() => store.generation?.contextUsed ?? []);
+
 const generationError = computed(() => {
   if (store.generation?.errorCode === 'rate_limited') return t('ai.result.rateLimited');
   return store.errorFor('generate')?.message ?? store.generation?.errorCode ?? null;
@@ -209,6 +211,27 @@ onMounted(() => {
       @skip="store.skipVoiceQueue"
       @clear="store.clearVoiceQueue"
     />
+
+    <section
+      v-if="contextUsed.length > 0"
+      class="app-card p-5"
+      aria-labelledby="ai-context-title"
+    >
+      <h3 id="ai-context-title" class="app-text m-0 text-base font-semibold">
+        {{ t('ai.result.context') }}
+      </h3>
+      <p class="app-muted mt-1 mb-0 text-sm">{{ t('ai.result.contextHint') }}</p>
+      <ul class="m-0 mt-3 list-none p-0">
+        <li
+          v-for="(line, index) in contextUsed"
+          :key="index"
+          class="app-muted border-b py-1.5 text-sm last:border-b-0"
+          style="border-color: var(--app-border)"
+        >
+          {{ line }}
+        </li>
+      </ul>
+    </section>
 
     <section class="app-card p-5" aria-labelledby="ai-result-title">
       <div class="flex flex-wrap items-start justify-between gap-3">

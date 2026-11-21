@@ -797,11 +797,12 @@ impl AiState {
         match result {
             Ok(result) => {
                 let mut runtime = self.runtime.lock().await;
-                runtime.last_request = Some((prompt, context, generation_id.clone()));
+                runtime.last_request = Some((prompt, context.clone(), generation_id.clone()));
                 let generation = AiGenerationRecord {
                     generation_id,
                     status: AiGenerationStatus::Completed,
                     result,
+                    context_used: context,
                     last_sequence: 1,
                     error_code: None,
                 };

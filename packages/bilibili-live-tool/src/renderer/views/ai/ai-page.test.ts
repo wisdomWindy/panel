@@ -117,6 +117,23 @@ describe('shared AI page contract', () => {
     }
   });
 
+  it('shows the context that was actually sent with the generation', () => {
+    const pageSource = source(page);
+    // PRD 9.13 sketch: context, input and result are all visible locally.
+    expect(pageSource).toContain('contextUsed');
+    expect(pageSource).toContain("t('ai.result.context')");
+    expect(pageSource).toContain('v-if="contextUsed.length > 0"');
+
+    for (const locale of ['zh-CN', 'en-US']) {
+      const messages = JSON.parse(source(`src/renderer/locales/${locale}.json`)) as {
+        ai: { result: Record<string, string> };
+      };
+      for (const key of ['context', 'contextHint']) {
+        expect(messages.ai.result[key], `${locale}.ai.result.${key}`).toBeTruthy();
+      }
+    }
+  });
+
   it('renders the AI workspace on the shared design tokens only', () => {    for (const path of [page, voice, models, persona]) {
       const content = source(path);
       expect(content, path).not.toMatch(/dark:|bg-white|text-gray-|border-gray-/);

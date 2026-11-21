@@ -224,6 +224,8 @@ pub struct AiGenerationRecord {
     pub generation_id: String,
     pub status: AiGenerationStatus,
     pub result: String,
+    /// PRD 9.13 UI sketch: the context actually sent to the model.
+    pub context_used: Vec<String>,
     pub last_sequence: u64,
     pub error_code: Option<String>,
 }

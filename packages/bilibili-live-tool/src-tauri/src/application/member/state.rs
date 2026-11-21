@@ -558,9 +558,17 @@ impl AiState {
         &self,
         is_enabled: bool,
         is_audio_route_confirmed: bool,
+        is_data_disclosure_acknowledged: bool,
     ) -> Result<AiVoiceConfigRecord, MemberServiceError> {
         let mut config = self.repository.load_ai_voice_config().await?;
         if is_enabled {
+            // PRD 12.2: before enabling, the user must accept that danmaku text
+            // and the audience nickname leave the machine for the configured
+            // model endpoint. The UI shows this disclosure on every enable, so
+            // the flag is required rather than persisted.
+            if !is_data_disclosure_acknowledged {
+                return Err(MemberServiceError::invalid("ai_data_disclosure_required"));
+            }
             let profile = self.repository.load_default_ai_model_profile().await?;
             if !profile.is_some_and(|profile| profile.is_enabled) {
                 return Err(MemberServiceError::invalid("ai_model_not_configured"));

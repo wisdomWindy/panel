@@ -1,4 +1,4 @@
-import type { UserUid } from './base';
+﻿import type { UserUid } from './base';
 
 export type GenerationId = string & { readonly __generationId: unique symbol };
 export type AiModelProfileId = string & { readonly __aiModelProfileId: unique symbol };
@@ -183,7 +183,11 @@ export interface AiCommandRequestMap {
   ai_model_set_default: { profileId: AiModelProfileId };
   ai_model_test: { profileId: AiModelProfileId };
   ai_voice_reply_get: undefined;
-  ai_voice_reply_set_enabled: { isEnabled: boolean; isAudioRouteConfirmed: boolean };
+  ai_voice_reply_set_enabled: {
+    isEnabled: boolean;
+    isAudioRouteConfirmed: boolean;
+    isDataDisclosureAcknowledged: boolean;
+  };
   ai_voice_reply_update_rules: { rules: AiVoiceReplyRules };
   ai_tts_list_output_devices: undefined;
   ai_tts_set_output_device: {

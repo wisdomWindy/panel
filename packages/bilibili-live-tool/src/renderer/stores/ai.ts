@@ -150,10 +150,15 @@ export const useAIStore = defineStore('ai', () => {
 
   function setVoiceReplyEnabled(
     isEnabled: boolean,
-    isAudioRouteConfirmed: boolean
+    isAudioRouteConfirmed: boolean,
+    isDataDisclosureAcknowledged: boolean
   ): Promise<AiVoiceReplySnapshot> {
     return commitVoiceReply('setVoiceReplyEnabled', () =>
-      invokeDesktop('ai_voice_reply_set_enabled', { isEnabled, isAudioRouteConfirmed })
+      invokeDesktop('ai_voice_reply_set_enabled', {
+        isEnabled,
+        isAudioRouteConfirmed,
+        isDataDisclosureAcknowledged
+      })
     );
   }
 

@@ -250,7 +250,10 @@
       "profileDeleted": "Model profile deleted",
       "profileTested": "Model connection OK",
       "profileTestFailed": "Model connection failed",
-      "routeConfirmed": "Audio route confirmed"
+      "routeConfirmed": "Audio route confirmed",
+      "dataDisclosure": "Once enabled, the triggering danmaku text plus the viewer nickname and identity tags are sent to the model endpoint you configured.",
+      "dataDisclosureTitle": "Confirm data disclosure",
+      "dataDisclosureConfirm": "I understand, enable"
     }
   },
   "aiLog": {

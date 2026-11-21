@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CopyDocument, Refresh } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
 import { useRouter } from 'vue-router';
 import type {
   AiConfigSaveRequest,
@@ -87,7 +88,23 @@ async function testProfile(profileId: AiModelProfileId): Promise<void> {
 }
 
 async function setVoiceReplyEnabled(isEnabled: boolean, confirmed: boolean): Promise<void> {
-  await store.setVoiceReplyEnabled(isEnabled, confirmed).catch(() => undefined);
+  // PRD 12.2: before enabling, state exactly what leaves the machine.
+  if (isEnabled) {
+    try {
+      await ElMessageBox.confirm(
+        t('ai.messages.dataDisclosure'),
+        t('ai.messages.dataDisclosureTitle'),
+        {
+          type: 'warning',
+          confirmButtonText: t('ai.messages.dataDisclosureConfirm'),
+          cancelButtonText: t('common.cancel')
+        }
+      );
+    } catch {
+      return;
+    }
+  }
+  await store.setVoiceReplyEnabled(isEnabled, confirmed, isEnabled).catch(() => undefined);
 }
 
 async function confirmAudioRoute(

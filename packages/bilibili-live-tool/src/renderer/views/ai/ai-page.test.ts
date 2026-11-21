@@ -100,8 +100,24 @@ describe('shared AI page contract', () => {
     expect(log).toMatch(/store\s*\.\s*loadLogs/);
   });
 
-  it('renders the AI workspace on the shared design tokens only', () => {
-    for (const path of [page, voice, models, persona]) {
+  it('requires the PRD 12.2 data disclosure before enabling voice reply', () => {
+    const pageSource = source(page);
+    // Enabling must ask first and only then pass the acknowledgement.
+    expect(pageSource).toContain("t('ai.messages.dataDisclosure')");
+    expect(pageSource).toContain('ElMessageBox.confirm');
+    expect(pageSource).toContain('store.setVoiceReplyEnabled(isEnabled, confirmed, isEnabled)');
+
+    for (const locale of ['zh-CN', 'en-US']) {
+      const messages = JSON.parse(source(`src/renderer/locales/${locale}.json`)) as {
+        ai: { messages: Record<string, string> };
+      };
+      for (const key of ['dataDisclosure', 'dataDisclosureTitle', 'dataDisclosureConfirm']) {
+        expect(messages.ai.messages[key], `${locale}.ai.messages.${key}`).toBeTruthy();
+      }
+    }
+  });
+
+  it('renders the AI workspace on the shared design tokens only', () => {    for (const path of [page, voice, models, persona]) {
       const content = source(path);
       expect(content, path).not.toMatch(/dark:|bg-white|text-gray-|border-gray-/);
       const template = content.slice(content.indexOf('<template>'));

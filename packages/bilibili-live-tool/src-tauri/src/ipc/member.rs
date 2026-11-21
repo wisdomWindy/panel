@@ -404,6 +404,10 @@ pub struct AiVoiceReplySnapshotDto {
 pub struct AiVoiceEnabledRequestDto {
     pub is_enabled: bool,
     pub is_audio_route_confirmed: bool,
+    /// PRD 12.2: the first enable has to acknowledge that danmaku text and the
+    /// audience nickname are sent to the configured model endpoint.
+    #[serde(default)]
+    pub is_data_disclosure_acknowledged: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -918,7 +922,11 @@ pub async fn ai_voice_reply_set_enabled(
 ) -> Result<AiVoiceReplySnapshotDto, DesktopError> {
     state
         .ai()?
-        .set_voice_enabled(request.is_enabled, request.is_audio_route_confirmed)
+        .set_voice_enabled(
+            request.is_enabled,
+            request.is_audio_route_confirmed,
+            request.is_data_disclosure_acknowledged,
+        )
         .await?;
     ai_voice_reply_snapshot(state.ai()?).await
 }

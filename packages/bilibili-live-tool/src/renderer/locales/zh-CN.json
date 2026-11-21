@@ -250,7 +250,10 @@
       "profileDeleted": "模型档案已删除",
       "profileTested": "模型连接正常",
       "profileTestFailed": "模型连接失败",
-      "routeConfirmed": "音频路由已确认"
+      "routeConfirmed": "音频路由已确认",
+      "dataDisclosure": "开启后将把触发弹幕的文本、观众昵称与身份标签发送到你配置的模型端点。",
+      "dataDisclosureTitle": "确认数据外发",
+      "dataDisclosureConfirm": "我已了解并开启"
     }
   },
   "aiLog": {

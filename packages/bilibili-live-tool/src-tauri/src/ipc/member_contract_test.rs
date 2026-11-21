@@ -86,3 +86,18 @@ fn serializes_safe_member_status_and_tagged_qr_states() {
 fn free_build_exposes_no_member_surface() {
     assert!(member_command_names().is_empty());
 }
+
+/// PRD 12.2: enabling voice reply carries the data-disclosure acknowledgement;
+/// an older caller that omits it deserialises as "not acknowledged".
+#[test]
+fn ai_voice_enable_request_requires_the_data_disclosure_field() {
+    let without: super::member::AiVoiceEnabledRequestDto =
+        serde_json::from_str(r#"{"isEnabled":true,"isAudioRouteConfirmed":true}"#).unwrap();
+    assert!(!without.is_data_disclosure_acknowledged);
+
+    let with: super::member::AiVoiceEnabledRequestDto = serde_json::from_str(
+        r#"{"isEnabled":true,"isAudioRouteConfirmed":true,"isDataDisclosureAcknowledged":true}"#,
+    )
+    .unwrap();
+    assert!(with.is_data_disclosure_acknowledged);
+}

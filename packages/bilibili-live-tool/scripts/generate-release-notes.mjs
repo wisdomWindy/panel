@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 
 const RELEASE_ORIGIN = 'https://github.com';
 const REPOSITORY = 'wisdomWindy/panel';
-const ASSET_PREFIX = 'biliLiverHelper';
+const ASSET_PREFIX = 'biliLiveHelper';
 
 const DOWNLOADS = [
   { label: 'Windows x64', platform: 'Windows_x64-setup', extension: '.exe' },

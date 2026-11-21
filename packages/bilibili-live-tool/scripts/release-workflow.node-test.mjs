@@ -36,7 +36,7 @@ test('release workflow publishes only the free channel', async () => {
   assert.doesNotMatch(workflow, /gh release edit "member-v\$VERSION"/);
   assert.match(
     workflow,
-    /releaseAssetNamePattern: biliLiverHelper_\[version\]_\$\{\{ matrix\.target\.asset_platform \}\}\[ext\]/
+    /releaseAssetNamePattern: biliLiveHelper_\[version\]_\$\{\{ matrix\.target\.asset_platform \}\}\[ext\]/
   );
   assert.match(workflow, /generate-release-notes\.mjs/);
   assert.match(workflow, /--changes-file "\$APP_PATH\/release-notes\/\$VERSION\.md"/);

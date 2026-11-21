@@ -165,7 +165,7 @@ jobs:
           releaseBody: "biliLiveHelper v__VERSION__ for Windows x64, macOS Apple Silicon, and macOS Intel."
           releaseDraft: true
           prerelease: false
-          releaseAssetNamePattern: biliLiverHelper_[version]_${{ matrix.target.asset_platform }}[ext]
+          releaseAssetNamePattern: biliLiveHelper_[version]_${{ matrix.target.asset_platform }}[ext]
           args: --config src-tauri/tauri.release.${{ matrix.channel }}.conf.json ${{ matrix.target.args }}
 
   publish:

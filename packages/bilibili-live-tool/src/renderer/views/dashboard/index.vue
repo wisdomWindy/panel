@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Download, Refresh } from '@element-plus/icons-vue';
+import { Refresh } from '@element-plus/icons-vue';
 import { normalizeDesktopError, type DataRange } from '@/platform/desktop';
 import { formatCount, formatDanmuRate, formatMoneyMinor } from '@/modules/live-data/formatters';
 import { useLiveAnalyticsStore } from '@/stores/live-data/analytics';
@@ -17,6 +17,18 @@ const range = ref<DataRange>({ kind: 'liveSession' });
 const exportVisible = ref(false);
 
 const metrics = () => analytics.statistics?.metrics ?? null;
+
+const metricCards = computed(() => [
+  { id: 'online', label: t('dashboard.onlineCount'), value: formatCount(metrics()?.onlineCount ?? 0) },
+  { id: 'danmu', label: t('dashboard.danmakuCount'), value: formatCount(metrics()?.danmuCount ?? 0) },
+  { id: 'rate', label: t('dashboard.danmakuRate'), value: formatDanmuRate(metrics()?.danmuRate ?? 0) },
+  {
+    id: 'gift',
+    label: t('dashboard.giftRevenue'),
+    value: formatMoneyMinor(metrics()?.giftValueMinor ?? 0)
+  },
+  { id: 'captain', label: t('dashboard.captainCount'), value: formatCount(metrics()?.captainCount ?? 0) }
+]);
 
 // -- Qwen3-TTS model download -------------------------------------------
 const qwenModels = computed(() => media.qwen3Catalog?.models ?? []);
@@ -93,138 +105,83 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="mx-auto max-w-7xl bg-white dark:bg-zinc-900">
-    <header class="flex min-h-14 flex-wrap items-center gap-3 border-b border-gray-200 py-2 dark:border-zinc-800">
-      <h2 class="mr-auto m-0 text-lg font-semibold text-gray-900 dark:text-zinc-100">
+  <section class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
+    <header class="flex flex-wrap items-center gap-2">
+      <h2 class="app-text mr-auto m-0 text-lg font-semibold">
         {{ t('dashboard.title') }}
       </h2>
       <DataRangeControl v-model="range" />
-      <el-button :icon="Refresh" :loading="analytics.statPending" @click="query(true, true)">
-        {{ t('common.refresh') }}
-      </el-button>
-      <el-button type="primary" :icon="Download" @click="exportVisible = true">
+      <button type="button" class="app-icon-btn" :aria-label="t('common.refresh')" @click="query(true, true)">
+        <el-icon><Refresh /></el-icon>
+      </button>
+      <button type="button" class="app-btn-primary h-8 px-3 text-sm" @click="exportVisible = true">
         {{ t('dashboard.exportCsv') }}
-      </el-button>
+      </button>
     </header>
 
     <el-alert
       v-if="analytics.error"
-      class="mt-4"
       :title="analytics.error.message"
       type="error"
       :closable="false"
     />
     <el-alert
       v-if="analytics.statistics && !analytics.statistics.isHistoricalDataAvailable"
-      class="mt-4"
       :title="t('dashboard.historyUnavailable')"
       type="warning"
       :closable="false"
     />
 
-    <el-skeleton
-      v-if="analytics.statPending && !analytics.statistics"
-      class="mt-6"
-      :rows="8"
-      animated
-    />
-    <div v-else-if="analytics.statistics" class="mt-5">
-      <dl
-        class="grid grid-cols-2 gap-px overflow-hidden border border-gray-200 bg-gray-200 dark:border-zinc-800 dark:bg-zinc-800 md:grid-cols-3 xl:grid-cols-5"
-      >
-        <div class="min-w-0 bg-white p-4 dark:bg-zinc-900">
-          <dt class="text-sm text-gray-500 dark:text-zinc-400">
-            {{ t('dashboard.onlineCount') }}
-          </dt>
-          <dd class="m-0 mt-2 text-2xl font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
-            {{ formatCount(metrics()?.onlineCount ?? 0) }}
-          </dd>
-        </div>
-        <div class="min-w-0 bg-white p-4 dark:bg-zinc-900">
-          <dt class="text-sm text-gray-500 dark:text-zinc-400">
-            {{ t('dashboard.danmakuCount') }}
-          </dt>
-          <dd class="m-0 mt-2 text-2xl font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
-            {{ formatCount(metrics()?.danmuCount ?? 0) }}
-          </dd>
-        </div>
-        <div class="min-w-0 bg-white p-4 dark:bg-zinc-900">
-          <dt class="text-sm text-gray-500 dark:text-zinc-400">
-            {{ t('dashboard.danmakuRate') }}
-          </dt>
-          <dd class="m-0 mt-2 text-2xl font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
-            {{ formatDanmuRate(metrics()?.danmuRate ?? 0) }}
-          </dd>
-        </div>
-        <div class="min-w-0 bg-white p-4 dark:bg-zinc-900">
-          <dt class="text-sm text-gray-500 dark:text-zinc-400">
-            {{ t('dashboard.giftRevenue') }}
-          </dt>
-          <dd class="m-0 mt-2 text-2xl font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
-            {{ formatMoneyMinor(metrics()?.giftValueMinor ?? 0) }}
-          </dd>
-        </div>
-        <div class="min-w-0 bg-white p-4 dark:bg-zinc-900">
-          <dt class="text-sm text-gray-500 dark:text-zinc-400">
-            {{ t('dashboard.captainCount') }}
-          </dt>
-          <dd class="m-0 mt-2 text-2xl font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
-            {{ formatCount(metrics()?.captainCount ?? 0) }}
-          </dd>
-        </div>
-      </dl>
+    <el-skeleton v-if="analytics.statPending && !analytics.statistics" :rows="8" animated />
+    <template v-else-if="analytics.statistics">
+      <div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+        <article v-for="card in metricCards" :key="card.id" class="app-metric">
+          <p class="app-metric-label m-0">{{ card.label }}</p>
+          <p class="app-metric-value mt-1.5 mb-0">{{ card.value }}</p>
+        </article>
+      </div>
 
-      <div class="mt-5">
-        <TrendChart
-          :title="t('dashboard.onlineTrend')"
-          :points="analytics.statistics.trendPoints"
-          metric="onlineCount"
-          color="#2563eb"
-        />
+      <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <TrendChart
           :title="t('dashboard.danmakuTrend')"
           :points="analytics.statistics.trendPoints"
           metric="danmuRate"
-          color="#059669"
+          color="#00aeec"
+        />
+        <TrendChart
+          :title="t('dashboard.onlineTrend')"
+          :points="analytics.statistics.trendPoints"
+          metric="onlineCount"
+          color="#f5a623"
         />
         <TrendChart
           :title="t('dashboard.giftTrend')"
           :points="analytics.statistics.trendPoints"
           metric="giftValueMinor"
-          color="#d97706"
+          color="#34c759"
         />
       </div>
-    </div>
-    <div
-      v-else
-      class="flex min-h-72 items-center justify-center text-sm text-gray-400 dark:text-zinc-400"
-    >
+    </template>
+    <div v-else class="app-faint flex min-h-72 items-center justify-center text-sm">
       {{ t('liveData.empty') }}
     </div>
 
-    <section
-      class="mt-5 border border-gray-200 p-4 dark:border-zinc-800"
-      aria-labelledby="qwen3-model-title"
-    >
+    <section class="app-card p-4" aria-labelledby="qwen3-model-title">
       <div class="flex flex-wrap items-center gap-3">
         <div class="mr-auto min-w-0">
-          <h3
-            id="qwen3-model-title"
-            class="m-0 text-base font-semibold text-gray-900 dark:text-zinc-100"
-          >
+          <h3 id="qwen3-model-title" class="app-text m-0 text-base font-semibold">
             {{ t('dashboard.qwen3Model.title') }}
           </h3>
-          <p class="mt-1 mb-0 text-sm text-gray-500 dark:text-zinc-400">
+          <p class="app-muted mt-1 mb-0 text-sm">
             {{ t('dashboard.qwen3Model.description') }}
           </p>
         </div>
-        <el-tag :type="modelInstalled ? 'success' : 'info'" effect="plain">
+        <span class="app-badge" :class="modelInstalled ? 'app-badge--captain' : 'app-badge--plain'">
           {{ modelStatusLabel }}
-        </el-tag>
-        <el-button
-          type="primary"
-          :icon="Download"
-          :loading="modelDownloading"
+        </span>
+        <button
+          type="button"
+          class="app-btn-primary h-8 px-3 text-sm"
           :disabled="modelDownloading || !modelServiceAvailable"
           @click="downloadModel"
         >
@@ -233,7 +190,7 @@ onMounted(() => {
               ? t('dashboard.qwen3Model.redownload')
               : t('dashboard.qwen3Model.download')
           }}
-        </el-button>
+        </button>
       </div>
       <el-progress
         v-if="modelDownloading"
@@ -242,17 +199,10 @@ onMounted(() => {
         :indeterminate="modelProgress === null"
         :stroke-width="10"
       />
-      <p
-        v-if="modelError"
-        class="mt-2 mb-0 text-sm text-red-600 dark:text-red-400"
-        role="alert"
-      >
+      <p v-if="modelError" class="mt-2 mb-0 text-sm" style="color: var(--app-red)" role="alert">
         {{ modelError }}
       </p>
-      <p
-        v-else-if="!modelServiceAvailable"
-        class="mt-2 mb-0 text-sm text-amber-700 dark:text-amber-400"
-      >
+      <p v-else-if="!modelServiceAvailable" class="mt-2 mb-0 text-sm" style="color: var(--app-gold)">
         {{ t('dashboard.qwen3Model.serviceDown') }}
       </p>
     </section>

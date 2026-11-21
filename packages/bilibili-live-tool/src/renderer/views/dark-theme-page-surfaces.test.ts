@@ -111,11 +111,11 @@ describe('dark theme page surfaces', () => {
     });
     const tokens = classTokens(html);
 
-    expectSharedPageSurface(html);
-    expect(tokens.filter(token => token === 'dark:bg-zinc-900')).toHaveLength(6);
-    expect(tokens.filter(token => token === 'dark:text-zinc-100')).toHaveLength(7);
-    expect(tokens.filter(token => token === 'dark:text-zinc-400')).toHaveLength(9);
-    expect(tokens).toContain('dark:bg-zinc-800');
+    // Metric cards and the model card share the token palette.
+    expect(tokens.filter(token => token === 'app-metric')).toHaveLength(5);
+    expect(tokens).toContain('app-metric-value');
+    expect(tokens).toContain('app-card');
+    expect(tokens).toContain('app-btn-primary');
     // The Qwen3-TTS model card shows the "service offline" hint when the
     // catalogue cannot be loaded.
     expect(html).toContain('Qwen3-TTS 1.7B');

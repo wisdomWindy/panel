@@ -141,6 +141,9 @@ pub trait MediaRepository: Send + Sync {
         recording_id: i64,
     ) -> Result<Vec<HighlightRecord>, MediaIoError>;
     async fn delete_highlight(&self, id: i64) -> Result<bool, MediaIoError>;
+    /// Points a highlight at its extracted clip and marks it available.
+    async fn set_highlight_clip(&self, id: i64, file_path: &std::path::Path)
+        -> Result<(), MediaIoError>;
 }
 
 #[async_trait::async_trait]
@@ -326,12 +329,28 @@ pub struct RecorderExit {
 pub trait RecorderProcess: Send {
     async fn stop(&mut self) -> Result<(), MediaIoError>;
     async fn wait(&mut self) -> Result<RecorderExit, MediaIoError>;
+
+    /// Non-blocking liveness probe. `false` by default so fakes that model a
+    /// healthy process do not have to implement it.
+    fn has_exited(&mut self) -> bool {
+        false
+    }
 }
 
 #[async_trait::async_trait]
 pub trait RecorderProcessPort: Send + Sync {
     async fn spawn(&self, launch: RecorderLaunch)
         -> Result<Box<dyn RecorderProcess>, MediaIoError>;
+
+    /// Runs a short-lived tool invocation to completion. Used for clip
+    /// extraction (PRD 9.12), which is a one-shot remux rather than a recorder.
+    async fn run(
+        &self,
+        _executable: &std::path::Path,
+        _arguments: &[String],
+    ) -> Result<(), MediaIoError> {
+        Err(MediaIoError::unavailable("tool execution is unavailable"))
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

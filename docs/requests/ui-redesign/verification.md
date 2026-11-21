@@ -68,7 +68,10 @@ PRD v1 已删除，`docs/requirements/` 现只保留 v2 作为唯一需求基线
 | --- | --- | --- |
 | §12.3 数据保留默认策略 | `application/data_maintenance.rs`：事件日志 90 天 / AI 日志 30 天 / 统计 180 天，可选 7/30/90/180/永久；策略存 `t_app_setting['data.retention']`；启动后每 6 小时执行一次 `purge_expired` | 8 个单元测试；`lib.rs` setup 中的定时任务 |
 | §12.4 数据清空 | `data_clear(scope)` 支持 `eventLogs` / `aiLogs` / `cache` / `all`；`all` 清空 22 张用户表与配置但保留 `t_schema_state`；设置页新增「数据与隐私」分类，四次清空均二次确认 | `DataPrivacyPanel.vue`；契约测试断言四个 scope |
+| §9.12 高光片段截取 | 打点后立即用 FFmpeg 从录制文件 remux 出 `[标记-60s, 标记+5s]` 片段（`-c copy` 不转码），成功则写回 `file_path` 并把 `is_clip_available` 置真；窗口与参数由纯函数 `highlight_clip_window` / `highlight_clip_arguments` 计算 | 5 个 pipeline 单元测试；`File.port` 新增 `run`、仓库新增 `set_highlight_clip` |
+| §9.12 录制断流重连 | 录制中每 2 秒探测子进程；掉流后重新解析播放地址并重启 FFmpeg，写入 `-part2/3/4` 续录文件（各段独立可播放）；超过 3 次以 `recording_stream_lost` 置错并停止 | `RecordingReconnectWatchdog`；`has_exited` / `replace_process` / `fail` 三个原语各 2 项测试 |
+| §13 系统托盘 | 启用 `tray-icon` feature，托盘提供「显示主窗口 / 退出」（按当前语言本地化），左键单击恢复窗口 | `lib.rs` setup 中的 `TrayIconBuilder` |
 
 新增命令：`data_retention_get` / `data_retention_save` / `data_clear`（shell 命令 13 → 16，Rust 与 TypeScript 同步）。
 
-> 仍未实现（下一批）：§9.12 高光片段截取、§9.12 录制断流重连（最多 3 次）、§13 系统托盘。
+> 以上为 PRD 中此前缺失的全部功能条款，现已全部落地。

@@ -62,10 +62,38 @@ impl RecorderProcessPort for LocalFfmpegProcessPort {
             stderr,
         }))
     }
+
+    async fn run(&self, executable: &Path, arguments: &[String]) -> Result<(), MediaIoError> {
+        validate_executable(executable)?;
+        let output = Command::new(executable)
+            .args(arguments)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .kill_on_drop(true)
+            .output()
+            .await
+            .map_err(|_| MediaIoError::unavailable("configured FFmpeg could not be started"))?;
+        if !output.status.success() {
+            return Err(MediaIoError::operation(
+                "FFmpeg clip extraction failed",
+                false,
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
 impl RecorderProcess for LocalFfmpegProcess {
+    fn has_exited(&mut self) -> bool {
+        self.child
+            .as_mut()
+            .and_then(|child| child.try_wait().ok())
+            .flatten()
+            .is_some()
+    }
+
     async fn stop(&mut self) -> Result<(), MediaIoError> {
         let child = self
             .child
@@ -84,8 +112,7 @@ impl RecorderProcess for LocalFfmpegProcess {
         Ok(())
     }
 
-    async fn wait(&mut self) -> Result<RecorderExit, MediaIoError> {
-        let mut child = self
+    async fn wait(&mut self) -> Result<RecorderExit, MediaIoError> {        let mut child = self
             .child
             .take()
             .ok_or_else(|| MediaIoError::invalid("recorder process already completed"))?;

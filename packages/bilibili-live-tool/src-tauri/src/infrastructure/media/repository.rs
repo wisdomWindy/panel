@@ -340,6 +340,22 @@ impl SqliteMediaRepository {
             == 1)
     }
 
+    pub async fn set_highlight_clip(
+        &self,
+        id: i64,
+        file_path: &std::path::Path,
+    ) -> Result<bool, MediaRepositoryError> {
+        Ok(sqlx::query(
+            "UPDATE t_highlight SET file_path = ?, is_clip_available = 1 WHERE id = ?",
+        )
+        .bind(file_path.to_string_lossy().to_string())
+        .bind(id)
+        .execute(&self.pool)
+        .await?
+        .rows_affected()
+            == 1)
+    }
+
     async fn load_json_config<T>(
         &self,
         key: &'static str,
@@ -574,6 +590,17 @@ impl crate::application::media::MediaRepository for SqliteMediaRepository {
     ) -> Result<bool, crate::application::media::MediaIoError> {
         SqliteMediaRepository::delete_highlight(self, id)
             .await
+            .map_err(Into::into)
+    }
+
+    async fn set_highlight_clip(
+        &self,
+        id: i64,
+        file_path: &std::path::Path,
+    ) -> Result<(), crate::application::media::MediaIoError> {
+        SqliteMediaRepository::set_highlight_clip(self, id, file_path)
+            .await
+            .map(|_| ())
             .map_err(Into::into)
     }
 }

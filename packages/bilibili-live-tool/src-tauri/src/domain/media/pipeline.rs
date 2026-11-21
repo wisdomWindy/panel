@@ -21,6 +21,70 @@ pub struct RecordingPlanInput<'a> {
     pub quality: RecordingQuality,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HighlightClipInput<'a> {
+    /// Recording file currently being written.
+    pub source: &'a Path,
+    /// Where the extracted clip should be written.
+    pub output: &'a Path,
+    /// Marker position inside the recording, in seconds.
+    pub position_seconds: u64,
+    pub before_seconds: u32,
+    pub after_seconds: u32,
+}
+
+/// Window that PRD 9.12 asks for: the last `before` seconds plus `after` seconds
+/// of tail so the reaction right after the marker is kept too.
+pub fn highlight_clip_window(input: &HighlightClipInput<'_>) -> (u64, u64) {
+    let before = u64::from(input.before_seconds);
+    // `position_seconds` already excludes the tail, so add it back before
+    // walking backwards over the look-behind window.
+    let start = input
+        .position_seconds
+        .saturating_add(u64::from(input.after_seconds))
+        .saturating_sub(before);
+    (start, before + u64::from(input.after_seconds))
+}
+
+/// Builds the `ffmpeg` argument vector that remuxes a highlight clip out of an
+/// in-progress recording. Stream copy only: no re-encode, so it stays cheap.
+pub fn highlight_clip_arguments(
+    input: &HighlightClipInput<'_>,
+) -> Result<Vec<String>, MediaDomainError> {
+    if input.source.as_os_str().is_empty() {
+        return Err(MediaDomainError::InvalidField("highlightSource"));
+    }
+    if input.output.as_os_str().is_empty() || input.output.parent().is_none() {
+        return Err(MediaDomainError::InvalidField("highlightOutput"));
+    }
+    let source = input
+        .source
+        .to_str()
+        .ok_or(MediaDomainError::InvalidField("highlightSource"))?;
+    let output = input
+        .output
+        .to_str()
+        .ok_or(MediaDomainError::InvalidField("highlightOutput"))?;
+    let (start, duration) = highlight_clip_window(input);
+
+    Ok(vec![
+        "-hide_banner".to_owned(),
+        "-loglevel".to_owned(),
+        "error".to_owned(),
+        "-nostdin".to_owned(),
+        "-ss".to_owned(),
+        start.to_string(),
+        "-i".to_owned(),
+        source.to_owned(),
+        "-t".to_owned(),
+        duration.to_string(),
+        "-c".to_owned(),
+        "copy".to_owned(),
+        "-y".to_owned(),
+        output.to_owned(),
+    ])
+}
+
 /// Builds the exact `ffmpeg` argument vector used to record a live stream.
 ///
 /// The stream is copied without re-encoding (`-c copy`), which keeps CPU usage
@@ -82,7 +146,10 @@ pub const fn file_extension(format: RecordingFormat) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{file_extension, recording_arguments, RecordingPlanInput};
+    use super::{
+        file_extension, highlight_clip_arguments, highlight_clip_window, recording_arguments,
+        HighlightClipInput, RecordingPlanInput,
+    };
     use crate::domain::media::{MediaDomainError, RecordingFormat, RecordingQuality};
     use std::path::Path;
 
@@ -157,5 +224,80 @@ mod tests {
         assert_eq!(file_extension(RecordingFormat::Flv), "flv");
         assert_eq!(file_extension(RecordingFormat::Mp4), "mp4");
         assert_eq!(super::container_name(RecordingFormat::Mp4), "mp4");
+    }
+
+    fn clip<'a>(source: &'a Path, output: &'a Path, position: u64) -> HighlightClipInput<'a> {
+        HighlightClipInput {
+            source,
+            output,
+            position_seconds: position,
+            before_seconds: 60,
+            after_seconds: 5,
+        }
+    }
+
+    #[test]
+    fn highlight_window_keeps_the_last_sixty_seconds_plus_the_tail() {
+        // Marker at 300s, stored position excludes the 5s tail -> 295s.
+        let (start, duration) = highlight_clip_window(&clip(
+            Path::new("C:/rec/1.flv"),
+            Path::new("C:/rec/1-h.flv"),
+            295,
+        ));
+        assert_eq!(start, 240);
+        assert_eq!(duration, 65);
+    }
+
+    #[test]
+    fn highlight_window_clamps_at_the_start_of_the_recording() {
+        let (start, duration) = highlight_clip_window(&clip(
+            Path::new("C:/rec/1.flv"),
+            Path::new("C:/rec/1-h.flv"),
+            10,
+        ));
+        assert_eq!(start, 0);
+        // The duration still covers before+after; ffmpeg stops at end-of-file.
+        assert_eq!(duration, 65);
+    }
+
+    #[test]
+    fn builds_a_stream_copy_argument_list_for_the_clip() {
+        let arguments = highlight_clip_arguments(&clip(
+            Path::new("C:/rec/1.flv"),
+            Path::new("C:/rec/1-h.flv"),
+            295,
+        ))
+        .unwrap();
+
+        assert_eq!(arguments[arguments.len() - 10..], [
+            "-ss".to_owned(),
+            "240".to_owned(),
+            "-i".to_owned(),
+            "C:/rec/1.flv".to_owned(),
+            "-t".to_owned(),
+            "65".to_owned(),
+            "-c".to_owned(),
+            "copy".to_owned(),
+            "-y".to_owned(),
+            "C:/rec/1-h.flv".to_owned(),
+        ]);
+        // No re-encode: the clip must stay as cheap as the recording itself.
+        assert!(!arguments.iter().any(|argument| argument == "libx264"));
+    }
+
+    #[test]
+    fn rejects_a_clip_without_source_or_output() {
+        assert!(highlight_clip_arguments(&clip(
+            Path::new(""),
+            Path::new("C:/rec/1-h.flv"),
+            10
+        ))
+        .is_err());
+        assert!(highlight_clip_arguments(&clip(
+            Path::new("C:/rec/1.flv"),
+            Path::new(""),
+            10
+        ))
+        .is_err());
     }
 }

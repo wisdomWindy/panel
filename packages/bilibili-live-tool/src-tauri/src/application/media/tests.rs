@@ -742,3 +742,72 @@ async fn media_state_routes_an_accepted_event_only_once() {
     );
     state.shutdown().await;
 }
+
+/// A port whose recorder process has already exited, used to exercise the
+/// reconnect primitives without spawning FFmpeg.
+struct ExitedRecorderPort;
+
+struct ExitedRecorderProcess;
+
+#[async_trait::async_trait]
+impl RecorderProcess for ExitedRecorderProcess {
+    async fn stop(&mut self) -> Result<(), MediaIoError> {
+        Ok(())
+    }
+
+    async fn wait(&mut self) -> Result<RecorderExit, MediaIoError> {
+        Ok(RecorderExit {
+            success: true,
+            code: Some(0),
+            stdout: String::new(),
+            stderr: String::new(),
+        })
+    }
+
+    fn has_exited(&mut self) -> bool {
+        true
+    }
+}
+
+#[async_trait::async_trait]
+impl RecorderProcessPort for ExitedRecorderPort {
+    async fn spawn(&self, _: RecorderLaunch) -> Result<Box<dyn RecorderProcess>, MediaIoError> {
+        Ok(Box::new(ExitedRecorderProcess))
+    }
+}
+
+fn launch() -> RecorderLaunch {
+    RecorderLaunch {
+        executable: PathBuf::from("ffmpeg.exe"),
+        arguments: Vec::new(),
+        working_directory: None,
+    }
+}
+
+#[tokio::test]
+async fn reconnect_primitives_detect_a_drop_and_keep_the_session_recordable() {
+    let runtime = RecordingRuntime::new(default_recording_config(), Arc::new(ExitedRecorderPort));
+    runtime.start("1", launch()).await.unwrap();
+
+    // The watchdog relies on this probe to notice a dropped stream.
+    assert!(runtime.has_exited().await);
+
+    // A reconnect swaps the process but must not reset the session.
+    runtime.replace_process(launch()).await.unwrap();
+    assert_eq!(runtime.snapshot().await.state, RecordingState::Recording);
+
+    // Exhausting the retry budget surfaces a stable code (PRD 9.12).
+    runtime.fail("recording_stream_lost").await;
+    let snapshot = runtime.snapshot().await;
+    assert_eq!(snapshot.state, RecordingState::Error);
+    assert_eq!(snapshot.failure_code, Some("recording_stream_lost"));
+}
+
+#[tokio::test]
+async fn reconnect_is_refused_once_the_session_is_no_longer_recording() {
+    let runtime = RecordingRuntime::new(default_recording_config(), Arc::new(ExitedRecorderPort));
+    runtime.start("1", launch()).await.unwrap();
+    runtime.fail("recording_stream_lost").await;
+
+    assert!(runtime.replace_process(launch()).await.is_err());
+}

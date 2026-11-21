@@ -49,8 +49,7 @@ pub struct RecordingRuntime {
 }
 
 impl RecordingRuntime {
-    pub fn new(config: RecordingConfig, process_port: Arc<dyn RecorderProcessPort>) -> Arc<Self> {
-        Arc::new(Self {
+    pub fn new(config: RecordingConfig, process_port: Arc<dyn RecorderProcessPort>) -> Arc<Self> {        Arc::new(Self {
             config: RwLock::new(config),
             process_port,
             operation: Mutex::new(()),
@@ -67,6 +66,45 @@ impl RecordingRuntime {
             }),
             hotkey: Mutex::new(None),
         })
+    }
+
+    /// Runs a one-shot tool invocation (clip extraction, PRD 9.12).
+    pub async fn run_tool(
+        &self,
+        executable: &std::path::Path,
+        arguments: &[String],
+    ) -> Result<(), MediaIoError> {
+        self.process_port.run(executable, arguments).await
+    }
+
+    /// True when the recorder process is gone. Used by the reconnect watchdog.
+    pub async fn has_exited(&self) -> bool {
+        let mut state = self.state.lock().await;
+        match state.process.as_mut() {
+            Some(process) => process.has_exited(),
+            None => true,
+        }
+    }
+
+    /// Swaps in a freshly spawned recorder after a stream drop, keeping the
+    /// session in `Recording` so highlights and duration keep accumulating.
+    pub async fn replace_process(&self, launch: RecorderLaunch) -> Result<(), MediaIoError> {
+        let process = self.process_port.spawn(launch).await?;
+        let mut state = self.state.lock().await;
+        if state.state != RecordingState::Recording {
+            return Err(MediaIoError::conflict("recording is not active"));
+        }
+        state.process = Some(process);
+        Ok(())
+    }
+
+    /// Marks the session as failed with a stable code (PRD 9.12: give up after
+    /// the retry budget and tell the user).
+    pub async fn fail(&self, code: &'static str) {
+        let mut state = self.state.lock().await;
+        state.state = RecordingState::Error;
+        state.failure_code = Some(code);
+        state.process = None;
     }
 
     pub async fn start(
@@ -217,8 +255,7 @@ impl RecordingRuntime {
         Some(marker)
     }
 
-    pub async fn mark_highlight(&self) -> Result<HighlightWindow, MediaIoError> {
-        let mut state = self.state.lock().await;
+    pub async fn mark_highlight(&self) -> Result<HighlightWindow, MediaIoError> {        let mut state = self.state.lock().await;
         if state.state != RecordingState::Recording {
             return Err(MediaIoError::conflict("recording is not active"));
         }

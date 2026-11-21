@@ -103,6 +103,14 @@ use ipc::shell::{
 };
 use tauri::Manager;
 
+fn show_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
 pub struct AppState {
     application: ApplicationState,
     paths: PathState,
@@ -508,6 +516,44 @@ pub fn run() {
                     tokio::time::sleep(std::time::Duration::from_secs(6 * 60 * 60)).await;
                 }
             });
+            // PRD 13: the support matrix claims tray support, so provide it.
+            let show_label = match tauri::async_runtime::block_on(
+                app.state::<AppState>().shell().locale(),
+            ) {
+                crate::domain::shell::LocalePreferences { locale: crate::domain::shell::LocaleCode::EnUs, .. } => "Show window",
+                _ => "显示主窗口",
+            };
+            let quit_label = if show_label == "Show window" {
+                "Quit"
+            } else {
+                "退出"
+            };
+            let show_item = tauri::menu::MenuItem::with_id(app, "tray-show", show_label, true, None::<&str>)?;
+            let quit_item = tauri::menu::MenuItem::with_id(app, "tray-quit", quit_label, true, None::<&str>)?;
+            let menu = tauri::menu::Menu::with_items(app, &[&show_item, &quit_item])?;
+            let mut tray = tauri::tray::TrayIconBuilder::with_id("main-tray")
+                .tooltip("biliLiveHelper")
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "tray-show" => show_main_window(app),
+                    "tray-quit" => app.exit(0),
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        show_main_window(tray.app_handle());
+                    }
+                });
+            if let Some(icon) = app.default_window_icon() {
+                tray = tray.icon(icon.clone());
+            }
+            tray.build(app)?;
             Ok(())
         });
 

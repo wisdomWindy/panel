@@ -36,6 +36,97 @@ use crate::{
 
 const MEDIA_EVENT_HISTORY_CAPACITY: usize = 4_096;
 
+/// PRD 9.12: reconnect a dropped recording stream at most three times.
+const RECORDING_MAX_RECONNECTS: u8 = 3;
+const RECORDING_ALIVE_CHECK_MILLIS: u64 = 2_000;
+
+/// Watches the recorder process and restarts it when the stream drops.
+struct RecordingReconnectWatchdog {
+    recording: Arc<RecordingRuntime>,
+    play_url: Arc<dyn PlayUrlResolver>,
+    ffmpeg: Arc<dyn FfmpegLocator>,
+    granted_executable: Option<PathBuf>,
+    ffmpeg_source: FfmpegSource,
+    room_id: String,
+    directory: PathBuf,
+    quality: RecordingQuality,
+    format: RecordingFormat,
+}
+
+impl RecordingReconnectWatchdog {
+    async fn run(self) {
+        let mut attempts: u8 = 0;
+        loop {
+            tokio::time::sleep(std::time::Duration::from_millis(
+                RECORDING_ALIVE_CHECK_MILLIS,
+            ))
+            .await;
+            if self.recording.snapshot().await.state != crate::domain::media::RecordingState::Recording
+            {
+                return;
+            }
+            if !self.recording.has_exited().await {
+                continue;
+            }
+            attempts += 1;
+            if attempts > RECORDING_MAX_RECONNECTS {
+                log::warn!("recording stream lost after {attempts} attempts");
+                self.recording.fail("recording_stream_lost").await;
+                return;
+            }
+            match self.restart(attempts).await {
+                Ok(()) => log::info!("recording stream reconnected (attempt {attempts})"),
+                Err(error) => {
+                    log::warn!("recording reconnect {attempts} failed: {}", error.code);
+                    if attempts >= RECORDING_MAX_RECONNECTS {
+                        self.recording.fail("recording_stream_lost").await;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    /// Restart the recorder into a continuation file. Segments stay playable
+    /// on their own, which is what PRD 9.12 requires after a drop.
+    async fn restart(&self, attempt: u8) -> Result<(), MediaIoError> {
+        let executable = self
+            .ffmpeg
+            .locate(self.ffmpeg_source, self.granted_executable.as_deref())?;
+        let stream = self.play_url.resolve(&self.room_id, self.quality).await?;
+        let extension = crate::domain::media::file_extension(self.format);
+        let path = self.directory.join(format!(
+            "{}-{}-part{}.{extension}",
+            self.room_id,
+            Self::stamp_millis(),
+            attempt + 1
+        ));
+        let arguments = crate::domain::media::recording_arguments(
+            &crate::domain::media::RecordingPlanInput {
+                stream_url: &stream.url,
+                output: &path,
+                format: self.format,
+                quality: self.quality,
+            },
+        )
+        .map_err(|error| MediaIoError::coded("recording_pipeline_invalid", error.to_string(), false))?;
+        self.recording
+            .replace_process(RecorderLaunch {
+                executable,
+                arguments,
+                working_directory: Some(self.directory.clone()),
+            })
+            .await
+    }
+
+    fn stamp_millis() -> u128 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |duration| duration.as_millis())
+    }
+}
+
+
 #[derive(Default)]
 struct EventHistory {
     ids: HashSet<String>,
@@ -689,12 +780,25 @@ impl MediaState {
         let launch = RecorderLaunch {
             executable,
             arguments,
-            working_directory: Some(directory),
+            working_directory: Some(directory.clone()),
         };
         match self.recording.start(room_id.to_owned(), launch).await {
             Ok(()) => {
                 self.event_sink
-                    .publish_recording(&self.recording.snapshot().await)
+                    .publish_recording(&self.recording.snapshot().await);
+                let watchdog = RecordingReconnectWatchdog {
+                    recording: self.recording.clone(),
+                    play_url: self.play_url.clone(),
+                    ffmpeg: self.ffmpeg.clone(),
+                    granted_executable: granted_executable.clone(),
+                    ffmpeg_source: config.ffmpeg_source,
+                    room_id: room_id.to_owned(),
+                    directory,
+                    quality: config.quality,
+                    format,
+                };
+                tokio::spawn(watchdog.run());
+                Ok(())
             }
             Err(error) => {
                 record.status = crate::application::media::RecordingItemState::Failed;
@@ -708,8 +812,7 @@ impl MediaState {
         }
     }
 
-    fn unique_recording_path(directory: &Path, room_id: &str, format: RecordingFormat) -> PathBuf {
-        let extension = crate::domain::media::file_extension(format);
+    fn unique_recording_path(directory: &Path, room_id: &str, format: RecordingFormat) -> PathBuf {        let extension = crate::domain::media::file_extension(format);
         let stamp = Self::now_millis();
         let mut candidate = directory.join(format!("{room_id}-{stamp}.{extension}"));
         let mut index = 1;
@@ -772,12 +875,12 @@ impl MediaState {
     ) -> Result<crate::application::media::HighlightRecord, MediaIoError> {
         let services = self.services()?;
         let config = self.recording.config().await;
-        let highlight = services
+        let mut highlight = services
             .repository
             .insert_highlight(&crate::application::media::HighlightRecord {
                 id: 0,
                 recording_id: recording.id,
-                room_id: recording.room_id,
+                room_id: recording.room_id.clone(),
                 position_seconds: marker
                     .end_seconds
                     .saturating_sub(u64::from(config.highlight_after_seconds)),
@@ -789,8 +892,72 @@ impl MediaState {
                 is_clip_available: false,
             })
             .await?;
+        // PRD 9.12: cut the clip right away so the highlight is exportable.
+        match self.extract_highlight_clip(&recording, &highlight).await {
+            Ok(clip) => {
+                if services
+                    .repository
+                    .set_highlight_clip(highlight.id, &clip)
+                    .await
+                    .is_ok()
+                {
+                    highlight.file_path = Some(clip);
+                    highlight.is_clip_available = true;
+                }
+            }
+            Err(error) => {
+                log::warn!("highlight clip extraction is degraded: {}", error.code);
+            }
+        }
         self.event_sink.publish_highlight(&highlight)?;
         Ok(highlight)
+    }
+
+    /// Remuxes [marker - before, marker + after] out of the active recording.
+    async fn extract_highlight_clip(
+        &self,
+        recording: &RecordingRecord,
+        highlight: &crate::application::media::HighlightRecord,
+    ) -> Result<PathBuf, MediaIoError> {
+        let config = self.recording.config().await;
+        let source = PathBuf::from(&recording.file_path);
+        if !source.is_file() {
+            return Err(MediaIoError::unavailable("recording file is unavailable"));
+        }
+        let granted_executable = self.local_ffmpeg_executable.read().await.clone();
+        let executable = self
+            .ffmpeg
+            .locate(config.ffmpeg_source, granted_executable.as_deref())?;
+        let directory = source
+            .parent()
+            .ok_or_else(|| MediaIoError::invalid("recording directory is invalid"))?;
+        let extension = source
+            .extension()
+            .and_then(std::ffi::OsStr::to_str)
+            .unwrap_or("flv")
+            .to_owned();
+        let target = directory.join(format!(
+            "recording-{}-highlight-{}.{extension}",
+            recording.id, highlight.id
+        ));
+        let arguments = crate::domain::media::highlight_clip_arguments(
+            &crate::domain::media::HighlightClipInput {
+                source: &source,
+                output: &target,
+                position_seconds: highlight.position_seconds,
+                before_seconds: u32::from(config.highlight_before_seconds),
+                after_seconds: u32::from(config.highlight_after_seconds),
+            },
+        )
+        .map_err(|_| MediaIoError::invalid("highlight clip arguments are invalid"))?;
+        self.recording.run_tool(&executable, &arguments).await?;
+        if !target.is_file() {
+            return Err(MediaIoError::operation(
+                "highlight clip was not written",
+                false,
+            ));
+        }
+        Ok(target)
     }
 
     async fn active_recording(&self) -> Result<RecordingRecord, MediaIoError> {

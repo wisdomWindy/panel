@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { nextTick, ref, type Component } from 'vue';
+import { computed, nextTick, ref, type Component } from 'vue';
 import { Bell, Setting } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import type { RoomSnapshot } from '@/platform/desktop';
 import appIconUrl from '../../../../src-tauri/icons/icon.png';
 
-defineProps<{
+const props = defineProps<{
     modelValue: string;
     room: RoomSnapshot;
     isPending: boolean;
@@ -25,6 +25,15 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const notificationTrigger = ref<{ $el?: HTMLElement } | null>(null);
 
+const isConnected = computed(
+  () => props.room.status === 'connected' || props.room.status === 'reconnecting'
+);
+const connectionTone = computed(() => {
+  if (props.room.status === 'connected') return 'success';
+  if (props.room.status === 'reconnecting' || props.room.status === 'connecting') return 'warning';
+  return 'danger';
+});
+
 function setNotificationOpen(value: boolean): void {
   emit('update:notificationOpen', value);
   if (!value) void nextTick(() => notificationTrigger.value?.$el?.focus());
@@ -33,29 +42,22 @@ function setNotificationOpen(value: boolean): void {
 
 <template>
   <header
-    class="flex h-[var(--shell-toolbar-height,64px)] min-w-0 items-center border-b border-zinc-200 bg-white px-2 shadow-sm sm:px-3 dark:border-zinc-800 dark:bg-zinc-900"
+    class="app-toolbar flex h-[var(--shell-toolbar-height,48px)] min-w-0 items-center gap-3 px-3"
   >
-    <div class="flex shrink-0 items-center gap-2.5 pr-2 sm:pr-3">
-      <img
-        :src="appIconUrl"
-        alt=""
-        class="h-7 w-7 sm:h-8 sm:w-8"
-        aria-hidden="true"
-      >
-      <h1 class="sr-only m-0 text-sm font-semibold text-zinc-950 xl:not-sr-only dark:text-zinc-50">
+    <div class="flex shrink-0 items-center gap-2 pr-1">
+      <img :src="appIconUrl" alt="" class="h-6 w-6" aria-hidden="true">
+      <h1 class="m-0 text-sm font-semibold app-text">
         {{ t('shell.productName') }}
       </h1>
     </div>
-    <div class="h-7 w-px shrink-0 bg-zinc-200 dark:bg-zinc-700" />
-    <div class="flex min-w-0 flex-1 items-center gap-1.5 px-2 sm:gap-2 sm:px-3">
-      <el-tooltip
-        :disabled="roomError === null"
-        :content="roomError ?? ''"
-        placement="bottom-start"
-      >
+
+    <div class="app-status-divider shrink-0" />
+
+    <div class="flex min-w-0 flex-1 items-center gap-2">
+      <el-tooltip :disabled="roomError === null" :content="roomError ?? ''" placement="bottom-start">
         <el-input
           :model-value="modelValue"
-          class="!w-auto min-w-0 max-w-72 flex-1"
+          class="app-room-input !w-auto min-w-0 max-w-64 flex-1"
           type="password"
           show-password
           clearable
@@ -66,21 +68,22 @@ function setNotificationOpen(value: boolean): void {
           @update:model-value="emit('update:modelValue', String($event))"
         />
       </el-tooltip>
-      <el-button
-        type="primary"
-        class="min-w-16 sm:min-w-20"
-        :loading="isPending"
-        :disabled="room.status === 'connecting'"
+      <button
+        type="button"
+        class="app-btn-primary flex h-8 items-center gap-2 px-3 text-sm"
+        :disabled="isPending || props.room.status === 'connecting'"
         @click="emit('toggleConnection')"
       >
+        <span class="app-status-dot" :class="`app-status-dot--${connectionTone}`" />
         {{
-          room.status === 'connected' || room.status === 'reconnecting'
+          isConnected
             ? t('shell.toolbar.disconnect')
             : t('shell.toolbar.connect')
         }}
-      </el-button>
+      </button>
     </div>
-    <div class="ml-auto flex shrink-0 items-center gap-2">
+
+    <div class="ml-auto flex shrink-0 items-center gap-1.5">
       <component :is="memberToolbarComponent" v-if="memberToolbarComponent" />
       <el-popover
         :visible="notificationOpen"
@@ -91,29 +94,27 @@ function setNotificationOpen(value: boolean): void {
       >
         <template #reference>
           <span class="inline-flex">
-            <el-tooltip :content="t('shell.toolbar.notifications')">
-              <el-button
-                ref="notificationTrigger"
-                :icon="Bell"
-                circle
-                plain
-                :aria-label="t('shell.toolbar.notifications')"
-                @click="emit('openNotifications')"
-              />
-            </el-tooltip>
+            <button
+              ref="notificationTrigger"
+              type="button"
+              class="app-icon-btn"
+              :aria-label="t('shell.toolbar.notifications')"
+              @click="emit('openNotifications')"
+            >
+              <el-icon><Bell /></el-icon>
+            </button>
           </span>
         </template>
         <div class="h-20" aria-live="polite" />
       </el-popover>
-      <el-tooltip :content="t('shell.toolbar.settings')">
-        <el-button
-          :icon="Setting"
-          circle
-          plain
-          :aria-label="t('shell.toolbar.settings')"
-          @click="emit('openSettings')"
-        />
-      </el-tooltip>
+      <button
+        type="button"
+        class="app-icon-btn"
+        :aria-label="t('shell.toolbar.settings')"
+        @click="emit('openSettings')"
+      >
+        <el-icon><Setting /></el-icon>
+      </button>
     </div>
   </header>
 </template>

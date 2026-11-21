@@ -108,7 +108,7 @@ describe('application shell contracts', () => {
   it('builds the exact common tree with shared AI and without member-only routes', () => {
     const free = buildNavigationTree();
     expect(free.map(item => item.id)).toEqual([
-      'room',
+      'liveRoom',
       'danmaku',
       'dashboard',
       'rankings',
@@ -119,6 +119,8 @@ describe('application shell contracts', () => {
       'ai',
       'settings'
     ]);
+    // PRD 8.1: the first entry opens the live-room overview, not the raw form.
+    expect(free[0].route).toBe('/live');
     const freeTokens = free.flatMap(item => [
       item.id,
       item.labelKey,

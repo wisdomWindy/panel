@@ -8,7 +8,13 @@ import { memberChannel } from '@member-channel';
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/connection'
+    redirect: '/live'
+  },
+  {
+    path: '/live',
+    name: 'LiveRoom',
+    component: () => import('@/views/live-room/index.vue'),
+    meta: { titleKey: 'liveRoom.title' }
   },
   {
     path: '/dashboard',

@@ -14,7 +14,7 @@ const item = (
 ): ShellNavigationItem => ({ id, labelKey: `shell.navigation.${id}`, route, isDisabled, children });
 
 const freeTree = (): readonly ShellNavigationItem[] => Object.freeze([
-  item('room', '/connection'),
+  item('liveRoom', '/live'),
   item('danmaku', '/danmaku-list'),
   item('dashboard', '/dashboard'),
   item('rankings', '/rankings'),

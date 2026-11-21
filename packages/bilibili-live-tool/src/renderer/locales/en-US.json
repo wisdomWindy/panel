@@ -187,6 +187,7 @@
       "settings": "System settings"
     },
     "navigation": {
+      "liveRoom": "Live room",
       "room": "Live room",
       "danmaku": "Danmaku panel",
       "dashboard": "Dashboard",
@@ -520,6 +521,7 @@
     "notBlacklisted": "Not added",
     "addToBlacklist": "Add to blacklist",
     "tags": {
+      "ordinary": "Viewer",
       "admin": "Moderator",
       "governor": "Governor",
       "admiral": "Admiral",
@@ -789,5 +791,33 @@
     "skipVersion": "Skip this version",
     "restartInstall": "Restart and install",
     "unavailable": "Update service is unavailable"
+  },
+  "liveRoom": {
+    "title": "Live room",
+    "untitled": "No room connected",
+    "anchor": "Streamer",
+    "anchorUnknown": "Unknown",
+    "roomId": "Room",
+    "notConnected": "Not connected",
+    "live": "Live",
+    "offline": "Not connected",
+    "readOnly": "Read-only monitoring; no actions are sent to the live room",
+    "recent": "Recent events",
+    "empty": "Danmaku, gifts and captain events appear here once a room is connected",
+    "metrics": {
+      "danmu": "Danmaku",
+      "danmuHint": "Received this session",
+      "gift": "Gift value",
+      "giftHint": "Converted from gift prices",
+      "captain": "Captains",
+      "captainHint": "New and renewed",
+      "online": "Viewers",
+      "onlineHint": "Live audience"
+    },
+    "event": {
+      "gift": "sent {name} ×{count}",
+      "captain": "{action}{level}",
+      "enter": "entered the room"
+    }
   }
 }

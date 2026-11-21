@@ -4,6 +4,7 @@ import ElementPlus from 'element-plus';
 import './styles/tailwind.css';
 import 'element-plus/dist/index.css';
 import 'element-plus/theme-chalk/dark/css-vars.css';
+import './styles/theme.css';
 import router from './router';
 import { pinia } from './stores';
 import App from '@/App.vue';

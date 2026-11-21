@@ -1,0 +1,302 @@
+/*
+ * Design tokens and Element Plus overrides for the redesigned shell.
+ *
+ * Values come from docs/requirements/ui/bilibili-live-helper-ui.html so the
+ * running app and the delivered mockups share one palette. Light values are a
+ * neutral translation of the same scale; dark values are the mockup verbatim.
+ */
+
+:root {
+  --shell-toolbar-height: 48px;
+  --shell-status-height: 32px;
+  --shell-navigation-width: 208px;
+
+  --app-bg: #f5f6f9;
+  --app-panel: #ffffff;
+  --app-panel-2: #f1f3f7;
+  --app-side: #fafbfd;
+  --app-border: #e2e5ec;
+  --app-text: #1a1d24;
+  --app-text-2: #5a6272;
+  --app-text-3: #8b93a2;
+  --app-accent: #00aeec;
+  --app-accent-2: #2fc0f5;
+  --app-gold: #b06f00;
+  --app-green: #0f8f4d;
+  --app-purple: #8b3fd1;
+  --app-blue: #1b6fd0;
+  --app-orange: #c25a12;
+  --app-red: #d02b20;
+  --app-radius: 10px;
+}
+
+html.dark {
+  --app-bg: #13151a;
+  --app-panel: #1c1f27;
+  --app-panel-2: #232732;
+  --app-side: #171920;
+  --app-border: #2b303b;
+  --app-text: #e9ebf0;
+  --app-text-2: #a6adb9;
+  --app-text-3: #737b89;
+  --app-accent: #00aeec;
+  --app-accent-2: #2fc0f5;
+  --app-gold: #f5a623;
+  --app-green: #34c759;
+  --app-purple: #af52de;
+  --app-blue: #5ac8fa;
+  --app-orange: #ff9500;
+  --app-red: #ff453a;
+}
+
+html.dark {
+  --el-bg-color: var(--app-panel);
+  --el-bg-color-overlay: var(--app-panel-2);
+  --el-bg-color-page: var(--app-bg);
+  --el-text-color-primary: var(--app-text);
+  --el-text-color-regular: var(--app-text-2);
+  --el-text-color-secondary: var(--app-text-3);
+  --el-text-color-placeholder: var(--app-text-3);
+  --el-border-color: var(--app-border);
+  --el-border-color-light: var(--app-border);
+  --el-border-color-lighter: var(--app-border);
+  --el-border-color-extra-light: var(--app-border);
+  --el-fill-color-blank: var(--app-panel);
+  --el-fill-color-light: var(--app-panel-2);
+  --el-fill-color-lighter: var(--app-panel-2);
+  --el-color-primary: var(--app-accent);
+  --el-color-success: var(--app-green);
+  --el-color-warning: var(--app-orange);
+  --el-color-danger: var(--app-red);
+  --el-color-info: var(--app-text-3);
+  --el-menu-bg-color: transparent;
+  --el-menu-hover-bg-color: var(--app-panel-2);
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+/* -- surfaces ---------------------------------------------------------- */
+.app-bg {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+.app-surface {
+  background: var(--app-panel);
+  color: var(--app-text);
+}
+.app-surface-2 {
+  background: var(--app-panel-2);
+}
+.app-side {
+  background: var(--app-side);
+}
+.app-card {
+  background: var(--app-panel);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+}
+.app-hairline {
+  border-color: var(--app-border);
+}
+.app-text {
+  color: var(--app-text);
+}
+.app-muted {
+  color: var(--app-text-2);
+}
+.app-faint {
+  color: var(--app-text-3);
+}
+.app-accent-text {
+  color: var(--app-accent);
+}
+
+/* -- shell chrome ------------------------------------------------------ */
+.app-toolbar {
+  background: var(--app-panel);
+  border-bottom: 1px solid var(--app-border);
+}
+.app-statusbar {
+  background: var(--app-panel);
+  border-top: 1px solid var(--app-border);
+  color: var(--app-text-3);
+}
+.app-navigation {
+  background: var(--app-side);
+  border-right: 1px solid var(--app-border);
+}
+
+.app-nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--app-text-2);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.app-nav-link:hover {
+  background: var(--app-panel-2);
+  color: var(--app-text);
+}
+.app-nav-link[aria-current='page'] {
+  background: color-mix(in srgb, var(--app-accent) 14%, transparent);
+  color: var(--app-accent);
+  font-weight: 600;
+}
+.app-nav-link[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 18px;
+  border-radius: 0 3px 3px 0;
+  background: var(--app-accent);
+  transform: translateY(-50%);
+}
+.app-nav-group-label {
+  padding: 10px 12px 4px;
+  color: var(--app-text-3);
+  font-size: 12px;
+}
+
+/* -- room input + primary action --------------------------------------- */
+.app-input-pill {
+  background: var(--app-panel-2);
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  color: var(--app-text);
+}
+.app-btn-primary {
+  background: var(--app-accent);
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.app-btn-primary:hover {
+  background: var(--app-accent-2);
+}
+.app-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--app-text-2);
+  cursor: pointer;
+}
+.app-icon-btn:hover {
+  background: var(--app-panel-2);
+  color: var(--app-text);
+}
+
+/* -- status bar -------------------------------------------------------- */
+.app-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+.app-status-dot--success {
+  background: var(--app-green);
+}
+.app-status-dot--warning {
+  background: var(--app-gold);
+}
+.app-status-dot--danger {
+  background: var(--app-red);
+}
+.app-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.app-status-value {
+  color: var(--app-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.app-status-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--app-border);
+}
+
+/* -- identity badges (PRD 9.2 / preview-danmu.png) --------------------- */
+.app-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.app-badge--admin {
+  background: color-mix(in srgb, var(--app-accent) 22%, transparent);
+  color: var(--app-accent);
+}
+.app-badge--governor {
+  background: color-mix(in srgb, var(--app-purple) 22%, transparent);
+  color: var(--app-purple);
+}
+.app-badge--admiral {
+  background: color-mix(in srgb, var(--app-blue) 22%, transparent);
+  color: var(--app-blue);
+}
+.app-badge--captain {
+  background: color-mix(in srgb, var(--app-gold) 22%, transparent);
+  color: var(--app-gold);
+}
+.app-badge--vip {
+  background: color-mix(in srgb, var(--app-orange) 22%, transparent);
+  color: var(--app-orange);
+}
+.app-badge--plain {
+  background: var(--app-panel-2);
+  color: var(--app-text-3);
+}
+
+/* -- metric card ------------------------------------------------------- */
+.app-metric {
+  background: var(--app-panel);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  padding: 14px 16px;
+}
+.app-metric-label {
+  color: var(--app-text-2);
+  font-size: 13px;
+}
+.app-metric-value {
+  color: var(--app-text);
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.app-metric-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--app-green);
+}

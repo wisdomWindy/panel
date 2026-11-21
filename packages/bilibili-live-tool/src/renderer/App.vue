@@ -176,7 +176,7 @@ onUnmounted(() => {
   <el-config-provider :locale="elementPlusLocale">
     <div
       :aria-busy="shell.pending"
-      class="grid h-screen min-h-0 min-w-0 grid-rows-[var(--shell-toolbar-height,64px)_minmax(0,1fr)_var(--shell-status-height,36px)] overflow-hidden bg-white text-[length:var(--shell-font-size,14px)] text-zinc-950 opacity-[var(--shell-opacity,0.98)] dark:bg-zinc-950 dark:text-zinc-100"
+      class="app-bg grid h-screen min-h-0 min-w-0 grid-rows-[var(--shell-toolbar-height,48px)_minmax(0,1fr)_var(--shell-status-height,32px)] overflow-hidden text-[length:var(--shell-font-size,14px)] opacity-[var(--shell-opacity,0.98)]"
     >
       <AppShellToolbar
         v-model="roomInput"
@@ -192,7 +192,7 @@ onUnmounted(() => {
       />
       <div class="flex min-h-0 min-w-0">
         <AppShellNavigation :items="navigation" :active-route="route.path" @navigate="navigate" />
-        <main class="min-w-0 flex-1 overflow-y-auto bg-white p-3 sm:p-5 dark:bg-zinc-950">
+        <main class="app-bg min-w-0 flex-1 overflow-y-auto p-4">
           <router-view />
         </main>
       </div>

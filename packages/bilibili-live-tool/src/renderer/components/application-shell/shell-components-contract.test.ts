@@ -38,15 +38,17 @@ describe('application shell component contract', () => {
     const main = source('../../main.ts');
     const packageJson = source('../../../../package.json');
     const tailwind = source('../../styles/tailwind.css');
+    const theme = source('../../styles/theme.css');
     const tailwindConfig = source('../../../../tailwind.config.js');
 
     expect(toolbar).toContain('appIconUrl');
     expect(toolbar).toContain(':src="appIconUrl"');
-    expect(toolbar).toContain('sr-only');
-    expect(toolbar).toContain('xl:not-sr-only');
-    expect(toolbar).toContain('<span class="inline-flex">');
+    expect(toolbar).toContain("t('shell.productName')");
+    expect(toolbar).toContain('app-toolbar');
+    expect(toolbar).toContain('app-btn-primary');
     expect(navigation).toContain('w-[72px]');
     expect(navigation).toContain('md:w-[var(--shell-navigation-width,208px)]');
+    expect(navigation).toContain('app-nav-link');
     expect(connection).toContain('dark:text-zinc-100');
     expect(connection).toContain('grid-cols-1');
     expect(connection).toContain('<el-tag\n        class="shrink-0"');
@@ -54,8 +56,11 @@ describe('application shell component contract', () => {
     expect(packageJson).toContain('vite --mode free --host 127.0.0.1');
     expect(tailwind).toContain('@custom-variant dark (&:where(.dark, .dark *));');
     expect(tailwindConfig).toContain('500: \'#FB7299\'');
-    expect(app).toContain('overflow-hidden bg-white');
-    expect(app).toContain('overflow-y-auto bg-white p-3 sm:p-5 dark:bg-zinc-950');
+    // The shell chrome is token-driven so the palette has exactly one source.
+    expect(theme).toContain('--app-bg: #13151a');
+    expect(theme).toContain('--shell-toolbar-height: 48px');
+    expect(main).toContain("import './styles/theme.css';");
+    expect(app).toContain('app-bg');
     expect(app).not.toContain('bg-zinc-100');
   });
 
@@ -67,7 +72,7 @@ describe('application shell component contract', () => {
       '../../views/gift-sound/index.vue'
     ];
 
-    expect(app).toContain('overflow-y-auto bg-white p-3 sm:p-5 dark:bg-zinc-950');
+    expect(app).toContain('min-w-0 flex-1 overflow-y-auto p-4');
     for (const page of pages) {
       const rootClasses = source(page).match(/<section class="([^"]+)"/)?.[1] ?? '';
       expect(rootClasses, page).not.toMatch(
@@ -101,8 +106,9 @@ describe('application shell component contract', () => {
     const toolbar = source('./AppShellToolbar.vue');
     expect(navigation).not.toMatch(/memberStatus|buildChannel/);
     expect(navigation).toContain('aria-current');
-    expect(status).toContain('v-for="item in items"');
-    expect(status).toContain('tabular-nums');
+    expect(status).toContain('v-for="(item, index) in items"');
+    expect(status).toContain('app-status-value');
+    expect(status).toContain('app-status-dot--');
     expect(toolbar).toContain('<el-popover');
     expect(toolbar).toContain('emit(\'update:notificationOpen\', value)');
     expect(toolbar).toContain('class="h-20"');

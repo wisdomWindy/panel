@@ -12,6 +12,7 @@ const emit = defineEmits<{ navigate: [item: ShellNavigationItem] }>();
 const { t } = useI18n();
 
 const icons: Readonly<Record<string, Component>> = {
+  liveRoom: Connection,
   room: Connection,
   danmaku: ChatDotRound,
   dashboard: DataAnalysis,
@@ -28,48 +29,83 @@ const icons: Readonly<Record<string, Component>> = {
   ai: Cpu,
   settings: Setting
 };
+
+/** A group is active when the current route belongs to one of its children. */
+function isGroupActive(item: ShellNavigationItem, activeRoute: string): boolean {
+  return item.children?.some(child => child.route === activeRoute) ?? false;
+}
+
+function entryRoute(item: ShellNavigationItem): string | undefined {
+  return item.route ?? item.children?.[0]?.route;
+}
+
+function open(item: ShellNavigationItem): void {
+  if (item.isDisabled) return;
+  emit('navigate', item);
+}
 </script>
 
 <template>
   <aside
-    class="h-full w-[72px] shrink-0 overflow-y-auto border-r border-zinc-200 bg-white py-2 md:w-[var(--shell-navigation-width,208px)] dark:border-zinc-800 dark:bg-zinc-900"
+    class="app-navigation flex h-full w-[72px] shrink-0 flex-col overflow-y-auto py-2 md:w-[var(--shell-navigation-width,208px)]"
   >
-    <el-menu :default-active="activeRoute" class="border-r-0 bg-transparent">
+    <nav aria-label="primary" class="flex flex-col gap-0.5 px-2">
       <template v-for="item in items" :key="item.id">
-        <el-sub-menu v-if="item.children" :index="item.id">
-          <template #title>
-            <el-icon v-if="icons[item.id]">
-              <component :is="icons[item.id]" />
-            </el-icon>
-            <span class="sr-only md:not-sr-only">{{ t(item.labelKey) }}</span>
-          </template>
-          <el-menu-item
-            v-for="child in item.children"
-            :key="child.id"
-            :index="child.route"
-            :disabled="child.isDisabled"
-            :aria-current="activeRoute === child.route ? 'page' : undefined"
-            @click="emit('navigate', child)"
+        <!-- Grouped entry: the group header opens its first child and the
+             children stay visible in the rail so the IA matches PRD 8.1. -->
+        <template v-if="item.children">
+          <div v-if="isGroupActive(item, activeRoute)" class="app-nav-sub">
+            <button
+              type="button"
+              class="app-nav-link app-nav-link--child"
+              :aria-current="activeRoute === child.route ? 'page' : undefined"
+              v-for="child in item.children"
+              :key="child.id"
+              :disabled="child.isDisabled"
+              @click="open(child)"
+            >
+              <el-icon v-if="icons[child.id]" class="shrink-0"><component :is="icons[child.id]" /></el-icon>
+              <span class="sr-only md:not-sr-only">{{ t(child.labelKey) }}</span>
+            </button>
+          </div>
+          <button
+            v-else
+            type="button"
+            class="app-nav-link"
+            :disabled="item.isDisabled"
+            @click="open({ ...item, route: entryRoute(item) })"
           >
-            <el-icon v-if="icons[child.id]">
-              <component :is="icons[child.id]" />
-            </el-icon>
-            <span class="sr-only md:not-sr-only">{{ t(child.labelKey) }}</span>
-          </el-menu-item>
-        </el-sub-menu>
-        <el-menu-item
+            <el-icon v-if="icons[item.id]" class="shrink-0"><component :is="icons[item.id]" /></el-icon>
+            <span class="sr-only md:not-sr-only">{{ t(item.labelKey) }}</span>
+          </button>
+        </template>
+        <button
           v-else
-          :index="item.route"
+          type="button"
+          class="app-nav-link"
           :disabled="item.isDisabled"
           :aria-current="activeRoute === item.route ? 'page' : undefined"
-          @click="emit('navigate', item)"
+          @click="open(item)"
         >
-          <el-icon v-if="icons[item.id]">
-            <component :is="icons[item.id]" />
-          </el-icon>
+          <el-icon v-if="icons[item.id]" class="shrink-0"><component :is="icons[item.id]" /></el-icon>
           <span class="sr-only md:not-sr-only">{{ t(item.labelKey) }}</span>
-        </el-menu-item>
+        </button>
       </template>
-    </el-menu>
+    </nav>
   </aside>
 </template>
+
+<style scoped>
+.app-nav-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 6px 14px;
+  padding-left: 10px;
+  border-left: 1px solid var(--app-border);
+}
+.app-nav-link--child {
+  padding: 7px 10px;
+  font-size: 13px;
+}
+</style>

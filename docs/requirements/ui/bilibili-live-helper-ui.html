@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-canvas-width="1280" data-canvas-height="800" style="width:1280px;height:800px;">
+<head>
+<meta charset="UTF-8">
+<title>Bilibili 直播助手 · UI 设计原型</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  button, select, input, textarea, option { font-family: inherit; }
+  @font-face {
+    font-family: "Source Han Sans SC VF";
+    src: url("https://lf-flow-web-cdn.doubao.com/obj/flow-doubao/doubao/infinite-canvas/fonts/v1/source-han-sans-sc-vf/source-han-sans-sc-vf.otf") format("opentype");
+    font-weight: 250 900;
+    font-style: normal;
+    font-display: swap;
+  }
+  html, body { width: 1280px; height: 800px; overflow: hidden; }
+  body {
+    font-family: "Source Han Sans SC VF", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #13151a; color: #e9ebf0; font-size: 13px; line-height: 1.5;
+  }
+  :root {
+    --bg:#13151a; --panel:#1c1f27; --panel2:#232732; --side:#171920; --border:#2b303b;
+    --text:#e9ebf0; --text2:#a6adb9; --text3:#737b89;
+    --primary:#00aeec; --primary2:#2fc0f5; --gold:#f5a623; --green:#34c759;
+    --purple:#af52de; --blue:#5ac8fa; --orange:#ff9500; --red:#ff453a;
+  }
+  #canvas-root { width: 1280px; height: 800px; display: flex; flex-direction: column; background: var(--bg); }
+
+  /* ---------- 顶栏 ---------- */
+  .topbar { height: 48px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: var(--side); border-bottom: 1px solid var(--border); }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
+  .logo-dot { width: 22px; height: 22px; border-radius: 6px; background: linear-gradient(135deg, var(--primary), #7a5cff); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+  .room-select { display: flex; align-items: center; gap: 8px; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; color: var(--text2); min-width: 190px; }
+  .room-select b { color: var(--text); }
+  .spacer { flex: 1; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text2); background: transparent; border: 1px solid transparent; cursor: pointer; }
+  .icon-btn:hover { background: var(--panel2); color: var(--text); }
+  .btn { height: 32px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel2); color: var(--text); cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn-ghost { background: transparent; }
+  .btn-sm { height: 26px; padding: 0 10px; font-size: 12px; border-radius: 6px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
+
+  /* ---------- 主体 ---------- */
+  .body { flex: 1; display: flex; min-height: 0; }
+  .sidebar { width: 208px; flex: none; background: var(--side); border-right: 1px solid var(--border); padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; color: var(--text2); cursor: pointer; font-size: 13px; }
+  .nav-item svg { opacity: .8; }
+  .nav-item:hover { background: var(--panel2); color: var(--text); }
+  .nav-item.active { background: var(--panel2); color: var(--primary2); }
+  .nav-item.active svg { opacity: 1; }
+
+  .content { flex: 1; min-width: 0; padding: 16px; overflow: hidden; position: relative; }
+  .view { display: none; width: 100%; height: 100%; overflow: auto; }
+  .view.active { display: block; }
+
+  /* ---------- 通用组件 ---------- */
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kpi .num { font-size: 22px; font-weight: 700; margin: 4px 0; }
+  .kpi .label { color: var(--text2); font-size: 12px; }
+  .kpi .delta { font-size: 12px; color: var(--green); }
+  .row { display: flex; gap: 12px; }
+  .col { flex: 1; min-width: 0; }
+  .muted { color: var(--text3); }
+  .text2 { color: var(--text2); }
+  .tag { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 4px; font-size: 11px; }
+  .tag-fang { background: rgba(52,199,89,.16); color: var(--green); }
+  .tag-du { background: rgba(175,82,222,.16); color: var(--purple); }
+  .tag-tidu { background: rgba(90,200,250,.16); color: var(--blue); }
+  .tag-jian { background: rgba(245,166,35,.16); color: var(--gold); }
+  .tag-laoye { background: rgba(255,149,0,.16); color: var(--orange); }
+  .chip { padding: 5px 12px; border-radius: 16px; background: var(--panel2); color: var(--text2); font-size: 12px; cursor: pointer; }
+  .chip.active { background: rgba(0,174,236,.18); color: var(--primary2); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; color: var(--text3); font-weight: 500; font-size: 12px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .table-wrap { border: 1px solid var(--border); border-radius: 12px; background: var(--panel); overflow: hidden; }
+  .input, .select { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 10px; font-size: 13px; outline: none; }
+  .select { min-width: 120px; }
+  .field { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }
+  .field + .field { border-top: 1px solid var(--border); }
+  .field .desc { color: var(--text3); font-size: 12px; }
+  .switch { width: 40px; height: 22px; border-radius: 11px; background: #3a404d; position: relative; cursor: pointer; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+  .switch.on { background: var(--primary); }
+  .switch.on::after { left: 21px; }
+  .slider { -webkit-appearance: none; width: 140px; height: 4px; border-radius: 2px; background: #3a404d; }
+  .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--primary); }
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .toolbar .spacer { flex: 1; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--panel2); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text2); flex: none; }
+
+  /* ---------- 状态栏 ---------- */
+  .statusbar { height: 32px; flex: none; display: flex; align-items: center; gap: 20px; padding: 0 16px; background: var(--side); border-top: 1px solid var(--border); color: var(--text2); font-size: 12px; }
+  .statusbar b { color: var(--text); }
+
+  /* ---------- 弹幕行 ---------- */
+  .danmu-row { display: flex; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .danmu-row:last-child { border-bottom: none; }
+  .danmu-main { flex: 1; min-width: 0; }
+  .danmu-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .danmu-name { color: var(--text2); font-size: 12px; }
+  .danmu-time { color: var(--text3); font-size: 11px; margin-left: auto; }
+  .danmu-content { color: var(--text); }
+  .gift-row { background: rgba(245,166,35,.06); }
+
+  /* ---------- AI ---------- */
+  .ai-subtab { display: flex; gap: 4px; background: var(--panel2); border-radius: 8px; padding: 3px; }
+  .ai-subtab span { padding: 5px 12px; border-radius: 6px; color: var(--text2); cursor: pointer; font-size: 12px; }
+  .ai-subtab span.active { background: var(--panel); color: var(--text); }
+  .queue-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .queue-item:last-child { border-bottom: none; }
+  .reply-bubble { background: rgba(0,174,236,.1); border: 1px solid rgba(0,174,236,.25); border-radius: 10px; padding: 10px 12px; margin-top: 8px; }
+  .progress { height: 8px; border-radius: 4px; background: #3a404d; overflow: hidden; }
+  .progress > i { display: block; height: 100%; border-radius: 4px; background: var(--primary); }
+  .rank-medal { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; background: var(--panel2); color: var(--text2); }
+  .rank-1 { background: rgba(245,166,35,.2); color: var(--gold); }
+  .rank-2 { background: rgba(150,160,175,.2); color: #c8d0db; }
+  .rank-3 { background: rgba(205,127,50,.2); color: #d89a6a; }
+</style>
+</head>
+<body style="width:1280px;height:800px;">
+<main id="canvas-root" data-canvas-root style="width:1280px;height:800px;">
+
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="logo"><div class="logo-dot">B</div>B站直播助手</div>
+    <div class="room-select">房间号 <b>12345678</b> <span class="muted">▾</span></div>
+    <button class="btn btn-primary"><span class="status-dot"></span>已连接</button>
+    <div class="spacer"></div>
+    <button class="icon-btn" title="通知">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+    </button>
+    <button class="icon-btn" title="设置">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
+
+  <div class="body">
+    <!-- 侧边导航 -->
+    <nav class="sidebar">
+      <div class="nav-item active" data-view="view-home" onclick="switchView('view-home',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>直播间</div>
+      <div class="nav-item" data-view="view-danmu" onclick="switchView('view-danmu',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>弹幕面板</div>
+      <div class="nav-item" data-view="view-board" onclick="switchView('view-board',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 5-8"/></svg>数据看板</div>
+      <div class="nav-item" data-view="view-rank" onclick="switchView('view-rank',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2 1.5 3.5 4 3.5M17 6h3a1 1 0 0 1 1 1c0 2-1.5 3.5-4 3.5"/></svg>排行榜</div>
+      <div class="nav-item" data-view="view-risk" onclick="switchView('view-risk',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>风控中心</div>
+      <div class="nav-item" data-view="view-alert" onclick="switchView('view-alert',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg>提醒配置</div>
+      <div class="nav-item" data-view="view-tts" onclick="switchView('view-tts',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7"/></svg>语音播报</div>
+      <div class="nav-item" data-view="view-record" onclick="switchView('view-record',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>直播录制</div>
+      <div class="nav-item" data-view="view-ai" onclick="switchView('view-ai',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4v1h2a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3h2V6a4 4 0 0 1 4-4z"/><circle cx="9" cy="11" r="1" fill="currentColor"/><circle cx="15" cy="11" r="1" fill="currentColor"/></svg>AI 助手</div>
+      <div class="nav-item" data-view="view-setting" onclick="switchView('view-setting',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>系统设置</div>
+    </nav>
+
+    <!-- 内容区 -->
+    <section class="content">
+
+      <!-- 直播间 -->
+      <div class="view active" id="view-home">
+        <div class="row" style="height:100%;">
+          <div class="col" style="flex:1.4;">
+            <div class="card" style="margin-bottom:12px;">
+              <div class="card-title">房间信息</div>
+              <div style="font-size:18px;font-weight:700;margin-bottom:6px;">【新赛季】冲个王者！</div>
+              <div class="text2" style="margin-bottom:4px;">主播：小王同学　·　分区：游戏 · 王者荣耀</div>
+              <div class="muted">房间号 12345678 · 只读监听中，不执行任何直播间操作</div>
+            </div>
+            <div class="grid-4">
+              <div class="card kpi"><div class="label">本场弹幕</div><div class="num">28,431</div><div class="delta">▲ 12.4%</div></div>
+              <div class="card kpi"><div class="label">礼物价值</div><div class="num">¥1,286.50</div><div class="delta">▲ 3.1%</div></div>
+              <div class="card kpi"><div class="label">舰长</div><div class="num">36</div><div class="delta">▲ 2</div></div>
+              <div class="card kpi"><div class="label">新增关注</div><div class="num">218</div><div class="delta">▲ 8.2%</div></div>
+            </div>
+          </div>
+          <div class="col" style="flex:1;">
+            <div class="card" style="height:100%;">
+              <div class="card-title">最近事件</div>
+              <div class="queue-item"><div class="avatar">强</div><div><div class="danmu-meta"><span class="tag tag-jian">舰长</span><span class="danmu-name">阿强</span><span class="danmu-time">12:04:31</span></div><div class="danmu-content">投喂 舰长 ×1</div></div></div>
+              <div class="queue-item"><div class="avatar">魔</div><div><div class="danmu-meta"><span class="tag tag-jian">舰长</span><span class="danmu-name">大魔王</span><span class="danmu-time">12:03:58</span></div><div class="danmu-content">开通舰长 · 首次开通</div></div></div>
+              <div class="queue-item"><div class="avatar">夜</div><div><div class="danmu-meta"><span class="tag tag-laoye">老爷</span><span class="danmu-name">夜猫子</span><span class="danmu-time">12:03:20</span></div><div class="danmu-content">进入直播间</div></div></div>
+              <div class="queue-item"><div class="avatar">甜</div><div><div class="danmu-meta"><span class="danmu-name">甜筒</span><span class="danmu-time">12:02:47</span></div><div class="danmu-content">投喂 小心心 ×20</div></div></div>
+              <div class="queue-item"><div class="avatar">橘</div><div><div class="danmu-meta"><span class="danmu-name">小橘子</span><span class="danmu-time">12:02:10</span></div><div class="danmu-content">进入直播间</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 弹幕面板 -->
+      <div class="view" id="view-danmu">
+        <div class="toolbar">
+          <span class="chip active">全部 28,431</span>
+          <span class="chip">房管</span><span class="chip">舰长</span><span class="chip">礼物</span><span class="chip">普通</span>
+          <div class="spacer"></div>
+          <input class="input" placeholder="搜索弹幕 / 用户" style="width:180px;">
+        </div>
+        <div class="row" style="height:calc(100% - 44px);">
+          <div class="col" style="flex:2.4;" class="table-wrap" style="border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:4px 12px;">
+            <div class="danmu-row"><div class="avatar">管</div><div class="danmu-main"><div class="danmu-meta"><span class="tag tag-fang">房管</span><span class="danmu-name">老管理员</span><span class="danmu-time">12:05:02</span></div><div class="danmu-content">大家别刷屏哈，有问题慢慢问</div></div></div>
+            <div class="danmu-row"><div class="avatar">魔</div><div class="danmu-main"><div class="danmu-meta"><span class="tag tag-jian">舰长</span><span class="danmu-name">大魔王</span><span class="danmu-time">12:04:55</span></div><div class="danmu-content">主播今天状态可以啊</div></div></div>
+            <div class="danmu-row"><div class="avatar">夜</div><div class="danmu-main"><div class="danmu-meta"><span class="tag tag-laoye">老爷</span><span class="danmu-name">夜猫子</span><span class="danmu-time">12:04:40</span></div><div class="danmu-content">哈哈哈这波笑死我了</div></div></div>
+            <div class="danmu-row gift-row"><div class="avatar">甜</div><div class="danmu-main"><div class="danmu-meta"><span class="danmu-name">甜筒</span><span class="danmu-time">12:04:21</span></div><div class="danmu-content">投喂 小心心 ×20</div></div></div>
+            <div class="danmu-row"><div class="avatar">橘</div><div class="danmu-main"><div class="danmu-meta"><span class="danmu-name">小橘子</span><span class="danmu-time">12:04:08</span></div><div class="danmu-content">求个歌单</div></div></div>
+            <div class="danmu-row"><div class="avatar">路</div><div class="danmu-main"><div class="danmu-meta"><span class="tag tag-tidu">提督</span><span class="danmu-name">路人甲</span><span class="danmu-time">12:03:51</span></div><div class="danmu-content">这个关卡怎么过</div></div></div>
+            <div class="danmu-row"><div class="avatar">星</div><div class="danmu-main"><div class="danmu-meta"><span class="danmu-name">星空下</span><span class="danmu-time">12:03:36</span></div><div class="danmu-content">晚上几点下播呀</div></div></div>
+            <div class="danmu-row"><div class="avatar">皮</div><div class="danmu-main"><div class="danmu-meta"><span class="tag tag-du">总督</span><span class="danmu-name">皮皮虾</span><span class="danmu-time">12:03:12</span></div><div class="danmu-content">老板大气，跟着主播学技术</div></div></div>
+          </div>
+          <div class="col" style="flex:1;">
+            <div class="card">
+              <div class="card-title">身份图例</div>
+              <div class="field"><span><span class="tag tag-fang">房管</span></span><span class="text2">房间管理员</span></div>
+              <div class="field"><span><span class="tag tag-du">总督</span></span><span class="text2">总督</span></div>
+              <div class="field"><span><span class="tag tag-tidu">提督</span></span><span class="text2">提督</span></div>
+              <div class="field"><span><span class="tag tag-jian">舰长</span></span><span class="text2">舰长</span></div>
+              <div class="field"><span><span class="tag tag-laoye">老爷</span></span><span class="text2">老爷</span></div>
+              <div class="field"><span class="text2">普通观众</span><span class="text2">无标识</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 数据看板 -->
+      <div class="view" id="view-board">
+        <div class="grid-4" style="margin-bottom:12px;">
+          <div class="card kpi"><div class="label">在线人数</div><div class="num">12,847</div><div class="delta">▲ 8.2%</div></div>
+          <div class="card kpi"><div class="label">弹幕量</div><div class="num">28,431</div><div class="delta">▲ 12.4%</div></div>
+          <div class="card kpi"><div class="label">礼物收益</div><div class="num">¥1,286.50</div><div class="delta">▲ 3.1%</div></div>
+          <div class="card kpi"><div class="label">舰长数</div><div class="num">36</div><div class="delta">▲ 2</div></div>
+        </div>
+        <div class="row" style="margin-bottom:12px;">
+          <div class="card col">
+            <div class="card-title">弹幕趋势 · 近 2 小时</div>
+            <svg viewBox="0 0 420 150" width="100%" height="150">
+              <line x1="0" y1="120" x2="420" y2="120" stroke="#2b303b"/>
+              <line x1="0" y1="80" x2="420" y2="80" stroke="#2b303b"/>
+              <line x1="0" y1="40" x2="420" y2="40" stroke="#2b303b"/>
+              <polyline fill="none" stroke="#00aeec" stroke-width="2" points="0,100 50,90 100,95 150,70 200,78 250,50 300,60 350,35 400,45 420,40"/>
+              <polyline fill="rgba(0,174,236,.12)" stroke="none" points="0,100 50,90 100,95 150,70 200,78 250,50 300,60 350,35 400,45 420,40 420,120 0,120"/>
+            </svg>
+          </div>
+          <div class="card col">
+            <div class="card-title">在线人数趋势 · 近 2 小时</div>
+            <svg viewBox="0 0 420 150" width="100%" height="150">
+              <line x1="0" y1="120" x2="420" y2="120" stroke="#2b303b"/>
+              <line x1="0" y1="80" x2="420" y2="80" stroke="#2b303b"/>
+              <line x1="0" y1="40" x2="420" y2="40" stroke="#2b303b"/>
+              <polyline fill="none" stroke="#f5a623" stroke-width="2" points="0,95 50,88 100,82 150,85 200,72 250,66 300,58 350,52 400,55 420,48"/>
+              <polyline fill="rgba(245,166,35,.12)" stroke="none" points="0,95 50,88 100,82 150,85 200,72 250,66 300,58 350,52 400,55 420,48 420,120 0,120"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">礼物类型分布</div>
+          <div class="field"><span style="width:80px;">小心心</span><div class="progress" style="flex:1;"><i style="width:42%;"></i></div><span class="text2" style="width:48px;text-align:right;">42%</span></div>
+          <div class="field"><span style="width:80px;">点赞</span><div class="progress" style="flex:1;"><i style="width:23%;background:#5ac8fa;"></i></div><span class="text2" style="width:48px;text-align:right;">23%</span></div>
+          <div class="field"><span style="width:80px;">舰长</span><div class="progress" style="flex:1;"><i style="width:15%;background:#f5a623;"></i></div><span class="text2" style="width:48px;text-align:right;">15%</span></div>
+          <div class="field"><span style="width:80px;">干杯</span><div class="progress" style="flex:1;"><i style="width:12%;background:#34c759;"></i></div><span class="text2" style="width:48px;text-align:right;">12%</span></div>
+          <div class="field"><span style="width:80px;">其他</span><div class="progress" style="flex:1;"><i style="width:8%;background:#737b89;"></i></div><span class="text2" style="width:48px;text-align:right;">8%</span></div>
+        </div>
+      </div>
+
+      <!-- 排行榜 -->
+      <div class="view" id="view-rank">
+        <div class="row" style="height:100%;">
+          <div class="table-wrap col">
+            <div class="card-title" style="padding:14px 14px 0;">送礼榜 TOP10</div>
+            <table>
+              <tbody>
+                <tr><td><span class="rank-medal rank-1">1</span></td><td>皮皮虾</td><td class="text2">¥686.00</td></tr>
+                <tr><td><span class="rank-medal rank-2">2</span></td><td>大魔王</td><td class="text2">¥328.00</td></tr>
+                <tr><td><span class="rank-medal rank-3">3</span></td><td>阿强</td><td class="text2">¥198.00</td></tr>
+                <tr><td><span class="rank-medal">4</span></td><td>夜猫子</td><td class="text2">¥52.00</td></tr>
+                <tr><td><span class="rank-medal">5</span></td><td>星空下</td><td class="text2">¥36.00</td></tr>
+                <tr><td><span class="rank-medal">6</span></td><td>小橘子</td><td class="text2">¥18.00</td></tr>
+                <tr><td><span class="rank-medal">7</span></td><td>路人甲</td><td class="text2">¥12.00</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-wrap col">
+            <div class="card-title" style="padding:14px 14px 0;">弹幕互动榜</div>
+            <table>
+              <tbody>
+                <tr><td><span class="rank-medal rank-1">1</span></td><td>夜猫子</td><td class="text2">486 条</td></tr>
+                <tr><td><span class="rank-medal rank-2">2</span></td><td>小橘子</td><td class="text2">372 条</td></tr>
+                <tr><td><span class="rank-medal rank-3">3</span></td><td>星空下</td><td class="text2">295 条</td></tr>
+                <tr><td><span class="rank-medal">4</span></td><td>路人甲</td><td class="text2">210 条</td></tr>
+                <tr><td><span class="rank-medal">5</span></td><td>甜筒</td><td class="text2">176 条</td></tr>
+                <tr><td><span class="rank-medal">6</span></td><td>皮皮虾</td><td class="text2">143 条</td></tr>
+                <tr><td><span class="rank-medal">7</span></td><td>大魔王</td><td class="text2">121 条</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-wrap col">
+            <div class="card-title" style="padding:14px 14px 0;">舰长贡献榜</div>
+            <table>
+              <tbody>
+                <tr><td><span class="rank-medal rank-1">1</span></td><td>大魔王</td><td class="text2">舰长 · 3 个月</td></tr>
+                <tr><td><span class="rank-medal rank-2">2</span></td><td>阿强</td><td class="text2">舰长 · 2 个月</td></tr>
+                <tr><td><span class="rank-medal rank-3">3</span></td><td>皮皮虾</td><td class="text2">提督 · 1 个月</td></tr>
+                <tr><td><span class="rank-medal">4</span></td><td>路人甲</td><td class="text2">舰长 · 1 个月</td></tr>
+                <tr><td><span class="rank-medal">5</span></td><td>夜猫子</td><td class="text2">老爷 · 持续</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 风控中心 -->
+      <div class="view" id="view-risk">
+        <div class="toolbar">
+          <span class="chip active">敏感词</span><span class="chip">黑名单</span>
+          <div class="spacer"></div>
+          <input class="input" placeholder="搜索词汇 / UID" style="width:180px;">
+          <button class="btn">导入</button><button class="btn">导出</button><button class="btn btn-primary">新增词汇</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>词汇</th><th>类型</th><th>处理动作</th><th>来源</th><th style="width:160px;">操作</th></tr></thead>
+            <tbody>
+              <tr><td>代充</td><td><span class="tag tag-laoye">广告</span></td><td>屏蔽</td><td class="text2">内置</td><td><button class="btn btn-sm btn-ghost">编辑</button> <button class="btn btn-sm btn-ghost">删除</button></td></tr>
+              <tr><td>加 V 引流</td><td><span class="tag tag-laoye">广告</span></td><td>屏蔽</td><td class="text2">自定义</td><td><button class="btn btn-sm btn-ghost">编辑</button> <button class="btn btn-sm btn-ghost">删除</button></td></tr>
+              <tr><td>引战词汇 A</td><td><span class="tag tag-du">引战</span></td><td>替换</td><td class="text2">内置</td><td><button class="btn btn-sm btn-ghost">编辑</button> <button class="btn btn-sm btn-ghost">删除</button></td></tr>
+              <tr><td>违规词 B</td><td><span class="tag tag-fang">违规</span></td><td>仅记录</td><td class="text2">自定义</td><td><button class="btn btn-sm btn-ghost">编辑</button> <button class="btn btn-sm btn-ghost">删除</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-wrap" style="margin-top:12px;">
+          <table>
+            <thead><tr><th>UID</th><th>昵称</th><th>添加时间</th><th>来源</th><th style="width:160px;">操作</th></tr></thead>
+            <tbody>
+              <tr><td>3201****88</td><td>刷屏小号</td><td class="text2">2026-11-20 23:14</td><td class="text2">手动</td><td><button class="btn btn-sm btn-ghost">移除</button></td></tr>
+              <tr><td>7710****02</td><td>广告机器人</td><td class="text2">2026-11-19 01:02</td><td class="text2">手动</td><td><button class="btn btn-sm btn-ghost">移除</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 提醒配置 -->
+      <div class="view" id="view-alert">
+        <div class="row" style="margin-bottom:12px;">
+          <div class="card col">
+            <div class="card-title">上舰特效</div>
+            <div class="field"><span>特效模板</span><select class="select"><option>模板一 · 金色舰长</option></select></div>
+            <div class="field"><span>停留时长</span><select class="select"><option>5 秒</option></select></div>
+            <div class="field"><span>弹窗位置</span><select class="select"><option>顶部居中</option></select></div>
+            <div class="field"><span>配色</span><select class="select"><option>金色</option></select></div>
+            <div class="field"><span>欢迎音效</span><select class="select"><option>舰长欢迎.mp3</option></select></div>
+            <div class="field"><span>音效音量</span><input type="range" class="slider" value="80"></div>
+            <div class="field"><span>连击合并</span><div class="switch on"></div></div>
+          </div>
+          <div class="card col">
+            <div class="card-title">礼物提醒</div>
+            <div class="field"><span>高价值阈值</span><select class="select"><option>≥ ¥50</option></select></div>
+            <div class="field"><span>提醒方式</span><select class="select"><option>弹窗 + 音效</option></select></div>
+            <div class="field"><span>连击合并</span><div class="switch on"></div></div>
+            <div class="field"><span>弹窗停留</span><select class="select"><option>5 秒</option></select></div>
+            <div class="field"><span>全局音效音量</span><input type="range" class="slider" value="70"></div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="card-title" style="padding:14px 14px 0;">礼物音效绑定</div>
+          <table>
+            <thead><tr><th>礼物</th><th>绑定音效</th><th>音量</th><th>预览</th><th style="width:120px;">操作</th></tr></thead>
+            <tbody>
+              <tr><td>舰长</td><td>舰长欢迎.mp3</td><td>80%</td><td><button class="btn btn-sm btn-ghost">试听</button></td><td><button class="btn btn-sm btn-ghost">更换</button> <button class="btn btn-sm btn-ghost">删除</button></td></tr>
+              <tr><td>干杯</td><td>cheer.mp3</td><td>60%</td><td><button class="btn btn-sm btn-ghost">试听</button></td><td><button class="btn btn-sm btn-ghost">更换</button> <button class="btn btn-sm btn-ghost">删除</button></td></tr>
+              <tr><td>小心心</td><td>—</td><td>—</td><td class="muted">未绑定</td><td><button class="btn btn-sm btn-ghost">绑定</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 语音播报 -->
+      <div class="view" id="view-tts">
+        <div class="row" style="height:100%;">
+          <div class="card col" style="flex:1.2;">
+            <div class="card-title">弹幕播报配置</div>
+            <div class="field"><span>身份过滤</span><span class="text2">舰长 / 礼物 / 房管 / 普通</span></div>
+            <div class="field"><span>播报优先级</span><span class="text2">舰长 ＞ 礼物 ＞ 房管 ＞ 普通</span></div>
+            <div class="field"><span>TTS 引擎</span><select class="select"><option>系统语音（Windows SAPI）</option></select></div>
+            <div class="field"><span>播报音量</span><input type="range" class="slider" value="70"></div>
+            <div class="field"><span>重复弹幕降噪</span><div class="switch on"></div></div>
+            <div style="display:flex;gap:10px;margin-top:16px;">
+              <button class="btn">暂停播报</button><button class="btn">跳过当前</button><button class="btn">清空队列</button>
+            </div>
+          </div>
+          <div class="card col">
+            <div class="card-title">播报队列 · 待播 4 条</div>
+            <div class="queue-item"><div class="avatar">魔</div><div><div class="danmu-meta"><span class="tag tag-jian">舰长</span><span class="danmu-name">大魔王</span></div><div class="danmu-content">主播今天状态可以啊</div></div></div>
+            <div class="queue-item"><div class="avatar">夜</div><div><div class="danmu-meta"><span class="tag tag-laoye">老爷</span><span class="danmu-name">夜猫子</span></div><div class="danmu-content">哈哈哈这波笑死我了</div></div></div>
+            <div class="queue-item"><div class="avatar">路</div><div><div class="danmu-meta"><span class="tag tag-tidu">提督</span><span class="danmu-name">路人甲</span></div><div class="danmu-content">这个关卡怎么过</div></div></div>
+            <div class="queue-item"><div class="avatar">星</div><div><div class="danmu-meta"><span class="danmu-name">星空下</span></div><div class="danmu-content">晚上几点下播呀</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 直播录制 -->
+      <div class="view" id="view-record">
+        <div class="row" style="margin-bottom:12px;">
+          <div class="card col" style="flex:1.3;">
+            <div class="card-title">录制状态</div>
+            <div style="display:flex;align-items:baseline;gap:12px;margin:8px 0;">
+              <span style="font-size:26px;font-weight:700;">未录制</span><span class="text2">本场时长 01:24:36</span>
+            </div>
+            <div class="field"><span>磁盘占用</span><span class="text2">3.2 GB / 10 GB</span></div>
+            <div class="progress" style="margin:8px 0 16px;"><i style="width:32%;"></i></div>
+            <div style="display:flex;gap:10px;">
+              <button class="btn btn-primary">开始录制</button><button class="btn">暂停</button><button class="btn">停止</button><button class="btn btn-ghost">手动打点 · F9</button>
+            </div>
+          </div>
+          <div class="card col">
+            <div class="card-title">FFmpeg 信息</div>
+            <div class="field"><span>构建</span><span class="text2">LGPL shared 预编译</span></div>
+            <div class="field"><span>外接 FFmpeg</span><button class="btn btn-sm">选择目录</button></div>
+            <div class="field"><span>水位保护</span><span class="text2">5 GB 提示清理</span></div>
+            <div class="field"><span>许可证</span><span class="text2">关于页附 LGPL 全文与源码地址</span></div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="card-title" style="padding:14px 14px 0;">高光片段</div>
+          <table>
+            <thead><tr><th>时间</th><th>类型</th><th>片段时长</th><th>大小</th><th style="width:160px;">操作</th></tr></thead>
+            <tbody>
+              <tr><td>12:03:58</td><td><span class="tag tag-jian">自动 · 热度暴涨</span></td><td>30 秒</td><td>48.2 MB</td><td><button class="btn btn-sm btn-ghost">预览</button> <button class="btn btn-sm btn-ghost">打开目录</button></td></tr>
+              <tr><td>11:48:12</td><td><span class="tag tag-fang">手动打点</span></td><td>30 秒</td><td>42.7 MB</td><td><button class="btn btn-sm btn-ghost">预览</button> <button class="btn btn-sm btn-ghost">打开目录</button></td></tr>
+              <tr><td>11:20:45</td><td><span class="tag tag-jian">自动 · 弹幕激增</span></td><td>30 秒</td><td>51.9 MB</td><td><button class="btn btn-sm btn-ghost">预览</button> <button class="btn btn-sm btn-ghost">打开目录</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- AI 助手 -->
+      <div class="view" id="view-ai">
+        <div class="toolbar">
+          <div class="ai-subtab">
+            <span class="active" onclick="switchAiTab(this,'ai-tab-reply')">回复</span>
+            <span onclick="switchAiTab(this,'ai-tab-model')">模型配置</span>
+            <span onclick="switchAiTab(this,'ai-tab-persona')">人设配置</span>
+            <span onclick="switchAiTab(this,'ai-tab-log')">日志</span>
+          </div>
+          <div class="spacer"></div>
+          <button class="btn">音频路由向导</button><button class="btn">测试播报</button>
+        </div>
+
+        <div id="ai-tab-reply">
+          <div class="row" style="margin-bottom:12px;">
+            <div class="card col" style="flex:1.5;">
+              <div class="field"><span>AI 语音回复</span><div class="switch on"></div></div>
+              <div class="field"><span>当前模型</span><span class="text2">DeepSeek 主力（deepseek-chat）　<button class="btn btn-sm btn-ghost">切换</button></span></div>
+              <div class="field"><span>触发范围</span><select class="select"><option>仅提问</option></select></div>
+              <div class="field"><span>全局冷却</span><select class="select"><option>5 秒</option></select></div>
+              <div class="field"><span>单用户冷却</span><select class="select"><option>10 秒</option></select></div>
+              <div class="field"><span>TTS 输出设备</span><select class="select"><option>CABLE Input (VB-Audio)</option></select></div>
+            </div>
+            <div class="card col">
+              <div class="card-title">AI 语音回复队列 · 待播 3 条</div>
+              <div class="queue-item"><div class="avatar">A</div><div><div class="danmu-meta"><span class="danmu-name">用户A</span><span class="danmu-time">正在播报</span></div><div class="danmu-content">今天直播真不错</div><div class="reply-bubble">谢谢呀，今天状态挺好～</div></div></div>
+              <div style="display:flex;gap:10px;margin-top:12px;">
+                <button class="btn">暂停播报</button><button class="btn">跳过当前</button><button class="btn">清空队列</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">上下文 / 生成结果（仅本地显示）</div>
+            <div class="text2" style="margin-bottom:8px;">观众弹幕：这个怎么过</div>
+            <div class="reply-bubble">先往左跳，再二段跳</div>
+            <div style="display:flex;gap:10px;margin-top:12px;">
+              <button class="btn btn-primary">生成</button><button class="btn">重新生成</button><button class="btn">复制</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="ai-tab-model" style="display:none;">
+          <div class="toolbar"><input class="input" placeholder="搜索档案" style="width:180px;"><div class="spacer"></div><button class="btn">导入</button><button class="btn btn-primary">+ 新增档案</button></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>档案名</th><th>Provider</th><th>模型名</th><th>状态</th><th style="width:160px;">操作</th></tr></thead>
+              <tbody>
+                <tr><td>DeepSeek 主力</td><td>自定义</td><td>deepseek-chat</td><td><span class="tag tag-fang">可用</span></td><td><button class="btn btn-sm btn-ghost">测试</button> <button class="btn btn-sm btn-ghost">编辑</button></td></tr>
+                <tr><td>本地 Ollama</td><td>Ollama</td><td>qwen2.5:7b</td><td><span class="tag tag-fang">可用</span></td><td><button class="btn btn-sm btn-ghost">测试</button> <button class="btn btn-sm btn-ghost">编辑</button></td></tr>
+                <tr><td>OpenRouter 备用</td><td>自定义</td><td>openai/gpt-4o</td><td><span class="tag tag-laoye">未测试</span></td><td><button class="btn btn-sm btn-ghost">测试</button> <button class="btn btn-sm btn-ghost">编辑</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="muted" style="margin-top:10px;">提示：软件不内置模型，需自行配置 API 或本地模型服务；API Key 加密存储，前端不回显明文。</div>
+        </div>
+
+        <div id="ai-tab-persona" style="display:none;">
+          <div class="card" style="max-width:560px;">
+            <div class="field"><span>AI 身份设定</span><input class="input" style="width:280px;" placeholder="如：随和的游戏主播助手"></div>
+            <div class="field"><span>说话风格</span><select class="select"><option>自然</option><option>极简</option><option>稍详细</option></select></div>
+            <div class="field"><span>最大回复长度</span><input class="input" style="width:80px;" value="50 字"></div>
+            <div class="field"><span>最大句数</span><input class="input" style="width:80px;" value="2 句"></div>
+            <div class="field"><span>强制即时聊天风格</span><div class="switch on"></div></div>
+            <div class="field"><span>禁止分点 / 标题 / Markdown</span><div class="switch on"></div></div>
+            <div class="field"><span>禁止客套开场 / AI 自指</span><div class="switch on"></div></div>
+            <div class="field"><span>系统提示词</span><textarea class="input" style="width:280px;height:64px;"></textarea></div>
+            <div style="display:flex;gap:10px;margin-top:12px;"><button class="btn btn-primary">保存</button><button class="btn">重置默认</button></div>
+          </div>
+        </div>
+
+        <div id="ai-tab-log" style="display:none;">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>时间</th><th>用户</th><th>输入</th><th>输出</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr><td>12:05:02</td><td>用户A</td><td>今天直播真不错</td><td>谢谢呀，今天状态挺好～</td><td><span class="tag tag-fang">已播报</span></td></tr>
+                <tr><td>12:04:31</td><td>路人甲</td><td>这个怎么过</td><td>先往左跳，再二段跳</td><td><span class="tag tag-fang">已播报</span></td></tr>
+                <tr><td>12:03:50</td><td>小橘子</td><td>求个歌单</td><td>—</td><td><span class="tag tag-laoye">超时</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 系统设置 -->
+      <div class="view" id="view-setting">
+        <div class="row">
+          <div class="card col">
+            <div class="card-title">通用</div>
+            <div class="field"><span>主题</span><select class="select"><option>深色</option><option>浅色</option></select></div>
+            <div class="field"><span>界面语言</span><select class="select"><option>简体中文</option><option>English</option></select></div>
+            <div class="field"><span>开机自启</span><div class="switch"></div></div>
+            <div class="field"><span>全局快捷键</span><button class="btn btn-sm">管理</button></div>
+          </div>
+          <div class="card col">
+            <div class="card-title">录制与数据</div>
+            <div class="field"><span>录制目录</span><button class="btn btn-sm">选择目录</button></div>
+            <div class="field"><span>磁盘配额</span><select class="select"><option>10 GB</option></select></div>
+            <div class="field"><span>事件日志保留</span><select class="select"><option>90 天</option></select></div>
+            <div class="field"><span>AI 日志保留</span><select class="select"><option>30 天</option></select></div>
+            <div class="field"><span>配置备份</span><span><button class="btn btn-sm">导出配置</button> <button class="btn btn-sm">导入配置</button></span></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px;">
+          <div class="card-title">关于</div>
+          <div class="field"><span>版本</span><span class="text2">2.0.0</span></div>
+          <div class="field"><span>FFmpeg 许可</span><span class="text2">LGPL 预编译构建 · 关于页附许可证全文与源码获取地址</span></div>
+          <div style="display:flex;gap:10px;margin-top:12px;">
+            <button class="btn">重置默认配置</button><button class="btn" style="color:var(--red);">清空本地数据</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </div>
+
+  <!-- 状态栏 -->
+  <footer class="statusbar">
+    <span><span class="status-dot"></span> 已连接</span>
+    <span>房间号 <b>12345678</b></span>
+    <span>弹幕速率 <b>312 条/秒</b></span>
+    <span>在线人数 <b>12,847</b></span>
+    <span>录制状态 <b>未录制</b></span>
+    <span>内存 <b>86 MB</b></span>
+    <span>CPU <b>7%</b></span>
+  </footer>
+  <div data-canvas-bottom-safe-area="24" style="height:24px;flex:none;"></div>
+</main>
+
+<script>
+  function switchView(id, el) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if (el) el.classList.add('active');
+  }
+  function switchAiTab(el, tabId) {
+    el.parentElement.querySelectorAll('span').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    ['ai-tab-reply','ai-tab-model','ai-tab-persona','ai-tab-log'].forEach(t => {
+      document.getElementById(t).style.display = t === tabId ? '' : 'none';
+    });
+  }
+</script>
+</body>
+</html>

@@ -270,7 +270,7 @@ impl MemberRepository for SqliteMemberRepository {
     }
 
     async fn load_ai_config(&self) -> Result<Option<AiConfigRecord>, MemberServiceError> {
-        let row = sqlx::query("SELECT identity_text, speaking_style, system_prompt, provider, endpoint, model_name, api_key_ciphertext, temperature, max_response_len, max_sentences, sensitive_filter_enabled, banned_words_json, danmaku_context_count, asr_context_count, manual_context_count, updated_at FROM t_ai_config WHERE id = 1")
+        let row = sqlx::query("SELECT identity_text, speaking_style, system_prompt, provider, endpoint, model_name, api_key_ciphertext, temperature, max_response_len, max_sentences, sensitive_filter_enabled, banned_words_json, danmaku_context_count, manual_context_count, updated_at FROM t_ai_config WHERE id = 1")
             .fetch_optional(&self.pool)
             .await
             .map_err(repository_error)?;
@@ -281,7 +281,7 @@ impl MemberRepository for SqliteMemberRepository {
         validate_ai_config(config)?;
         let banned_words =
             serde_json::to_string(&config.banned_words).map_err(|_| invalid_data())?;
-        sqlx::query("INSERT INTO t_ai_config (id, identity_text, speaking_style, system_prompt, provider, endpoint, model_name, api_key_ciphertext, temperature, max_response_len, max_sentences, sensitive_filter_enabled, banned_words_json, danmaku_context_count, asr_context_count, manual_context_count, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET identity_text = excluded.identity_text, speaking_style = excluded.speaking_style, system_prompt = excluded.system_prompt, provider = excluded.provider, endpoint = excluded.endpoint, model_name = excluded.model_name, api_key_ciphertext = excluded.api_key_ciphertext, temperature = excluded.temperature, max_response_len = excluded.max_response_len, max_sentences = excluded.max_sentences, sensitive_filter_enabled = excluded.sensitive_filter_enabled, banned_words_json = excluded.banned_words_json, danmaku_context_count = excluded.danmaku_context_count, asr_context_count = excluded.asr_context_count, manual_context_count = excluded.manual_context_count, updated_at = excluded.updated_at")
+        sqlx::query("INSERT INTO t_ai_config (id, identity_text, speaking_style, system_prompt, provider, endpoint, model_name, api_key_ciphertext, temperature, max_response_len, max_sentences, sensitive_filter_enabled, banned_words_json, danmaku_context_count, manual_context_count, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET identity_text = excluded.identity_text, speaking_style = excluded.speaking_style, system_prompt = excluded.system_prompt, provider = excluded.provider, endpoint = excluded.endpoint, model_name = excluded.model_name, api_key_ciphertext = excluded.api_key_ciphertext, temperature = excluded.temperature, max_response_len = excluded.max_response_len, max_sentences = excluded.max_sentences, sensitive_filter_enabled = excluded.sensitive_filter_enabled, banned_words_json = excluded.banned_words_json, danmaku_context_count = excluded.danmaku_context_count, manual_context_count = excluded.manual_context_count, updated_at = excluded.updated_at")
             .bind(&config.identity)
             .bind(&config.speaking_style)
             .bind(&config.system_prompt)
@@ -295,7 +295,6 @@ impl MemberRepository for SqliteMemberRepository {
             .bind(config.is_sensitive_filter_enabled)
             .bind(banned_words)
             .bind(i64::from(config.danmaku_context_count))
-            .bind(i64::from(config.asr_context_count))
             .bind(i64::from(config.manual_context_count))
             .bind(config.updated_at)
             .execute(&self.pool)
@@ -592,7 +591,6 @@ fn map_ai_config(row: sqlx::sqlite::SqliteRow) -> Result<AiConfigRecord, MemberS
             row.try_get("danmaku_context_count")
                 .map_err(repository_error)?,
         )?,
-        asr_context_count: to_u32(row.try_get("asr_context_count").map_err(repository_error)?)?,
         manual_context_count: to_u32(
             row.try_get("manual_context_count")
                 .map_err(repository_error)?,

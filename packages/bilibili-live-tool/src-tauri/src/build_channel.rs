@@ -91,11 +91,6 @@ pub const fn ai_command_names() -> &'static [&'static str] {
         "ai_generate",
         "ai_regenerate",
         "ai_log_query",
-        "asr_status",
-        "asr_model_list",
-        "asr_model_download",
-        "asr_start",
-        "asr_stop",
     ]
 }
 

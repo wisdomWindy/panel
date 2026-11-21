@@ -14,7 +14,7 @@ use crate::domain::{
         AudienceIdentity, CaptainAction, CaptainLevel, IdentityTag, LiveEvent, LiveEventBase,
         RoomId, UserUid,
     },
-    media::{MediaSoundBinding, RecordingState, TtsIdentityKind},
+    media::{MediaSoundBinding, RecordingState, TtsIdentityKind, TtsSelectedEngine},
 };
 
 struct FinishedPlayback;
@@ -582,6 +582,55 @@ async fn tts_prioritizes_events_falls_back_and_preserves_paused_items() {
         .enqueue_event(&danmu_event("vip", 10_003, vec![IdentityTag::Vip]))
         .await;
     assert_eq!(runtime.snapshot().await.pending_count, 0);
+    runtime.shutdown().await;
+}
+
+#[tokio::test]
+async fn an_unavailable_cloud_engine_falls_back_to_the_system_voice() {
+    // Mirrors the Qwen3-TTS deployment: the "cloud" slot stops answering while
+    // the operator still expects every broadcast to be spoken.
+    let system = Arc::new(RecordingSpeech::new(false));
+    let cloud = Arc::new(RecordingSpeech::new(true));
+    let local = Arc::new(RecordingSpeech::new(true));
+    let mut config = default_tts_config();
+    config.is_enabled = true;
+    config.selected_engine = TtsSelectedEngine::Cloud;
+    let runtime = TtsRuntime::start(config.clone(), system.clone(), cloud.clone(), local).await;
+
+    runtime
+        .enqueue_event(&danmu_event("danmu", 20_001, Vec::new()))
+        .await;
+    for _ in 0..100 {
+        if !system.texts.lock().await.is_empty() {
+            break;
+        }
+        tokio::task::yield_now().await;
+    }
+    assert_eq!(system.texts.lock().await.len(), 1);
+    assert_eq!(cloud.texts.lock().await.len(), 1);
+    let snapshot = runtime.snapshot().await;
+    assert_eq!(snapshot.active_engine, ActiveSpeechEngine::System);
+    assert_eq!(snapshot.fallback_reason_code, Some("tts_engine_fallback"));
+
+    // Rolling back to the system engine must not touch the cloud engine again.
+    config.selected_engine = TtsSelectedEngine::System;
+    runtime.set_config(config).await;
+    runtime
+        .enqueue_event(&danmu_event("system", 20_002, Vec::new()))
+        .await;
+    for _ in 0..100 {
+        if system.texts.lock().await.len() == 2 {
+            break;
+        }
+        tokio::task::yield_now().await;
+    }
+    assert_eq!(system.texts.lock().await.len(), 2);
+    assert_eq!(cloud.texts.lock().await.len(), 1);
+    assert_eq!(
+        runtime.snapshot().await.fallback_reason_code,
+        None,
+        "an explicit system selection is not a fallback"
+    );
     runtime.shutdown().await;
 }
 

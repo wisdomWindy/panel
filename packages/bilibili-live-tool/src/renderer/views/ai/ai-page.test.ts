@@ -16,13 +16,12 @@ describe('shared AI page contract', () => {
     expect(page).not.toMatch(/发送弹幕|sendDanmaku|danmaku_send/);
   });
 
-  it('uses focused config and ASR component boundaries', () => {
+  it('uses focused config component boundaries', () => {
     const page = source('src/renderer/views/ai/index.vue');
     for (const component of [
       'AiVoiceReplyControl',
       'AiModelProfilesDialog',
-      'AiPersonaConfigDialog',
-      'AsrModelDownloadDialog'
+      'AiPersonaConfigDialog'
     ]) {
       expect(page).toContain(component);
     }
@@ -66,20 +65,12 @@ describe('shared AI page contract', () => {
     expect(voice).not.toMatch(/localStorage|invokeDesktop|发送弹幕/);
   });
 
-  it('offers a selectable ASR catalog and provides a separate audit route', () => {
-    const asr = source('src/renderer/views/ai/components/AsrModelDownloadDialog.vue');
+  it('keeps the AI audit route read-only and free of ASR remnants', () => {
     const page = source('src/renderer/views/ai/index.vue');
     const contract = source('src/renderer/platform/desktop/contracts/ai.ts');
     const log = source('src/renderer/views/ai/log.vue');
-    expect(asr).toContain('选择识别模型');
-    expect(asr).toContain('model.modelId');
-    expect(asr).toContain(':disabled="!selectedModelId || !accepted"');
-    expect(page).toContain(':models="store.asrModels"');
-    expect(page).toContain('store.asrModels.some(model => model.isInstalled)');
-    expect(page).toContain('asr_engine_unavailable');
-    expect(contract).toContain('\'asr_model_list\'');
-    expect(contract).toMatch(/asr_model_download:\s*\{\s*modelId:/);
-    expect(contract).not.toMatch(/asr_model_download:\s*\{\s*manifest:/);
+    expect(page).not.toMatch(/asr|Asr/);
+    expect(contract).not.toMatch(/asr_|AsrStatus|AsrModel/);
     expect(log).not.toMatch(/invokeDesktop|listenDesktop|localStorage|electronAPI/);
     expect(log).toMatch(/store\s*\.\s*loadLogs/);
   });

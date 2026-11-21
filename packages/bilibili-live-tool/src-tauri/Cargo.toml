@@ -1,6 +1,6 @@
 [package]
 name = "bilibili-live-tool"
-version = "0.2.0"
+version = "0.3.0"
 description = "Bilibili live monitoring assistant"
 authors = []
 license = "MIT"
@@ -55,7 +55,6 @@ tokio = { version = "1", features = ["fs", "io-util", "macros", "process", "rt-m
 tokio-tungstenite = { version = "0.24", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
 tts = { version = "0.26.3", default-features = false }
 uuid = { version = "1", features = ["v4"] }
-whisper-rs = "0.16.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 notify-rust = "4.18"

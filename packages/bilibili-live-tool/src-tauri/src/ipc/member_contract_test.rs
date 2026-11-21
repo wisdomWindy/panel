@@ -26,16 +26,17 @@ fn member_build_exposes_the_approved_member_surface() {
 fn both_builds_expose_the_shared_ai_surface() {
     let commands = ai_command_names();
 
-    assert_eq!(commands.len(), 24);
+    assert_eq!(commands.len(), 19);
     assert_eq!(commands.first(), Some(&"ai_config_get"));
-    assert_eq!(commands.last(), Some(&"asr_stop"));
+    assert_eq!(commands.last(), Some(&"ai_log_query"));
     assert!(commands.contains(&"ai_model_profile_save"));
     assert!(commands.contains(&"ai_voice_reply_set_enabled"));
     assert!(commands.contains(&"ai_tts_set_output_device"));
-    assert!(commands.contains(&"asr_model_list"));
+    assert!(!commands.iter().any(|command| command.contains("asr")));
     assert!(!commands.iter().any(|command| command.contains("send")));
-    assert_eq!(AI_EVENT_NAMES.len(), 4);
-    assert!(AI_EVENT_NAMES.contains(&"asr_transcript"));
+    assert_eq!(AI_EVENT_NAMES.len(), 2);
+    assert!(AI_EVENT_NAMES.contains(&"ai_generation_finished"));
+    assert!(!AI_EVENT_NAMES.iter().any(|event| event.contains("asr")));
 
     let ipc = include_str!("member.rs");
     let provider = include_str!("../infrastructure/member/ai.rs");

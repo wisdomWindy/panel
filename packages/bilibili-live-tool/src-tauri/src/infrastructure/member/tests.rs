@@ -49,9 +49,8 @@ async fn ai_logs_are_queryable_without_membership_and_filter_by_uid_and_time() {
 use crate::{
     application::member::{
         AiConfigRecord, AiModelConnectionState, AiModelProfileRecord, AiReasoningEffort,
-        ArtifactVerifier, AsrProvider, AuthProvider, EntitlementVerifier, LlmProvider,
-        MemberRepository, ModerationConfigRecord, ModerationProvider, OrderRecord, OrderStatus,
-        StoredEntitlement,
+        ArtifactVerifier, AuthProvider, EntitlementVerifier, LlmProvider, MemberRepository,
+        ModerationConfigRecord, ModerationProvider, OrderRecord, OrderStatus, StoredEntitlement,
     },
     domain::{
         live_data::UserUid,
@@ -106,7 +105,7 @@ fn artifact_integrity_and_paths_fail_closed() {
         "module_entry_invalid"
     );
     assert!(verifier
-        .archive_entry_path("bin/whisper.exe")
+        .archive_entry_path("bin/module.dll")
         .unwrap()
         .starts_with(directory.path().join("modules")));
 }
@@ -216,7 +215,6 @@ async fn repository_round_trips_member_records_without_plaintext_secrets() {
         is_sensitive_filter_enabled: true,
         banned_words: vec!["敏感".to_owned()],
         danmaku_context_count: 20,
-        asr_context_count: 2,
         manual_context_count: 1,
         updated_at: 12_000,
     };
@@ -349,53 +347,5 @@ async fn unavailable_adapters_return_stable_redacted_errors() {
             .unwrap_err()
             .code,
         "moderation_api_unavailable"
-    );
-}
-
-#[tokio::test]
-async fn whisper_asr_catalog_is_closed_and_reports_installed_models() {
-    let directory = tempfile::tempdir().unwrap();
-    let provider = super::WhisperAsrProvider::new(directory.path().to_path_buf());
-
-    let models = provider.list_models().await.unwrap();
-    assert_eq!(
-        models
-            .iter()
-            .map(|model| model.model_id.as_str())
-            .collect::<Vec<_>>(),
-        vec!["tiny", "base", "small"]
-    );
-    assert!(models.iter().all(|model| !model.is_installed));
-
-    let partial = directory.path().join("ggml-tiny.bin.part");
-    tokio::fs::File::create(&partial)
-        .await
-        .unwrap()
-        .set_len(77_691_713)
-        .await
-        .unwrap();
-    assert!(!provider.list_models().await.unwrap()[0].is_installed);
-
-    let installed = directory.path().join("ggml-tiny.bin");
-    tokio::fs::File::create(&installed)
-        .await
-        .unwrap()
-        .set_len(77_691_713)
-        .await
-        .unwrap();
-    tokio::fs::write(
-        directory.path().join("ggml-tiny.bin.sha1"),
-        "bd577a113a864445d4c299885e0cb97d4ba92b5f",
-    )
-    .await
-    .unwrap();
-    assert!(provider.list_models().await.unwrap()[0].is_installed);
-    assert_eq!(
-        provider
-            .download_model("../unknown")
-            .await
-            .unwrap_err()
-            .code,
-        "asr_model_unknown"
     );
 }

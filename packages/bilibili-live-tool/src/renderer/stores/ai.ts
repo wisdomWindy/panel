@@ -16,9 +16,6 @@ import {
   type AiVoiceId,
   type AiVoiceReplyRules,
   type AiVoiceReplySnapshot,
-  type AsrModelManifest,
-  type AsrModelId,
-  type AsrStatus,
   type DesktopError,
   type GenerationId,
   type UserUid
@@ -30,9 +27,7 @@ import {
   adaptAiModelProfile,
   adaptAiModelProfiles,
   adaptAiOutputDevice,
-  adaptAiVoiceReplySnapshot,
-  adaptAsrModels,
-  adaptAsrStatus
+  adaptAiVoiceReplySnapshot
 } from '@/modules/ai/adapters';
 
 export const useAIStore = defineStore('ai', () => {
@@ -40,13 +35,6 @@ export const useAIStore = defineStore('ai', () => {
   const profiles = ref<readonly AiModelProfile[]>([]);
   const voiceReply = ref<AiVoiceReplySnapshot | null>(null);
   const generation = ref<AiGeneration | null>(null);
-  const asr = ref<AsrStatus | null>(null);
-  const asrModels = ref<readonly AsrModelManifest[]>([]);
-  const asrTranscript = ref('');
-
-  function acceptAsrTranscript(text: string): void {
-    asrTranscript.value = `${asrTranscript.value}${asrTranscript.value ? '\n' : ''}${text}`.slice(-10000);
-  }
   const logs = ref<readonly AiLogEntry[]>([]);
   const pendingOperations = ref<ReadonlySet<string>>(new Set());
   const error = ref<DesktopError | null>(null);
@@ -96,18 +84,14 @@ export const useAIStore = defineStore('ai', () => {
 
   function bootstrap(): Promise<void> {
     return run('bootstrap', async () => {
-      const [nextConfig, nextProfiles, nextVoiceReply, nextAsr, nextAsrModels] = await Promise.all([
+      const [nextConfig, nextProfiles, nextVoiceReply] = await Promise.all([
         invokeDesktop('ai_config_get', undefined),
         invokeDesktop('ai_model_profile_list', undefined),
-        invokeDesktop('ai_voice_reply_get', undefined),
-        invokeDesktop('asr_status', undefined),
-        invokeDesktop('asr_model_list', undefined)
+        invokeDesktop('ai_voice_reply_get', undefined)
       ]);
       config.value = adaptAiConfig(nextConfig);
       profiles.value = adaptAiModelProfiles(nextProfiles);
       voiceReply.value = adaptAiVoiceReplySnapshot(nextVoiceReply);
-      asr.value = adaptAsrStatus(nextAsr);
-      asrModels.value = adaptAsrModels(nextAsrModels);
     });
   }
 
@@ -266,41 +250,6 @@ export const useAIStore = defineStore('ai', () => {
     });
   }
 
-  function loadAsrModels(): Promise<readonly AsrModelManifest[]> {
-    return run('loadAsrModels', async () => {
-      const next = adaptAsrModels(await invokeDesktop('asr_model_list', undefined));
-      asrModels.value = next;
-      return next;
-    });
-  }
-
-  function downloadModel(modelId: AsrModelId, isLicenseAccepted: boolean): Promise<AsrStatus> {
-    return run('downloadModel', async () => {
-      const next = adaptAsrStatus(
-        await invokeDesktop('asr_model_download', { modelId, isLicenseAccepted })
-      );
-      asr.value = next;
-      asrModels.value = adaptAsrModels(await invokeDesktop('asr_model_list', undefined));
-      return next;
-    });
-  }
-
-  function startAsr(): Promise<AsrStatus> {
-    return run('asr', async () => {
-      const next = adaptAsrStatus(await invokeDesktop('asr_start', undefined));
-      asr.value = next;
-      return next;
-    });
-  }
-
-  function stopAsr(): Promise<AsrStatus> {
-    return run('asr', async () => {
-      const next = adaptAsrStatus(await invokeDesktop('asr_stop', undefined));
-      asr.value = next;
-      return next;
-    });
-  }
-
   function acceptDelta(payload: {
     readonly generationId: GenerationId;
     readonly sequence: number;
@@ -324,12 +273,7 @@ export const useAIStore = defineStore('ai', () => {
     void refreshVoiceReply().catch(() => undefined);
   }
 
-  function acceptAsr(value: unknown): void {
-    asr.value = adaptAsrStatus(value);
-  }
-
   function clear(): void {
-    asrTranscript.value = '';
     operationErrors.value = {};
     generation.value = null;
     logs.value = [];
@@ -337,7 +281,6 @@ export const useAIStore = defineStore('ai', () => {
   }
 
   function dispose(): void {
-    asrTranscript.value = '';
     operationErrors.value = {};
     revision += 1;
     operations.clear();
@@ -351,10 +294,6 @@ export const useAIStore = defineStore('ai', () => {
     profiles,
     voiceReply,
     generation,
-    asr,
-    asrModels,
-    asrTranscript,
-    acceptAsrTranscript,
     logs,
     pendingOperations,
     error,
@@ -378,13 +317,8 @@ export const useAIStore = defineStore('ai', () => {
     generate,
     regenerate,
     loadLogs,
-    loadAsrModels,
-    downloadModel,
-    startAsr,
-    stopAsr,
     acceptDelta,
     acceptGeneration,
-    acceptAsr,
     clear,
     dispose
   };

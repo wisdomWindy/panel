@@ -6,9 +6,8 @@ use crate::{
         now_millis, AiConfigRecord, AiGenerationRecord, AiGenerationStatus, AiModelConnectionState,
         AiModelProfileRecord, AiOutputDeviceRecord, AiReasoningEffort, AiVoiceConfigRecord,
         AiVoiceQueueItemRecord, AiVoiceQueueSnapshotRecord, AiVoiceQueueState, AiVoiceRecord,
-        AsrModelRecord, AsrState, AsrStatusRecord, MemberEventSink, MemberServiceError,
-        ModerationAlertRecord, ModerationAlertStatus, ModerationConfigRecord, OrderRecord,
-        OrderStatus,
+        MemberEventSink, MemberServiceError, ModerationAlertRecord, ModerationAlertStatus,
+        ModerationConfigRecord, OrderRecord, OrderStatus,
     },
     domain::{
         live_data::UserUid,
@@ -33,12 +32,7 @@ pub const MEMBER_EVENT_NAMES: &[&str] = &[
     "moderation_action_result",
 ];
 
-pub const AI_EVENT_NAMES: &[&str] = &[
-    "ai_generation_delta",
-    "ai_generation_finished",
-    "asr_status_changed",
-    "asr_transcript",
-];
+pub const AI_EVENT_NAMES: &[&str] = &["ai_generation_delta", "ai_generation_finished"];
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -222,7 +216,6 @@ pub struct AiConfigDto {
     pub is_sensitive_filter_enabled: bool,
     pub banned_words: Vec<String>,
     pub danmaku_context_count: u32,
-    pub asr_context_count: u32,
     pub manual_context_count: u32,
 }
 
@@ -452,7 +445,6 @@ pub struct DeletedResultDto {
 #[serde(rename_all = "camelCase")]
 pub enum AiContextSourceDto {
     Danmaku,
-    Asr,
     Manual,
 }
 
@@ -505,39 +497,6 @@ pub struct AiLogEntryDto {
     pub reject_reason: Option<String>,
     pub room_id: String,
     pub created_at: i64,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum AsrStateDto {
-    Unavailable,
-    ModelMissing,
-    Downloading,
-    Ready,
-    Starting,
-    Listening,
-    Error,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct AsrStatusDto {
-    pub state: AsrStateDto,
-    pub model_name: Option<String>,
-    pub language: String,
-    pub progress_percent: u8,
-    pub error_code: Option<String>,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct AsrModelManifestDto {
-    pub model_id: String,
-    pub model_name: String,
-    pub size_bytes: u64,
-    pub license: String,
-    pub source_label: String,
-    pub is_installed: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -636,13 +595,6 @@ pub struct BindAccountRequestDto {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct AsrDownloadRequestDto {
-    pub model_id: String,
-    pub is_license_accepted: bool,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SetAutoRequestDto {
     pub is_enabled: bool,
     pub is_risk_accepted: bool,
@@ -724,14 +676,6 @@ impl MemberEventSink for TauriMemberEventSink {
             "ai_generation_finished",
             ai_generation_dto(generation.clone()),
         );
-    }
-
-    fn publish_asr_status(&self, status: &AsrStatusRecord) {
-        self.emit("asr_status_changed", asr_status_dto(status.clone()));
-    }
-
-    fn publish_asr_transcript(&self, text: &str) {
-        self.emit("asr_transcript", text.to_owned());
     }
 
     fn publish_moderation_alert(&self, alert: &ModerationAlertRecord) {
@@ -1124,59 +1068,6 @@ pub async fn ai_log_query(
 }
 
 #[tauri::command]
-pub async fn asr_status(state: State<'_, AppState>) -> Result<AsrStatusDto, DesktopError> {
-    Ok(asr_status_dto(state.ai()?.asr_status().await))
-}
-
-#[tauri::command]
-pub async fn asr_model_list(
-    state: State<'_, AppState>,
-) -> Result<Vec<AsrModelManifestDto>, DesktopError> {
-    state
-        .ai()?
-        .asr_models()
-        .await
-        .map(|models| models.into_iter().map(asr_model_dto).collect())
-        .map_err(Into::into)
-}
-
-#[tauri::command]
-pub async fn asr_model_download(
-    state: State<'_, AppState>,
-    request: AsrDownloadRequestDto,
-) -> Result<AsrStatusDto, DesktopError> {
-    if !request.is_license_accepted {
-        return Err(MemberServiceError::invalid("asr_license_required").into());
-    }
-    state
-        .ai()?
-        .download_asr_model(request.model_id.trim())
-        .await
-        .map(asr_status_dto)
-        .map_err(Into::into)
-}
-
-#[tauri::command]
-pub async fn asr_start(state: State<'_, AppState>) -> Result<AsrStatusDto, DesktopError> {
-    state
-        .ai()?
-        .start_asr()
-        .await
-        .map(asr_status_dto)
-        .map_err(Into::into)
-}
-
-#[tauri::command]
-pub async fn asr_stop(state: State<'_, AppState>) -> Result<AsrStatusDto, DesktopError> {
-    state
-        .ai()?
-        .stop_asr()
-        .await
-        .map(asr_status_dto)
-        .map_err(Into::into)
-}
-
-#[tauri::command]
 pub async fn moderate_status(
     state: State<'_, AppState>,
 ) -> Result<ModerationSummaryDto, DesktopError> {
@@ -1398,7 +1289,6 @@ fn ai_config_dto(config: AiConfigRecord) -> AiConfigDto {
         is_sensitive_filter_enabled: config.is_sensitive_filter_enabled,
         banned_words: config.banned_words,
         danmaku_context_count: config.danmaku_context_count,
-        asr_context_count: config.asr_context_count,
         manual_context_count: config.manual_context_count,
     }
 }
@@ -1421,7 +1311,6 @@ fn ai_config_from_dto(
         is_sensitive_filter_enabled: config.is_sensitive_filter_enabled,
         banned_words: config.banned_words,
         danmaku_context_count: config.danmaku_context_count,
-        asr_context_count: config.asr_context_count,
         manual_context_count: config.manual_context_count,
         updated_at: now_millis(),
     }
@@ -1655,35 +1544,6 @@ fn ai_generation_dto(generation: AiGenerationRecord) -> AiGenerationDto {
         result: generation.result,
         last_sequence: generation.last_sequence,
         error_code: generation.error_code,
-    }
-}
-
-fn asr_status_dto(status: AsrStatusRecord) -> AsrStatusDto {
-    AsrStatusDto {
-        state: match status.state {
-            AsrState::Unavailable => AsrStateDto::Unavailable,
-            AsrState::ModelMissing => AsrStateDto::ModelMissing,
-            AsrState::Downloading => AsrStateDto::Downloading,
-            AsrState::Ready => AsrStateDto::Ready,
-            AsrState::Starting => AsrStateDto::Starting,
-            AsrState::Listening => AsrStateDto::Listening,
-            AsrState::Error => AsrStateDto::Error,
-        },
-        model_name: status.model_name,
-        language: status.language,
-        progress_percent: status.progress_percent,
-        error_code: status.error_code,
-    }
-}
-
-fn asr_model_dto(model: AsrModelRecord) -> AsrModelManifestDto {
-    AsrModelManifestDto {
-        model_id: model.model_id,
-        model_name: model.model_name,
-        size_bytes: model.size_bytes,
-        license: model.license,
-        source_label: model.source_label,
-        is_installed: model.is_installed,
     }
 }
 

@@ -1,8 +1,8 @@
 use super::{
     CaptainEffectConfig, GiftNotifyConfig, GiftRecord, GiftSoundPolicy, GiftSoundQueueItem,
-    GiftStats, HighlightWindow, MediaDomainError, RecordingConfig, RecordingState, TtsConfig,
-    TtsQueueItem, TtsTemplateKind, DANMAKU_HEAT_WINDOW_MS, HIGHLIGHT_AFTER_SECONDS,
-    HIGHLIGHT_BEFORE_SECONDS, LATEST_GIFT_LIMIT,
+    GiftStats, HighlightWindow, MediaDomainError, Qwen3TtsConfig, RecordingConfig, RecordingState,
+    TtsConfig, TtsQueueItem, TtsTemplateKind, DANMAKU_HEAT_WINDOW_MS, HIGHLIGHT_AFTER_SECONDS,
+    HIGHLIGHT_BEFORE_SECONDS, LATEST_GIFT_LIMIT, MAX_QWEN3_TTS_INSTRUCT_CHARS, QWEN3_TTS_LANGUAGES,
 };
 
 pub fn validate_volume(volume: f64) -> Result<(), MediaDomainError> {
@@ -76,6 +76,37 @@ pub fn validate_gift_sound_policy(config: &GiftSoundPolicy) -> Result<(), MediaD
     validate_volume(config.global_volume)?;
     if config.queue_capacity_per_second == 0 {
         return Err(MediaDomainError::InvalidField("queueCapacityPerSecond"));
+    }
+    Ok(())
+}
+
+pub fn validate_qwen3_tts_config(config: &Qwen3TtsConfig) -> Result<(), MediaDomainError> {
+    let url = config.base_url.trim();
+    if url.is_empty() {
+        return Err(MediaDomainError::InvalidField("qwen3Tts.baseUrl"));
+    }
+    let parsed = url
+        .parse::<reqwest::Url>()
+        .map_err(|_| MediaDomainError::InvalidField("qwen3Tts.baseUrl"))?;
+    if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
+        return Err(MediaDomainError::InvalidField("qwen3Tts.baseUrl"));
+    }
+    if !(500..=60_000).contains(&config.timeout_ms) {
+        return Err(MediaDomainError::InvalidField("qwen3Tts.timeoutMs"));
+    }
+    if !QWEN3_TTS_LANGUAGES.contains(&config.language.as_str()) {
+        return Err(MediaDomainError::InvalidField("qwen3Tts.language"));
+    }
+    for (field, value) in [
+        ("qwen3Tts.instruct", config.instruct.as_str()),
+        (
+            "qwen3Tts.aiInstruct",
+            config.ai_instruct.as_deref().unwrap_or_default(),
+        ),
+    ] {
+        if value.chars().count() > MAX_QWEN3_TTS_INSTRUCT_CHARS {
+            return Err(MediaDomainError::InvalidField(field));
+        }
     }
     Ok(())
 }

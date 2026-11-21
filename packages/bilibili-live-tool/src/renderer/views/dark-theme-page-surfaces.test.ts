@@ -109,9 +109,13 @@ describe('dark theme page surfaces', () => {
 
     expectSharedPageSurface(html);
     expect(tokens.filter(token => token === 'dark:bg-zinc-900')).toHaveLength(6);
-    expect(tokens.filter(token => token === 'dark:text-zinc-100')).toHaveLength(6);
-    expect(tokens.filter(token => token === 'dark:text-zinc-400')).toHaveLength(8);
+    expect(tokens.filter(token => token === 'dark:text-zinc-100')).toHaveLength(7);
+    expect(tokens.filter(token => token === 'dark:text-zinc-400')).toHaveLength(9);
     expect(tokens).toContain('dark:bg-zinc-800');
+    // The Qwen3-TTS model card shows the "service offline" hint when the
+    // catalogue cannot be loaded.
+    expect(html).toContain('Qwen3-TTS 1.7B');
+    expect(html).toContain('本地语音服务未启动');
   });
 
   it.each([

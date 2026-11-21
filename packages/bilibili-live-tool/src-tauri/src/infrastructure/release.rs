@@ -298,7 +298,6 @@ pub fn migration_resilience_snapshot(database_path: &Path) -> ResilienceSnapshot
         last_migration_backup_at: timestamps.into_iter().max(),
         retention_policy_available: true,
         ffmpeg_artifact_available: false,
-        whisper_artifact_available: false,
     }
 }
 
@@ -332,7 +331,6 @@ mod tests {
                 last_migration_backup_at: Some(2),
                 retention_policy_available: true,
                 ffmpeg_artifact_available: false,
-                whisper_artifact_available: false,
             }
         );
     }

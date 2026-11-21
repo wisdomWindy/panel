@@ -32,13 +32,15 @@ describe('member stores', () => {
 
   it('keeps unrelated AI errors out of model configuration and generation', async () => {
     const store = useAIStore();
-    invokeDesktop.mockRejectedValueOnce(new Error('ASR download failed'));
-    await expect(store.downloadModel('tiny' as never, true)).rejects.toBeDefined();
-    expect(store.errorFor('downloadModel')?.message).toBe('ASR download failed');
+    invokeDesktop.mockRejectedValueOnce(new Error('log query failed'));
+    await expect(
+      store.loadLogs({ userUid: null, startedAt: null, endedAt: null })
+    ).rejects.toBeDefined();
+    expect(store.errorFor('loadLogs')?.message).toBe('log query failed');
     expect(store.errorFor('saveProfile', 'deleteProfile', 'setDefaultProfile', 'testProfile')).toBeNull();
     expect(store.errorFor('generate')).toBeNull();
     store.clear();
-    expect(store.errorFor('downloadModel')).toBeNull();
+    expect(store.errorFor('loadLogs')).toBeNull();
   });
 
   it('deduplicates an in-flight membership bootstrap', async () => {

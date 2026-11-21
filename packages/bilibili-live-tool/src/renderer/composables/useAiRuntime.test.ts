@@ -6,8 +6,6 @@ function targets(): AiRuntimeTargets {
   return {
     delta: vi.fn(),
     finished: vi.fn(),
-    asr: vi.fn(),
-    transcript: vi.fn(),
     bootstrap: vi.fn().mockResolvedValue(undefined),
     dispose: vi.fn()
   };
@@ -29,21 +27,16 @@ describe('shared AI runtime', () => {
 
     await Promise.all([runtime.start(), runtime.start()]);
 
-    expect([...listeners.keys()]).toEqual([
-      'ai_generation_delta',
-      'ai_generation_finished',
-      'asr_status_changed',
-      'asr_transcript'
-    ]);
+    expect([...listeners.keys()]).toEqual(['ai_generation_delta', 'ai_generation_finished']);
     expect(target.bootstrap).toHaveBeenCalledTimes(1);
-    listeners.get('asr_transcript')?.('你好，直播间');
-    expect(target.transcript).toHaveBeenCalledWith('你好，直播间');
+    listeners.get('ai_generation_finished')?.({ generationId: 'g1' });
+    expect(target.finished).toHaveBeenCalledWith({ generationId: 'g1' });
 
     runtime.stop();
-    expect(unlisten).toHaveBeenCalledTimes(4);
+    expect(unlisten).toHaveBeenCalledTimes(2);
     expect(target.dispose).toHaveBeenCalledTimes(1);
-    listeners.get('asr_transcript')?.('stale');
-    expect(target.transcript).toHaveBeenCalledTimes(1);
+    listeners.get('ai_generation_finished')?.({ generationId: 'stale' });
+    expect(target.finished).toHaveBeenCalledTimes(1);
   });
 
   it('removes partial listeners when registration fails', async () => {
@@ -57,7 +50,7 @@ describe('shared AI runtime', () => {
     const runtime = createAiRuntime(listen, targets());
 
     await expect(runtime.start()).rejects.toThrow('listener failed');
-    expect(unlisten).toHaveBeenCalledTimes(3);
+    expect(unlisten).toHaveBeenCalledTimes(1);
     expect(runtime.isActive()).toBe(false);
   });
 });

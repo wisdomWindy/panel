@@ -7,7 +7,7 @@ use crate::{
     application::{
         live_data::AcceptedLiveEventConsumer,
         member::{
-            AiOutputDeviceRecord, AiSpeechOutput, AiState, AiVoiceRecord, AsrProvider, LlmProvider,
+            AiOutputDeviceRecord, AiSpeechOutput, AiState, AiVoiceRecord, LlmProvider,
             MemberRepository, MemberServiceError, MembershipState, ModerationState,
             StoredEntitlement, UnavailableAiSecretStore,
         },
@@ -22,8 +22,8 @@ use crate::{
     infrastructure::{
         database::open_database,
         member::{
-            Ed25519TokenVerifier, SqliteMemberRepository, UnavailableAsrProvider,
-            UnavailableAuthProvider, UnavailableMembershipProvider, UnavailableModerationProvider,
+            Ed25519TokenVerifier, SqliteMemberRepository, UnavailableAuthProvider,
+            UnavailableMembershipProvider, UnavailableModerationProvider,
         },
     },
 };
@@ -237,7 +237,6 @@ async fn ai_generation_rejects_a_concurrent_request() {
     let state = Arc::new(AiState::new(
         Arc::new(SqliteMemberRepository::new(pool)),
         llm.clone(),
-        Arc::new(UnavailableAsrProvider) as Arc<dyn AsrProvider>,
     ));
     let first_state = state.clone();
     let first =
@@ -269,7 +268,6 @@ async fn cancelling_an_ai_task_releases_the_generation_slot() {
     let state = Arc::new(AiState::new(
         Arc::new(SqliteMemberRepository::new(pool)),
         llm.clone(),
-        Arc::new(UnavailableAsrProvider),
     ));
     let first_state = state.clone();
     let first =
@@ -305,7 +303,6 @@ async fn voice_device_loss_disables_the_confirmed_route_without_fallback() {
         repository.clone(),
         Arc::new(ImmediateLlm),
         Arc::new(UnavailableAiSecretStore),
-        Arc::new(UnavailableAsrProvider),
         speech.clone(),
     );
 
@@ -353,7 +350,6 @@ async fn voice_route_persists_and_tests_the_selected_voice() {
         repository.clone(),
         Arc::new(ImmediateLlm),
         Arc::new(UnavailableAiSecretStore),
-        Arc::new(UnavailableAsrProvider),
         speech.clone(),
     );
 

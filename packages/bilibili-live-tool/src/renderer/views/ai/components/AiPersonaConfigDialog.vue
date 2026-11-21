@@ -23,7 +23,6 @@ const draft = reactive({
   isSensitiveFilterEnabled: true,
   bannedWordsText: '',
   danmakuContextCount: 20,
-  asrContextCount: 0,
   manualContextCount: 0
 });
 
@@ -53,7 +52,6 @@ function submit(): void {
         .map(value => value.trim())
         .filter(Boolean),
       danmakuContextCount: draft.danmakuContextCount,
-      asrContextCount: draft.asrContextCount,
       manualContextCount: draft.manualContextCount
     }
   });
@@ -111,9 +109,6 @@ function submit(): void {
         </el-form-item>
         <el-form-item label="历史弹幕条数">
           <el-input-number v-model="draft.danmakuContextCount" :min="0" class="w-full" />
-        </el-form-item>
-        <el-form-item label="语音上下文条数">
-          <el-input-number v-model="draft.asrContextCount" :min="0" class="w-full" />
         </el-form-item>
         <el-form-item label="人工输入条数">
           <el-input-number v-model="draft.manualContextCount" :min="0" class="w-full" />

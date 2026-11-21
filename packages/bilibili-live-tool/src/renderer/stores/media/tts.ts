@@ -4,14 +4,26 @@ import {
   invokeDesktop,
   normalizeDesktopError,
   type DesktopError,
+  type Qwen3DownloadState,
+  type Qwen3ModelCatalog,
+  type Qwen3TtsConfig,
+  type Qwen3TtsSnapshot,
   type TtsConfig,
   type TtsSnapshot,
   type TtsStatus
 } from '@/platform/desktop';
-import { adaptTtsSnapshot, adaptTtsStatus } from '@/modules/media/adapters';
+import {
+  adaptQwen3DownloadState,
+  adaptQwen3ModelCatalog,
+  adaptQwen3TtsSnapshot,
+  adaptTtsSnapshot,
+  adaptTtsStatus
+} from '@/modules/media/adapters';
 
 export const useMediaTtsStore = defineStore('media-tts', () => {
   const snapshot = ref<TtsSnapshot | null>(null);
+  const qwen3 = ref<Qwen3TtsSnapshot | null>(null);
+  const qwen3Catalog = ref<Qwen3ModelCatalog | null>(null);
   const pending = ref(false);
   const pendingOperations = ref<ReadonlySet<string>>(new Set());
   const error = ref<DesktopError | null>(null);
@@ -116,13 +128,80 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
     return commitStatus('clear', () => invokeDesktop('tts_clear', undefined));
   }
 
+  async function loadQwen3(): Promise<Qwen3TtsSnapshot | null> {
+    error.value = null;
+    try {
+      const adapted = adaptQwen3TtsSnapshot(await invokeDesktop('tts_qwen3_get', undefined));
+      qwen3.value = adapted;
+      return adapted;
+    } catch (value) {
+      const mapped = normalizeDesktopError(value);
+      error.value = mapped;
+      throw mapped;
+    }
+  }
+
+  function saveQwen3(config: Qwen3TtsConfig): Promise<Qwen3TtsSnapshot> {
+    return runOperation('qwen3Save', async () => {
+      const adapted = adaptQwen3TtsSnapshot(await invokeDesktop('tts_qwen3_save', { config }));
+      qwen3.value = adapted;
+      return adapted;
+    });
+  }
+
+  function testQwen3(): Promise<Qwen3TtsSnapshot> {
+    return runOperation('qwen3Test', async () => {
+      const adapted = adaptQwen3TtsSnapshot(await invokeDesktop('tts_qwen3_test', undefined));
+      qwen3.value = adapted;
+      return adapted;
+    });
+  }
+
+  let modelPoll: ReturnType<typeof setInterval> | null = null;
+
+  function stopModelPolling(): void {
+    if (modelPoll !== null) {
+      clearInterval(modelPoll);
+      modelPoll = null;
+    }
+  }
+
+  function startModelPolling(): void {
+    if (modelPoll !== null) return;
+    modelPoll = setInterval(() => {
+      void loadQwen3Models().catch(() => stopModelPolling());
+    }, 2000);
+  }
+
+  async function loadQwen3Models(): Promise<Qwen3ModelCatalog> {
+    const adapted = adaptQwen3ModelCatalog(await invokeDesktop('tts_qwen3_models', undefined));
+    qwen3Catalog.value = adapted;
+    if (adapted.download.status !== 'downloading') stopModelPolling();
+    return adapted;
+  }
+
+  /** Downloads the 1.7B CustomVoice checkpoint unless a model is named. */
+  function downloadQwen3Model(model: string | null = null): Promise<Qwen3DownloadState> {
+    return runOperation('qwen3Download', async () => {
+      const state = adaptQwen3DownloadState(
+        await invokeDesktop('tts_qwen3_download_model', { model })
+      );
+      if (qwen3Catalog.value) {
+        qwen3Catalog.value = Object.freeze({ ...qwen3Catalog.value, download: state });
+      }
+      if (state.status === 'downloading') startModelPolling();
+      return state;
+    });
+  }
+
   function dispose(): void {
     generation += 1;
     loadPromise = null;
     operations.clear();
     pending.value = false;
     pendingOperations.value = new Set();
+    stopModelPolling();
   }
 
-  return { snapshot, pending, pendingOperations, error, load, refresh, save, setEnabled, test, pause, clear, replaceStatus, dispose };
+  return { snapshot, qwen3, qwen3Catalog, pending, pendingOperations, error, load, refresh, save, setEnabled, test, pause, clear, replaceStatus, loadQwen3, saveQwen3, testQwen3, loadQwen3Models, downloadQwen3Model, stopModelPolling, dispose };
 });

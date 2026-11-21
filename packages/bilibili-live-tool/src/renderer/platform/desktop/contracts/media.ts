@@ -114,6 +114,69 @@ export interface TtsStatus {
 }
 export interface TtsSnapshot { config: TtsConfig; voices: readonly TtsVoice[]; status: TtsStatus; updatedAt: number }
 
+/** Languages advertised by Qwen3-TTS-12Hz checkpoints. */
+export type Qwen3Language =
+  | 'Auto'
+  | 'Chinese'
+  | 'English'
+  | 'Japanese'
+  | 'Korean'
+  | 'German'
+  | 'French'
+  | 'Russian'
+  | 'Portuguese'
+  | 'Spanish'
+  | 'Italian';
+
+export interface Qwen3TtsConfig {
+  isEnabled: boolean;
+  baseUrl: string;
+  voiceId: string | null;
+  language: Qwen3Language;
+  instruct: string;
+  timeoutMs: number;
+  fallbackToSystem: boolean;
+  aiVoiceId: string | null;
+  aiInstruct: string | null;
+}
+export interface Qwen3TtsHealth {
+  ready: boolean;
+  engine: string;
+  model: string;
+  sampleRate: number;
+  error: string | null;
+}
+export interface Qwen3TtsSnapshot {
+  config: Qwen3TtsConfig;
+  health: Qwen3TtsHealth | null;
+  voiceIds: readonly string[];
+}
+
+export interface Qwen3ModelEntry {
+  modelId: string;
+  displayName: string;
+  task: string;
+  isDefault: boolean;
+  isInstalled: boolean;
+}
+
+export type Qwen3DownloadStatus = 'idle' | 'downloading' | 'ready' | 'error';
+
+export interface Qwen3DownloadState {
+  modelId: string | null;
+  status: Qwen3DownloadStatus;
+  progressPercent: number | null;
+  bytesDownloaded: number;
+  bytesTotal: number | null;
+  path: string | null;
+  error: string | null;
+}
+
+export interface Qwen3ModelCatalog {
+  models: readonly Qwen3ModelEntry[];
+  download: Qwen3DownloadState;
+}
+
 export type RecordingFormat = 'mp4' | 'flv';
 export type RecordingQuality = 'original' | 'high' | 'standard';
 export type FfmpegSource = 'bundled' | 'local';
@@ -175,7 +238,9 @@ export const MEDIA_COMMAND_NAMES = [
   'recording_get_config', 'recording_save_config', 'recording_set_ffmpeg_source',
   'recording_status', 'recording_start', 'recording_stop', 'recording_list',
   'recording_preview', 'recording_rename', 'recording_delete',
-  'highlight_list', 'highlight_mark', 'highlight_preview', 'highlight_export', 'highlight_delete'
+  'highlight_list', 'highlight_mark', 'highlight_preview', 'highlight_export', 'highlight_delete',
+  'tts_qwen3_get', 'tts_qwen3_save', 'tts_qwen3_test',
+  'tts_qwen3_models', 'tts_qwen3_download_model'
 ] as const;
 export const MEDIA_EVENT_NAMES = [
   'captain_effect_trigger', 'gift_alert_trigger', 'gift_notify_updated',
@@ -207,6 +272,11 @@ export interface MediaCommandRequestMap {
   tts_test: { config: TtsConfig };
   tts_pause: { isPaused: boolean };
   tts_clear: undefined;
+  tts_qwen3_get: undefined;
+  tts_qwen3_save: { config: Qwen3TtsConfig };
+  tts_qwen3_test: undefined;
+  tts_qwen3_models: undefined;
+  tts_qwen3_download_model: { model: string | null };
   recording_get_config: undefined;
   recording_save_config: { config: RecordingConfig };
   recording_set_ffmpeg_source: { source: FfmpegSource; grantId: PathGrantId | null };
@@ -245,6 +315,11 @@ export interface MediaCommandResultMap {
   tts_test: TtsStatus;
   tts_pause: TtsStatus;
   tts_clear: TtsStatus;
+  tts_qwen3_get: Qwen3TtsSnapshot;
+  tts_qwen3_save: Qwen3TtsSnapshot;
+  tts_qwen3_test: Qwen3TtsSnapshot;
+  tts_qwen3_models: Qwen3ModelCatalog;
+  tts_qwen3_download_model: Qwen3DownloadState;
   recording_get_config: RecordingConfig;
   recording_save_config: RecordingConfig;
   recording_set_ffmpeg_source: RecordingConfig;

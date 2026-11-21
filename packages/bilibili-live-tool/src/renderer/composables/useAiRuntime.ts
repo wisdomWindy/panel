@@ -14,8 +14,6 @@ type Listen = <K extends EventName>(
 export interface AiRuntimeTargets {
   delta(payload: EventPayloadMap['ai_generation_delta']): void;
   finished(payload: EventPayloadMap['ai_generation_finished']): void;
-  asr(payload: EventPayloadMap['asr_status_changed']): void;
-  transcript(payload: EventPayloadMap['asr_transcript']): void;
   bootstrap(): Promise<void>;
   dispose(): void;
 }
@@ -36,9 +34,7 @@ export function createAiRuntime(listen: Listen, targets: AiRuntimeTargets) {
       };
     const bindings: ReadonlyArray<() => Promise<Unlisten>> = [
       () => listen('ai_generation_delta', guarded<'ai_generation_delta'>(targets.delta)),
-      () => listen('ai_generation_finished', guarded<'ai_generation_finished'>(targets.finished)),
-      () => listen('asr_status_changed', guarded<'asr_status_changed'>(targets.asr)),
-      () => listen('asr_transcript', guarded<'asr_transcript'>(targets.transcript))
+      () => listen('ai_generation_finished', guarded<'ai_generation_finished'>(targets.finished))
     ];
     const current = (async () => {
       const results = await Promise.allSettled(bindings.map(bind => bind()));
@@ -83,8 +79,6 @@ export function useAiRuntime() {
   rootRuntime = createAiRuntime(listenDesktop, {
     delta: ai.acceptDelta,
     finished: ai.acceptGeneration,
-    asr: ai.acceptAsr,
-    transcript: ai.acceptAsrTranscript,
     bootstrap: ai.bootstrap,
     dispose: ai.dispose
   });

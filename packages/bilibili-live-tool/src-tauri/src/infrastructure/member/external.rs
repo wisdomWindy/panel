@@ -1,7 +1,7 @@
 use crate::{
     application::member::{
-        AsrProvider, AuthPollState, AuthProvider, AuthQrChallenge, EntitlementVerifier,
-        LlmProvider, MemberServiceError, MembershipProvider, ModerationProvider, OrderRecord,
+        AuthPollState, AuthProvider, AuthQrChallenge, EntitlementVerifier, LlmProvider,
+        MemberServiceError, MembershipProvider, ModerationProvider, OrderRecord,
     },
     domain::{live_data::UserUid, member::MemberAccount},
 };
@@ -75,34 +75,6 @@ pub struct UnavailableLlmProvider;
 impl LlmProvider for UnavailableLlmProvider {
     async fn generate(&self, _prompt: &str) -> Result<String, MemberServiceError> {
         Err(MemberServiceError::unavailable("llm_unavailable"))
-    }
-}
-
-pub struct UnavailableAsrProvider;
-
-#[async_trait::async_trait]
-impl AsrProvider for UnavailableAsrProvider {
-    async fn list_models(
-        &self,
-    ) -> Result<Vec<crate::application::member::AsrModelRecord>, MemberServiceError> {
-        Ok(Vec::new())
-    }
-
-    async fn download_model(
-        &self,
-        _model_id: &str,
-    ) -> Result<crate::application::member::AsrModelRecord, MemberServiceError> {
-        Err(MemberServiceError::unavailable(
-            "asr_model_download_unavailable",
-        ))
-    }
-
-    async fn start(&self) -> Result<(), MemberServiceError> {
-        Err(MemberServiceError::unavailable("asr_unavailable"))
-    }
-
-    async fn stop(&self) -> Result<(), MemberServiceError> {
-        Ok(())
     }
 }
 

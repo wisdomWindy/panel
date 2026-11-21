@@ -139,20 +139,6 @@ jobs:
         with:
           workspaces: "${{ env.APP_PATH }}/src-tauri -> target"
 
-      - name: Configure Windows Whisper build dependencies
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $clangDirectory = 'C:\Program Files\LLVM\bin'
-          if (-not (Test-Path "$clangDirectory\libclang.dll")) {
-            choco install llvm --yes --no-progress
-            if ($LASTEXITCODE -ne 0) { throw 'LLVM installation failed' }
-          }
-          if (-not (Test-Path "$clangDirectory\libclang.dll")) {
-            throw 'Whisper compilation requires libclang.dll'
-          }
-          "LIBCLANG_PATH=$clangDirectory" >> $env:GITHUB_ENV
-
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 

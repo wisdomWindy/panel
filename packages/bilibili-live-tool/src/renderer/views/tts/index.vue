@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RefreshLeft, VideoPlay } from '@element-plus/icons-vue';
-import type { TtsConfig, TtsEventKind, TtsIdentityKind } from '@/platform/desktop';
+import type { Qwen3Language, Qwen3TtsConfig, TtsConfig, TtsEventKind, TtsIdentityKind } from '@/platform/desktop';
 import TtsQueuePanel from '@/components/media/TtsQueuePanel.vue';
 import { validateTtsTemplate, validateTtsTemplates } from '@/modules/media/validation';
 import { useMediaTtsStore } from '@/stores/media/tts';
@@ -42,6 +42,87 @@ const templateErrors = reactive<Record<keyof TtsConfig['templates'], string | nu
   gift: null,
   captain: null
 });
+
+const QWEN3_LANGUAGE_OPTIONS: readonly Qwen3Language[] = [
+  'Auto',
+  'Chinese',
+  'English',
+  'Japanese',
+  'Korean',
+  'German',
+  'French',
+  'Russian',
+  'Portuguese',
+  'Spanish',
+  'Italian'
+];
+const qwen3Draft = reactive<Qwen3TtsConfig>({
+  isEnabled: false,
+  baseUrl: 'http://127.0.0.1:8020',
+  voiceId: null,
+  language: 'Chinese',
+  instruct: '',
+  timeoutMs: 8000,
+  fallbackToSystem: true,
+  aiVoiceId: null,
+  aiInstruct: null
+});
+const qwen3Dirty = computed(() =>
+  store.qwen3 ? JSON.stringify(qwen3Draft) !== JSON.stringify(store.qwen3.config) : false
+);
+const qwen3Health = computed(() => store.qwen3?.health ?? null);
+const qwen3VoiceIds = computed(() => store.qwen3?.voiceIds ?? []);
+const qwen3SavePending = computed(() => store.pendingOperations.has('qwen3Save'));
+const qwen3TestPending = computed(() => store.pendingOperations.has('qwen3Test'));
+const qwen3ProbePending = ref(false);
+
+function applyQwen3Config(config: Qwen3TtsConfig): void {
+  Object.assign(qwen3Draft, { ...config });
+}
+
+function qwen3Payload(): Qwen3TtsConfig {
+  return {
+    ...qwen3Draft,
+    instruct: qwen3Draft.instruct.trim(),
+    aiInstruct: qwen3Draft.aiInstruct?.trim() ? qwen3Draft.aiInstruct.trim() : null,
+    aiVoiceId: qwen3Draft.aiVoiceId || null,
+    voiceId: qwen3Draft.voiceId || null
+  };
+}
+
+async function handleQwen3Save(): Promise<void> {
+  try {
+    const snapshot = await store.saveQwen3(qwen3Payload());
+    applyQwen3Config(snapshot.config);
+    // The cloud voice list follows the service status, so refresh it after saving.
+    await store.refresh().catch(() => null);
+    ElMessage.success(t('tts.qwen3.saveSuccess'));
+  } catch (error) {
+    ElMessage.error((error as { message?: string }).message ?? t('common.saveFailed'));
+  }
+}
+
+async function handleQwen3Probe(): Promise<void> {
+  qwen3ProbePending.value = true;
+  try {
+    const snapshot = await store.loadQwen3();
+    if (snapshot) applyQwen3Config(snapshot.config);
+  } catch (error) {
+    ElMessage.error((error as { message?: string }).message ?? t('tts.qwen3.unreachable'));
+  } finally {
+    qwen3ProbePending.value = false;
+  }
+}
+
+async function handleQwen3Test(): Promise<void> {
+  try {
+    if (qwen3Dirty.value) await store.saveQwen3(qwen3Payload());
+    await store.testQwen3();
+    ElMessage.success(t('tts.qwen3.testSuccess'));
+  } catch (error) {
+    ElMessage.error((error as { message?: string }).message ?? t('tts.messages.testFailed'));
+  }
+}
 
 const availableVoices = computed(
   () => store.snapshot?.voices.filter(voice => voice.engine === draft.selectedEngine) ?? []
@@ -183,6 +264,12 @@ onMounted(async () => {
   } catch {
     // The stable error region below owns retry feedback.
   }
+  try {
+    const qwen3 = await store.loadQwen3();
+    if (qwen3) applyQwen3Config(qwen3.config);
+  } catch {
+    // An unreachable speech service must not block the broadcast settings.
+  }
 });
 </script>
 
@@ -318,6 +405,96 @@ onMounted(async () => {
           <el-form-item :label="t('tts.events.captain')" :error="templateErrors.captain">
             <el-input v-model="draft.templates.captain" @blur="validateTemplate('captain')" />
           </el-form-item>
+        </div>
+
+        <el-divider content-position="left">
+          {{ t('tts.qwen3.title') }}
+        </el-divider>
+        <div class="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
+          <el-form-item :label="t('tts.qwen3.enable')">
+            <el-switch v-model="qwen3Draft.isEnabled" />
+          </el-form-item>
+          <el-form-item :label="t('tts.qwen3.fallback')">
+            <el-switch v-model="qwen3Draft.fallbackToSystem" />
+          </el-form-item>
+          <el-form-item :label="t('tts.qwen3.baseUrl')">
+            <el-input v-model="qwen3Draft.baseUrl" placeholder="http://127.0.0.1:8020" />
+            <span class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+              {{ t('tts.qwen3.baseUrlHint') }}
+            </span>
+          </el-form-item>
+          <el-form-item :label="t('tts.qwen3.language')">
+            <el-select v-model="qwen3Draft.language" class="w-full">
+              <el-option
+                v-for="language in QWEN3_LANGUAGE_OPTIONS"
+                :key="language"
+                :label="language"
+                :value="language"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item :label="t('tts.qwen3.aiVoice')">
+            <el-select v-model="qwen3Draft.aiVoiceId" class="w-full" clearable>
+              <el-option
+                v-for="voiceId in qwen3VoiceIds"
+                :key="voiceId"
+                :label="voiceId"
+                :value="voiceId"
+              />
+            </el-select>
+            <span class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+              {{ t('tts.qwen3.aiVoiceHint') }}
+            </span>
+          </el-form-item>
+          <el-form-item :label="t('tts.qwen3.timeout')">
+            <el-input-number
+              v-model="qwen3Draft.timeoutMs"
+              class="w-full"
+              :min="500"
+              :max="60000"
+              :step="500"
+            />
+          </el-form-item>
+          <el-form-item class="lg:col-span-2" :label="t('tts.qwen3.instruct')">
+            <el-input v-model="qwen3Draft.instruct" type="textarea" :rows="2" />
+            <span class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+              {{ t('tts.qwen3.instructHint') }}
+            </span>
+          </el-form-item>
+        </div>
+        <div class="mb-3 flex flex-wrap items-center gap-3">
+          <el-tag :type="qwen3Health?.ready ? 'success' : 'info'" size="small">
+            {{
+              qwen3Health?.ready
+                ? t('tts.qwen3.ready', { model: qwen3Health?.model ?? '' })
+                : qwen3Health
+                  ? t('tts.qwen3.loading')
+                  : t('tts.qwen3.unreachable')
+            }}
+          </el-tag>
+          <span v-if="qwen3Health?.error" class="text-xs text-amber-700 dark:text-amber-400">
+            {{ qwen3Health.error }}
+          </span>
+        </div>
+        <div class="mb-5 flex flex-wrap justify-end gap-2">
+          <el-button :loading="qwen3ProbePending" @click="handleQwen3Probe">
+            {{ t('tts.qwen3.probe') }}
+          </el-button>
+          <el-button
+            :loading="qwen3TestPending"
+            :disabled="!qwen3Draft.isEnabled"
+            @click="handleQwen3Test"
+          >
+            {{ t('common.test') }}
+          </el-button>
+          <el-button
+            type="primary"
+            :loading="qwen3SavePending"
+            :disabled="!qwen3Dirty"
+            @click="handleQwen3Save"
+          >
+            {{ t('common.save') }}
+          </el-button>
         </div>
 
         <div class="mb-5 flex flex-wrap justify-end gap-2">

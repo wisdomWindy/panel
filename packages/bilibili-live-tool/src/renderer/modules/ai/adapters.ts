@@ -7,9 +7,7 @@ import type {
   AiVoice,
   AiVoiceQueueItem,
   AiVoiceReplyRules,
-  AiVoiceReplySnapshot,
-  AsrModelManifest,
-  AsrStatus
+  AiVoiceReplySnapshot
 } from '@/platform/desktop';
 
 type UnknownRecord = Record<string, unknown>;
@@ -35,15 +33,6 @@ const GENERATION_STATES = [
   'failed',
   'rejected',
   'cancelled'
-] as const;
-const ASR_STATES = [
-  'unavailable',
-  'modelMissing',
-  'downloading',
-  'ready',
-  'starting',
-  'listening',
-  'error'
 ] as const;
 
 function record(value: unknown, label: string): UnknownRecord {
@@ -113,7 +102,6 @@ export function adaptAiConfig(value: unknown): AiConfig {
     isSensitiveFilterEnabled: boolean(source.isSensitiveFilterEnabled, 'isSensitiveFilterEnabled'),
     bannedWords: stringArray(source.bannedWords, 'bannedWords'),
     danmakuContextCount: integer(source.danmakuContextCount, 'danmakuContextCount'),
-    asrContextCount: integer(source.asrContextCount, 'asrContextCount'),
     manualContextCount: integer(source.manualContextCount, 'manualContextCount')
   });
 }
@@ -248,34 +236,4 @@ export function adaptAiLogEntry(value: unknown): AiLogEntry {
 export function adaptAiLogs(value: unknown): readonly AiLogEntry[] {
   if (!Array.isArray(value)) throw new TypeError('AI logs must be an array');
   return Object.freeze(value.map(adaptAiLogEntry));
-}
-
-export function adaptAsrStatus(value: unknown): AsrStatus {
-  const source = record(value, 'ASR status');
-  const progressPercent = integer(source.progressPercent, 'progressPercent');
-  if (progressPercent > 100) throw new TypeError('progressPercent is invalid');
-  return Object.freeze({
-    state: enumeration(source.state, ASR_STATES, 'state'),
-    modelName: nullableString(source.modelName, 'modelName'),
-    language: string(source.language, 'language'),
-    progressPercent,
-    errorCode: nullableString(source.errorCode, 'errorCode')
-  });
-}
-
-export function adaptAsrModelManifest(value: unknown): AsrModelManifest {
-  const source = record(value, 'ASR model');
-  return Object.freeze({
-    modelId: string(source.modelId, 'modelId') as AsrModelManifest['modelId'],
-    modelName: string(source.modelName, 'modelName'),
-    sizeBytes: integer(source.sizeBytes, 'sizeBytes'),
-    license: string(source.license, 'license'),
-    sourceLabel: string(source.sourceLabel, 'sourceLabel'),
-    isInstalled: boolean(source.isInstalled, 'isInstalled')
-  });
-}
-
-export function adaptAsrModels(value: unknown): readonly AsrModelManifest[] {
-  if (!Array.isArray(value)) throw new TypeError('ASR models must be an array');
-  return Object.freeze(value.map(adaptAsrModelManifest));
 }

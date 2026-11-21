@@ -4,7 +4,6 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const FFMPEG_REPOSITORY = 'BtbN/FFmpeg-Builds';
-const WHISPER_REPOSITORY = 'ggml-org/whisper.cpp';
 
 const FFMPEG_PACKAGES = [
   ['windows', 'x86_64', 'ffmpeg-master-latest-win64-lgpl-shared.zip', 'zip'],
@@ -13,25 +12,7 @@ const FFMPEG_PACKAGES = [
   ['linux', 'aarch64', 'ffmpeg-master-latest-linuxarm64-lgpl-shared.tar.xz', 'tar.xz']
 ];
 
-const WHISPER_PACKAGES = [
-  ['windows', 'x86_64', 'whisper-bin-x64.zip', 'zip'],
-  ['windows', 'aarch64', 'whisper-bin-win-cpu-arm64.zip', 'zip'],
-  ['linux', 'x86_64', 'whisper-bin-ubuntu-x64.tar.gz', 'tar.gz'],
-  ['linux', 'aarch64', 'whisper-bin-ubuntu-arm64.tar.gz', 'tar.gz']
-];
-
-export function selectWhisperRelease(releases) {
-  const names = new Set(WHISPER_PACKAGES.map(entry => entry[2]));
-  const release = releases.find(candidate =>
-    candidate.assets?.some(asset => names.has(asset.name))
-  );
-  if (!release) {
-    throw new Error('No official whisper.cpp release contains supported platform binaries');
-  }
-  return release;
-}
-
-export function resolveRuntimeArtifacts({ ffmpegRelease, whisperRelease, generatedAt }) {
+export function resolveRuntimeArtifacts({ ffmpegRelease, generatedAt }) {
   if (
     typeof generatedAt !== 'string' ||
     Number.isNaN(Date.parse(generatedAt)) ||
@@ -39,24 +20,14 @@ export function resolveRuntimeArtifacts({ ffmpegRelease, whisperRelease, generat
   ) {
     throw new Error('generatedAt must be an ISO timestamp');
   }
-  const artifacts = [
-    ...resolveReleaseAssets({
-      artifactId: 'ffmpeg',
-      release: ffmpegRelease,
-      repository: FFMPEG_REPOSITORY,
-      packages: FFMPEG_PACKAGES,
-      license: 'LGPL-2.1-or-later',
-      sourceUrl: 'https://ffmpeg.org/download.html'
-    }),
-    ...resolveReleaseAssets({
-      artifactId: 'whisper',
-      release: whisperRelease,
-      repository: WHISPER_REPOSITORY,
-      packages: WHISPER_PACKAGES,
-      license: 'MIT',
-      sourceUrl: `https://github.com/${WHISPER_REPOSITORY}/releases`
-    })
-  ];
+  const artifacts = resolveReleaseAssets({
+    artifactId: 'ffmpeg',
+    release: ffmpegRelease,
+    repository: FFMPEG_REPOSITORY,
+    packages: FFMPEG_PACKAGES,
+    license: 'LGPL-2.1-or-later',
+    sourceUrl: 'https://ffmpeg.org/download.html'
+  });
   assertUniqueTargets(artifacts);
 
   return {
@@ -172,13 +143,9 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.output) throw new Error('--output is required');
 
-  const [ffmpegRelease, whisperReleases] = await Promise.all([
-    githubJson(`/repos/${FFMPEG_REPOSITORY}/releases/latest`),
-    githubJson(`/repos/${WHISPER_REPOSITORY}/releases?per_page=10`)
-  ]);
+  const ffmpegRelease = await githubJson(`/repos/${FFMPEG_REPOSITORY}/releases/latest`);
   const catalog = resolveRuntimeArtifacts({
     ffmpegRelease,
-    whisperRelease: selectWhisperRelease(whisperReleases),
     generatedAt: new Date().toISOString()
   });
   await mkdir(path.dirname(args.output), { recursive: true });

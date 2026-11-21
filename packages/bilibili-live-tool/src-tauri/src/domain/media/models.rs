@@ -210,6 +210,108 @@ pub struct TtsConfig {
     pub templates: TtsTemplates,
 }
 
+pub const DEFAULT_QWEN3_TTS_BASE_URL: &str = "http://127.0.0.1:8020";
+pub const DEFAULT_QWEN3_TTS_VOICE_ID: &str = "Serena";
+pub const DEFAULT_QWEN3_TTS_LANGUAGE: &str = "Chinese";
+pub const DEFAULT_QWEN3_TTS_TIMEOUT_MS: u64 = 8_000;
+pub const MAX_QWEN3_TTS_INSTRUCT_CHARS: usize = 400;
+
+/// Languages advertised by every released Qwen3-TTS-12Hz checkpoint.
+pub const QWEN3_TTS_LANGUAGES: [&str; 11] = [
+    "Auto", "Chinese", "English", "Japanese", "Korean", "German", "French", "Russian", "Portuguese",
+    "Spanish", "Italian",
+];
+
+const fn default_qwen3_enabled() -> bool {
+    false
+}
+
+fn default_qwen3_base_url() -> String {
+    DEFAULT_QWEN3_TTS_BASE_URL.to_owned()
+}
+
+fn default_qwen3_language() -> String {
+    DEFAULT_QWEN3_TTS_LANGUAGE.to_owned()
+}
+
+const fn default_qwen3_timeout_ms() -> u64 {
+    DEFAULT_QWEN3_TTS_TIMEOUT_MS
+}
+
+const fn default_true() -> bool {
+    true
+}
+
+/// Connection and voice settings for the Qwen3-TTS speech service.
+///
+/// The record is shared by the two speech paths (live-event 播报 and AI voice
+/// reply) so a single service endpoint drives both. Every field carries a
+/// serde default so an older or partial JSON record still deserializes.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Qwen3TtsConfig {
+    #[serde(default = "default_qwen3_enabled")]
+    pub is_enabled: bool,
+    #[serde(default = "default_qwen3_base_url")]
+    pub base_url: String,
+    #[serde(default)]
+    pub voice_id: Option<String>,
+    #[serde(default = "default_qwen3_language")]
+    pub language: String,
+    #[serde(default)]
+    pub instruct: String,
+    #[serde(default = "default_qwen3_timeout_ms")]
+    pub timeout_ms: u64,
+    /// When the service is unreachable or errors, fall back to the system engine.
+    #[serde(default = "default_true")]
+    pub fallback_to_system: bool,
+    /// Speaker for the AI voice-reply path; `None` reuses `voice_id`.
+    #[serde(default)]
+    pub ai_voice_id: Option<String>,
+    /// Instruction override for the AI voice-reply path; `None` reuses `instruct`.
+    #[serde(default)]
+    pub ai_instruct: Option<String>,
+}
+
+impl Default for Qwen3TtsConfig {
+    fn default() -> Self {
+        Self {
+            is_enabled: default_qwen3_enabled(),
+            base_url: default_qwen3_base_url(),
+            voice_id: None,
+            language: default_qwen3_language(),
+            instruct: String::new(),
+            timeout_ms: default_qwen3_timeout_ms(),
+            fallback_to_system: true,
+            ai_voice_id: None,
+            ai_instruct: None,
+        }
+    }
+}
+
+impl Qwen3TtsConfig {
+    /// Speaker used for live-event 播报.
+    pub fn event_voice(&self) -> &str {
+        self.voice_id
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or(DEFAULT_QWEN3_TTS_VOICE_ID)
+    }
+
+    /// Speaker used for AI voice replies.
+    pub fn reply_voice(&self) -> &str {
+        self.ai_voice_id
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| self.event_voice())
+    }
+
+    /// Instruction used for AI voice replies.
+    pub fn reply_instruct(&self) -> &str {
+        self.ai_instruct.as_deref().unwrap_or(&self.instruct)
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RecordingFormat {

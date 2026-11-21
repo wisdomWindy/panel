@@ -194,6 +194,9 @@ impl TtsRuntime {
             TtsSelectedEngine::System => {
                 vec![&self.system, &self.cloud, &self.local_fallback]
             }
+            // The explicit test paths deliberately exclude the system engine:
+            // a "test" must prove the *selected* engine works, not that some
+            // fallback saved us. Live playback keeps the wider chain below.
             TtsSelectedEngine::Cloud => vec![&self.cloud, &self.local_fallback],
         };
         let mut last_error = None;
@@ -273,6 +276,10 @@ impl TtsWorker {
                     ],
                     TtsSelectedEngine::Cloud => vec![
                         (ActiveSpeechEngine::Cloud, self.cloud.clone()),
+                        // A dead remote service must not silence the stream: the
+                        // system voice still speaks, and the snapshot reports the
+                        // degraded engine so the operator can react.
+                        (ActiveSpeechEngine::System, self.system.clone()),
                         (ActiveSpeechEngine::LocalFallback, self.local.clone()),
                     ],
                 };

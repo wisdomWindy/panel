@@ -29,8 +29,8 @@ use application::{
     },
 };
 use infrastructure::member::{
-    OpenAiCompatibleLlmProvider, SqliteMemberRepository, SystemAiSecretStore, SystemAiSpeechOutput,
-    WhisperAsrProvider,
+    OpenAiCompatibleLlmProvider, Qwen3TtsAiSpeechOutput, SqliteMemberRepository,
+    SystemAiSecretStore, SystemAiSpeechOutput,
 };
 #[cfg(feature = "member")]
 use infrastructure::member::{
@@ -45,9 +45,9 @@ use infrastructure::{
         UnavailableLiveRepository,
     },
     media::{
-        GiftSoundFileStore, LocalFfmpegProcessPort, PreviewRegistry, RodioAudioOutput,
-        SqliteMediaRepository, SystemSpeechEngine, TauriEffectWindowPort, TauriHotkeyPort,
-        TauriNotificationPort, UnavailableSpeechEngine,
+        GiftSoundFileStore, LocalFfmpegProcessPort, PreviewRegistry, Qwen3TtsService,
+        Qwen3TtsSpeechEngine, RodioAudioOutput, SqliteMediaRepository, SystemSpeechEngine,
+        TauriEffectWindowPort, TauriHotkeyPort, TauriNotificationPort, UnavailableSpeechEngine,
     },
     path_grants::PathGrantStore,
     release::{installation_bucket, migration_resilience_snapshot, update_provider},
@@ -72,15 +72,16 @@ use ipc::media::{
     highlight_mark, highlight_preview, recording_delete, recording_get_config, recording_list,
     recording_preview, recording_rename, recording_save_config, recording_set_ffmpeg_source,
     recording_start, recording_status, recording_stop, sound_preview, tts_clear, tts_get,
-    tts_pause, tts_save, tts_set_enabled, tts_test, TauriMediaEventSink,
+    tts_pause, tts_qwen3_download_model, tts_qwen3_get, tts_qwen3_models, tts_qwen3_save,
+    tts_qwen3_test, tts_save, tts_set_enabled, tts_test,
+    TauriMediaEventSink,
 };
 use ipc::member::{
     ai_config_get, ai_config_save, ai_generate, ai_log_query, ai_model_profile_delete,
     ai_model_profile_list, ai_model_profile_save, ai_model_set_default, ai_model_test,
     ai_regenerate, ai_tts_clear_queue, ai_tts_list_output_devices, ai_tts_pause,
     ai_tts_set_output_device, ai_tts_skip, ai_tts_test, ai_voice_reply_get,
-    ai_voice_reply_set_enabled, ai_voice_reply_update_rules, asr_model_download, asr_model_list,
-    asr_start, asr_status, asr_stop, TauriMemberEventSink,
+    ai_voice_reply_set_enabled, ai_voice_reply_update_rules, TauriMemberEventSink,
 };
 #[cfg(feature = "member")]
 use ipc::member::{
@@ -106,6 +107,7 @@ pub struct AppState {
     paths: PathState,
     live_data: Arc<LiveDataState>,
     media: Arc<MediaState>,
+    qwen3_tts: Arc<Qwen3TtsService>,
     ranking_presenter: Arc<RankingPresenter>,
     shell: Arc<ApplicationShellState>,
     release: Arc<ReleaseState>,
@@ -212,6 +214,8 @@ impl AppState {
             }
         }
 
+        let qwen3_tts = Qwen3TtsService::bootstrap(pool.clone()).await;
+
         let audio = Arc::new(RodioAudioOutput);
         let effects = EffectRuntime::start(
             captain_config,
@@ -236,7 +240,10 @@ impl AppState {
         let tts = TtsRuntime::start(
             tts_config,
             system_speech,
-            Arc::new(UnavailableSpeechEngine),
+            Arc::new(Qwen3TtsSpeechEngine::new(
+                qwen3_tts.clone(),
+                Arc::new(RodioAudioOutput),
+            )),
             Arc::new(UnavailableSpeechEngine),
         )
         .await;
@@ -274,11 +281,10 @@ impl AppState {
                     repository,
                     llm,
                     secrets,
-                    Arc::new(
-                        WhisperAsrProvider::new(config_directory.join("asr-models"))
-                            .with_event_sink(Arc::new(TauriMemberEventSink::new(app.clone()))),
-                    ),
-                    Arc::new(SystemAiSpeechOutput::default()),
+                    Arc::new(Qwen3TtsAiSpeechOutput::new(
+                        qwen3_tts.clone(),
+                        Arc::new(SystemAiSpeechOutput::default()),
+                    )),
                 )
                 .with_event_sink(Arc::new(TauriMemberEventSink::new(app.clone()))),
             )
@@ -368,6 +374,7 @@ impl AppState {
             paths,
             live_data,
             media,
+            qwen3_tts,
             ranking_presenter,
             shell,
             release,
@@ -396,6 +403,10 @@ impl AppState {
         &self.media
     }
 
+    pub(crate) fn qwen3_tts(&self) -> &Arc<Qwen3TtsService> {
+        &self.qwen3_tts
+    }
+
     pub(crate) fn shell(&self) -> &Arc<ApplicationShellState> {
         &self.shell
     }
@@ -406,7 +417,7 @@ impl AppState {
 
     pub(crate) fn ai(&self) -> Result<&Arc<AiState>, ipc::error::DesktopError> {
         self.ai.as_ref().ok_or_else(|| {
-            ipc::error::DesktopError::new("ai_storage_unavailable", "AI 本地数据暂不可用", true)
+            ipc::error::DesktopError::new("ai_storage_unavailable", "AI 鏈湴鏁版嵁鏆備笉鍙敤", true)
         })
     }
 
@@ -414,7 +425,7 @@ impl AppState {
         self.member.as_ref().ok_or_else(|| {
             ipc::error::DesktopError::new(
                 "member_storage_unavailable",
-                "会员本地数据暂不可用",
+                "浼氬憳鏈湴鏁版嵁鏆備笉鍙敤",
                 true,
             )
         })
@@ -531,11 +542,6 @@ pub fn run() {
         ai_generate,
         ai_regenerate,
         ai_log_query,
-        asr_status,
-        asr_model_list,
-        asr_model_download,
-        asr_start,
-        asr_stop,
         captain_effect_get,
         captain_effect_current,
         captain_effect_save,
@@ -556,6 +562,11 @@ pub fn run() {
         tts_test,
         tts_pause,
         tts_clear,
+        tts_qwen3_get,
+        tts_qwen3_save,
+        tts_qwen3_test,
+        tts_qwen3_models,
+        tts_qwen3_download_model,
         recording_get_config,
         recording_save_config,
         recording_set_ffmpeg_source,
@@ -632,11 +643,6 @@ pub fn run() {
         ai_generate,
         ai_regenerate,
         ai_log_query,
-        asr_status,
-        asr_model_list,
-        asr_model_download,
-        asr_start,
-        asr_stop,
         moderate_status,
         moderate_set_auto,
         moderate_update_rules,
@@ -684,6 +690,11 @@ pub fn run() {
         tts_test,
         tts_pause,
         tts_clear,
+        tts_qwen3_get,
+        tts_qwen3_save,
+        tts_qwen3_test,
+        tts_qwen3_models,
+        tts_qwen3_download_model,
         recording_get_config,
         recording_save_config,
         recording_set_ffmpeg_source,

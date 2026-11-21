@@ -1,20 +1,58 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Download, Refresh } from '@element-plus/icons-vue';
 import { normalizeDesktopError, type DataRange } from '@/platform/desktop';
 import { formatCount, formatDanmuRate, formatMoneyMinor } from '@/modules/live-data/formatters';
 import { useLiveAnalyticsStore } from '@/stores/live-data/analytics';
+import { useMediaTtsStore } from '@/stores/media/tts';
 import DataExportDialog from '@/components/live-data/DataExportDialog.vue';
 import DataRangeControl from '@/components/live-data/DataRangeControl.vue';
 import TrendChart from '@/components/live-data/TrendChart.vue';
 
 const analytics = useLiveAnalyticsStore();
+const media = useMediaTtsStore();
 const { t } = useI18n();
 const range = ref<DataRange>({ kind: 'liveSession' });
 const exportVisible = ref(false);
 
 const metrics = () => analytics.statistics?.metrics ?? null;
+
+// -- Qwen3-TTS model download -------------------------------------------
+const qwenModels = computed(() => media.qwen3Catalog?.models ?? []);
+const primaryModel = computed(
+  () => qwenModels.value.find(model => model.isDefault) ?? qwenModels.value[0] ?? null
+);
+const modelDownloading = computed(() => media.qwen3Catalog?.download.status === 'downloading');
+const modelInstalled = computed(() => primaryModel.value?.isInstalled ?? false);
+const modelProgress = computed(() => media.qwen3Catalog?.download.progressPercent ?? null);
+const modelServiceAvailable = computed(() => media.qwen3Catalog !== null);
+const modelError = computed(() => {
+  const download = media.qwen3Catalog?.download;
+  if (!download || download.status !== 'error') return null;
+  return download.error ?? t('dashboard.qwen3Model.failed');
+});
+const modelStatusLabel = computed(() => {
+  if (!modelServiceAvailable.value) return t('dashboard.qwen3Model.serviceDownShort');
+  if (modelDownloading.value) {
+    return modelProgress.value === null
+      ? t('dashboard.qwen3Model.downloading')
+      : t('dashboard.qwen3Model.downloadingPercent', { percent: modelProgress.value });
+  }
+  if (media.qwen3Catalog?.download.status === 'error') return t('dashboard.qwen3Model.failed');
+  return modelInstalled.value
+    ? t('dashboard.qwen3Model.ready')
+    : t('dashboard.qwen3Model.notDownloaded');
+});
+
+async function downloadModel(): Promise<void> {
+  try {
+    await media.downloadQwen3Model(primaryModel.value?.modelId ?? null);
+    ElMessage.success(t('dashboard.qwen3Model.started'));
+  } catch (error) {
+    showError(error);
+  }
+}
 
 function showError(value: unknown): void {
   const error = normalizeDesktopError(value);
@@ -50,6 +88,7 @@ watch(
 );
 onMounted(() => {
   void query();
+  void media.loadQwen3Models().catch(() => undefined);
 });
 </script>
 
@@ -162,6 +201,61 @@ onMounted(() => {
     >
       {{ t('liveData.empty') }}
     </div>
+
+    <section
+      class="mt-5 border border-gray-200 p-4 dark:border-zinc-800"
+      aria-labelledby="qwen3-model-title"
+    >
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="mr-auto min-w-0">
+          <h3
+            id="qwen3-model-title"
+            class="m-0 text-base font-semibold text-gray-900 dark:text-zinc-100"
+          >
+            {{ t('dashboard.qwen3Model.title') }}
+          </h3>
+          <p class="mt-1 mb-0 text-sm text-gray-500 dark:text-zinc-400">
+            {{ t('dashboard.qwen3Model.description') }}
+          </p>
+        </div>
+        <el-tag :type="modelInstalled ? 'success' : 'info'" effect="plain">
+          {{ modelStatusLabel }}
+        </el-tag>
+        <el-button
+          type="primary"
+          :icon="Download"
+          :loading="modelDownloading"
+          :disabled="modelDownloading || !modelServiceAvailable"
+          @click="downloadModel"
+        >
+          {{
+            modelInstalled
+              ? t('dashboard.qwen3Model.redownload')
+              : t('dashboard.qwen3Model.download')
+          }}
+        </el-button>
+      </div>
+      <el-progress
+        v-if="modelDownloading"
+        class="mt-3"
+        :percentage="modelProgress ?? 0"
+        :indeterminate="modelProgress === null"
+        :stroke-width="10"
+      />
+      <p
+        v-if="modelError"
+        class="mt-2 mb-0 text-sm text-red-600 dark:text-red-400"
+        role="alert"
+      >
+        {{ modelError }}
+      </p>
+      <p
+        v-else-if="!modelServiceAvailable"
+        class="mt-2 mb-0 text-sm text-amber-700 dark:text-amber-400"
+      >
+        {{ t('dashboard.qwen3Model.serviceDown') }}
+      </p>
+    </section>
 
     <DataExportDialog
       :visible="exportVisible"

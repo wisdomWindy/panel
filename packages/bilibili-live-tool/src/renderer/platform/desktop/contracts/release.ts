@@ -36,7 +36,6 @@ export interface ResilienceSnapshot {
   readonly lastMigrationBackupAt: number | null;
   readonly retentionPolicyAvailable: boolean;
   readonly ffmpegArtifactAvailable: boolean;
-  readonly whisperArtifactAvailable: boolean;
 }
 
 export interface ReleaseCommandRequestMap {

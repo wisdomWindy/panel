@@ -185,6 +185,11 @@ pub const MEDIA_COMMAND_NAMES: &[&str] = &[
     "highlight_preview",
     "highlight_export",
     "highlight_delete",
+    "tts_qwen3_get",
+    "tts_qwen3_save",
+    "tts_qwen3_test",
+    "tts_qwen3_models",
+    "tts_qwen3_download_model",
 ];
 
 pub const MEDIA_EVENT_NAMES: &[&str] = &[
@@ -757,6 +762,89 @@ pub struct TtsEnabledRequestDto {
 #[serde(rename_all = "camelCase")]
 pub struct TtsPauseRequestDto {
     pub is_paused: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Qwen3TtsConfigDto {
+    pub is_enabled: bool,
+    pub base_url: String,
+    pub voice_id: Option<String>,
+    pub language: String,
+    pub instruct: String,
+    pub timeout_ms: u64,
+    pub fallback_to_system: bool,
+    pub ai_voice_id: Option<String>,
+    pub ai_instruct: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Qwen3TtsHealthDto {
+    pub ready: bool,
+    pub engine: String,
+    pub model: String,
+    pub sample_rate: u32,
+    pub error: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Qwen3TtsSnapshotDto {
+    pub config: Qwen3TtsConfigDto,
+    /// `None` when the service could not be reached at all.
+    pub health: Option<Qwen3TtsHealthDto>,
+    pub voice_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Qwen3ModelEntryDto {
+    pub model_id: String,
+    pub display_name: String,
+    pub task: String,
+    pub is_default: bool,
+    pub is_installed: bool,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Qwen3DownloadStatusDto {
+    Idle,
+    Downloading,
+    Ready,
+    Error,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Qwen3DownloadStateDto {
+    pub model_id: Option<String>,
+    pub status: Qwen3DownloadStatusDto,
+    pub progress_percent: Option<u8>,
+    pub bytes_downloaded: u64,
+    pub bytes_total: Option<u64>,
+    pub path: Option<String>,
+    pub error: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Qwen3ModelCatalogDto {
+    pub models: Vec<Qwen3ModelEntryDto>,
+    pub download: Qwen3DownloadStateDto,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Qwen3DownloadRequestDto {
+    pub model: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Qwen3TtsConfigRequestDto {
+    pub config: Qwen3TtsConfigDto,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]

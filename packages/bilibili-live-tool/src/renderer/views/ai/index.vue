@@ -8,20 +8,17 @@ import type {
   AiModelProfileSaveRequest,
   AiOutputDeviceId,
   AiVoiceId,
-  AiVoiceReplyRules,
-  AsrModelId
+  AiVoiceReplyRules
 } from '@/platform/desktop';
 import { useAIStore } from '@/stores/ai';
 import AiModelProfilesDialog from './components/AiModelProfilesDialog.vue';
 import AiPersonaConfigDialog from './components/AiPersonaConfigDialog.vue';
 import AiVoiceReplyControl from './components/AiVoiceReplyControl.vue';
-import AsrModelDownloadDialog from './components/AsrModelDownloadDialog.vue';
 
 const router = useRouter();
 const store = useAIStore();
 const configVisible = ref(false);
 const modelsVisible = ref(false);
-const asrDialogVisible = ref(false);
 const result = computed(() => {
   const generation = store.generation;
   return generation?.status === 'streaming' || generation?.status === 'completed'
@@ -31,36 +28,6 @@ const result = computed(() => {
 const generationError = computed(() => {
   if (store.generation?.errorCode === 'rate_limited') return '服务限流，请稍后重试';
   return store.errorFor('generate')?.message ?? store.generation?.errorCode ?? null;
-});
-const asrEnabled = computed(
-  () => store.asr?.state === 'listening' || store.asr?.state === 'starting'
-);
-const asrLabel = computed(
-  () =>
-    ({
-      unavailable: '不可用',
-      modelMissing: '模型未下载',
-      downloading: '下载中',
-      ready: '已就绪',
-      starting: '启动中',
-      listening: '识别中',
-      error: '异常'
-    })[store.asr?.state ?? 'unavailable']
-);
-const asrErrorMessage = computed(() => {
-  const messages: Readonly<Record<string, string>> = {
-    asr_engine_initialization_failed: '语音识别引擎初始化失败，请检查模型文件',
-    asr_microphone_unavailable: '无法打开默认麦克风，请检查设备和麦克风权限',
-    asr_audio_capture_failed: '麦克风采集中断，请检查设备后重新开启',
-    asr_audio_format_unsupported: '默认麦克风的音频格式暂不支持',
-    asr_inference_failed: '语音识别失败，请重新开启'
-  };
-  if (store.asr?.errorCode && messages[store.asr.errorCode]) return messages[store.asr.errorCode];
-  if (store.asr?.errorCode === 'asr_engine_unavailable') {
-    return '模型已就绪，但语音识别引擎暂不可用';
-  }
-  if (store.asr?.errorCode === 'asr_model_missing') return null;
-  return store.asr?.state === 'error' ? (store.error?.message ?? '语音识别启动失败') : null;
 });
 
 async function copyResult(): Promise<void> {
@@ -148,32 +115,6 @@ async function updateVoiceRules(rules: AiVoiceReplyRules): Promise<void> {
   await store.updateVoiceRules(rules).catch(() => undefined);
 }
 
-async function toggleAsr(value: boolean | string | number): Promise<void> {
-  if (!value) {
-    await store.stopAsr().catch(() => undefined);
-    return;
-  }
-  const hasInstalledModel = store.asrModels.some(model => model.isInstalled);
-  if (!hasInstalledModel) {
-    asrDialogVisible.value = true;
-    return;
-  }
-  try {
-    await store.startAsr();
-  } catch {
-    ElMessage.error(asrErrorMessage.value ?? '语音识别启动失败');
-  }
-}
-
-async function downloadModel(modelId: AsrModelId, accepted: boolean): Promise<void> {
-  try {
-    await store.downloadModel(modelId, accepted);
-    asrDialogVisible.value = false;
-  } catch {
-    // Download state and normalized error remain owned by the AI store.
-  }
-}
-
 onMounted(() => {
   void store.bootstrap().catch(() => undefined);
 });
@@ -227,37 +168,6 @@ onMounted(() => {
       </el-button>
     </el-alert>
 
-    <section
-      class="flex flex-wrap items-center gap-4 border-y border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900"
-    >
-      <span class="font-medium">ASR</span>
-      <el-switch
-        :model-value="asrEnabled"
-        :loading="store.pendingOperations.has('asr')"
-        @change="toggleAsr"
-      />
-      <el-tag effect="plain">
-        {{ asrLabel }}
-      </el-tag>
-      <span class="text-sm text-gray-500">{{ store.asr?.modelName ?? '-' }}</span>
-      <span class="text-sm text-gray-500">{{ store.asr?.language ?? '-' }}</span>
-      <span v-if="asrErrorMessage" class="text-sm text-red-600 dark:text-red-400">
-        {{ asrErrorMessage }}
-      </span>
-    </section>
-
-    <section v-if="store.asrTranscript" class="mt-4" aria-live="polite">
-      <h3 class="mb-2 text-base font-semibold">
-        语音识别结果
-      </h3>
-      <el-input
-        :model-value="store.asrTranscript"
-        type="textarea"
-        readonly
-        :rows="3"
-      />
-    </section>
-
     <section class="mt-5 border-t border-gray-200 pt-4 dark:border-gray-700">
       <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 class="m-0 text-base font-semibold">
@@ -300,14 +210,6 @@ onMounted(() => {
       @delete="deleteProfile"
       @set-default="setDefaultProfile"
       @test="testProfile"
-    />
-    <AsrModelDownloadDialog
-      v-model:visible="asrDialogVisible"
-      :models="store.asrModels"
-      :status="store.asr"
-      :pending="store.pendingOperations.has('downloadModel')"
-      :error-message="store.errorFor('downloadModel')?.message ?? null"
-      @download="downloadModel"
     />
   </div>
 </template>

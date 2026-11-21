@@ -12,13 +12,44 @@ use crate::{
 
 #[test]
 fn exposes_the_approved_media_surface_only() {
-    assert_eq!(MEDIA_COMMAND_NAMES.len(), 35);
+    assert_eq!(MEDIA_COMMAND_NAMES.len(), 40);
     assert_eq!(MEDIA_COMMAND_NAMES[0], "captain_effect_get");
     assert_eq!(MEDIA_COMMAND_NAMES[1], "captain_effect_current");
     assert_eq!(MEDIA_COMMAND_NAMES[34], "highlight_delete");
+    assert_eq!(MEDIA_COMMAND_NAMES[35], "tts_qwen3_get");
+    assert_eq!(MEDIA_COMMAND_NAMES[36], "tts_qwen3_save");
+    assert_eq!(MEDIA_COMMAND_NAMES[37], "tts_qwen3_test");
+    assert_eq!(MEDIA_COMMAND_NAMES[38], "tts_qwen3_models");
+    assert_eq!(MEDIA_COMMAND_NAMES[39], "tts_qwen3_download_model");
     assert_eq!(MEDIA_EVENT_NAMES.len(), 7);
     assert_eq!(MEDIA_EVENT_NAMES[0], "captain_effect_trigger");
     assert_eq!(MEDIA_EVENT_NAMES[6], "highlight_created");
+}
+
+#[test]
+fn qwen3_tts_config_round_trips_through_the_media_dto() {
+    let dto: super::dto::Qwen3TtsConfigDto = serde_json::from_value(json!({
+        "isEnabled": true,
+        "baseUrl": "http://127.0.0.1:8020",
+        "voiceId": "Serena",
+        "language": "Chinese",
+        "instruct": "温柔一点",
+        "timeoutMs": 8000,
+        "fallbackToSystem": true,
+        "aiVoiceId": "Vivian",
+        "aiInstruct": null
+    }))
+    .unwrap();
+
+    assert!(dto.is_enabled);
+    assert_eq!(dto.voice_id.as_deref(), Some("Serena"));
+    assert_eq!(dto.ai_voice_id.as_deref(), Some("Vivian"));
+    assert!(dto.ai_instruct.is_none());
+
+    let value = serde_json::to_value(&dto).unwrap();
+    assert_eq!(value["baseUrl"], "http://127.0.0.1:8020");
+    assert_eq!(value["fallbackToSystem"], true);
+    assert_eq!(value["aiVoiceId"], "Vivian");
 }
 
 #[test]

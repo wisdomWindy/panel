@@ -63,7 +63,6 @@ pub struct ResilienceSnapshot {
     pub last_migration_backup_at: Option<i64>,
     pub retention_policy_available: bool,
     pub ffmpeg_artifact_available: bool,
-    pub whisper_artifact_available: bool,
 }
 
 impl ResilienceSnapshot {
@@ -73,7 +72,6 @@ impl ResilienceSnapshot {
             last_migration_backup_at: None,
             retention_policy_available: false,
             ffmpeg_artifact_available: false,
-            whisper_artifact_available: false,
         }
     }
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { resolveRuntimeArtifacts, selectWhisperRelease } from './resolve-runtime-artifacts.mjs';
+import { resolveRuntimeArtifacts } from './resolve-runtime-artifacts.mjs';
 
 const digest = `sha256:${'a'.repeat(64)}`;
 const generatedAt = '2026-09-16T00:00:00.000Z';
@@ -24,16 +24,7 @@ test('resolveRuntimeArtifacts emits only exact official platform packages', () =
       asset('ffmpeg-master-latest-linux64-lgpl-shared.tar.xz', 'BtbN/FFmpeg-Builds')
     ]
   };
-  const whisperRelease = {
-    tag_name: 'b5130',
-    html_url: 'https://github.com/ggml-org/whisper.cpp/releases/tag/b5130',
-    assets: [
-      asset('whisper-bin-x64.zip', 'ggml-org/whisper.cpp'),
-      asset('whisper-bin-ubuntu-x64.tar.gz', 'ggml-org/whisper.cpp')
-    ]
-  };
-
-  const catalog = resolveRuntimeArtifacts({ ffmpegRelease, whisperRelease, generatedAt });
+  const catalog = resolveRuntimeArtifacts({ ffmpegRelease, generatedAt });
 
   assert.equal(catalog.schemaVersion, 1);
   assert.equal(catalog.generatedAt, generatedAt);
@@ -41,9 +32,7 @@ test('resolveRuntimeArtifacts emits only exact official platform packages', () =
     catalog.artifacts.map(({ artifactId, os, arch }) => ({ artifactId, os, arch })),
     [
       { artifactId: 'ffmpeg', os: 'windows', arch: 'x86_64' },
-      { artifactId: 'ffmpeg', os: 'linux', arch: 'x86_64' },
-      { artifactId: 'whisper', os: 'windows', arch: 'x86_64' },
-      { artifactId: 'whisper', os: 'linux', arch: 'x86_64' }
+      { artifactId: 'ffmpeg', os: 'linux', arch: 'x86_64' }
     ]
   );
   assert.ok(catalog.artifacts.every(entry => entry.sha256 === 'a'.repeat(64)));
@@ -52,18 +41,6 @@ test('resolveRuntimeArtifacts emits only exact official platform packages', () =
     catalog.artifacts.some(entry => entry.os === 'darwin'),
     false
   );
-});
-
-test('selectWhisperRelease skips releases without usable official binaries', () => {
-  const selected = selectWhisperRelease([
-    { tag_name: 'v1.9.4', assets: [] },
-    {
-      tag_name: 'b5130',
-      assets: [asset('whisper-bin-x64.zip', 'ggml-org/whisper.cpp')]
-    }
-  ]);
-
-  assert.equal(selected.tag_name, 'b5130');
 });
 
 test('resolveRuntimeArtifacts rejects assets without GitHub SHA-256 digests', () => {
@@ -78,7 +55,7 @@ test('resolveRuntimeArtifacts rejects assets without GitHub SHA-256 digests', ()
   };
 
   assert.throws(
-    () => resolveRuntimeArtifacts({ ffmpegRelease, whisperRelease: { assets: [] }, generatedAt }),
+    () => resolveRuntimeArtifacts({ ffmpegRelease, generatedAt }),
     /digest/i
   );
 });
@@ -90,7 +67,6 @@ test('resolveRuntimeArtifacts rejects duplicate assets and non-positive sizes', 
     () =>
       resolveRuntimeArtifacts({
         ffmpegRelease: { tag_name: 'latest', assets: [named, named] },
-        whisperRelease: { assets: [] },
         generatedAt
       }),
     /duplicate release asset/i
@@ -99,7 +75,6 @@ test('resolveRuntimeArtifacts rejects duplicate assets and non-positive sizes', 
     () =>
       resolveRuntimeArtifacts({
         ffmpegRelease: { tag_name: 'latest', assets: [{ ...named, size: 0 }] },
-        whisperRelease: { assets: [] },
         generatedAt
       }),
     /asset size/i

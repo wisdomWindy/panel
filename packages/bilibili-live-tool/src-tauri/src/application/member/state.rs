@@ -14,11 +14,11 @@ use crate::{
             AiConfigRecord, AiGenerationRecord, AiGenerationStatus, AiModelConnectionState,
             AiModelProfileRecord, AiOutputDeviceRecord, AiSecretStore, AiSpeechOutput,
             AiVoiceConfigRecord, AiVoiceQueueItemRecord, AiVoiceQueueSnapshotRecord,
-            AiVoiceQueueState, AiVoiceRecord, AsrModelRecord, AsrProvider, AsrState,
-            AsrStatusRecord, AuthProvider, EntitlementVerifier, LlmProvider, MemberEventSink,
-            MemberRepository, MemberServiceError, MembershipProvider, ModerationAlertRecord,
-            ModerationAlertStatus, ModerationConfigRecord, ModerationProvider, NoopMemberEventSink,
-            OrderRecord, UnavailableAiSecretStore, UnavailableAiSpeechOutput,
+            AiVoiceQueueState, AiVoiceRecord, AuthProvider, EntitlementVerifier, LlmProvider,
+            MemberEventSink, MemberRepository, MemberServiceError, MembershipProvider,
+            ModerationAlertRecord, ModerationAlertStatus, ModerationConfigRecord,
+            ModerationProvider, NoopMemberEventSink, OrderRecord, UnavailableAiSecretStore,
+            UnavailableAiSpeechOutput,
         },
     },
     domain::{
@@ -399,13 +399,11 @@ pub struct AiState {
     repository: Arc<dyn MemberRepository>,
     llm: Arc<dyn LlmProvider>,
     secrets: Arc<dyn AiSecretStore>,
-    asr: Arc<dyn AsrProvider>,
     speech: Arc<dyn AiSpeechOutput>,
     voice: Arc<AiVoiceRuntime>,
     event_sink: Arc<dyn MemberEventSink>,
     runtime: Mutex<AiRuntime>,
     active_generation: AtomicBool,
-    asr_status: Mutex<AsrStatusRecord>,
 }
 
 impl AiState {
@@ -419,16 +417,11 @@ impl AiState {
             .query_ai_logs(user_uid, started_at, ended_at)
             .await
     }
-    pub fn new(
-        repository: Arc<dyn MemberRepository>,
-        llm: Arc<dyn LlmProvider>,
-        asr: Arc<dyn AsrProvider>,
-    ) -> Self {
+    pub fn new(repository: Arc<dyn MemberRepository>, llm: Arc<dyn LlmProvider>) -> Self {
         Self::new_with_services(
             repository,
             llm,
             Arc::new(UnavailableAiSecretStore),
-            asr,
             Arc::new(UnavailableAiSpeechOutput),
         )
     }
@@ -437,7 +430,6 @@ impl AiState {
         repository: Arc<dyn MemberRepository>,
         llm: Arc<dyn LlmProvider>,
         secrets: Arc<dyn AiSecretStore>,
-        asr: Arc<dyn AsrProvider>,
         speech: Arc<dyn AiSpeechOutput>,
     ) -> Self {
         let voice = AiVoiceRuntime::start(repository.clone(), speech.clone());
@@ -445,19 +437,11 @@ impl AiState {
             repository,
             llm,
             secrets,
-            asr,
             speech,
             voice,
             event_sink: Arc::new(NoopMemberEventSink),
             runtime: Mutex::new(AiRuntime::default()),
             active_generation: AtomicBool::new(false),
-            asr_status: Mutex::new(AsrStatusRecord {
-                state: AsrState::Unavailable,
-                model_name: None,
-                language: "zh".to_owned(),
-                progress_percent: 0,
-                error_code: Some("asr_unavailable".to_owned()),
-            }),
         }
     }
 
@@ -838,146 +822,7 @@ impl AiState {
         self.generate(request.0, request.1).await
     }
 
-    pub async fn asr_models(&self) -> Result<Vec<AsrModelRecord>, MemberServiceError> {
-        self.asr.list_models().await
-    }
-
-    pub async fn asr_status(&self) -> AsrStatusRecord {
-        if let Some(status) = self.asr.runtime_status() {
-            *self.asr_status.lock().await = status.clone();
-            return status;
-        }
-        let current = self.asr_status.lock().await.clone();
-        if matches!(
-            current.state,
-            AsrState::Downloading | AsrState::Starting | AsrState::Listening
-        ) {
-            return current;
-        }
-        let status = match self.asr.list_models().await {
-            Ok(models) => match models.into_iter().find(|model| model.is_installed) {
-                Some(model) => AsrStatusRecord {
-                    state: AsrState::Ready,
-                    model_name: Some(model.model_name),
-                    language: "zh".to_owned(),
-                    progress_percent: 100,
-                    error_code: None,
-                },
-                None => AsrStatusRecord {
-                    state: AsrState::ModelMissing,
-                    model_name: None,
-                    language: "zh".to_owned(),
-                    progress_percent: 0,
-                    error_code: Some("asr_model_missing".to_owned()),
-                },
-            },
-            Err(error) => AsrStatusRecord {
-                state: AsrState::Unavailable,
-                model_name: None,
-                language: "zh".to_owned(),
-                progress_percent: 0,
-                error_code: Some(error.code.to_owned()),
-            },
-        };
-        *self.asr_status.lock().await = status.clone();
-        status
-    }
-
-    pub async fn download_asr_model(
-        &self,
-        model_id: &str,
-    ) -> Result<AsrStatusRecord, MemberServiceError> {
-        let downloading = AsrStatusRecord {
-            state: AsrState::Downloading,
-            model_name: None,
-            language: "zh".to_owned(),
-            progress_percent: 0,
-            error_code: None,
-        };
-        *self.asr_status.lock().await = downloading.clone();
-        self.event_sink.publish_asr_status(&downloading);
-
-        match self.asr.download_model(model_id).await {
-            Ok(model) => {
-                let status = AsrStatusRecord {
-                    state: AsrState::Ready,
-                    model_name: Some(model.model_name),
-                    language: "zh".to_owned(),
-                    progress_percent: 100,
-                    error_code: None,
-                };
-                *self.asr_status.lock().await = status.clone();
-                self.event_sink.publish_asr_status(&status);
-                Ok(status)
-            }
-            Err(error) => {
-                let status = AsrStatusRecord {
-                    state: AsrState::Error,
-                    model_name: None,
-                    language: "zh".to_owned(),
-                    progress_percent: 0,
-                    error_code: Some(error.code.to_owned()),
-                };
-                *self.asr_status.lock().await = status.clone();
-                self.event_sink.publish_asr_status(&status);
-                Err(error)
-            }
-        }
-    }
-
-    pub async fn start_asr(&self) -> Result<AsrStatusRecord, MemberServiceError> {
-        let ready = self.asr_status().await;
-        if ready.model_name.is_none() {
-            return Err(MemberServiceError::invalid("asr_model_missing"));
-        }
-        let starting = AsrStatusRecord {
-            state: AsrState::Starting,
-            model_name: ready.model_name.clone(),
-            language: "zh".to_owned(),
-            progress_percent: 100,
-            error_code: None,
-        };
-        *self.asr_status.lock().await = starting.clone();
-        self.event_sink.publish_asr_status(&starting);
-        if let Err(error) = self.asr.start().await {
-            let status = AsrStatusRecord {
-                state: AsrState::Error,
-                model_name: ready.model_name,
-                language: "zh".to_owned(),
-                progress_percent: 100,
-                error_code: Some(error.code.to_owned()),
-            };
-            *self.asr_status.lock().await = status.clone();
-            self.event_sink.publish_asr_status(&status);
-            return Err(error);
-        }
-        let status = AsrStatusRecord {
-            state: AsrState::Listening,
-            model_name: ready.model_name,
-            language: "zh".to_owned(),
-            progress_percent: 100,
-            error_code: None,
-        };
-        *self.asr_status.lock().await = status.clone();
-        self.event_sink.publish_asr_status(&status);
-        Ok(status)
-    }
-
-    pub async fn stop_asr(&self) -> Result<AsrStatusRecord, MemberServiceError> {
-        self.asr.stop().await?;
-        let mut status = self.asr_status.lock().await;
-        status.state = if status.model_name.is_some() {
-            AsrState::Ready
-        } else {
-            AsrState::ModelMissing
-        };
-        status.error_code = None;
-        self.event_sink.publish_asr_status(&status);
-        Ok(status.clone())
-    }
-
     pub async fn shutdown(&self) {
-        let _ = self.asr.stop().await;
         self.voice.shutdown().await;
         self.active_generation.store(false, Ordering::Release);
     }
@@ -1449,7 +1294,6 @@ fn default_ai_config() -> AiConfigRecord {
         is_sensitive_filter_enabled: true,
         banned_words: Vec::new(),
         danmaku_context_count: 20,
-        asr_context_count: 0,
         manual_context_count: 0,
         updated_at: now_millis(),
     }

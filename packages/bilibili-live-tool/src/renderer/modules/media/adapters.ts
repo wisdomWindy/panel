@@ -13,6 +13,12 @@ import type {
   RecordingConfig,
   RecordingStatus,
   RecordingSummary,
+  Qwen3TtsConfig,
+  Qwen3TtsHealth,
+  Qwen3TtsSnapshot,
+  Qwen3DownloadState,
+  Qwen3ModelCatalog,
+  Qwen3ModelEntry,
   SoundBindingSummary,
   TtsConfig,
   TtsSnapshot,
@@ -317,6 +323,110 @@ function ttsVoice(value: unknown, field: string): TtsVoice {
 
 export function adaptTtsStatus(value: unknown): TtsStatus {
   return ttsStatus(value);
+}
+
+const QWEN3_LANGUAGES = [
+  'Auto',
+  'Chinese',
+  'English',
+  'Japanese',
+  'Korean',
+  'German',
+  'French',
+  'Russian',
+  'Portuguese',
+  'Spanish',
+  'Italian'
+] as const;
+
+function qwen3Config(value: unknown): Qwen3TtsConfig {
+  const source = record(value, 'qwen3TtsConfig');
+  return frozen({
+    isEnabled: boolean(source.isEnabled, 'qwen3TtsConfig.isEnabled'),
+    baseUrl: string(source.baseUrl, 'qwen3TtsConfig.baseUrl'),
+    voiceId: nullableString(source.voiceId, 'qwen3TtsConfig.voiceId'),
+    language: enumeration(source.language, QWEN3_LANGUAGES, 'qwen3TtsConfig.language'),
+    instruct: string(source.instruct, 'qwen3TtsConfig.instruct'),
+    timeoutMs: integer(source.timeoutMs, 'qwen3TtsConfig.timeoutMs'),
+    fallbackToSystem: boolean(source.fallbackToSystem, 'qwen3TtsConfig.fallbackToSystem'),
+    aiVoiceId: nullableString(source.aiVoiceId, 'qwen3TtsConfig.aiVoiceId'),
+    aiInstruct: nullableString(source.aiInstruct, 'qwen3TtsConfig.aiInstruct')
+  });
+}
+
+function qwen3Health(value: unknown): Qwen3TtsHealth {
+  const source = record(value, 'qwen3TtsHealth');
+  return frozen({
+    ready: boolean(source.ready, 'qwen3TtsHealth.ready'),
+    engine: string(source.engine, 'qwen3TtsHealth.engine'),
+    model: string(source.model, 'qwen3TtsHealth.model'),
+    sampleRate: integer(source.sampleRate, 'qwen3TtsHealth.sampleRate'),
+    error: nullableString(source.error, 'qwen3TtsHealth.error')
+  });
+}
+
+export function adaptQwen3TtsSnapshot(value: unknown): Qwen3TtsSnapshot {
+  const source = record(value, 'qwen3TtsSnapshot');
+  return frozen({
+    config: qwen3Config(source.config),
+    health: source.health === null || source.health === undefined ? null : qwen3Health(source.health),
+    voiceIds: frozen(array(source.voiceIds, 'qwen3TtsSnapshot.voiceIds').map((item, index) => string(item, `qwen3TtsSnapshot.voiceIds.${index}`)))
+  });
+}
+
+function qwen3DownloadState(value: unknown): Qwen3DownloadState {
+  const source = record(value, 'qwen3DownloadState');
+  const progress = source.progressPercent;
+  if (progress !== null && progress !== undefined) {
+    const percent = integer(progress, 'qwen3DownloadState.progressPercent');
+    if (percent > 100) fail('qwen3DownloadState.progressPercent');
+  }
+  return frozen({
+    modelId: nullableString(source.modelId, 'qwen3DownloadState.modelId'),
+    status: enumeration(
+      source.status,
+      ['idle', 'downloading', 'ready', 'error'],
+      'qwen3DownloadState.status'
+    ),
+    progressPercent:
+      progress === null || progress === undefined
+        ? null
+        : integer(progress, 'qwen3DownloadState.progressPercent'),
+    bytesDownloaded: integer(source.bytesDownloaded, 'qwen3DownloadState.bytesDownloaded'),
+    bytesTotal:
+      source.bytesTotal === null || source.bytesTotal === undefined
+        ? null
+        : integer(source.bytesTotal, 'qwen3DownloadState.bytesTotal'),
+    path: nullableString(source.path, 'qwen3DownloadState.path'),
+    error: nullableString(source.error, 'qwen3DownloadState.error')
+  });
+}
+
+function qwen3ModelEntry(value: unknown, field: string): Qwen3ModelEntry {
+  const source = record(value, field);
+  return frozen({
+    modelId: string(source.modelId, `${field}.modelId`),
+    displayName: string(source.displayName, `${field}.displayName`),
+    task: string(source.task, `${field}.task`),
+    isDefault: boolean(source.isDefault, `${field}.isDefault`),
+    isInstalled: boolean(source.isInstalled, `${field}.isInstalled`)
+  });
+}
+
+export function adaptQwen3ModelCatalog(value: unknown): Qwen3ModelCatalog {
+  const source = record(value, 'qwen3ModelCatalog');
+  return frozen({
+    models: frozen(
+      array(source.models, 'qwen3ModelCatalog.models').map((item, index) =>
+        qwen3ModelEntry(item, `qwen3ModelCatalog.models.${index}`)
+      )
+    ),
+    download: qwen3DownloadState(source.download)
+  });
+}
+
+export function adaptQwen3DownloadState(value: unknown): Qwen3DownloadState {
+  return qwen3DownloadState(value);
 }
 
 export function adaptTtsSnapshot(value: unknown): TtsSnapshot {

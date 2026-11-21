@@ -11,7 +11,7 @@ defineEmits<{
   }>();
 
 const sourceLabel = (source: AiContextItem['source']) =>
-  ({ danmaku: '弹幕', asr: 'ASR', manual: '人工' })[source];
+  ({ danmaku: '弹幕', manual: '人工' })[source];
 </script>
 
 <template>

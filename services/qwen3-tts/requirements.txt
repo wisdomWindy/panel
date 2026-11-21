@@ -1,0 +1,14 @@
+# Qwen3-TTS runtime dependencies
+#
+# The HTTP layer itself only needs the Python standard library; these packages
+# are required by the *model* engine (i.e. anything except `--mock`).
+#
+# Python 3.12 is recommended upstream; 3.13 works but is not the tested path.
+qwen-tts>=0.1.0
+torch>=2.4
+soundfile>=0.12
+numpy>=1.26
+
+# Optional: halves GPU memory during attention on supported cards.
+# Install separately because it compiles from source:
+#   pip install -U flash-attn --no-build-isolation

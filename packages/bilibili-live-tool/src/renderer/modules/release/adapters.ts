@@ -94,14 +94,13 @@ export function adaptResilienceSnapshot(value: unknown): ResilienceSnapshot {
   const backupAt = source.lastMigrationBackupAt;
   if (typeof count !== 'number' || !Number.isInteger(count) || count < 0) throw new TypeError('backup count is invalid');
   if (backupAt !== null && (typeof backupAt !== 'number' || backupAt < 0)) throw new TypeError('backup time is invalid');
-  for (const key of ['retentionPolicyAvailable', 'ffmpegArtifactAvailable', 'whisperArtifactAvailable']) {
+  for (const key of ['retentionPolicyAvailable', 'ffmpegArtifactAvailable']) {
     if (typeof source[key] !== 'boolean') throw new TypeError(`${key} must be boolean`);
   }
   return Object.freeze({
     migrationBackupCount: count,
     lastMigrationBackupAt: backupAt as number | null,
     retentionPolicyAvailable: source.retentionPolicyAvailable as boolean,
-    ffmpegArtifactAvailable: source.ffmpegArtifactAvailable as boolean,
-    whisperArtifactAvailable: source.whisperArtifactAvailable as boolean
+    ffmpegArtifactAvailable: source.ffmpegArtifactAvailable as boolean
   });
 }

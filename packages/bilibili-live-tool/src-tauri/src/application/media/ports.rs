@@ -34,6 +34,12 @@ impl MediaIoError {
         Self::new("media_operation_failed", message, retryable)
     }
 
+    /// Builds an error with an explicit, adapter-specific code so callers can
+    /// distinguish failures without string matching.
+    pub fn coded(code: &'static str, message: impl Into<String>, retryable: bool) -> Self {
+        Self::new(code, message, retryable)
+    }
+
     fn new(code: &'static str, message: impl Into<String>, retryable: bool) -> Self {
         Self {
             code,
@@ -201,6 +207,44 @@ pub trait SpeechEnginePort: Send + Sync {
     async fn voices(&self) -> Result<Vec<SpeechVoice>, MediaIoError>;
     async fn speak(&self, request: SpeechRequest) -> Result<(), MediaIoError>;
     async fn stop(&self) -> Result<(), MediaIoError>;
+}
+
+/// A request to synthesise speech into bytes, independent of playback.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SynthesisRequest {
+    pub text: String,
+    pub voice_id: Option<String>,
+    pub language: String,
+    pub instruct: String,
+    /// Multiplier around 1.0; adapters that cannot resample fold it into `instruct`.
+    pub rate: f64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SynthesisVoice {
+    pub voice_id: String,
+    pub display_name: String,
+    pub language: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SynthesisHealth {
+    pub ready: bool,
+    pub engine: String,
+    pub model: String,
+    pub sample_rate: u32,
+    pub error: Option<String>,
+}
+
+/// The frozen synthesis contract shared by the live-event 播报 path and the
+/// AI voice-reply path. Any implementation (local service, remote API, stub)
+/// can be swapped in without the callers knowing which model runs underneath.
+#[async_trait::async_trait]
+pub trait SpeechSynthesisPort: Send + Sync {
+    async fn health(&self) -> Result<SynthesisHealth, MediaIoError>;
+    async fn voices(&self) -> Result<Vec<SynthesisVoice>, MediaIoError>;
+    /// Returns a complete RIFF/WAVE payload, mono 16-bit PCM.
+    async fn synthesize_wav(&self, request: SynthesisRequest) -> Result<Vec<u8>, MediaIoError>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

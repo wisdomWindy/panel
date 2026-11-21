@@ -40,7 +40,6 @@ fn safe_release_snapshots_serialize_without_paths_or_secrets() {
         last_migration_backup_at: None,
         retention_policy_available: false,
         ffmpeg_artifact_available: false,
-        whisper_artifact_available: false,
     };
     let serialized = format!(
         "{}{}{}",

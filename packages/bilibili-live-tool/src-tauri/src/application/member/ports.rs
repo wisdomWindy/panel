@@ -72,7 +72,6 @@ pub struct AiConfigRecord {
     pub is_sensitive_filter_enabled: bool,
     pub banned_words: Vec<String>,
     pub danmaku_context_count: u32,
-    pub asr_context_count: u32,
     pub manual_context_count: u32,
     pub updated_at: i64,
 }
@@ -240,36 +239,6 @@ pub enum AiGenerationStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AsrStatusRecord {
-    pub state: AsrState,
-    pub model_name: Option<String>,
-    pub language: String,
-    pub progress_percent: u8,
-    pub error_code: Option<String>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AsrModelRecord {
-    pub model_id: String,
-    pub model_name: String,
-    pub size_bytes: u64,
-    pub license: String,
-    pub source_label: String,
-    pub is_installed: bool,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum AsrState {
-    Unavailable,
-    ModelMissing,
-    Downloading,
-    Ready,
-    Starting,
-    Listening,
-    Error,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ModerationAlertRecord {
     pub alert_id: String,
     pub user_uid: UserUid,
@@ -291,10 +260,8 @@ pub enum ModerationAlertStatus {
 }
 
 pub trait MemberEventSink: Send + Sync {
-    fn publish_asr_transcript(&self, _text: &str) {}
     fn publish_status(&self, snapshot: &crate::domain::member::MemberSnapshot);
     fn publish_ai_generation(&self, generation: &AiGenerationRecord);
-    fn publish_asr_status(&self, status: &AsrStatusRecord);
     fn publish_moderation_alert(&self, alert: &ModerationAlertRecord);
 }
 
@@ -303,7 +270,6 @@ pub struct NoopMemberEventSink;
 impl MemberEventSink for NoopMemberEventSink {
     fn publish_status(&self, _: &crate::domain::member::MemberSnapshot) {}
     fn publish_ai_generation(&self, _: &AiGenerationRecord) {}
-    fn publish_asr_status(&self, _: &AsrStatusRecord) {}
     fn publish_moderation_alert(&self, _: &ModerationAlertRecord) {}
 }
 
@@ -531,17 +497,6 @@ impl AiSpeechOutput for UnavailableAiSpeechOutput {
     async fn stop(&self) -> Result<(), MemberServiceError> {
         Ok(())
     }
-}
-
-#[async_trait::async_trait]
-pub trait AsrProvider: Send + Sync {
-    fn runtime_status(&self) -> Option<AsrStatusRecord> {
-        None
-    }
-    async fn list_models(&self) -> Result<Vec<AsrModelRecord>, MemberServiceError>;
-    async fn download_model(&self, model_id: &str) -> Result<AsrModelRecord, MemberServiceError>;
-    async fn start(&self) -> Result<(), MemberServiceError>;
-    async fn stop(&self) -> Result<(), MemberServiceError>;
 }
 
 #[async_trait::async_trait]

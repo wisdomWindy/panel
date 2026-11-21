@@ -5,7 +5,6 @@ export type AiModelProfileId = string & { readonly __aiModelProfileId: unique sy
 export type AiOutputDeviceId = string & { readonly __aiOutputDeviceId: unique symbol };
 export type AiVoiceId = string & { readonly __aiVoiceId: unique symbol };
 export type AiVoiceQueueItemId = string & { readonly __aiVoiceQueueItemId: unique symbol };
-export type AsrModelId = string & { readonly __asrModelId: unique symbol };
 export type AiSpeakingStyle = 'concise' | 'natural' | 'detailed';
 export type AiProviderKind = 'cloud' | 'aggregator' | 'local' | 'customOpenAi';
 export type AiReasoningEffort =
@@ -28,7 +27,6 @@ export interface AiConfig {
   readonly isSensitiveFilterEnabled: boolean;
   readonly bannedWords: readonly string[];
   readonly danmakuContextCount: number;
-  readonly asrContextCount: number;
   readonly manualContextCount: number;
 }
 
@@ -124,7 +122,7 @@ export interface AiVoiceReplySnapshot {
 
 export interface AiContextItem {
   readonly id: string;
-  readonly source: 'danmaku' | 'asr' | 'manual';
+  readonly source: 'danmaku' | 'manual';
   readonly content: string;
 }
 
@@ -154,23 +152,6 @@ export interface AiLogEntry {
   readonly createdAt: number;
 }
 
-export interface AsrStatus {
-  readonly state: 'unavailable' | 'modelMissing' | 'downloading' | 'ready' | 'starting' | 'listening' | 'error';
-  readonly modelName: string | null;
-  readonly language: string;
-  readonly progressPercent: number;
-  readonly errorCode: string | null;
-}
-
-export interface AsrModelManifest {
-  readonly modelId: AsrModelId;
-  readonly modelName: string;
-  readonly sizeBytes: number;
-  readonly license: string;
-  readonly sourceLabel: string;
-  readonly isInstalled: boolean;
-}
-
 export const AI_COMMAND_NAMES = [
   'ai_config_get',
   'ai_config_save',
@@ -190,12 +171,7 @@ export const AI_COMMAND_NAMES = [
   'ai_tts_clear_queue',
   'ai_generate',
   'ai_regenerate',
-  'ai_log_query',
-  'asr_status',
-  'asr_model_list',
-  'asr_model_download',
-  'asr_start',
-  'asr_stop'
+  'ai_log_query'
 ] as const;
 
 export interface AiCommandRequestMap {
@@ -223,11 +199,6 @@ export interface AiCommandRequestMap {
   ai_generate: AiGenerateRequest;
   ai_regenerate: { generationId: GenerationId };
   ai_log_query: { userUid: UserUid | null; startedAt: number | null; endedAt: number | null };
-  asr_status: undefined;
-  asr_model_list: undefined;
-  asr_model_download: { modelId: AsrModelId; isLicenseAccepted: boolean };
-  asr_start: undefined;
-  asr_stop: undefined;
 }
 
 export interface AiCommandResultMap {
@@ -250,16 +221,9 @@ export interface AiCommandResultMap {
   ai_generate: AiGeneration;
   ai_regenerate: AiGeneration;
   ai_log_query: readonly AiLogEntry[];
-  asr_status: AsrStatus;
-  asr_model_list: readonly AsrModelManifest[];
-  asr_model_download: AsrStatus;
-  asr_start: AsrStatus;
-  asr_stop: AsrStatus;
 }
 
 export interface AiEventPayloadMap {
-  asr_transcript: string;
   ai_generation_delta: { generationId: GenerationId; sequence: number; delta: string };
   ai_generation_finished: AiGeneration;
-  asr_status_changed: AsrStatus;
 }

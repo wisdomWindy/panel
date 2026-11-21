@@ -8,7 +8,7 @@ use crate::{
         media::{
             ActiveSpeechEngine, ByteRange, GiftRuntimeSnapshot, GiftSoundBindingRecord,
             HighlightRecord, HighlightTriggerType, MediaEventSink, MediaIoError,
-            RecordingItemState, RecordingRecord, TtsRuntimeSnapshot,
+            RecordingItemState, RecordingRecord, SpeechSynthesisPort, TtsRuntimeSnapshot,
         },
         paths::PathPurpose,
     },
@@ -19,6 +19,7 @@ use crate::{
         TtsIdentityKind, TtsSelectedEngine, TtsTemplates,
     },
     ipc::{dto::*, error::DesktopError},
+    infrastructure::media::Qwen3TtsService,
     AppState,
 };
 
@@ -463,6 +464,171 @@ pub async fn tts_pause(
 pub async fn tts_clear(state: State<'_, AppState>) -> Result<TtsStatusDto, DesktopError> {
     state.media().tts().clear_pending().await;
     Ok(tts_status(state.media().tts().snapshot().await))
+}
+
+#[tauri::command]
+pub async fn tts_qwen3_get(
+    state: State<'_, AppState>,
+) -> Result<Qwen3TtsSnapshotDto, DesktopError> {
+    Ok(qwen3_snapshot(state.qwen3_tts()).await)
+}
+
+#[tauri::command]
+pub async fn tts_qwen3_save(
+    state: State<'_, AppState>,
+    request: Qwen3TtsConfigRequestDto,
+) -> Result<Qwen3TtsSnapshotDto, DesktopError> {
+    state
+        .qwen3_tts()
+        .save_config(qwen3_config_from_dto(request.config))
+        .await?;
+    Ok(qwen3_snapshot(state.qwen3_tts()).await)
+}
+
+#[tauri::command]
+pub async fn tts_qwen3_test(
+    state: State<'_, AppState>,
+) -> Result<Qwen3TtsSnapshotDto, DesktopError> {
+    let service = state.qwen3_tts();
+    if !service.is_enabled() {
+        return Err(MediaIoError::coded(
+            "qwen3_tts_disabled",
+            "请先启用 Qwen3-TTS 语音服务",
+            false,
+        )
+        .into());
+    }
+    let mut config = state.media().tts().config().await;
+    config.selected_engine = TtsSelectedEngine::Cloud;
+    config.selected_voice_id = Some(service.config().event_voice().to_owned());
+    state
+        .media()
+        .tts()
+        .test(&config, "用户A说：今天直播真不错".into())
+        .await?;
+    Ok(qwen3_snapshot(service).await)
+}
+
+#[tauri::command]
+pub async fn tts_qwen3_models(
+    state: State<'_, AppState>,
+) -> Result<Qwen3ModelCatalogDto, DesktopError> {
+    let catalog = tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        state.qwen3_tts().model_catalog(),
+    )
+    .await
+    .map_err(|_| MediaIoError::coded("qwen3_tts_timeout", "模型列表请求超时", true))??;
+    Ok(qwen3_catalog(catalog))
+}
+
+/// Downloads the released checkpoint into the speech service cache.
+/// With no explicit model this fetches the 1.7B CustomVoice default.
+#[tauri::command]
+pub async fn tts_qwen3_download_model(
+    state: State<'_, AppState>,
+    request: Qwen3DownloadRequestDto,
+) -> Result<Qwen3DownloadStateDto, DesktopError> {
+    let state = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        state
+            .qwen3_tts()
+            .start_model_download(request.model.as_deref()),
+    )
+    .await
+    .map_err(|_| MediaIoError::coded("qwen3_tts_timeout", "模型下载请求超时", true))??;
+    Ok(qwen3_download(state))
+}
+
+fn qwen3_catalog(catalog: crate::infrastructure::media::Qwen3ModelCatalog) -> Qwen3ModelCatalogDto {
+    Qwen3ModelCatalogDto {
+        models: catalog
+            .models
+            .into_iter()
+            .map(|model| Qwen3ModelEntryDto {
+                model_id: model.model_id,
+                display_name: model.display_name,
+                task: model.task,
+                is_default: model.is_default,
+                is_installed: model.is_installed,
+            })
+            .collect(),
+        download: qwen3_download(catalog.download),
+    }
+}
+
+fn qwen3_download(
+    state: crate::infrastructure::media::Qwen3DownloadState,
+) -> Qwen3DownloadStateDto {
+    Qwen3DownloadStateDto {
+        model_id: state.model_id,
+        status: match state.status {
+            crate::infrastructure::media::Qwen3DownloadStatus::Idle => Qwen3DownloadStatusDto::Idle,
+            crate::infrastructure::media::Qwen3DownloadStatus::Downloading => {
+                Qwen3DownloadStatusDto::Downloading
+            }
+            crate::infrastructure::media::Qwen3DownloadStatus::Ready => {
+                Qwen3DownloadStatusDto::Ready
+            }
+            crate::infrastructure::media::Qwen3DownloadStatus::Error => Qwen3DownloadStatusDto::Error,
+        },
+        progress_percent: state.progress_percent,
+        bytes_downloaded: state.bytes_downloaded,
+        bytes_total: state.bytes_total,
+        path: state.path,
+        error: state.error,
+    }
+}
+
+/// A bounded probe: never let an unreachable service stall the settings page.
+async fn qwen3_snapshot(service: &Qwen3TtsService) -> Qwen3TtsSnapshotDto {
+    let config = service.config();
+    let probe = tokio::time::timeout(std::time::Duration::from_secs(2), async {
+        let health = service.health().await.ok();
+        let voices = service.voices().await.ok().unwrap_or_default();
+        (health, voices)
+    })
+    .await;
+    let (health, voices) = probe.unwrap_or((None, Vec::new()));
+    Qwen3TtsSnapshotDto {
+        config: qwen3_config(config),
+        health: health.map(|health| Qwen3TtsHealthDto {
+            ready: health.ready,
+            engine: health.engine,
+            model: health.model,
+            sample_rate: health.sample_rate,
+            error: health.error,
+        }),
+        voice_ids: voices.into_iter().map(|voice| voice.voice_id).collect(),
+    }
+}
+
+fn qwen3_config(config: crate::domain::media::Qwen3TtsConfig) -> Qwen3TtsConfigDto {
+    Qwen3TtsConfigDto {
+        is_enabled: config.is_enabled,
+        base_url: config.base_url,
+        voice_id: config.voice_id,
+        language: config.language,
+        instruct: config.instruct,
+        timeout_ms: config.timeout_ms,
+        fallback_to_system: config.fallback_to_system,
+        ai_voice_id: config.ai_voice_id,
+        ai_instruct: config.ai_instruct,
+    }
+}
+
+fn qwen3_config_from_dto(config: Qwen3TtsConfigDto) -> crate::domain::media::Qwen3TtsConfig {
+    crate::domain::media::Qwen3TtsConfig {
+        is_enabled: config.is_enabled,
+        base_url: config.base_url,
+        voice_id: config.voice_id,
+        language: config.language,
+        instruct: config.instruct,
+        timeout_ms: config.timeout_ms,
+        fallback_to_system: config.fallback_to_system,
+        ai_voice_id: config.ai_voice_id,
+        ai_instruct: config.ai_instruct,
+    }
 }
 
 #[tauri::command]

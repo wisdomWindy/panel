@@ -3,7 +3,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const FFMPEG_REPOSITORY = 'BtbN/FFmpeg-Builds';
+// Upstream moved from BtbN/FFmpeg-Builds to FFmpeg-Builds/FFmpeg-Builds; the old
+// path still redirects, but the API now reports the canonical assets under the
+// new owner, so the allowlist must name it or every asset fails the host check.
+const FFMPEG_REPOSITORY = 'FFmpeg-Builds/FFmpeg-Builds';
 
 const FFMPEG_PACKAGES = [
   ['windows', 'x86_64', 'ffmpeg-master-latest-win64-lgpl-shared.zip', 'zip'],

@@ -5,6 +5,7 @@ import { resolveRuntimeArtifacts } from './resolve-runtime-artifacts.mjs';
 
 const digest = `sha256:${'a'.repeat(64)}`;
 const generatedAt = '2026-09-16T00:00:00.000Z';
+const FFMPEG_REPOSITORY = 'FFmpeg-Builds/FFmpeg-Builds';
 
 function asset(name, repository) {
   return {
@@ -18,10 +19,10 @@ function asset(name, repository) {
 test('resolveRuntimeArtifacts emits only exact official platform packages', () => {
   const ffmpegRelease = {
     tag_name: 'latest',
-    html_url: 'https://github.com/BtbN/FFmpeg-Builds/releases/tag/latest',
+    html_url: `https://github.com/${FFMPEG_REPOSITORY}/releases/tag/latest`,
     assets: [
-      asset('ffmpeg-master-latest-win64-lgpl-shared.zip', 'BtbN/FFmpeg-Builds'),
-      asset('ffmpeg-master-latest-linux64-lgpl-shared.tar.xz', 'BtbN/FFmpeg-Builds')
+      asset('ffmpeg-master-latest-win64-lgpl-shared.zip', FFMPEG_REPOSITORY),
+      asset('ffmpeg-master-latest-linux64-lgpl-shared.tar.xz', FFMPEG_REPOSITORY)
     ]
   };
   const catalog = resolveRuntimeArtifacts({ ffmpegRelease, generatedAt });
@@ -48,7 +49,7 @@ test('resolveRuntimeArtifacts rejects assets without GitHub SHA-256 digests', ()
     tag_name: 'latest',
     assets: [
       {
-        ...asset('ffmpeg-master-latest-win64-lgpl-shared.zip', 'BtbN/FFmpeg-Builds'),
+        ...asset('ffmpeg-master-latest-win64-lgpl-shared.zip', FFMPEG_REPOSITORY),
         digest: null
       }
     ]
@@ -60,8 +61,22 @@ test('resolveRuntimeArtifacts rejects assets without GitHub SHA-256 digests', ()
   );
 });
 
+test('resolveRuntimeArtifacts rejects assets from a renamed or unknown host', () => {
+  const ffmpegRelease = {
+    tag_name: 'latest',
+    assets: [
+      asset('ffmpeg-master-latest-win64-lgpl-shared.zip', 'BtbN/FFmpeg-Builds')
+    ]
+  };
+
+  assert.throws(
+    () => resolveRuntimeArtifacts({ ffmpegRelease, generatedAt }),
+    /not hosted by the allowlisted repository/i
+  );
+});
+
 test('resolveRuntimeArtifacts rejects duplicate assets and non-positive sizes', () => {
-  const named = asset('ffmpeg-master-latest-win64-lgpl-shared.zip', 'BtbN/FFmpeg-Builds');
+  const named = asset('ffmpeg-master-latest-win64-lgpl-shared.zip', FFMPEG_REPOSITORY);
 
   assert.throws(
     () =>

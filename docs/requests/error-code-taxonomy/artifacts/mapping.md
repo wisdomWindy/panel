@@ -47,10 +47,36 @@ PRD §14 定义了 13 个分类前缀（`ROOM` / `NET` / `RULE` / `GIFT` / `RECO
 3. **用户文档 / 更新日志**：若曾对外提到过 code，需要改
 4. **日志检索**：历史日志里的旧码与新码并存，需要说明
 
-## 待你确认
+## 已确认的决定（2026-11-21）
 
-1. 前缀后接 `snake_case`（`ROOM_invalid_id`）还是全大写（`ROOM_INVALID_ID`）？
-2. `media_permission_denied` 归 `AUDIO` 是否合适？它也可能来自系统权限而非音频。
-3. 是否保留旧码作为别名一段时间（前端同时识别），避免日志与文档断档？
+1. 风格：**全大写**，PREFIX_SEMANTIC，例 ROOM_INVALID_ID
+2. media_permission_denied 归 **SYS_PERMISSION_DENIED**（不归 AUDIO）
+3. **不保留旧码别名**，一次性替换，不做双写兼容
 
-确认后我按表逐条替换并跑全量测试。
+## 重要修正：清点范围被低估
+
+上一版表里的 23 个码是用窄正则提取的。改用覆盖 code: 字段与全部错误构造器后，源码里的候选字面量是 **103 个**（含少量误报，如 explorer/open/	hreshold）。
+
+也就是说这次迁移的真实规模是原先估计的 **4 倍**，涉及：
+
+- src-tauri 全部错误构造点
+- src/renderer 前端文案映射（shell.errors 10 个键 + 各处 errorCode 判断）
+- 约 15–25 处断言具体 code 的测试（Rust + TS）
+- 成员版（membership/module/auth）独有的一批码，PRD 里没有对应前缀，需要单独归类
+
+## 执行计划（一步不可省）
+
+1. 用精确规则重新生成权威清单（排除误报），按 13 个前缀逐条归类
+2. 脚本化替换 + 编译门禁（cargo test 必过）
+3. 前端映射与 locale 键同步
+4. 全量回归（Rust + vitest + tsc + build）
+
+## 需要你决定的一件事
+
+成员版那批码（uth_*、entitlement_*、module_*、membership_*、moderation_*）在 PRD §14 里**没有对应前缀**。三种处理：
+
+- A：归入 SYS_（最省事，但分类信息丢失）
+- B：在 PRD §14 增补 MEMBER 前缀（需改 PRD）
+- C：本期只迁移免费版路径上的码，成员版的码保持原样（迁移不彻底）
+
+我倾向 **B**：既然 PRD 定义了分类体系，缺前缀就应该补文档，而不是把成员功能硬塞进 SYS。

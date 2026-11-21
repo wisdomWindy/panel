@@ -15,7 +15,8 @@ import { useLiveRoomStore } from '@/stores/live-data/room';
 import AudienceDetailDrawer from '@/components/live-data/AudienceDetailDrawer.vue';
 import AudienceIdentityView from '@/components/live-data/AudienceIdentityView.vue';
 
-  type Filter = 'all' | 'captain' | 'gift' | 'highlight';
+/** PRD 8.1 弹幕面板 filters mirror the design's identity chips. */
+type Filter = 'all' | 'admin' | 'captain' | 'gift' | 'ordinary';
 
 const feed = useLiveFeedStore();
 const room = useLiveRoomStore();
@@ -25,33 +26,60 @@ const filter = ref<Filter>('all');
 const search = ref('');
 const stream = ref<HTMLElement | null>(null);
 const selectedUid = ref<UserUid | null>(null);
-const filterOptions = computed(() => [
-  { label: t('danmakuPanel.all'), value: 'all' },
-  { label: t('danmakuPanel.captainsOnly'), value: 'captain' },
-  { label: t('danmakuPanel.giftsOnly'), value: 'gift' },
-  { label: t('danmakuPanel.highlightsOnly'), value: 'highlight' }
+
+const isCaptain = (event: LiveEvent): boolean =>
+  event.kind === 'captain' ||
+  event.audience.tags.some(tag => ['governor', 'admiral', 'captain'].includes(tag));
+
+const matchesFilter = (event: LiveEvent, value: Filter): boolean => {
+  switch (value) {
+    case 'admin':
+      return event.audience.tags.includes('admin');
+    case 'captain':
+      return isCaptain(event);
+    case 'gift':
+      return event.kind === 'gift';
+    case 'ordinary':
+      return event.audience.tags.length === 0 && event.kind !== 'gift';
+    default:
+      return true;
+  }
+};
+
+const filterOptions = computed<readonly { label: string; value: Filter; count: string | null }[]>(() => [
+  {
+    label: t('danmakuPanel.all'),
+    value: 'all',
+    count: formatCount(metrics.value?.danmuCount ?? feed.events.length)
+  },
+  { label: t('danmakuPanel.adminOnly'), value: 'admin', count: null },
+  { label: t('danmakuPanel.captainsOnly'), value: 'captain', count: null },
+  { label: t('danmakuPanel.giftsOnly'), value: 'gift', count: null },
+  { label: t('danmakuPanel.ordinaryOnly'), value: 'ordinary', count: null }
 ]);
 
 const filteredEvents = computed(() => {
   const query = search.value.trim().toLocaleLowerCase();
   return feed.events.filter(event => {
-    const captain =
-        event.kind === 'captain' ||
-        event.audience.tags.some(tag => ['governor', 'admiral', 'captain'].includes(tag));
-    const highlighted =
-        captain || event.audience.tags.includes('admin') || event.audience.tags.includes('vip');
-    if (filter.value === 'captain' && !captain) return false;
-    if (filter.value === 'gift' && event.kind !== 'gift') return false;
-    if (filter.value === 'highlight' && !highlighted) return false;
+    if (!matchesFilter(event, filter.value)) return false;
     if (!query) return true;
     return (
       event.audience.username.toLocaleLowerCase().includes(query) ||
-        eventText(event).toLocaleLowerCase().includes(query)
+      eventText(event).toLocaleLowerCase().includes(query)
     );
   });
 });
 
 const metrics = computed(() => analytics.statistics?.metrics ?? null);
+
+const legend = computed(() => [
+  { tone: 'admin', label: t('liveData.tags.admin'), note: t('danmakuPanel.legend.admin') },
+  { tone: 'governor', label: t('liveData.tags.governor'), note: t('danmakuPanel.legend.governor') },
+  { tone: 'admiral', label: t('liveData.tags.admiral'), note: t('danmakuPanel.legend.admiral') },
+  { tone: 'captain', label: t('liveData.tags.captain'), note: t('danmakuPanel.legend.captain') },
+  { tone: 'vip', label: t('liveData.tags.vip'), note: t('danmakuPanel.legend.vip') },
+  { tone: 'plain', label: t('liveData.tags.ordinary'), note: t('danmakuPanel.legend.ordinary') }
+]);
 
 watch(
   () => feed.events.length,
@@ -70,6 +98,11 @@ function eventText(event: LiveEvent): string {
   return t('danmakuPanel.entry');
 }
 
+/** A single glyph stands in for the avatar, matching the design's rail. */
+function avatarOf(event: LiveEvent): string {
+  return [...event.audience.username][0] ?? '?';
+}
+
 function clearPanel(): void {
   feed.clear();
   ElMessage.success(t('danmakuPanel.cleared'));
@@ -81,33 +114,49 @@ function handleBlacklisted(uid: UserUid): void {
 </script>
 
 <template>
-  <section class="mx-auto flex h-full min-h-[560px] max-w-7xl flex-col bg-white dark:bg-zinc-900">
-    <header class="flex min-h-14 flex-wrap items-center gap-3 border-b border-gray-200 py-2 dark:border-zinc-800">
-      <h2 class="mr-auto m-0 text-lg font-semibold text-gray-900 dark:text-zinc-100">
-        {{ t('danmakuPanel.title') }}
-      </h2>
-      <el-segmented v-model="filter" :options="filterOptions" />
+  <section class="mx-auto flex h-full min-h-[560px] w-full max-w-[1180px] flex-col gap-3">
+    <header class="flex flex-wrap items-center gap-2">
+      <div class="mr-auto flex flex-wrap items-center gap-1.5">
+        <button
+          v-for="option in filterOptions"
+          :key="option.value"
+          type="button"
+          class="app-chip"
+          :class="{ 'app-chip--active': filter === option.value }"
+          :aria-pressed="filter === option.value"
+          @click="filter = option.value"
+        >
+          {{ option.label }}
+          <span v-if="option.count !== null" class="tabular-nums opacity-70">{{ option.count }}</span>
+        </button>
+      </div>
       <el-input
         v-model="search"
         clearable
-        class="!w-56"
+        class="!w-52"
         :placeholder="t('danmakuPanel.searchPlaceholder')"
         :aria-label="t('danmakuPanel.searchPlaceholder')"
       />
-      <el-button
-        :icon="feed.isPaused ? VideoPlay : VideoPause"
+      <button
+        type="button"
+        class="app-icon-btn"
+        :aria-label="feed.isPaused ? t('danmakuPanel.resume') : t('danmakuPanel.pause')"
         @click="feed.setPaused(!feed.isPaused)"
       >
-        {{ feed.isPaused ? t('danmakuPanel.resume') : t('danmakuPanel.pause') }}
-      </el-button>
-      <el-button :icon="Delete" @click="clearPanel">
-        {{ t('danmakuPanel.clear') }}
-      </el-button>
+        <el-icon><component :is="feed.isPaused ? VideoPlay : VideoPause" /></el-icon>
+      </button>
+      <button
+        type="button"
+        class="app-icon-btn"
+        :aria-label="t('danmakuPanel.clear')"
+        @click="clearPanel"
+      >
+        <el-icon><Delete /></el-icon>
+      </button>
     </header>
 
     <el-alert
       v-if="room.snapshot.status === 'reconnecting'"
-      class="mt-3"
       type="warning"
       :closable="false"
       :title="t('danmakuPanel.reconnecting', { attempt: room.snapshot.reconnectAttempt })"
@@ -115,80 +164,96 @@ function handleBlacklisted(uid: UserUid): void {
     />
     <el-alert
       v-else-if="room.snapshot.status === 'error'"
-      class="mt-3"
       type="error"
       :closable="false"
       :title="t('danmakuPanel.reconnectFailed')"
       show-icon
     />
 
-    <div
-      ref="stream"
-      class="min-h-0 flex-1 overflow-y-auto"
-      tabindex="0"
-      :aria-label="t('danmakuPanel.eventList')"
-    >
+    <div class="flex min-h-0 flex-1 gap-4">
       <div
-        v-if="filteredEvents.length === 0"
-        class="flex h-full min-h-72 items-center justify-center text-sm text-gray-400 dark:text-zinc-400"
+        ref="stream"
+        class="app-card min-h-0 flex-1 overflow-y-auto"
+        tabindex="0"
+        :aria-label="t('danmakuPanel.eventList')"
       >
-        {{ t('liveData.empty') }}
-      </div>
-      <article
-        v-for="event in filteredEvents"
-        :key="event.eventId"
-        class="grid min-h-16 grid-cols-[minmax(260px,0.9fr)_minmax(280px,1.5fr)_88px] items-center gap-4 border-b border-gray-100 px-3 py-2 text-sm dark:border-zinc-800 max-lg:grid-cols-[1fr_80px]"
-      >
-        <AudienceIdentityView
-          :identity="event.audience"
-          interactive
-          class="max-lg:col-span-1"
-          @select="selectedUid = event.audience.userUid"
-        />
-        <div class="min-w-0 text-gray-800 dark:text-zinc-200 max-lg:col-span-2 max-lg:row-start-2">
-          <span v-if="event.kind === 'danmu'" class="break-words">{{ event.content }}</span>
-          <span v-else-if="event.kind === 'gift'">
-            {{
-              t('danmakuPanel.giftEvent', {
-                giftName: event.giftName,
-                quantity: event.quantity,
-                value: formatMoneyMinor(event.valueMinor)
-              })
-            }}
-          </span>
-          <span v-else-if="event.kind === 'captain'">
-            {{
-              t('danmakuPanel.captainEvent', {
-                action: t(`danmakuPanel.${event.action}`),
-                level: t(`liveData.tags.${event.level}`),
-                value: formatMoneyMinor(event.valueMinor)
-              })
-            }}
-          </span>
-          <span v-else>{{ t('danmakuPanel.entry') }}</span>
+        <div
+          v-if="filteredEvents.length === 0"
+          class="app-faint flex h-full min-h-72 items-center justify-center text-sm"
+        >
+          {{ t('liveData.empty') }}
         </div>
-        <time class="justify-self-end tabular-nums text-gray-500 dark:text-zinc-400">
-          {{ formatTimestamp(event.occurredAt) }}
-        </time>
-      </article>
+        <article
+          v-for="event in filteredEvents"
+          :key="event.eventId"
+          class="flex gap-3 border-b px-3 py-2.5 last:border-b-0"
+          :class="event.kind === 'gift' ? 'app-row-gift' : ''"
+          style="border-color: var(--app-border)"
+        >
+          <span class="app-avatar" aria-hidden="true">{{ avatarOf(event) }}</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex min-w-0 items-center gap-2">
+              <AudienceIdentityView
+                :identity="event.audience"
+                interactive
+                class="min-w-0"
+                @select="selectedUid = event.audience.userUid"
+              />
+              <time class="app-faint ml-auto shrink-0 text-xs tabular-nums">
+                {{ formatTimestamp(event.occurredAt) }}
+              </time>
+            </div>
+            <p class="app-text mt-1 mb-0 text-sm break-words">
+              <template v-if="event.kind === 'danmu'">{{ event.content }}</template>
+              <template v-else-if="event.kind === 'gift'">
+                {{
+                  t('danmakuPanel.giftEvent', {
+                    giftName: event.giftName,
+                    quantity: event.quantity,
+                    value: formatMoneyMinor(event.valueMinor)
+                  })
+                }}
+              </template>
+              <template v-else-if="event.kind === 'captain'">
+                {{
+                  t('danmakuPanel.captainEvent', {
+                    action: t(`danmakuPanel.${event.action}`),
+                    level: t(`liveData.tags.${event.level}`),
+                    value: formatMoneyMinor(event.valueMinor)
+                  })
+                }}
+              </template>
+              <template v-else>{{ t('danmakuPanel.entry') }}</template>
+            </p>
+          </div>
+        </article>
+      </div>
+
+      <aside class="app-card hidden w-[240px] shrink-0 self-start p-4 xl:block">
+        <h3 class="app-text m-0 text-sm font-semibold">{{ t('danmakuPanel.legendTitle') }}</h3>
+        <ul class="m-0 mt-3 list-none p-0">
+          <li
+            v-for="entry in legend"
+            :key="entry.tone"
+            class="flex items-center justify-between gap-2 py-1.5"
+          >
+            <span class="app-badge" :class="`app-badge--${entry.tone}`">{{ entry.label }}</span>
+            <span class="app-faint text-xs">{{ entry.note }}</span>
+          </li>
+        </ul>
+      </aside>
     </div>
 
-    <footer
-      class="flex min-h-11 flex-wrap items-center gap-x-6 gap-y-1 border-t border-gray-200 px-3 text-sm text-gray-600 dark:border-zinc-800 dark:text-zinc-400"
-    >
+    <footer class="app-faint flex min-h-9 flex-wrap items-center gap-x-6 gap-y-1 text-xs">
       <span>
         {{ t('danmakuPanel.total') }}
-        <strong class="tabular-nums text-gray-900 dark:text-zinc-100">
-          {{ formatCount(metrics?.danmuCount ?? 0) }}
-        </strong>
+        <strong class="app-text tabular-nums">{{ formatCount(metrics?.danmuCount ?? 0) }}</strong>
       </span>
       <span>
         {{ t('danmakuPanel.rate') }}
-        <strong class="tabular-nums text-gray-900 dark:text-zinc-100">
-          {{ formatDanmuRate(metrics?.danmuRate ?? 0) }}
-        </strong>
+        <strong class="app-text tabular-nums">{{ formatDanmuRate(metrics?.danmuRate ?? 0) }}</strong>
       </span>
-      <router-link to="/logs" class="text-pink-600 hover:underline">
+      <router-link to="/logs" class="app-accent-text hover:underline">
         {{ t('danmakuPanel.filtered', { count: formatCount(metrics?.filteredCount ?? 0) }) }}
       </router-link>
     </footer>
@@ -202,3 +267,22 @@ function handleBlacklisted(uid: UserUid): void {
     />
   </section>
 </template>
+
+<style scoped>
+.app-row-gift {
+  background: color-mix(in srgb, var(--app-gold) 8%, transparent);
+}
+.app-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--app-panel-2);
+  color: var(--app-text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+</style>

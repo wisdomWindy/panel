@@ -80,10 +80,14 @@ describe('dark theme page surfaces', () => {
       useLiveFeedStore().accept(event);
     });
 
-    expectSharedPageSurface(html);
-    expect(classTokens(html)).toEqual(
-      expect.arrayContaining(['dark:border-zinc-800', 'dark:text-zinc-200'])
+    // The redesigned panel is token-driven: one palette, no per-page dark: literals.
+    const tokens = classTokens(html);
+    expect(tokens).toEqual(
+      expect.arrayContaining(['app-card', 'app-chip', 'app-text', 'app-faint'])
     );
+    expect(tokens.some(token => token.startsWith('dark:'))).toBe(false);
+    expect(html).toContain('身份图例');
+    expect(html).toContain('viewer');
   });
 
   it('renders dashboard metrics and chart framing with dark surface tokens', async () => {

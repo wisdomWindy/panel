@@ -715,7 +715,18 @@
     "entry": "Entered the live room",
     "total": "Danmaku total",
     "rate": "Danmaku rate",
-    "filtered": "Filtered {count} messages"
+    "filtered": "Filtered {count} messages",
+    "adminOnly": "Moderator",
+    "ordinaryOnly": "Viewer",
+    "legendTitle": "Identity legend",
+    "legend": {
+      "admin": "Room moderator",
+      "governor": "Governor",
+      "admiral": "Admiral",
+      "captain": "Captain",
+      "vip": "VIP",
+      "ordinary": "No badge"
+    }
   },
   "giftReminder": {
     "title": "Gift Alerts",

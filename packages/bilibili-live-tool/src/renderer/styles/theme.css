@@ -239,6 +239,32 @@ body {
   background: var(--app-border);
 }
 
+/* -- filter chips ------------------------------------------------------ */
+.app-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--app-text-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+.app-chip:hover {
+  background: var(--app-panel-2);
+  color: var(--app-text);
+}
+.app-chip--active,
+.app-chip[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--app-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--app-accent) 16%, transparent);
+  color: var(--app-accent);
+  font-weight: 600;
+}
+
 /* -- identity badges (PRD 9.2 / preview-danmu.png) --------------------- */
 .app-badge {
   display: inline-flex;

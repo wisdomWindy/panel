@@ -715,7 +715,18 @@
     "entry": "进入直播间",
     "total": "弹幕总量",
     "rate": "弹幕速率",
-    "filtered": "已过滤 {count} 条"
+    "filtered": "已过滤 {count} 条",
+    "adminOnly": "房管",
+    "ordinaryOnly": "普通",
+    "legendTitle": "身份图例",
+    "legend": {
+      "admin": "房间管理员",
+      "governor": "总督",
+      "admiral": "提督",
+      "captain": "舰长",
+      "vip": "老爷",
+      "ordinary": "无标识"
+    }
   },
   "giftReminder": {
     "title": "礼物提醒",

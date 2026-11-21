@@ -488,13 +488,22 @@ pub fn run() {
             }
         })
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
+            // PRD 12.3: runtime logs roll over by size and are pruned by age
+            // below, in release builds as well as dev builds.
+            app.handle().plugin(
+                tauri_plugin_log::Builder::default()
+                    .level(log::LevelFilter::Info)
+                    .max_file_size(5 * 1024 * 1024)
+                    .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepSome(5))
+                    .target(tauri_plugin_log::Target::new(
+                        tauri_plugin_log::TargetKind::LogDir { file_name: None },
+                    ))
+                    .target(tauri_plugin_log::Target::new(
+                        tauri_plugin_log::TargetKind::Stdout,
+                    ))
+                    .build(),
+            )?;
+            let log_directory = app.path().app_log_dir().ok();
 
             let database_path =
                 database_location::resolve_database_path(&app.path().app_data_dir()?)?;
@@ -503,6 +512,7 @@ pub fn run() {
             app.manage(state);
             // PRD 12.3: purge expired logs and stats locally on a schedule.
             let maintenance = Arc::clone(app.state::<AppState>().data_maintenance());
+            let log_directory = log_directory.clone();
             tauri::async_runtime::spawn(async move {
                 loop {
                     match maintenance.load_policy().await {
@@ -512,6 +522,15 @@ pub fn run() {
                             }
                         }
                         Err(error) => log::warn!("retention policy is unavailable: {error}"),
+                    }
+                    // Runtime logs have their own fixed 30-day window.
+                    if let Some(directory) = &log_directory {
+                        let removed = maintenance
+                            .purge_log_files(directory, crate::application::data_maintenance::RUNTIME_LOG_RETENTION_DAYS)
+                            .await;
+                        if removed > 0 {
+                            log::info!("pruned {removed} expired log files");
+                        }
                     }
                     tokio::time::sleep(std::time::Duration::from_secs(6 * 60 * 60)).await;
                 }

@@ -12,6 +12,9 @@ use sqlx::{Row, SqlitePool};
 const RETENTION_KEY: &str = "data.retention";
 const RETENTION_SCOPE: &str = "global";
 
+/// PRD 12.3 fixes the runtime-log window at 30 days; it is not user-tunable.
+pub const RUNTIME_LOG_RETENTION_DAYS: u64 = 30;
+
 #[derive(Debug, thiserror::Error)]
 pub enum DataMaintenanceError {
     #[error("database operation failed: {0}")]
@@ -143,8 +146,37 @@ impl DataMaintenance {
         })
     }
 
-    pub async fn clear(&self, scope: DataClearScope) -> Result<ClearReport, DataMaintenanceError> {
-        let mut cleared = Vec::new();
+    /// Deletes runtime log files whose modification time is older than
+    /// `days`. Returns how many files were removed.
+    pub async fn purge_log_files(&self, directory: &Path, days: u64) -> usize {
+        let Ok(mut entries) = tokio::fs::read_dir(directory).await else {
+            return 0;
+        };
+        let cutoff = std::time::SystemTime::now()
+            .checked_sub(std::time::Duration::from_secs(days.saturating_mul(86_400)));
+        let Some(cutoff) = cutoff else {
+            return 0;
+        };
+        let mut removed = 0;
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let path = entry.path();
+            if !path.is_file() {
+                continue;
+            }
+            let Ok(metadata) = entry.metadata().await else {
+                continue;
+            };
+            let Ok(modified) = metadata.modified() else {
+                continue;
+            };
+            if modified < cutoff && tokio::fs::remove_file(&path).await.is_ok() {
+                removed += 1;
+            }
+        }
+        removed
+    }
+
+    pub async fn clear(&self, scope: DataClearScope) -> Result<ClearReport, DataMaintenanceError> {        let mut cleared = Vec::new();
         match scope {
             DataClearScope::EventLogs => {
                 clear_table(&self.pool, "t_event_log", &mut cleared).await?;
@@ -409,7 +441,34 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn clearing_the_cache_removes_files_but_keeps_the_directory() {
+    async fn clears_cache_before_the_log_window_keeps_fresh_files() {
+        let (service, directory) = service().await;
+        let logs = directory.path().join("logs");
+        tokio::fs::create_dir_all(&logs).await.unwrap();
+        let fresh = logs.join("app.log");
+        tokio::fs::write(&fresh, b"x").await.unwrap();
+        let stale = logs.join("app.old.log");
+        tokio::fs::write(&stale, b"x").await.unwrap();
+        // Backdate the second file beyond the 30-day window.
+        let old = std::time::SystemTime::now() - std::time::Duration::from_secs(40 * 86_400);
+        std::fs::File::options()
+            .write(true)
+            .open(&stale)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+
+        let removed = service
+            .purge_log_files(&logs, super::RUNTIME_LOG_RETENTION_DAYS)
+            .await;
+
+        assert_eq!(removed, 1);
+        assert!(fresh.exists());
+        assert!(!stale.exists());
+    }
+
+    #[tokio::test]
+    async fn clears_the_cache_directory_contents() {
         let (service, directory) = service().await;
         let cache = directory.path().join("cache");
         tokio::fs::create_dir_all(&cache).await.unwrap();

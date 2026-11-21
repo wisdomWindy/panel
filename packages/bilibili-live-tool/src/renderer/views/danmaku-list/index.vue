@@ -10,6 +10,7 @@ import {
   formatTimestamp
 } from '@/modules/live-data/formatters';
 import { useLiveAnalyticsStore } from '@/stores/live-data/analytics';
+import { useApplicationShellStore } from '@/stores/application-shell';
 import { useLiveFeedStore } from '@/stores/live-data/feed';
 import { useLiveRoomStore } from '@/stores/live-data/room';
 import AudienceDetailDrawer from '@/components/live-data/AudienceDetailDrawer.vue';
@@ -19,6 +20,7 @@ import AudienceIdentityView from '@/components/live-data/AudienceIdentityView.vu
 type Filter = 'all' | 'admin' | 'captain' | 'gift' | 'ordinary';
 
 const feed = useLiveFeedStore();
+const shell = useApplicationShellStore();
 const room = useLiveRoomStore();
 const analytics = useLiveAnalyticsStore();
 const { t } = useI18n();
@@ -74,6 +76,17 @@ const filteredEvents = computed(() => {
 });
 
 const metrics = computed(() => analytics.statistics?.metrics ?? null);
+
+/**
+ * PRD 9.14: the display preferences were previously stored but never applied.
+ * `previewUi` is set while the settings panel previews, so it wins.
+ */
+const display = computed(() => shell.previewUi ?? shell.savedUi);
+const shownEvents = computed(() => {
+  const limit = display.value?.maxDanmakuEntries ?? 1000;
+  return filteredEvents.value.slice(-limit);
+});
+const showTime = computed(() => display.value?.showDanmakuTime ?? true);
 
 const legend = computed(() => [
   { tone: 'admin', label: t('liveData.tags.admin'), note: t('danmakuPanel.legend.admin') },
@@ -183,13 +196,13 @@ function handleBlacklisted(uid: UserUid): void {
         :aria-label="t('danmakuPanel.eventList')"
       >
         <div
-          v-if="filteredEvents.length === 0"
+          v-if="shownEvents.length === 0"
           class="app-faint flex h-full min-h-72 items-center justify-center text-sm"
         >
           {{ t('liveData.empty') }}
         </div>
         <article
-          v-for="event in filteredEvents"
+          v-for="event in shownEvents"
           :key="event.eventId"
           class="flex gap-3 border-b px-3 py-2.5 last:border-b-0"
           :class="
@@ -207,10 +220,12 @@ function handleBlacklisted(uid: UserUid): void {
               <AudienceIdentityView
                 :identity="event.audience"
                 interactive
+                :show-level="display?.showDanmakuLevel ?? true"
+                :show-medal="display?.showDanmakuMedal ?? true"
                 class="min-w-0"
                 @select="selectedUid = event.audience.userUid"
               />
-              <time class="app-faint ml-auto shrink-0 text-xs tabular-nums">
+              <time v-if="showTime" class="app-faint ml-auto shrink-0 text-xs tabular-nums">
                 {{ formatTimestamp(event.occurredAt) }}
               </time>
             </div>

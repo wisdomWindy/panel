@@ -2,7 +2,16 @@
 import { useI18n } from 'vue-i18n';
 import type { AudienceIdentity } from '@/platform/desktop';
 
-defineProps<{ identity: AudienceIdentity; interactive?: boolean }>();
+const props = withDefaults(
+  defineProps<{
+    identity: AudienceIdentity;
+    interactive?: boolean;
+    /** PRD 9.14 display preferences from the interface settings. */
+    showLevel?: boolean;
+    showMedal?: boolean;
+  }>(),
+  { interactive: false, showLevel: true, showMedal: true }
+);
 defineEmits<{ select: [] }>();
 
 const { t } = useI18n();
@@ -38,10 +47,14 @@ const TONES: Readonly<Record<string, string>> = {
       {{ identity.username }}
     </button>
     <span v-else class="app-text min-w-0 truncate font-medium">{{ identity.username }}</span>
-    <span v-if="identity.userLevel !== null" class="app-faint shrink-0 text-xs">
+    <span v-if="props.showLevel && identity.userLevel !== null" class="app-faint shrink-0 text-xs">
       Lv.{{ identity.userLevel }}
     </span>
-    <el-tooltip v-if="identity.medal" :content="identity.medal.name" placement="top">
+    <el-tooltip
+      v-if="props.showMedal && identity.medal"
+      :content="identity.medal.name"
+      placement="top"
+    >
       <span class="app-badge shrink-0 app-badge--vip">
         {{ identity.medal.name }}
         <template v-if="identity.medal.level !== null">{{ identity.medal.level }}</template>

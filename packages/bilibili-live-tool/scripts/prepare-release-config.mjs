@@ -6,7 +6,7 @@ const CHANNELS = new Set(['free', 'member']);
 
 export function defaultUpdaterEndpoint(channel) {
   assertChannel(channel);
-  return `https://raw.githubusercontent.com/${REPOSITORY}/updates/${channel}/latest.json`;
+  return `https://raw.githubusercontent.com/${REPOSITORY}/main/${channel}/latest.json`;
 }
 
 export function buildReleaseConfig({ baseConfig, channel, publicKey, endpoint }) {

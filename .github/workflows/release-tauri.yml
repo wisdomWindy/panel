@@ -227,34 +227,28 @@ jobs:
             fi
           done
 
-      - name: Publish channel manifests to updates branch
+      - name: Publish channel manifests to main
         shell: bash
         run: |
-          DEFAULT_BRANCH=$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)
-          DEFAULT_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$DEFAULT_BRANCH" --jq .object.sha)
-          if ! gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/updates" >/dev/null 2>&1; then
-            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
-              -f ref='refs/heads/updates' \
-              -f sha="$DEFAULT_SHA"
-          fi
-
+          # The updater reads https://raw.githubusercontent.com/<repo>/main/<channel>/latest.json,
+          # so the manifest lives on the default branch and no extra branch is needed.
           VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
           for CHANNEL in free; do
             TARGET="$CHANNEL/latest.json"
             FILE="$APP_PATH/.release-staging/$CHANNEL/latest.json"
             CONTENT=$(base64 -w0 "$FILE")
-            SHA=$(gh api "repos/$GITHUB_REPOSITORY/contents/$TARGET?ref=updates" --jq .sha 2>/dev/null || true)
+            SHA=$(gh api "repos/$GITHUB_REPOSITORY/contents/$TARGET" --jq .sha 2>/dev/null || true)
             if [[ -n "$SHA" ]]; then
               gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$TARGET" \
                 -f message="release: publish $CHANNEL updater manifest v$VERSION" \
                 -f content="$CONTENT" \
-                -f branch=updates \
+                -f branch=main \
                 -f sha="$SHA"
             else
               gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$TARGET" \
                 -f message="release: publish $CHANNEL updater manifest v$VERSION" \
                 -f content="$CONTENT" \
-                -f branch=updates
+                -f branch=main
             fi
           done
 

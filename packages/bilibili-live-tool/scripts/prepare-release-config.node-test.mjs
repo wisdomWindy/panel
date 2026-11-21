@@ -18,7 +18,7 @@ test('buildReleaseConfig adds signed updater settings without leaking signing se
   assert.equal(config.bundle.createUpdaterArtifacts, true);
   assert.deepEqual(config.plugins.updater, {
     pubkey: 'RWQ-public-key',
-    endpoints: ['https://raw.githubusercontent.com/wisdomWindy/panel/updates/free/latest.json'],
+    endpoints: ['https://raw.githubusercontent.com/wisdomWindy/panel/main/free/latest.json'],
     windows: { installMode: 'passive' }
   });
   assert.equal(JSON.stringify(config).includes('PRIVATE'), false);
@@ -51,11 +51,11 @@ test('buildReleaseConfig rejects unsupported channels and insecure endpoints', (
 test('defaultUpdaterEndpoint keeps free and member manifests isolated', () => {
   assert.equal(
     defaultUpdaterEndpoint('free'),
-    'https://raw.githubusercontent.com/wisdomWindy/panel/updates/free/latest.json'
+    'https://raw.githubusercontent.com/wisdomWindy/panel/main/free/latest.json'
   );
   assert.equal(
     defaultUpdaterEndpoint('member'),
-    'https://raw.githubusercontent.com/wisdomWindy/panel/updates/member/latest.json'
+    'https://raw.githubusercontent.com/wisdomWindy/panel/main/member/latest.json'
   );
   assert.notEqual(defaultUpdaterEndpoint('free'), defaultUpdaterEndpoint('member'));
 });

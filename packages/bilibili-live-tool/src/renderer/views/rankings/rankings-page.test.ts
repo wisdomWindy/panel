@@ -27,4 +27,19 @@ describe('rankings page', () => {
     expect(page).toContain("t('rankings.danmakuUnit'");
     expect(page).toContain('formatMoneyMinor');
   });
+
+  it('resolves every board title from a real locale key', () => {
+    // Regression: the board id `danmu` must not be used as a locale key.
+    expect(page).toContain("danmu: 'rankings.danmaku'");
+    expect(page).not.toContain('t(`rankings.${tab}`)');
+
+    for (const locale of ['zh-CN', 'en-US']) {
+      const messages = JSON.parse(
+        readFileSync(fileURLToPath(new URL(`../../locales/${locale}.json`, import.meta.url)), 'utf8')
+      ) as { rankings: Record<string, string> };
+      for (const key of ['gift', 'danmaku', 'captain']) {
+        expect(messages.rankings[key], `${locale}.rankings.${key}`).toBeTruthy();
+      }
+    }
+  });
 });

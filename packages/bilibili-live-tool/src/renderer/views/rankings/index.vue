@@ -20,11 +20,18 @@ const limit = ref<TopLimit>(10);
 const selectedUid = ref<UserUid | null>(null);
 const exportVisible = ref(false);
 
+/** The board id `danmu` maps to the `danmaku` locale namespace. */
+const BOARD_LABEL_KEYS: Readonly<Record<RankTab, string>> = {
+  gift: 'rankings.gift',
+  danmu: 'rankings.danmaku',
+  captain: 'rankings.captain'
+};
+
 /** The design shows the three boards side by side instead of behind tabs. */
 const columns = computed(() =>
   (['gift', 'danmu', 'captain'] as const).map(tab => ({
     tab,
-    title: t(`rankings.${tab}`),
+    title: t(BOARD_LABEL_KEYS[tab]),
     rows: (analytics.rankings?.[tab] ?? []).slice(0, limit.value)
   }))
 );

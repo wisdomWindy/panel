@@ -784,7 +784,8 @@ impl MediaState {
         };
         match self.recording.start(room_id.to_owned(), launch).await {
             Ok(()) => {
-                self.event_sink
+                let _ = self
+                    .event_sink
                     .publish_recording(&self.recording.snapshot().await);
                 let watchdog = RecordingReconnectWatchdog {
                     recording: self.recording.clone(),

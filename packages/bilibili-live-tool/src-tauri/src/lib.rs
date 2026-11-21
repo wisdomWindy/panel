@@ -45,9 +45,10 @@ use infrastructure::{
         UnavailableLiveRepository,
     },
     media::{
-        GiftSoundFileStore, LocalFfmpegProcessPort, PreviewRegistry, Qwen3TtsService,
-        Qwen3TtsSpeechEngine, RodioAudioOutput, SqliteMediaRepository, SystemSpeechEngine,
-        TauriEffectWindowPort, TauriHotkeyPort, TauriNotificationPort, UnavailableSpeechEngine,
+        AppFfmpegLocator, BilibiliPlayUrlResolver, GiftSoundFileStore, LocalFfmpegProcessPort,
+        PreviewRegistry, Qwen3TtsService, Qwen3TtsSpeechEngine, RodioAudioOutput,
+        SqliteMediaRepository, SystemSpeechEngine, TauriEffectWindowPort, TauriHotkeyPort,
+        TauriNotificationPort, UnavailableSpeechEngine,
     },
     path_grants::PathGrantStore,
     release::{installation_bucket, migration_resilience_snapshot, update_provider},
@@ -254,7 +255,11 @@ impl AppState {
         {
             log::warn!("recording hotkey is degraded: {error}");
         }
-        let media = MediaState::new(effects, gifts, tts, recording);
+        let media = MediaState::new(effects, gifts, tts, recording)
+            .with_recording_clients(
+                Arc::new(BilibiliPlayUrlResolver::new()),
+                Arc::new(AppFfmpegLocator::for_current_app()),
+            );
         let media = if let Some(pool) = pool.clone() {
             media.with_services(MediaServices {
                 repository: Arc::new(SqliteMediaRepository::new(pool)),

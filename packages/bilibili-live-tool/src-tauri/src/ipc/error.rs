@@ -138,6 +138,18 @@ impl From<MediaIoError> for DesktopError {
             "qwen3_tts_invalid_response" => "Qwen3-TTS 返回的音频无效",
             "qwen3_tts_invalid_config" => "Qwen3-TTS 配置无效，请检查服务地址、超时与语言",
             "qwen3_tts_synthesis_failed" => "Qwen3-TTS 语音合成失败，请稍后重试",
+            "qwen3_tts_model_unknown" => "不支持该语音模型",
+            "qwen3_tts_download_busy" => "已有模型正在下载，请等待完成",
+            "qwen3_tts_download_unavailable" => "模型下载不可用，请安装 huggingface_hub 或 modelscope",
+            "recording_room_invalid" => "请输入正确的直播间号",
+            "recording_room_offline" => "直播间当前未开播，开始直播后再试",
+            "recording_stream_unavailable" => "无法获取直播流地址，请稍后重试",
+            "recording_directory_required" => "请先在录制设置中授权保存目录",
+            "recording_directory_unavailable" => "录制目录不可写，请更换保存位置",
+            "recording_ffmpeg_missing" => "未找到可用的 FFmpeg，请在录制设置中选择",
+            "recording_pipeline_invalid" => "录制参数无效，请检查录制设置",
+            "recording_start_failed" => "录制启动失败，请检查 FFmpeg 与网络后重试",
+            "recording_disk_waterline" => "磁盘可用空间低于水位线，已停止录制",
             _ => "操作失败，请稍后重试",
         };
         Self::new(error.code, message, error.retryable)

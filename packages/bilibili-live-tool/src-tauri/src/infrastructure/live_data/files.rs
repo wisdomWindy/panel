@@ -162,9 +162,11 @@ impl LiveFilePort for GrantedLiveFileStore {
                 metrics.filtered_count,
             ))
             .map_err(map_codec_error)?;
-        let content = writer
-            .into_inner()
-            .map_err(|error| map_io_error("file_write_failed", error.into_error()))?;
+        let content = super::super::text::with_utf8_bom(
+            writer
+                .into_inner()
+                .map_err(|error| map_io_error("file_write_failed", error.into_error()))?,
+        );
         self.write(grant_id, PathPurpose::StatExport, &content, 1)
             .await
     }
@@ -223,9 +225,11 @@ impl LiveFilePort for GrantedLiveFileStore {
                 .map_err(map_codec_error)?;
         }
         let count = snapshot.gift.len() + snapshot.danmu.len() + snapshot.captain.len();
-        let content = writer
-            .into_inner()
-            .map_err(|error| map_io_error("file_write_failed", error.into_error()))?;
+        let content = super::super::text::with_utf8_bom(
+            writer
+                .into_inner()
+                .map_err(|error| map_io_error("file_write_failed", error.into_error()))?,
+        );
         self.write(grant_id, PathPurpose::RankExport, &content, count as u32)
             .await
     }

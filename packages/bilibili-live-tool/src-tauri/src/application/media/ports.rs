@@ -1,8 +1,8 @@
 use std::{path::PathBuf, sync::Arc};
 
 use crate::domain::media::{
-    CaptainEffectConfig, GiftNotifyConfig, GiftSoundPolicy, RecordingConfig, RecordingFormat,
-    RecordingQuality, TtsConfig,
+    CaptainEffectConfig, FfmpegSource, GiftNotifyConfig, GiftSoundPolicy, RecordingConfig,
+    RecordingFormat, RecordingQuality, TtsConfig,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
@@ -245,6 +245,66 @@ pub trait SpeechSynthesisPort: Send + Sync {
     async fn voices(&self) -> Result<Vec<SynthesisVoice>, MediaIoError>;
     /// Returns a complete RIFF/WAVE payload, mono 16-bit PCM.
     async fn synthesize_wav(&self, request: SynthesisRequest) -> Result<Vec<u8>, MediaIoError>;
+}
+
+/// A live stream location that FFmpeg can pull from.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedStream {
+    pub url: String,
+    /// Qualities the platform actually offers for this room, when reported.
+    pub available_qualities: Vec<RecordingQuality>,
+}
+
+/// Turns a room id into a playable stream URL.
+///
+/// Kept as a port so the recorder never depends on a specific platform API,
+/// and so tests can drive the whole start path without network access.
+#[async_trait::async_trait]
+pub trait PlayUrlResolver: Send + Sync {
+    async fn resolve(
+        &self,
+        room_id: &str,
+        quality: RecordingQuality,
+    ) -> Result<ResolvedStream, MediaIoError>;
+}
+
+/// Locates the FFmpeg executable for the configured source.
+pub trait FfmpegLocator: Send + Sync {
+    fn locate(
+        &self,
+        source: FfmpegSource,
+        granted_executable: Option<&std::path::Path>,
+    ) -> Result<PathBuf, MediaIoError>;
+}
+
+/// Defaults used when no platform client is wired (tests, degraded start-up).
+pub struct UnavailablePlayUrlResolver;
+
+#[async_trait::async_trait]
+impl PlayUrlResolver for UnavailablePlayUrlResolver {
+    async fn resolve(
+        &self,
+        _: &str,
+        _: RecordingQuality,
+    ) -> Result<ResolvedStream, MediaIoError> {
+        Err(MediaIoError::coded(
+            "recording_stream_unavailable",
+            "直播流解析不可用",
+            false,
+        ))
+    }
+}
+
+pub struct UnavailableFfmpegLocator;
+
+impl FfmpegLocator for UnavailableFfmpegLocator {
+    fn locate(&self, _: FfmpegSource, _: Option<&std::path::Path>) -> Result<PathBuf, MediaIoError> {
+        Err(MediaIoError::coded(
+            "recording_ffmpeg_missing",
+            "尚未配置 FFmpeg",
+            false,
+        ))
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

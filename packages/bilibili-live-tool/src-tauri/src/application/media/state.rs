@@ -1,6 +1,6 @@
 use std::{
     collections::{HashSet, VecDeque},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -11,10 +11,11 @@ use crate::{
     application::{
         live_data::{AcceptedLiveEventConsumer, LiveRuntimeError},
         media::{
-            AudioOutputPort, AudioPlayback, AudioRequest, ByteRange, EffectRuntime,
+            AudioOutputPort, AudioPlayback, AudioRequest, ByteRange, EffectRuntime, FfmpegLocator,
             GiftMediaRuntime, GiftSoundBindingRecord, MediaFilePort, MediaIoError, MediaRepository,
-            PreviewPort, PreviewRead, PreviewSession, RecordingRecord, RecordingRuntime,
-            TtsRuntime,
+            PlayUrlResolver, PreviewPort, PreviewRead, PreviewSession, RecorderLaunch,
+            RecordingRecord, RecordingRuntime, TtsRuntime, UnavailableFfmpegLocator,
+            UnavailablePlayUrlResolver,
         },
         paths::PathPurpose,
         ports::PathGrantPort,
@@ -138,6 +139,8 @@ pub struct MediaState {
     preview_playbacks: Mutex<Vec<Box<dyn AudioPlayback>>>,
     local_ffmpeg_executable: RwLock<Option<PathBuf>>,
     event_sink: Arc<dyn MediaEventSink>,
+    play_url: Arc<dyn PlayUrlResolver>,
+    ffmpeg: Arc<dyn FfmpegLocator>,
 }
 
 impl MediaState {
@@ -157,7 +160,20 @@ impl MediaState {
             preview_playbacks: Mutex::new(Vec::new()),
             local_ffmpeg_executable: RwLock::new(None),
             event_sink: Arc::new(NoopMediaEventSink),
+            play_url: Arc::new(UnavailablePlayUrlResolver),
+            ffmpeg: Arc::new(UnavailableFfmpegLocator),
         }
+    }
+
+    /// Wires the platform client and the FFmpeg locator used by recording.
+    pub fn with_recording_clients(
+        mut self,
+        play_url: Arc<dyn PlayUrlResolver>,
+        ffmpeg: Arc<dyn FfmpegLocator>,
+    ) -> Self {
+        self.play_url = play_url;
+        self.ffmpeg = ffmpeg;
+        self
     }
 
     pub fn with_services(mut self, services: MediaServices) -> Self {
@@ -598,6 +614,110 @@ impl MediaState {
             crate::application::media::HighlightTriggerType::Manual,
         )
         .await
+    }
+
+    /// Resolves everything a recording needs (directory, FFmpeg, stream URL),
+    /// persists the record, then hands the launch line to the runtime.
+    pub async fn start_recording(&self, room_id: &str) -> Result<(), MediaIoError> {
+        let room_id = crate::domain::media::validate_recording_room_id(room_id).map_err(|_| {
+            MediaIoError::coded("recording_room_invalid", "请输入正确的直播间号", false)
+        })?;
+        let services = self.services()?;
+        let config = self.recording.config().await;
+
+        let grant = config.directory.as_ref().ok_or_else(|| {
+            MediaIoError::coded(
+                "recording_directory_required",
+                "请先在录制设置中选择保存目录",
+                false,
+            )
+        })?;
+        let directory = services
+            .grants
+            .resolve(&grant.grant_id, PathPurpose::RecordingDirectory)
+            .map_err(|_| {
+                MediaIoError::coded(
+                    "recording_directory_required",
+                    "录制目录授权已失效，请重新选择",
+                    false,
+                )
+            })?;
+        tokio::fs::create_dir_all(&directory)
+            .await
+            .map_err(|_| {
+                MediaIoError::coded(
+                    "recording_directory_unavailable",
+                    "录制目录无法创建或不可写",
+                    false,
+                )
+            })?;
+
+        let granted_executable = self.local_ffmpeg_executable.read().await.clone();
+        let executable = self
+            .ffmpeg
+            .locate(config.ffmpeg_source, granted_executable.as_deref())?;
+        let stream = self.play_url.resolve(room_id, config.quality).await?;
+
+        let format = config.format;
+        let path = Self::unique_recording_path(&directory, room_id, format);
+        let arguments = crate::domain::media::recording_arguments(
+            &crate::domain::media::RecordingPlanInput {
+                stream_url: &stream.url,
+                output: &path,
+                format,
+                quality: config.quality,
+            },
+        )
+        .map_err(|error| MediaIoError::coded("recording_pipeline_invalid", error.to_string(), false))?;
+
+        let mut record = services
+            .repository
+            .insert_recording(&RecordingRecord {
+                id: 0,
+                room_id: room_id.to_owned(),
+                file_path: path.clone(),
+                format,
+                quality: config.quality,
+                started_at: Self::now_millis(),
+                ended_at: None,
+                size_bytes: 0,
+                duration_seconds: 0,
+                status: crate::application::media::RecordingItemState::Recording,
+            })
+            .await?;
+
+        let launch = RecorderLaunch {
+            executable,
+            arguments,
+            working_directory: Some(directory),
+        };
+        match self.recording.start(room_id.to_owned(), launch).await {
+            Ok(()) => {
+                self.event_sink
+                    .publish_recording(&self.recording.snapshot().await)
+            }
+            Err(error) => {
+                record.status = crate::application::media::RecordingItemState::Failed;
+                record.ended_at = Some(Self::now_millis());
+                let _ = services.repository.update_recording(&record).await;
+                let _ = self
+                    .event_sink
+                    .publish_recording(&self.recording.snapshot().await);
+                Err(error)
+            }
+        }
+    }
+
+    fn unique_recording_path(directory: &Path, room_id: &str, format: RecordingFormat) -> PathBuf {
+        let extension = crate::domain::media::file_extension(format);
+        let stamp = Self::now_millis();
+        let mut candidate = directory.join(format!("{room_id}-{stamp}.{extension}"));
+        let mut index = 1;
+        while candidate.exists() {
+            candidate = directory.join(format!("{room_id}-{stamp}-{index}.{extension}"));
+            index += 1;
+        }
+        candidate
     }
 
     pub async fn stop_recording(&self) -> Result<(), MediaIoError> {

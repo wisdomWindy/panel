@@ -496,3 +496,63 @@ async fn local_process_adapter_stops_and_reaps_a_long_running_child() {
     let exit = process.wait().await.unwrap();
     assert!(!exit.success);
 }
+
+/// Live end-to-end proof: real platform API + the exact argument vector the
+/// domain builds + the real child-process port.
+///
+/// Ignored by default because it needs network access and an FFmpeg binary:
+/// ```text
+/// RECORDING_ROOM_ID=21452505 RECORDING_FFMPEG=<path to ffmpeg> \
+///   cargo test --lib --features free records_a_live_room_end_to_end -- --ignored --nocapture
+/// ```
+#[tokio::test]
+#[ignore = "requires network + ffmpeg; set RECORDING_ROOM_ID and RECORDING_FFMPEG"]
+async fn records_a_live_room_end_to_end() {
+    use crate::{
+        application::media::PlayUrlResolver,
+        domain::media::{recording_arguments, RecordingPlanInput},
+    };
+    use super::BilibiliPlayUrlResolver;
+
+    let room_id = std::env::var("RECORDING_ROOM_ID").expect("RECORDING_ROOM_ID");
+    let ffmpeg = std::env::var("RECORDING_FFMPEG").expect("RECORDING_FFMPEG");
+    let directory = tempfile::tempdir().unwrap();
+
+    let stream = BilibiliPlayUrlResolver::new()
+        .resolve(&room_id, RecordingQuality::Original)
+        .await
+        .expect("stream must resolve for a live room");
+    println!("resolved {} bytes of URL, qualities={:?}", stream.url.len(), stream.available_qualities);
+
+    let output = directory.path().join("e2e.flv");
+    let arguments = recording_arguments(&RecordingPlanInput {
+        stream_url: &stream.url,
+        output: &output,
+        format: RecordingFormat::Flv,
+        quality: RecordingQuality::Original,
+    })
+    .unwrap();
+
+    let mut process = LocalFfmpegProcessPort
+        .spawn(RecorderLaunch {
+            executable: PathBuf::from(ffmpeg),
+            arguments,
+            working_directory: Some(directory.path().to_path_buf()),
+        })
+        .await
+        .expect("ffmpeg must start");
+
+    tokio::time::sleep(std::time::Duration::from_secs(8)).await;
+    process.stop().await.unwrap();
+    let exit = process.wait().await.unwrap();
+    let bytes = std::fs::read(&output).unwrap_or_default();
+    println!(
+        "recorded {} bytes, header={:?}, exit={:?}\nstderr={}",
+        bytes.len(),
+        bytes.get(..3),
+        exit.code,
+        exit.stderr
+    );
+    assert!(!bytes.is_empty(), "no data was recorded; stderr={}", exit.stderr);
+    assert_eq!(&bytes[..3], b"FLV", "output is not a playable FLV container");
+}

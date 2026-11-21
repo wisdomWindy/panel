@@ -1,8 +1,10 @@
 mod audio;
 mod ffmpeg;
+mod ffmpeg_locator;
 mod files;
 mod hotkey;
 mod notification;
+mod play_url;
 mod preview;
 mod qwen_tts;
 mod repository;
@@ -11,6 +13,8 @@ mod window;
 
 pub use audio::{RodioAudioOutput, UnavailableAudioOutput};
 pub use ffmpeg::{LocalFfmpegProcessPort, UnavailableRecorderProcessPort};
+pub use ffmpeg_locator::AppFfmpegLocator;
+pub use play_url::{parse_play_url_response, quality_qn, validate_room_id, BilibiliPlayUrlResolver};
 
 pub use crate::application::media::{
     GiftSoundBindingRecord, HighlightRecord, HighlightTriggerType, RecordingItemState,

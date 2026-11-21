@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::application::live_data::SensitiveFileFormat;
 use crate::domain::live_data::{SensitiveMatchType, SensitiveRule, SensitiveWordCategory};
+use crate::infrastructure::text;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct BlacklistFileRow {
@@ -45,6 +46,7 @@ pub fn encode_sensitive_words(
             }
             writer
                 .into_inner()
+                .map(crate::infrastructure::text::with_utf8_bom)
                 .map_err(|error| FileCodecError::Csv(error.into_error().into()))
         }
         SensitiveFileFormat::Json => Ok(serde_json::to_vec_pretty(&rows)?),
@@ -64,7 +66,9 @@ pub fn decode_sensitive_words(
     format: SensitiveFileFormat,
 ) -> Result<Vec<SensitiveRule>, FileCodecError> {
     let rows = match format {
-        SensitiveFileFormat::Csv => csv::Reader::from_reader(content)
+        // Files we export carry a UTF-8 BOM for Excel; strip it before parsing so
+        // a round-trip does not turn the first header into "\u{FEFF}word".
+        SensitiveFileFormat::Csv => csv::Reader::from_reader(text::strip_utf8_bom(content))
             .deserialize()
             .collect::<Result<Vec<SensitiveFileRow>, _>>()?,
         SensitiveFileFormat::Json => serde_json::from_slice(content)?,
@@ -87,11 +91,12 @@ pub fn encode_blacklist_csv(rows: &[BlacklistFileRow]) -> Result<Vec<u8>, FileCo
     }
     writer
         .into_inner()
+        .map(crate::infrastructure::text::with_utf8_bom)
         .map_err(|error| FileCodecError::Csv(error.into_error().into()))
 }
 
 pub fn decode_blacklist_csv(content: &[u8]) -> Result<Vec<BlacklistFileRow>, FileCodecError> {
-    csv::Reader::from_reader(content)
+    csv::Reader::from_reader(text::strip_utf8_bom(content))
         .deserialize()
         .collect::<Result<Vec<_>, _>>()
         .map_err(FileCodecError::from)

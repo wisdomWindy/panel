@@ -124,6 +124,19 @@ pub fn validate_tts_config(config: &TtsConfig) -> Result<(), MediaDomainError> {
     validate_tts_template(TtsTemplateKind::Captain, &config.templates.captain)
 }
 
+/// Live room ids are numeric; validating here keeps them out of file names and
+/// URLs as anything other than digits.
+pub fn validate_recording_room_id(room_id: &str) -> Result<&str, MediaDomainError> {
+    let trimmed = room_id.trim();
+    if trimmed.is_empty()
+        || trimmed.len() > 20
+        || !trimmed.chars().all(|character| character.is_ascii_digit())
+    {
+        return Err(MediaDomainError::InvalidField("recordingRoomId"));
+    }
+    Ok(trimmed)
+}
+
 pub fn validate_recording_config(config: &RecordingConfig) -> Result<(), MediaDomainError> {
     if config.segmentation_enabled && config.segment_duration_seconds == 0 {
         return Err(MediaDomainError::InvalidField("segmentDurationSeconds"));

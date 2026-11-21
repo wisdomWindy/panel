@@ -7,3 +7,4 @@ pub mod member;
 pub mod path_grants;
 pub mod release;
 pub mod shell;
+pub mod text;

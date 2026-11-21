@@ -43,7 +43,8 @@ const startDisabledReason = computed(() => {
   ) {
     return t('recording.reasons.lowDisk');
   }
-  if (status.value?.state === 'error') return t('recording.reasons.errorState');
+  // An error state must stay retryable: the backend accepts a restart from
+  // Error, and the primary button already offers "重试录制".
   return null;
 });
 const primaryText = computed(() =>

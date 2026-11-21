@@ -678,12 +678,11 @@ pub async fn recording_status(
 
 #[tauri::command]
 pub async fn recording_start(
-    _: State<'_, AppState>,
+    state: State<'_, AppState>,
     request: RecordingStartRequestDto,
 ) -> Result<RecordingStatusDto, DesktopError> {
-    crate::domain::validation::RoomId::parse(&request.room_id)
-        .map_err(|_| DesktopError::from(MediaIoError::invalid("recording room is invalid")))?;
-    Err(MediaIoError::unavailable("live stream resolver is unavailable").into())
+    state.media().start_recording(&request.room_id).await?;
+    recording_status(state).await
 }
 
 #[tauri::command]

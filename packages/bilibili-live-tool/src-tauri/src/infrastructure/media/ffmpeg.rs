@@ -134,7 +134,9 @@ async fn capture(mut stream: impl AsyncRead + Unpin) -> Result<String, std::io::
         let remaining = MAX_CAPTURE_BYTES.saturating_sub(captured.len());
         captured.extend_from_slice(&buffer[..read.min(remaining)]);
     }
-    Ok(String::from_utf8_lossy(&captured).into_owned())
+    // FFmpeg writes GBK on a Chinese Windows host; decoding explicitly keeps
+    // recorder failures readable instead of surfacing U+FFFD to the operator.
+    Ok(crate::infrastructure::text::decode_external_text(&captured))
 }
 
 async fn join_capture(

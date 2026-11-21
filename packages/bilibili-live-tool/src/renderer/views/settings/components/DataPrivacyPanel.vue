@@ -168,6 +168,10 @@ onMounted(() => {
       >
         {{ t('common.save') }}
       </button>
+      <p class="app-muted mt-3 mb-0 text-sm" role="note">
+        {{ t('settings.data.runtimeLogs') }}
+        <span class="app-text font-semibold">{{ t('settings.data.runtimeLogsValue') }}</span>
+      </p>
     </section>
 
     <section class="app-card p-4">

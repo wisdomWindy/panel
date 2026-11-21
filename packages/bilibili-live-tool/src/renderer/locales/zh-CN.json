@@ -448,7 +448,9 @@
       "clearFailed": "清空失败",
       "saved": "保留期已保存",
       "saveFailed": "保存失败",
-      "loadFailed": "读取保留期失败"
+      "loadFailed": "读取保留期失败",
+      "runtimeLogs": "运行日志：",
+      "runtimeLogsValue": "固定 30 天，按大小与日期自动滚动删除（不可配置）"
     },
     "config": {
       "location": "配置位置",

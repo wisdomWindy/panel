@@ -448,7 +448,9 @@
       "clearFailed": "Clearing failed",
       "saved": "Retention saved",
       "saveFailed": "Saving failed",
-      "loadFailed": "Could not load retention settings"
+      "loadFailed": "Could not load retention settings",
+      "runtimeLogs": "Runtime logs:",
+      "runtimeLogsValue": "Fixed 30 days, rotated by size and date automatically (not configurable)"
     },
     "config": {
       "location": "Configuration location",

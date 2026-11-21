@@ -24,8 +24,22 @@ describe('system settings shell contract', () => {
     expect(page).toContain('ConfigManagementPanel');
     expect(page).toContain('LanguageSettings');
     expect(page).toContain('InterfaceSettingsPanel');
+    expect(page).toContain('DataPrivacyPanel');
     expect(page).not.toMatch(/LogSettings|UpdateSettings|ASRSettings|AISettings|ModerationSettings/);
     expect(page).not.toMatch(/useConfigStore|createObjectURL|new Blob|importPlaceholder/);
+  });
+
+  it('exposes PRD 12.3 retention and PRD 12.4 clearing through the shell commands', () => {
+    const panel = source('./components/DataPrivacyPanel.vue');
+    expect(panel).toContain("invokeDesktop('data_retention_get', undefined)");
+    expect(panel).toContain("invokeDesktop('data_retention_save'");
+    expect(panel).toContain("invokeDesktop('data_clear'");
+    // Every destructive action needs a second confirmation.
+    expect(panel).toContain('ElMessageBox.confirm');
+    for (const scope of ['eventLogs', 'aiLogs', 'cache', 'all']) {
+      expect(panel).toContain(`'${scope}'`);
+    }
+    expect(panel).not.toMatch(/dark:|bg-white|text-gray-/);
   });
 
   it('uses native configuration actions and a second reset confirmation', () => {

@@ -77,8 +77,18 @@ impl From<PathPortError> for DesktopError {
     }
 }
 
-impl From<ShellError> for DesktopError {
-    fn from(error: ShellError) -> Self {
+impl From<crate::application::data_maintenance::DataMaintenanceError> for DesktopError {
+    fn from(error: crate::application::data_maintenance::DataMaintenanceError) -> Self {
+        use crate::application::data_maintenance::DataMaintenanceError;
+        match error {
+            DataMaintenanceError::Database(_) => {
+                Self::new("data_maintenance_failed", "Data maintenance failed", true)
+            }
+        }
+    }
+}
+
+impl From<ShellError> for DesktopError {    fn from(error: ShellError) -> Self {
         Self::new(
             error.code,
             "Application shell operation failed",

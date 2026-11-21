@@ -61,3 +61,14 @@
 | 快捷键清单 | 删除 PRD 原第 14 节，后续章节号顺延（错误码分类→14，修订摘要→15）；录制热键 F9 属于功能需求，仍保留在 9.12。 |
 
 PRD v1 已删除，`docs/requirements/` 现只保留 v2 作为唯一需求基线。
+
+## 5. PRD 条款补齐（按 v2 逐条实现）
+
+| PRD 条款 | 实现 | 证据 |
+| --- | --- | --- |
+| §12.3 数据保留默认策略 | `application/data_maintenance.rs`：事件日志 90 天 / AI 日志 30 天 / 统计 180 天，可选 7/30/90/180/永久；策略存 `t_app_setting['data.retention']`；启动后每 6 小时执行一次 `purge_expired` | 8 个单元测试；`lib.rs` setup 中的定时任务 |
+| §12.4 数据清空 | `data_clear(scope)` 支持 `eventLogs` / `aiLogs` / `cache` / `all`；`all` 清空 22 张用户表与配置但保留 `t_schema_state`；设置页新增「数据与隐私」分类，四次清空均二次确认 | `DataPrivacyPanel.vue`；契约测试断言四个 scope |
+
+新增命令：`data_retention_get` / `data_retention_save` / `data_clear`（shell 命令 13 → 16，Rust 与 TypeScript 同步）。
+
+> 仍未实现（下一批）：§9.12 高光片段截取、§9.12 录制断流重连（最多 3 次）、§13 系统托盘。

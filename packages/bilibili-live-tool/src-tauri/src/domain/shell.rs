@@ -15,6 +15,9 @@ pub const SHELL_COMMAND_NAMES: &[&str] = &[
     "ui_preview",
     "ui_save",
     "ui_reset",
+    "data_retention_get",
+    "data_retention_save",
+    "data_clear",
 ];
 
 pub const SHELL_EVENT_NAMES: &[&str] = &[
@@ -297,7 +300,16 @@ mod tests {
 
     #[test]
     fn freezes_public_surface_and_source_defaults() {
-        assert_eq!(SHELL_COMMAND_NAMES.len(), 13);
+        assert_eq!(SHELL_COMMAND_NAMES.len(), 16);
+        // PRD 12.3 / 12.4: retention settings and scoped data clearing.
+        assert_eq!(
+            &SHELL_COMMAND_NAMES[13..],
+            [
+                "data_retention_get",
+                "data_retention_save",
+                "data_clear"
+            ]
+        );
         assert_eq!(SHELL_EVENT_NAMES.len(), 3);
         assert_eq!(UiPreferences::default().theme, ThemeMode::System);
         assert_eq!(UiPreferences::default().accent_color, "#FB7299");

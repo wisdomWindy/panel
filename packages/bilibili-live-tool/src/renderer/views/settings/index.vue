@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Brush, Files, InfoFilled, Location, Refresh } from '@element-plus/icons-vue';
+import { Brush, Files, InfoFilled, Lock, Location, Refresh } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { useReleaseStore } from '@/stores/release';
 import ConfigManagementPanel from './components/ConfigManagementPanel.vue';
+import DataPrivacyPanel from './components/DataPrivacyPanel.vue';
 import InterfaceSettingsPanel from './components/InterfaceSettingsPanel.vue';
 import LanguageSettings from './components/LanguageSettings.vue';
 
-type SettingsCategory = 'config' | 'language' | 'interface' | 'about';
+type SettingsCategory = 'config' | 'language' | 'interface' | 'data' | 'about';
 
 const { t } = useI18n();
 const release = useReleaseStore();
@@ -18,6 +19,7 @@ const categories = [
   { id: 'config' as const, icon: Files },
   { id: 'language' as const, icon: Location },
   { id: 'interface' as const, icon: Brush },
+  { id: 'data' as const, icon: Lock },
   { id: 'about' as const, icon: InfoFilled }
 ];
 
@@ -110,6 +112,7 @@ async function handleCheckUpdate(): Promise<void> {
           <ConfigManagementPanel v-if="activeCategory === 'config'" />
           <LanguageSettings v-else-if="activeCategory === 'language'" />
           <InterfaceSettingsPanel v-else-if="activeCategory === 'interface'" />
+      <DataPrivacyPanel v-else-if="activeCategory === 'data'" />
           <div v-else class="max-w-4xl">
             <dl class="m-0 grid grid-cols-[9rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
               <dt class="app-muted">

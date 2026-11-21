@@ -29,8 +29,13 @@ const validUi = (): UiPreferences => ({
 });
 
 describe('application shell contracts', () => {
-  it('freezes exactly thirteen commands and three events', () => {
-    expect(SHELL_COMMAND_NAMES).toHaveLength(13);
+  it('freezes exactly sixteen commands and three events', () => {
+    expect(SHELL_COMMAND_NAMES).toHaveLength(16);
+    expect(SHELL_COMMAND_NAMES.slice(-3)).toEqual([
+      'data_retention_get',
+      'data_retention_save',
+      'data_clear'
+    ]);
     expect(SHELL_EVENT_NAMES).toEqual([
       'shell_status_changed',
       'locale_changed',

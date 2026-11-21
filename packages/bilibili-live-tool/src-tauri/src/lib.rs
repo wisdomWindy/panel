@@ -97,7 +97,7 @@ use ipc::release::{
     update_status, TauriReleaseEventSink,
 };
 use ipc::shell::{
-    config_export, config_import, config_open_directory, config_overview, config_reset, locale_get,
+    data_clear, data_retention_get, data_retention_save, config_export, config_import, config_open_directory, config_overview, config_reset, locale_get,
     locale_save, locale_set_auto, shell_status, ui_get, ui_preview, ui_reset, ui_save,
     TauriShellEventSink,
 };
@@ -110,6 +110,7 @@ pub struct AppState {
     media: Arc<MediaState>,
     qwen3_tts: Arc<Qwen3TtsService>,
     ranking_presenter: Arc<RankingPresenter>,
+    data_maintenance: Arc<crate::application::data_maintenance::DataMaintenance>,
     shell: Arc<ApplicationShellState>,
     release: Arc<ReleaseState>,
     ai: Option<Arc<AiState>>,
@@ -139,6 +140,14 @@ impl AppState {
                 |_| Arc::new(UnavailableSystemMetrics) as Arc<dyn SystemMetricsPort>,
                 |metrics| Arc::new(metrics) as Arc<dyn SystemMetricsPort>,
             );
+        let data_maintenance = Arc::new(
+            crate::application::data_maintenance::DataMaintenance::new(
+                database
+                    .pool()
+                    .expect("database is initialised before data maintenance"),
+                Some(config_directory.join("cache")),
+            ),
+        );
         let shell = Arc::new(
             ApplicationShellState::initialize(
                 shell_repository,
@@ -381,6 +390,7 @@ impl AppState {
             media,
             qwen3_tts,
             ranking_presenter,
+            data_maintenance,
             shell,
             release,
             ai,
@@ -414,6 +424,12 @@ impl AppState {
 
     pub(crate) fn shell(&self) -> &Arc<ApplicationShellState> {
         &self.shell
+    }
+
+    pub(crate) fn data_maintenance(
+        &self,
+    ) -> &Arc<crate::application::data_maintenance::DataMaintenance> {
+        &self.data_maintenance
     }
 
     pub(crate) fn release(&self) -> &Arc<ReleaseState> {
@@ -477,6 +493,21 @@ pub fn run() {
             let state =
                 tauri::async_runtime::block_on(AppState::new(app.handle().clone(), database_path));
             app.manage(state);
+            // PRD 12.3: purge expired logs and stats locally on a schedule.
+            let maintenance = Arc::clone(app.state::<AppState>().data_maintenance());
+            tauri::async_runtime::spawn(async move {
+                loop {
+                    match maintenance.load_policy().await {
+                        Ok(policy) => {
+                            if let Err(error) = maintenance.purge_expired(policy).await {
+                                log::warn!("retention purge failed: {error}");
+                            }
+                        }
+                        Err(error) => log::warn!("retention policy is unavailable: {error}"),
+                    }
+                    tokio::time::sleep(std::time::Duration::from_secs(6 * 60 * 60)).await;
+                }
+            });
             Ok(())
         });
 
@@ -494,6 +525,9 @@ pub fn run() {
         config_export,
         config_import,
         config_reset,
+        data_retention_get,
+        data_retention_save,
+        data_clear,
         locale_get,
         locale_set_auto,
         locale_save,
@@ -603,6 +637,9 @@ pub fn run() {
         config_export,
         config_import,
         config_reset,
+        data_retention_get,
+        data_retention_save,
+        data_clear,
         locale_get,
         locale_set_auto,
         locale_save,

@@ -410,13 +410,39 @@
       "config": "Configuration",
       "language": "Language",
       "interface": "Interface",
-      "about": "About and licenses"
+      "data": "Data and privacy",
+    "about": "About and licenses"
     },
     "categoryHints": {
       "config": "Inspect the configuration location, export or import configuration, and restore defaults",
       "language": "Follow the system language or pick one for the interface",
       "interface": "Adjust theme, accent color, font size, and layout display",
+      "data": "Set local retention, or clear logs and cache",
       "about": "Review the application version and third-party licenses, and check for updates"
+    },
+    "data": {
+      "retention": "Data retention",
+      "retentionHint": "Local records older than the retention period are removed automatically; choose Forever to keep them.",
+      "eventLogs": "Event logs",
+      "aiLogs": "AI generation and speech logs",
+      "stats": "Aggregated statistics",
+      "days": "{days} days",
+      "forever": "Forever",
+      "clear": "Clear local data",
+      "clearHint": "Clearing cannot be undone; deleted model profiles and API keys cannot be restored.",
+      "clearEventLogs": "Clear event logs",
+      "clearAiLogs": "Clear AI logs",
+      "clearCache": "Clear cache",
+      "clearAll": "Clear all application data",
+      "confirmTitle": "Confirm clearing",
+      "confirmScope": "Clear this local data? This cannot be undone.",
+      "confirmAll": "This deletes all local data, including configuration, sensitive words, blacklist, model profiles and API keys. This cannot be undone. Continue?",
+      "confirm": "Clear",
+      "cleared": "Cleared",
+      "clearFailed": "Clearing failed",
+      "saved": "Retention saved",
+      "saveFailed": "Saving failed",
+      "loadFailed": "Could not load retention settings"
     },
     "config": {
       "location": "Configuration location",

@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 
 use crate::{
+    application::data_maintenance::{
+        ClearReport, DataClearScope, PurgeReport, RetentionPolicy,
+    },
     application::shell::{ConfigMutation, ShellError, ShellEventSink, SystemMetrics},
     domain::shell::{
         is_config_scope_available, LocalePreferences, ShellConfigScope, UiPreferences,
@@ -9,6 +12,69 @@ use crate::{
     ipc::error::DesktopError,
     AppState,
 };
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RetentionSaveRequestDto {
+    pub policy: RetentionPolicy,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DataClearRequestDto {
+    pub scope: DataClearScope,
+}
+
+#[tauri::command]
+pub async fn data_retention_get(
+    state: State<'_, AppState>,
+) -> Result<RetentionPolicy, DesktopError> {
+    state
+        .data_maintenance()
+        .load_policy()
+        .await
+        .map_err(Into::into)
+}
+
+#[tauri::command]
+pub async fn data_retention_save(
+    state: State<'_, AppState>,
+    request: RetentionSaveRequestDto,
+) -> Result<RetentionPolicy, DesktopError> {
+    if !request.policy.is_valid() {
+        return Err(DesktopError::new(
+            "invalid_retention_policy",
+            "Retention policy is invalid",
+            false,
+        ));
+    }
+    state
+        .data_maintenance()
+        .save_policy(request.policy)
+        .await
+        .map_err(Into::into)
+}
+
+#[tauri::command]
+pub async fn data_clear(
+    state: State<'_, AppState>,
+    request: DataClearRequestDto,
+) -> Result<ClearReport, DesktopError> {
+    state
+        .data_maintenance()
+        .clear(request.scope)
+        .await
+        .map_err(Into::into)
+}
+
+#[allow(dead_code)]
+pub fn purge_report_value(report: PurgeReport) -> serde_json::Value {
+    serde_json::json!({
+        "eventLogs": report.event_logs,
+        "aiLogs": report.ai_logs,
+        "stats": report.stats,
+    })
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -287,7 +353,7 @@ mod tests {
 
     #[test]
     fn shell_surface_is_exact_and_dtos_use_camel_case() {
-        assert_eq!(SHELL_COMMAND_NAMES.len(), 13);
+        assert_eq!(SHELL_COMMAND_NAMES.len(), 16);
         assert_eq!(
             SHELL_EVENT_NAMES,
             [

@@ -72,6 +72,20 @@ export interface ConfigResetResult {
   resetScopes: readonly ShellConfigScope[];
 }
 
+/** PRD 12.3: `null` keeps that data type forever. */
+export interface RetentionPolicy {
+  eventLogDays: number | null;
+  aiLogDays: number | null;
+  statDays: number | null;
+}
+
+/** PRD 12.4: the four clearable scopes. */
+export type DataClearScope = 'eventLogs' | 'aiLogs' | 'cache' | 'all';
+
+export interface DataClearResult {
+  cleared: readonly string[];
+}
+
 export interface ShellCommandRequestMap {
   shell_status: undefined;
   config_overview: undefined;
@@ -86,6 +100,9 @@ export interface ShellCommandRequestMap {
   ui_preview: { preferences: UiPreferences };
   ui_save: { preferences: UiPreferences };
   ui_reset: undefined;
+  data_retention_get: undefined;
+  data_retention_save: { policy: RetentionPolicy };
+  data_clear: { scope: DataClearScope };
 }
 
 export interface ShellCommandResultMap {
@@ -102,6 +119,9 @@ export interface ShellCommandResultMap {
   ui_preview: UiPreferences;
   ui_save: UiPreferences;
   ui_reset: UiPreferences;
+  data_retention_get: RetentionPolicy;
+  data_retention_save: RetentionPolicy;
+  data_clear: DataClearResult;
 }
 
 export interface ShellEventPayloadMap {
@@ -123,7 +143,10 @@ export const SHELL_COMMAND_NAMES = [
   'ui_get',
   'ui_preview',
   'ui_save',
-  'ui_reset'
+  'ui_reset',
+  'data_retention_get',
+  'data_retention_save',
+  'data_clear'
 ] as const satisfies readonly (keyof ShellCommandRequestMap)[];
 
 export const SHELL_EVENT_NAMES = [

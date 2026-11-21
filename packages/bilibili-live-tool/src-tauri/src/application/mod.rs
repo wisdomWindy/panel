@@ -1,5 +1,6 @@
 pub mod bootstrap;
 pub mod config;
+pub mod data_maintenance;
 pub mod live_data;
 pub mod media;
 pub mod member;

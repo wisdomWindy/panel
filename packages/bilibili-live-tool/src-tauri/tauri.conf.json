@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "biliLiveHelper",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "identifier": "com.bilibili.live-tool",
   "build": {
     "frontendDist": "../dist/renderer",
@@ -24,7 +24,10 @@
     ],
     "security": {
       "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost https: wss:; img-src 'self' asset: http://asset.localhost data: https://hdslb.com https://*.hdslb.com https://bilibili.com https://*.bilibili.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:",
-      "capabilities": ["main", "effect"]
+      "capabilities": [
+        "main",
+        "effect"
+      ]
     }
   },
   "plugins": {
@@ -34,7 +37,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

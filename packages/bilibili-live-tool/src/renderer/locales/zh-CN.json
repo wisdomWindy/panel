@@ -514,7 +514,15 @@
       "component": "组件",
       "license": "许可",
       "source": "源码地址",
-      "unavailable": "第三方分发资源与许可信息暂不可用"
+      "unavailable": "第三方分发资源与许可信息暂不可用",
+      "platform": "运行平台",
+      "platforms": {
+        "windows": "Windows",
+        "macos": "macOS",
+        "linux": "Linux",
+        "unknown": "未知"
+      },
+      "platformUnverified": "当前平台未完整验证：录制、本地语音设备与系统托盘可能不可用，请以 Windows 版为准。"
     },
     "feedback": {
       "saved": "设置已保存",

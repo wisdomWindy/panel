@@ -514,7 +514,15 @@
       "component": "Component",
       "license": "License",
       "source": "Source address",
-      "unavailable": "Third-party distribution artifacts and license information are unavailable"
+      "unavailable": "Third-party distribution artifacts and license information are unavailable",
+      "platform": "Platform",
+      "platforms": {
+        "windows": "Windows",
+        "macos": "macOS",
+        "linux": "Linux",
+        "unknown": "Unknown"
+      },
+      "platformUnverified": "This platform is not fully verified: recording, local audio devices and the tray icon may be unavailable. The Windows build is the reference."
     },
     "feedback": {
       "saved": "Settings saved",

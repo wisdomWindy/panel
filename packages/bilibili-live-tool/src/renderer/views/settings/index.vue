@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Brush, Files, InfoFilled, Lock, Location, Refresh } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import { useI18n } from 'vue-i18n';
 import { useReleaseStore } from '@/stores/release';
+import {
+  detectHostPlatform,
+  isFullyVerifiedPlatform
+} from '@/modules/application-shell/platform-support';
 import ConfigManagementPanel from './components/ConfigManagementPanel.vue';
 import DataPrivacyPanel from './components/DataPrivacyPanel.vue';
 import InterfaceSettingsPanel from './components/InterfaceSettingsPanel.vue';
@@ -15,6 +19,10 @@ const { t } = useI18n();
 const release = useReleaseStore();
 const activeCategory = ref<SettingsCategory>('config');
 const title = computed(() => t(`settings.categories.${activeCategory.value}`));
+const hostPlatform = detectHostPlatform(
+  typeof navigator === 'undefined' ? '' : navigator.userAgent
+);
+const platformIsVerified = isFullyVerifiedPlatform(hostPlatform);
 const categories = [
   { id: 'config' as const, icon: Files },
   { id: 'language' as const, icon: Location },
@@ -121,7 +129,21 @@ async function handleCheckUpdate(): Promise<void> {
               <dd class="app-text m-0 font-semibold tabular-nums">
                 v{{ release.about?.applicationVersion ?? '--' }}
               </dd>
+              <dt class="app-muted">
+                {{ t('settings.aboutInfo.platform') }}
+              </dt>
+              <dd class="app-text m-0 font-semibold">
+                {{ t(`settings.aboutInfo.platforms.${hostPlatform}`) }}
+              </dd>
             </dl>
+            <p
+              v-if="!platformIsVerified"
+              class="app-muted mt-3 mb-0 text-sm"
+              role="note"
+              style="color: var(--app-gold)"
+            >
+              {{ t('settings.aboutInfo.platformUnverified') }}
+            </p>
             <div class="app-hairline my-5 border-t" />
             <h4 class="app-text m-0 mb-3 text-sm font-semibold">
               {{ t('settings.aboutInfo.licenses') }}

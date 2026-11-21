@@ -14,3 +14,6 @@ pub use tts::*;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod reconnect_e2e;

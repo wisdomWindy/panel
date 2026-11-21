@@ -41,20 +41,20 @@ const RECORDING_MAX_RECONNECTS: u8 = 3;
 const RECORDING_ALIVE_CHECK_MILLIS: u64 = 2_000;
 
 /// Watches the recorder process and restarts it when the stream drops.
-struct RecordingReconnectWatchdog {
-    recording: Arc<RecordingRuntime>,
-    play_url: Arc<dyn PlayUrlResolver>,
-    ffmpeg: Arc<dyn FfmpegLocator>,
-    granted_executable: Option<PathBuf>,
-    ffmpeg_source: FfmpegSource,
-    room_id: String,
-    directory: PathBuf,
-    quality: RecordingQuality,
-    format: RecordingFormat,
+pub(crate) struct RecordingReconnectWatchdog {
+    pub(crate) recording: Arc<RecordingRuntime>,
+    pub(crate) play_url: Arc<dyn PlayUrlResolver>,
+    pub(crate) ffmpeg: Arc<dyn FfmpegLocator>,
+    pub(crate) granted_executable: Option<PathBuf>,
+    pub(crate) ffmpeg_source: FfmpegSource,
+    pub(crate) room_id: String,
+    pub(crate) directory: PathBuf,
+    pub(crate) quality: RecordingQuality,
+    pub(crate) format: RecordingFormat,
 }
 
 impl RecordingReconnectWatchdog {
-    async fn run(self) {
+    pub(crate) async fn run(self) {
         let mut attempts: u8 = 0;
         loop {
             tokio::time::sleep(std::time::Duration::from_millis(
@@ -224,14 +224,14 @@ pub struct MediaState {
     effects: Arc<EffectRuntime>,
     gifts: Arc<GiftMediaRuntime>,
     tts: Arc<TtsRuntime>,
-    recording: Arc<RecordingRuntime>,
+    pub(crate) recording: Arc<RecordingRuntime>,
     accepted_events: Mutex<EventHistory>,
     services: Option<MediaServices>,
     preview_playbacks: Mutex<Vec<Box<dyn AudioPlayback>>>,
     local_ffmpeg_executable: RwLock<Option<PathBuf>>,
     event_sink: Arc<dyn MediaEventSink>,
-    play_url: Arc<dyn PlayUrlResolver>,
-    ffmpeg: Arc<dyn FfmpegLocator>,
+    pub(crate) play_url: Arc<dyn PlayUrlResolver>,
+    pub(crate) ffmpeg: Arc<dyn FfmpegLocator>,
 }
 
 impl MediaState {

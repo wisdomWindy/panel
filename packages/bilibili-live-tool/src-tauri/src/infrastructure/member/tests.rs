@@ -88,21 +88,21 @@ fn artifact_integrity_and_paths_fail_closed() {
             )
             .unwrap_err()
             .code,
-        "module_hash_mismatch"
+        "MEMBER_MODULE_HASH_MISMATCH"
     );
     assert_eq!(
         verifier
             .module_path(&module_id, "../escape")
             .unwrap_err()
             .code,
-        "module_path_invalid"
+        "MEMBER_MODULE_PATH_INVALID"
     );
     assert_eq!(
         verifier
             .archive_entry_path("../escape.dll")
             .unwrap_err()
             .code,
-        "module_entry_invalid"
+        "MEMBER_MODULE_ENTRY_INVALID"
     );
     assert!(verifier
         .archive_entry_path("bin/module.dll")
@@ -124,7 +124,7 @@ fn token_signature_rejects_tampering() {
             .verify(b"tampered entitlement", &signature.to_bytes())
             .unwrap_err()
             .code,
-        "entitlement_signature_invalid"
+        "MEMBER_ENTITLEMENT_SIGNATURE_INVALID"
     );
 }
 
@@ -320,7 +320,7 @@ async fn invalid_persisted_enum_is_rejected() {
 
     assert_eq!(
         repository.list_modules().await.unwrap_err().code,
-        "member_data_invalid"
+        "MEMBER_DATA_INVALID"
     );
 }
 
@@ -330,7 +330,7 @@ async fn unavailable_adapters_return_stable_redacted_errors() {
 
     assert_eq!(
         UnavailableAuthProvider.generate_qr().await.unwrap_err(),
-        crate::application::member::MemberServiceError::unavailable("auth_qr_unavailable")
+        crate::application::member::MemberServiceError::unavailable("MEMBER_AUTH_QR_UNAVAILABLE")
     );
     assert_eq!(
         UnavailableLlmProvider
@@ -338,7 +338,7 @@ async fn unavailable_adapters_return_stable_redacted_errors() {
             .await
             .unwrap_err()
             .code,
-        "llm_unavailable"
+        "NET_LLM_UNAVAILABLE"
     );
     assert_eq!(
         UnavailableModerationProvider
@@ -346,6 +346,6 @@ async fn unavailable_adapters_return_stable_redacted_errors() {
             .await
             .unwrap_err()
             .code,
-        "moderation_api_unavailable"
+        "MEMBER_MODERATION_API_UNAVAILABLE"
     );
 }

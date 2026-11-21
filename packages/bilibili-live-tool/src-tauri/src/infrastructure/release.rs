@@ -46,7 +46,7 @@ impl TauriUpdateProvider {
 
     async fn ensure_current_generation(&self, generation: u64) -> Result<(), ReleaseServiceError> {
         if self.pending.lock().await.generation != generation {
-            return Err(ReleaseServiceError::invalid("stale_update_check"));
+            return Err(ReleaseServiceError::invalid("UPDATE_STALE_CHECK"));
         }
         Ok(())
     }
@@ -63,7 +63,7 @@ impl UpdateProvider for TauriUpdateProvider {
         let updater = self
             .app
             .updater()
-            .map_err(|_| ReleaseServiceError::unavailable("update_provider_unavailable"))?;
+            .map_err(|_| ReleaseServiceError::unavailable("UPDATE_PROVIDER_UNAVAILABLE"))?;
         let update = updater
             .check()
             .await
@@ -77,7 +77,7 @@ impl UpdateProvider for TauriUpdateProvider {
             candidate_from_metadata(&update.version, update.body.as_deref(), &update.raw_json)?;
         let mut pending = self.pending.lock().await;
         if pending.generation != generation {
-            return Err(ReleaseServiceError::invalid("stale_update_check"));
+            return Err(ReleaseServiceError::invalid("UPDATE_STALE_CHECK"));
         }
         *pending = PendingUpdate {
             generation,
@@ -95,21 +95,21 @@ impl UpdateProvider for TauriUpdateProvider {
                 (
                     pending.generation,
                     pending.update.clone().ok_or_else(|| {
-                        ReleaseServiceError::invalid("update_candidate_unavailable")
+                        ReleaseServiceError::invalid("UPDATE_CANDIDATE_UNAVAILABLE")
                     })?,
                     pending.candidate.clone().ok_or_else(|| {
-                        ReleaseServiceError::invalid("update_candidate_unavailable")
+                        ReleaseServiceError::invalid("UPDATE_CANDIDATE_UNAVAILABLE")
                     })?,
                 )
             };
         let bytes = update
             .download(|_, _| {}, || {})
             .await
-            .map_err(|_| ReleaseServiceError::unavailable("update_download_failed"))?;
+            .map_err(|_| ReleaseServiceError::unavailable("UPDATE_DOWNLOAD_FAILED"))?;
 
         let mut pending = self.pending.lock().await;
         if pending.generation != generation {
-            return Err(ReleaseServiceError::invalid("stale_update_download"));
+            return Err(ReleaseServiceError::invalid("UPDATE_STALE_DOWNLOAD"));
         }
         pending.bytes = Some(bytes);
         Ok(candidate_snapshot(
@@ -124,14 +124,14 @@ impl UpdateProvider for TauriUpdateProvider {
         let update = pending
             .update
             .clone()
-            .ok_or_else(|| ReleaseServiceError::invalid("update_not_verified"))?;
+            .ok_or_else(|| ReleaseServiceError::invalid("UPDATE_NOT_VERIFIED"))?;
         let bytes = pending
             .bytes
             .clone()
-            .ok_or_else(|| ReleaseServiceError::invalid("update_not_verified"))?;
+            .ok_or_else(|| ReleaseServiceError::invalid("UPDATE_NOT_VERIFIED"))?;
         update
             .install(&bytes)
-            .map_err(|_| ReleaseServiceError::unavailable("update_install_failed"))?;
+            .map_err(|_| ReleaseServiceError::unavailable("UPDATE_INSTALL_FAILED"))?;
         *pending = PendingUpdate::default();
         Ok(current_update_snapshot())
     }
@@ -143,7 +143,7 @@ impl UpdateProvider for TauriUpdateProvider {
             .as_ref()
             .is_none_or(|candidate| candidate.version != version)
         {
-            return Err(ReleaseServiceError::invalid("update_candidate_mismatch"));
+            return Err(ReleaseServiceError::invalid("UPDATE_CANDIDATE_MISMATCH"));
         }
         *pending = PendingUpdate::default();
         Ok(current_update_snapshot())
@@ -158,11 +158,11 @@ fn map_update_check_error(error: &tauri_plugin_updater::Error) -> ReleaseService
             | tauri_plugin_updater::Error::ReleaseNotFound
     ) {
         return ReleaseServiceError {
-            code: "update_check_failed",
+            code: "UPDATE_CHECK_FAILED",
             retryable: true,
         };
     }
-    ReleaseServiceError::invalid("invalid_update_manifest")
+    ReleaseServiceError::invalid("UPDATE_INVALID_MANIFEST")
 }
 
 fn candidate_from_metadata(
@@ -177,13 +177,13 @@ fn candidate_from_metadata(
         None => Vec::new(),
         Some(value) => value
             .as_array()
-            .ok_or_else(|| ReleaseServiceError::invalid("invalid_update_manifest"))?
+            .ok_or_else(|| ReleaseServiceError::invalid("UPDATE_INVALID_MANIFEST"))?
             .iter()
             .map(|entry| {
                 entry
                     .as_str()
                     .map(str::to_owned)
-                    .ok_or_else(|| ReleaseServiceError::invalid("invalid_update_manifest"))
+                    .ok_or_else(|| ReleaseServiceError::invalid("UPDATE_INVALID_MANIFEST"))
             })
             .collect::<Result<Vec<_>, _>>()?,
     };
@@ -212,7 +212,7 @@ fn optional_u8(value: &serde_json::Value, key: &str) -> Result<Option<u8>, Relea
                 .as_u64()
                 .filter(|value| *value <= 100)
                 .and_then(|value| u8::try_from(value).ok())
-                .ok_or_else(|| ReleaseServiceError::invalid("invalid_update_manifest"))
+                .ok_or_else(|| ReleaseServiceError::invalid("UPDATE_INVALID_MANIFEST"))
         })
         .transpose()
 }
@@ -226,7 +226,7 @@ fn optional_bool(
         .map(|value| {
             value
                 .as_bool()
-                .ok_or_else(|| ReleaseServiceError::invalid("invalid_update_manifest"))
+                .ok_or_else(|| ReleaseServiceError::invalid("UPDATE_INVALID_MANIFEST"))
         })
         .transpose()
 }
@@ -375,7 +375,7 @@ mod tests {
             candidate_from_metadata("1.3.0", None, &serde_json::json!({ "rolloutPercent": 101 }))
                 .unwrap_err()
                 .code,
-            "invalid_update_manifest"
+            "UPDATE_INVALID_MANIFEST"
         );
     }
 
@@ -384,13 +384,13 @@ mod tests {
         assert_eq!(
             map_update_check_error(&tauri_plugin_updater::Error::ReleaseNotFound),
             ReleaseServiceError {
-                code: "update_check_failed",
+                code: "UPDATE_CHECK_FAILED",
                 retryable: true,
             }
         );
         assert_eq!(
             map_update_check_error(&tauri_plugin_updater::Error::EmptyEndpoints),
-            ReleaseServiceError::invalid("invalid_update_manifest")
+            ReleaseServiceError::invalid("UPDATE_INVALID_MANIFEST")
         );
     }
 }

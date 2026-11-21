@@ -32,7 +32,7 @@ impl RoomTransport for RetryableTransport {
     async fn connect(&self, _: &str) -> Result<RoomConnection, LiveRuntimeError> {
         self.attempts.fetch_add(1, Ordering::SeqCst);
         Err(LiveRuntimeError::new(
-            "transport_unavailable",
+            "NET_TRANSPORT_UNAVAILABLE",
             "retryable transport failure",
             true,
         ))
@@ -145,7 +145,7 @@ impl AcceptedLiveEventConsumer for FailingAcceptedConsumer {
             .unwrap()
             .push(event.base().event_id.clone());
         Err(LiveRuntimeError::new(
-            "media_failed",
+            "RECORD_FAILED",
             "media consumer failed",
             true,
         ))

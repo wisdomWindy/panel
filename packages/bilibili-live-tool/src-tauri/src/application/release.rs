@@ -35,7 +35,7 @@ impl UpdateSnapshot {
             status: UpdateStatus::Unavailable,
             candidate: None,
             progress_percent: None,
-            error_code: Some("update_provider_unavailable".into()),
+            error_code: Some("UPDATE_PROVIDER_UNAVAILABLE".into()),
         }
     }
 }
@@ -145,7 +145,7 @@ impl ReleaseState {
 
     pub async fn install_update(&self) -> Result<UpdateSnapshot, ReleaseServiceError> {
         if self.update.read().await.status != UpdateStatus::Downloaded {
-            return Err(ReleaseServiceError::invalid("update_not_verified"));
+            return Err(ReleaseServiceError::invalid("UPDATE_NOT_VERIFIED"));
         }
         let generation = self.begin_update_operation();
         let result = self.update_provider.install().await;
@@ -166,7 +166,7 @@ impl ReleaseState {
 
     pub async fn skip_update(&self, version: &str) -> Result<UpdateSnapshot, ReleaseServiceError> {
         if semver::Version::parse(version).is_err() {
-            return Err(ReleaseServiceError::invalid("invalid_update_version"));
+            return Err(ReleaseServiceError::invalid("UPDATE_INVALID_VERSION"));
         }
         let generation = self.begin_update_operation();
         let result = self.update_provider.skip(version).await;
@@ -215,7 +215,7 @@ fn validate_update_snapshot(snapshot: &UpdateSnapshot) -> Result<(), ReleaseServ
         || snapshot.progress_percent.is_some_and(|value| value > 100)
         || (snapshot.status == UpdateStatus::Downloaded && snapshot.candidate.is_none())
     {
-        return Err(ReleaseServiceError::invalid("invalid_update_manifest"));
+        return Err(ReleaseServiceError::invalid("UPDATE_INVALID_MANIFEST"));
     }
     Ok(())
 }
@@ -304,7 +304,7 @@ mod tests {
             if call == 0 {
                 self.first_started.notify_one();
                 self.release_first.notified().await;
-                Err(ReleaseServiceError::unavailable("stale_failure"))
+                Err(ReleaseServiceError::unavailable("SYS_STALE_FAILURE"))
             } else {
                 Ok(available_update("1.2.0", 100, false, false))
             }
@@ -401,7 +401,7 @@ mod tests {
         let state = state();
         assert_eq!(
             state.skip_update("latest").await.unwrap_err().code,
-            "invalid_update_version"
+            "UPDATE_INVALID_VERSION"
         );
     }
 }

@@ -52,7 +52,7 @@ impl FfmpegLocator for AppFfmpegLocator {
                 .find(|candidate| candidate.is_file())
                 .ok_or_else(|| {
                     MediaIoError::coded(
-                        "recording_ffmpeg_missing",
+                        "RECORD_FFMPEG_MISSING",
                         "内置 FFmpeg 不可用，请在录制设置中选择本地 FFmpeg",
                         false,
                     )
@@ -60,14 +60,14 @@ impl FfmpegLocator for AppFfmpegLocator {
             FfmpegSource::Local => {
                 let executable = granted_executable.ok_or_else(|| {
                     MediaIoError::coded(
-                        "recording_ffmpeg_missing",
+                        "RECORD_FFMPEG_MISSING",
                         "尚未授权本地 FFmpeg，请先在录制设置中选择",
                         false,
                     )
                 })?;
                 if !executable.is_file() {
                     return Err(MediaIoError::coded(
-                        "recording_ffmpeg_missing",
+                        "RECORD_FFMPEG_MISSING",
                         "所选 FFmpeg 文件不存在或不可读，请重新选择",
                         false,
                     ));
@@ -120,7 +120,7 @@ mod tests {
         let locator = AppFfmpegLocator::with_roots(vec![directory.path().to_path_buf()]);
         let error = locator.locate(FfmpegSource::Bundled, None).unwrap_err();
 
-        assert_eq!(error.code, "recording_ffmpeg_missing");
+        assert_eq!(error.code, "RECORD_FFMPEG_MISSING");
         assert!(!error.retryable);
         assert!(error.message.contains("内置 FFmpeg"));
     }
@@ -143,7 +143,7 @@ mod tests {
     fn rejects_a_local_source_without_authorization() {
         let locator = AppFfmpegLocator::with_roots(Vec::new());
         let error = locator.locate(FfmpegSource::Local, None).unwrap_err();
-        assert_eq!(error.code, "recording_ffmpeg_missing");
+        assert_eq!(error.code, "RECORD_FFMPEG_MISSING");
     }
 
     #[test]
@@ -152,6 +152,6 @@ mod tests {
         let error = locator
             .locate(FfmpegSource::Local, Some(std::path::Path::new("/nope/ffmpeg")))
             .unwrap_err();
-        assert_eq!(error.code, "recording_ffmpeg_missing");
+        assert_eq!(error.code, "RECORD_FFMPEG_MISSING");
     }
 }

@@ -115,9 +115,9 @@ impl MembershipState {
             modules,
             service_error_code: match validity {
                 EntitlementValidity::VerificationRequired => {
-                    Some("entitlement_online_verification_required".to_owned())
+                    Some("MEMBER_ENTITLEMENT_ONLINE_REQUIRED".to_owned())
                 }
-                EntitlementValidity::InvalidClock => Some("entitlement_clock_invalid".to_owned()),
+                EntitlementValidity::InvalidClock => Some("MEMBER_ENTITLEMENT_CLOCK_INVALID".to_owned()),
                 _ => None,
             },
         };
@@ -127,7 +127,7 @@ impl MembershipState {
 
     pub async fn query_uid(&self, uid: &str) -> Result<MemberAccount, MemberServiceError> {
         let uid = crate::domain::live_data::UserUid::parse(uid)
-            .map_err(|_| MemberServiceError::invalid("auth_uid_invalid"))?;
+            .map_err(|_| MemberServiceError::invalid("MEMBER_AUTH_UID_INVALID"))?;
         self.auth.query_uid(&uid).await
     }
 
@@ -147,7 +147,7 @@ impl MembershipState {
 
     pub async fn purchase(&self, plan_id: &str) -> Result<OrderRecord, MemberServiceError> {
         if plan_id.trim().is_empty() {
-            return Err(MemberServiceError::invalid("membership_plan_invalid"));
+            return Err(MemberServiceError::invalid("MEMBER_PLAN_INVALID"));
         }
         let order = self.commerce.purchase(plan_id).await?;
         self.repository.upsert_order(&order).await?;
@@ -156,7 +156,7 @@ impl MembershipState {
 
     pub async fn cancel_order(&self, order_id: &str) -> Result<OrderRecord, MemberServiceError> {
         let order_id = OrderId::parse(order_id)
-            .map_err(|_| MemberServiceError::invalid("membership_order_invalid"))?;
+            .map_err(|_| MemberServiceError::invalid("MEMBER_ORDER_INVALID"))?;
         let order = self.commerce.cancel_order(&order_id).await?;
         self.repository.upsert_order(&order).await?;
         Ok(order)
@@ -171,9 +171,9 @@ impl MembershipState {
     }
 
     pub async fn cleanup_module(&self, module_id: &str) -> Result<bool, MemberServiceError> {
-        ModuleId::parse(module_id).map_err(|_| MemberServiceError::invalid("module_id_invalid"))?;
+        ModuleId::parse(module_id).map_err(|_| MemberServiceError::invalid("MEMBER_MODULE_ID_INVALID"))?;
         Err(MemberServiceError::unavailable(
-            "module_cleanup_unavailable",
+            "MEMBER_MODULE_CLEANUP_UNAVAILABLE",
         ))
     }
 }
@@ -309,7 +309,7 @@ impl AiVoiceRuntime {
                 Ok(config) => config,
                 Err(_) => {
                     self.state.lock().await.last_error_code =
-                        Some("ai_voice_config_unavailable".to_owned());
+                        Some("AI_MODEL_VOICE_CONFIG_UNAVAILABLE".to_owned());
                     tokio::select! {
                         _ = self.wake.notified() => continue,
                         changed = shutdown.changed() => {
@@ -345,13 +345,13 @@ impl AiVoiceRuntime {
                         .speak(&item.text, device_id, &config.voice_id, config.volume)
                         .await
                 }
-                _ => Err(MemberServiceError::invalid("ai_audio_route_unconfirmed")),
+                _ => Err(MemberServiceError::invalid("AUDIO_ROUTE_UNCONFIRMED")),
             };
             let error = result.err();
             let lost_device = error.as_ref().is_some_and(|error| {
                 matches!(
                     error.code,
-                    "ai_audio_device_invalid" | "ai_audio_device_unavailable"
+                    "AUDIO_DEVICE_INVALID" | "AUDIO_DEVICE_UNAVAILABLE"
                 )
             });
             if lost_device {
@@ -365,7 +365,7 @@ impl AiVoiceRuntime {
             state.current = None;
             state.last_error_code = error.map(|error| {
                 if lost_device {
-                    "ai_audio_device_missing".to_owned()
+                    "AUDIO_DEVICE_MISSING".to_owned()
                 } else {
                     error.code.to_owned()
                 }
@@ -483,12 +483,12 @@ impl AiState {
         profile.has_api_key = existing.as_ref().is_some_and(|value| value.has_api_key);
         if profile.provider_kind != "local" && api_key_replacement.is_none() && !profile.has_api_key
         {
-            return Err(MemberServiceError::invalid("ai_api_key_required"));
+            return Err(MemberServiceError::invalid("AI_MODEL_API_KEY_REQUIRED"));
         }
         if let Some(api_key) = api_key_replacement {
             let api_key = api_key.trim();
             if api_key.is_empty() {
-                return Err(MemberServiceError::invalid("ai_api_key_invalid"));
+                return Err(MemberServiceError::invalid("AI_MODEL_API_KEY_INVALID"));
             }
             self.secrets.set(&profile.profile_id, api_key).await?;
             profile.has_api_key = true;
@@ -502,7 +502,7 @@ impl AiState {
             .repository
             .load_ai_model_profile(profile_id)
             .await?
-            .ok_or_else(|| MemberServiceError::invalid("ai_model_profile_not_found"))?;
+            .ok_or_else(|| MemberServiceError::invalid("AI_MODEL_PROFILE_NOT_FOUND"))?;
         if profile.is_default {
             return Err(MemberServiceError::invalid(
                 "ai_default_profile_delete_forbidden",
@@ -533,7 +533,7 @@ impl AiState {
             .repository
             .load_ai_model_profile(profile_id)
             .await?
-            .ok_or_else(|| MemberServiceError::invalid("ai_model_profile_not_found"))?;
+            .ok_or_else(|| MemberServiceError::invalid("AI_MODEL_PROFILE_NOT_FOUND"))?;
         let api_key = if profile.has_api_key {
             self.secrets.get(profile_id).await?
         } else {
@@ -567,17 +567,17 @@ impl AiState {
             // model endpoint. The UI shows this disclosure on every enable, so
             // the flag is required rather than persisted.
             if !is_data_disclosure_acknowledged {
-                return Err(MemberServiceError::invalid("ai_data_disclosure_required"));
+                return Err(MemberServiceError::invalid("AI_GEN_DATA_DISCLOSURE_REQUIRED"));
             }
             let profile = self.repository.load_default_ai_model_profile().await?;
             if !profile.is_some_and(|profile| profile.is_enabled) {
-                return Err(MemberServiceError::invalid("ai_model_not_configured"));
+                return Err(MemberServiceError::invalid("AI_MODEL_NOT_CONFIGURED"));
             }
             if config.output_device_id.is_none()
                 || !config.is_audio_route_confirmed
                 || !is_audio_route_confirmed
             {
-                return Err(MemberServiceError::invalid("ai_audio_route_unconfirmed"));
+                return Err(MemberServiceError::invalid("AUDIO_ROUTE_UNCONFIRMED"));
             }
             let devices = self.speech.devices().await?;
             if !devices.iter().any(|device| {
@@ -588,7 +588,7 @@ impl AiState {
                 config.is_audio_route_confirmed = false;
                 config.updated_at = now_millis();
                 self.repository.save_ai_voice_config(&config).await?;
-                return Err(MemberServiceError::unavailable("ai_audio_device_missing"));
+                return Err(MemberServiceError::unavailable("AUDIO_DEVICE_MISSING"));
             }
             let voices = self.speech.voices().await?;
             if !voices
@@ -599,7 +599,7 @@ impl AiState {
                 config.is_audio_route_confirmed = false;
                 config.updated_at = now_millis();
                 self.repository.save_ai_voice_config(&config).await?;
-                return Err(MemberServiceError::unavailable("ai_tts_voice_invalid"));
+                return Err(MemberServiceError::unavailable("TTS_VOICE_INVALID"));
             }
         }
         config.is_enabled = is_enabled;
@@ -651,13 +651,13 @@ impl AiState {
             || !volume.is_finite()
             || !(0.0..=1.0).contains(&volume)
         {
-            return Err(MemberServiceError::invalid("ai_audio_device_invalid"));
+            return Err(MemberServiceError::invalid("AUDIO_DEVICE_INVALID"));
         }
         if !voices
             .iter()
             .any(|voice| voice.voice_id == voice_id && voice.is_available)
         {
-            return Err(MemberServiceError::invalid("ai_tts_voice_invalid"));
+            return Err(MemberServiceError::invalid("TTS_VOICE_INVALID"));
         }
         let mut config = self.repository.load_ai_voice_config().await?;
         if config.output_device_id.as_deref() != Some(&device_id) || config.voice_id != voice_id {
@@ -685,14 +685,14 @@ impl AiState {
             || !volume.is_finite()
             || !(0.0..=1.0).contains(&volume)
         {
-            return Err(MemberServiceError::invalid("ai_audio_device_invalid"));
+            return Err(MemberServiceError::invalid("AUDIO_DEVICE_INVALID"));
         }
         let voices = self.speech.voices().await?;
         if !voices
             .iter()
             .any(|voice| voice.voice_id == voice_id && voice.is_available)
         {
-            return Err(MemberServiceError::invalid("ai_tts_voice_invalid"));
+            return Err(MemberServiceError::invalid("TTS_VOICE_INVALID"));
         }
         self.speech
             .speak(
@@ -738,7 +738,7 @@ impl AiState {
         priority: u8,
     ) -> Result<AiGenerationRecord, MemberServiceError> {
         if prompt.trim().is_empty() && context.is_empty() {
-            return Err(MemberServiceError::invalid("ai_input_required"));
+            return Err(MemberServiceError::invalid("AI_GEN_INPUT_REQUIRED"));
         }
         let config = self.config().await?;
         if self
@@ -746,7 +746,7 @@ impl AiState {
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
         {
-            return Err(MemberServiceError::invalid("ai_generation_pending"));
+            return Err(MemberServiceError::invalid("AI_GEN_PENDING"));
         }
         let _active = ActiveGenerationGuard(&self.active_generation);
 
@@ -770,7 +770,7 @@ impl AiState {
             self.llm.generate(&assembled),
         )
         .await
-        .map_err(|_| MemberServiceError::unavailable("ai_timeout"))
+        .map_err(|_| MemberServiceError::unavailable("AI_GEN_TIMEOUT"))
         .and_then(|result| result);
         let result = match generated {
             Ok(value) => filter_and_truncate(
@@ -785,10 +785,10 @@ impl AiState {
             .map(|value| truncate_sentences(&value, config.max_sentences as usize))
             .map_err(|error| match error {
                 crate::domain::member::AiTextError::SensitiveTerm => {
-                    MemberServiceError::invalid("ai_sensitive_output")
+                    MemberServiceError::invalid("AI_GEN_SENSITIVE_OUTPUT")
                 }
                 crate::domain::member::AiTextError::InvalidMaximumLength => {
-                    MemberServiceError::invalid("ai_config_invalid")
+                    MemberServiceError::invalid("AI_MODEL_CONFIG_INVALID")
                 }
             }),
             Err(error) => Err(error),
@@ -827,7 +827,7 @@ impl AiState {
             .last_request
             .clone()
             .filter(|(_, _, id)| id == generation_id)
-            .ok_or_else(|| MemberServiceError::invalid("ai_generation_not_found"))?;
+            .ok_or_else(|| MemberServiceError::invalid("AI_GEN_NOT_FOUND"))?;
         self.generate(request.0, request.1).await
     }
 
@@ -1003,12 +1003,12 @@ impl ModerationState {
     ) -> Result<ModerationConfigRecord, MemberServiceError> {
         if is_enabled && capability != AiCapabilityState::Ready {
             return Err(MemberServiceError::invalid(
-                "moderation_capability_unavailable",
+                "MEMBER_MODERATION_CAPABILITY_UNAVAILABLE",
             ));
         }
         let mut config = self.config().await?;
         if is_enabled && !(config.is_risk_confirmed || is_risk_accepted) {
-            return Err(MemberServiceError::invalid("moderation_risk_required"));
+            return Err(MemberServiceError::invalid("MEMBER_MODERATION_RISK_REQUIRED"));
         }
         config.is_auto_enabled = is_enabled;
         config.is_risk_confirmed |= is_risk_accepted;
@@ -1037,11 +1037,11 @@ impl ModerationState {
     ) -> Result<ModerationAlertRecord, MemberServiceError> {
         if capability != AiCapabilityState::Ready {
             return Err(MemberServiceError::invalid(
-                "moderation_capability_unavailable",
+                "MEMBER_MODERATION_CAPABILITY_UNAVAILABLE",
             ));
         }
         if !matches!(duration, "10m" | "1h" | "permanent") {
-            return Err(MemberServiceError::invalid("mute_duration_invalid"));
+            return Err(MemberServiceError::invalid("RULE_INVALID_MUTE_DURATION"));
         }
         let alert = self
             .alerts
@@ -1050,7 +1050,7 @@ impl ModerationState {
             .iter()
             .find(|alert| alert.alert_id == alert_id)
             .cloned()
-            .ok_or_else(|| MemberServiceError::invalid("moderation_alert_not_found"))?;
+            .ok_or_else(|| MemberServiceError::invalid("MEMBER_MODERATION_ALERT_NOT_FOUND"))?;
         if self.provider.mute(&alert.user_uid, duration).await.is_err() {
             if let Err(error) = self.provider.mute(&alert.user_uid, duration).await {
                 let mut alerts = self.alerts.lock().await;
@@ -1069,7 +1069,7 @@ impl ModerationState {
         let target = alerts
             .iter_mut()
             .find(|candidate| candidate.alert_id == alert_id)
-            .ok_or_else(|| MemberServiceError::invalid("moderation_alert_not_found"))?;
+            .ok_or_else(|| MemberServiceError::invalid("MEMBER_MODERATION_ALERT_NOT_FOUND"))?;
         target.status = ModerationAlertStatus::Muted;
         target.error_code = None;
         self.event_sink.publish_moderation_alert(target);
@@ -1084,7 +1084,7 @@ impl ModerationState {
         let target = alerts
             .iter_mut()
             .find(|alert| alert.alert_id == alert_id)
-            .ok_or_else(|| MemberServiceError::invalid("moderation_alert_not_found"))?;
+            .ok_or_else(|| MemberServiceError::invalid("MEMBER_MODERATION_ALERT_NOT_FOUND"))?;
         target.status = ModerationAlertStatus::Ignored;
         Ok(alerts.clone())
     }

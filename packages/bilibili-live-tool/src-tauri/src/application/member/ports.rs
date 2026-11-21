@@ -310,7 +310,7 @@ pub trait MemberRepository: Send + Sync {
         &self,
     ) -> Result<Vec<AiModelProfileRecord>, MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_model_storage_unavailable",
+            "STORAGE_AI_MODEL_UNAVAILABLE",
         ))
     }
     async fn load_ai_model_profile(
@@ -318,14 +318,14 @@ pub trait MemberRepository: Send + Sync {
         _profile_id: &str,
     ) -> Result<Option<AiModelProfileRecord>, MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_model_storage_unavailable",
+            "STORAGE_AI_MODEL_UNAVAILABLE",
         ))
     }
     async fn load_default_ai_model_profile(
         &self,
     ) -> Result<Option<AiModelProfileRecord>, MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_model_storage_unavailable",
+            "STORAGE_AI_MODEL_UNAVAILABLE",
         ))
     }
     async fn save_ai_model_profile(
@@ -333,12 +333,12 @@ pub trait MemberRepository: Send + Sync {
         _profile: &AiModelProfileRecord,
     ) -> Result<(), MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_model_storage_unavailable",
+            "STORAGE_AI_MODEL_UNAVAILABLE",
         ))
     }
     async fn delete_ai_model_profile(&self, _profile_id: &str) -> Result<bool, MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_model_storage_unavailable",
+            "STORAGE_AI_MODEL_UNAVAILABLE",
         ))
     }
     async fn set_default_ai_model_profile(
@@ -347,12 +347,12 @@ pub trait MemberRepository: Send + Sync {
         _updated_at: i64,
     ) -> Result<(), MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_model_storage_unavailable",
+            "STORAGE_AI_MODEL_UNAVAILABLE",
         ))
     }
     async fn load_ai_voice_config(&self) -> Result<AiVoiceConfigRecord, MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_voice_storage_unavailable",
+            "STORAGE_AI_VOICE_UNAVAILABLE",
         ))
     }
     async fn save_ai_voice_config(
@@ -360,7 +360,7 @@ pub trait MemberRepository: Send + Sync {
         _config: &AiVoiceConfigRecord,
     ) -> Result<(), MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_voice_storage_unavailable",
+            "STORAGE_AI_VOICE_UNAVAILABLE",
         ))
     }
     async fn load_moderation_config(
@@ -424,7 +424,7 @@ pub trait LlmProvider: Send + Sync {
         _profile: &AiModelProfileRecord,
         _api_key: Option<&str>,
     ) -> Result<(), MemberServiceError> {
-        Err(MemberServiceError::unavailable("llm_unavailable"))
+        Err(MemberServiceError::unavailable("NET_LLM_UNAVAILABLE"))
     }
 }
 
@@ -455,19 +455,19 @@ pub struct UnavailableAiSecretStore;
 impl AiSecretStore for UnavailableAiSecretStore {
     async fn get(&self, _profile_id: &str) -> Result<Option<String>, MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_secret_store_unavailable",
+            "AI_MODEL_SECRET_STORE_UNAVAILABLE",
         ))
     }
 
     async fn set(&self, _profile_id: &str, _secret: &str) -> Result<(), MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_secret_store_unavailable",
+            "AI_MODEL_SECRET_STORE_UNAVAILABLE",
         ))
     }
 
     async fn delete(&self, _profile_id: &str) -> Result<(), MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_secret_store_unavailable",
+            "AI_MODEL_SECRET_STORE_UNAVAILABLE",
         ))
     }
 }
@@ -478,12 +478,12 @@ pub struct UnavailableAiSpeechOutput;
 impl AiSpeechOutput for UnavailableAiSpeechOutput {
     async fn devices(&self) -> Result<Vec<AiOutputDeviceRecord>, MemberServiceError> {
         Err(MemberServiceError::unavailable(
-            "ai_audio_device_unavailable",
+            "AUDIO_DEVICE_UNAVAILABLE",
         ))
     }
 
     async fn voices(&self) -> Result<Vec<AiVoiceRecord>, MemberServiceError> {
-        Err(MemberServiceError::unavailable("ai_tts_unavailable"))
+        Err(MemberServiceError::unavailable("TTS_UNAVAILABLE"))
     }
 
     async fn speak(
@@ -493,7 +493,7 @@ impl AiSpeechOutput for UnavailableAiSpeechOutput {
         _voice_id: &str,
         _volume: f64,
     ) -> Result<(), MemberServiceError> {
-        Err(MemberServiceError::unavailable("ai_tts_unavailable"))
+        Err(MemberServiceError::unavailable("TTS_UNAVAILABLE"))
     }
 
     async fn stop(&self) -> Result<(), MemberServiceError> {

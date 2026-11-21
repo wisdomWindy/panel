@@ -57,14 +57,14 @@ describe('application shell store', () => {
     const first = store.exportConfig(['interfaceLayout']);
     const duplicate = store.exportConfig(['interfaceLayout']);
     expect(invokeDesktop).toHaveBeenCalledTimes(1);
-    rejectExport({ code: 'config_export_failed', message: 'failed', retryable: true });
-    await expect(Promise.all([first, duplicate])).rejects.toMatchObject({ code: 'config_export_failed' });
+    rejectExport({ code: 'CONFIG_EXPORT_FAILED', message: 'failed', retryable: true });
+    await expect(Promise.all([first, duplicate])).rejects.toMatchObject({ code: 'CONFIG_EXPORT_FAILED' });
     expect(invokeDesktop).toHaveBeenLastCalledWith('path_revoke', { grantId: 'grant' });
   });
 
   it('treats a cancelled native config dialog as a no-op', async () => {
     vi.mocked(invokeDesktop).mockRejectedValueOnce({
-      code: 'dialog_cancelled', message: 'cancelled', retryable: false
+      code: 'SYS_DIALOG_CANCELLED', message: 'cancelled', retryable: false
     });
     const store = useApplicationShellStore();
     await expect(store.importConfig()).resolves.toBeNull();

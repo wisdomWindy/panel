@@ -387,7 +387,7 @@ impl MemberRepository for SqliteMemberRepository {
             .map_err(repository_error)?;
         if !exists {
             transaction.rollback().await.map_err(repository_error)?;
-            return Err(MemberServiceError::invalid("ai_model_profile_unavailable"));
+            return Err(MemberServiceError::invalid("AI_MODEL_PROFILE_UNAVAILABLE"));
         }
         sqlx::query("UPDATE t_ai_model_profile SET is_default = FALSE WHERE is_default = TRUE")
             .execute(&mut *transaction)
@@ -734,7 +734,7 @@ fn validate_ai_model_profile(profile: &AiModelProfileRecord) -> Result<(), Membe
         || !proxy_valid
         || profile.updated_at <= 0
     {
-        return Err(MemberServiceError::invalid("ai_model_profile_invalid"));
+        return Err(MemberServiceError::invalid("AI_MODEL_PROFILE_INVALID"));
     }
     Ok(())
 }
@@ -755,7 +755,7 @@ fn validate_ai_voice_config(config: &AiVoiceConfigRecord) -> Result<(), MemberSe
             .any(|keyword| keyword.trim().is_empty())
         || config.updated_at <= 0
     {
-        return Err(MemberServiceError::invalid("ai_voice_rules_invalid"));
+        return Err(MemberServiceError::invalid("AI_GEN_VOICE_RULES_INVALID"));
     }
     Ok(())
 }
@@ -892,9 +892,9 @@ fn to_u32(value: i64) -> Result<u32, MemberServiceError> {
 }
 
 const fn invalid_data() -> MemberServiceError {
-    MemberServiceError::invalid("member_data_invalid")
+    MemberServiceError::invalid("MEMBER_DATA_INVALID")
 }
 
 fn repository_error(_: sqlx::Error) -> MemberServiceError {
-    MemberServiceError::unavailable("member_storage_unavailable")
+    MemberServiceError::unavailable("STORAGE_MEMBER_UNAVAILABLE")
 }

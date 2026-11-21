@@ -299,7 +299,7 @@ impl TtsWorker {
                         != selected_engine(current_config.selected_engine))
                     .then_some("tts_engine_fallback");
                 }
-                None => runtime.fallback_reason_code = Some("tts_unavailable"),
+                None => runtime.fallback_reason_code = Some("TTS_UNAVAILABLE_ENGINE"),
             }
             if *shutdown.borrow() {
                 runtime.queue.clear();

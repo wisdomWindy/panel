@@ -145,7 +145,7 @@ impl OpenLiveApi {
     {
         let body = serde_json::to_vec(request).map_err(|_| {
             LiveRuntimeError::new(
-                "open_live_request_encoding_failed",
+                "SYS_OPEN_LIVE_ENCODING_FAILED",
                 "哔哩哔哩开放平台请求编码失败",
                 false,
             )
@@ -178,7 +178,7 @@ impl OpenLiveApi {
         let response_body = response.bytes().await.map_err(network_error)?;
         if !status.is_success() {
             return Err(LiveRuntimeError::new(
-                "open_live_http_error",
+                "SYS_OPEN_LIVE_HTTP_ERROR",
                 format!("哔哩哔哩开放平台 HTTP 错误：{status}"),
                 status.is_server_error(),
             ));
@@ -197,7 +197,7 @@ impl OpenLiveApi {
                 envelope.request_id
             );
             return Err(LiveRuntimeError::new(
-                "open_live_api_error",
+                "SYS_OPEN_LIVE_API_ERROR",
                 format!(
                     "哔哩哔哩开放平台错误 {}：{}",
                     envelope.code, envelope.message
@@ -236,7 +236,7 @@ fn now_seconds() -> i64 {
 
 fn network_error(error: reqwest::Error) -> LiveRuntimeError {
     LiveRuntimeError::new(
-        "open_live_network_error",
+        "SYS_OPEN_LIVE_NETWORK_ERROR",
         format!("哔哩哔哩开放平台网络请求失败：{error}"),
         true,
     )

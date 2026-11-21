@@ -797,17 +797,17 @@ async fn reconnect_primitives_detect_a_drop_and_keep_the_session_recordable() {
     assert_eq!(runtime.snapshot().await.state, RecordingState::Recording);
 
     // Exhausting the retry budget surfaces a stable code (PRD 9.12).
-    runtime.fail("recording_stream_lost").await;
+    runtime.fail("RECORD_STREAM_LOST").await;
     let snapshot = runtime.snapshot().await;
     assert_eq!(snapshot.state, RecordingState::Error);
-    assert_eq!(snapshot.failure_code, Some("recording_stream_lost"));
+    assert_eq!(snapshot.failure_code, Some("RECORD_STREAM_LOST"));
 }
 
 #[tokio::test]
 async fn reconnect_is_refused_once_the_session_is_no_longer_recording() {
     let runtime = RecordingRuntime::new(default_recording_config(), Arc::new(ExitedRecorderPort));
     runtime.start("1", launch()).await.unwrap();
-    runtime.fail("recording_stream_lost").await;
+    runtime.fail("RECORD_STREAM_LOST").await;
 
     assert!(runtime.replace_process(launch()).await.is_err());
 }

@@ -65,7 +65,7 @@ describe('media effects store', () => {
   });
 
   it('maps failures and always releases mutation pending state', async () => {
-    const failure: DesktopError = { code: 'media_invalid', message: 'invalid', retryable: false };
+    const failure: DesktopError = { code: 'RECORD_INVALID_PARAM', message: 'invalid', retryable: false };
     vi.mocked(invokeDesktop).mockRejectedValueOnce(failure);
     const store = useMediaEffectsStore();
     await expect(store.save(snapshot(1).config)).rejects.toEqual(failure);

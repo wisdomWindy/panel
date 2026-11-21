@@ -701,7 +701,7 @@ pub async fn member_status(state: State<'_, AppState>) -> Result<MemberStatusDto
 
 #[tauri::command]
 pub async fn auth_qrcode_generate() -> Result<AuthQrStatusDto, DesktopError> {
-    Err(MemberServiceError::unavailable("auth_qr_unavailable").into())
+    Err(MemberServiceError::unavailable("MEMBER_AUTH_QR_UNAVAILABLE").into())
 }
 
 #[tauri::command]
@@ -709,7 +709,7 @@ pub async fn auth_qrcode_cancel(
     request: AuthCancelRequestDto,
 ) -> Result<BooleanResultDto, DesktopError> {
     if request.session_id.trim().is_empty() {
-        return Err(MemberServiceError::invalid("auth_session_invalid").into());
+        return Err(MemberServiceError::invalid("MEMBER_AUTH_SESSION_INVALID").into());
     }
     Ok(BooleanResultDto { cancelled: false })
 }
@@ -796,9 +796,9 @@ pub async fn module_update(
     request: ModuleRequestDto,
 ) -> Result<ModuleOperationDto, DesktopError> {
     if request.module_id.trim().is_empty() {
-        return Err(MemberServiceError::invalid("module_id_invalid").into());
+        return Err(MemberServiceError::invalid("MEMBER_MODULE_ID_INVALID").into());
     }
-    Err(MemberServiceError::unavailable("module_manifest_unavailable").into())
+    Err(MemberServiceError::unavailable("MEMBER_MODULE_MANIFEST_UNAVAILABLE").into())
 }
 
 #[tauri::command]
@@ -1158,7 +1158,7 @@ pub async fn moderate_log_query(
     request: LogQueryRequestDto,
 ) -> Result<Vec<ModerationLogEntryDto>, DesktopError> {
     validate_log_query(&request)?;
-    Err(MemberServiceError::unavailable("moderation_log_unavailable").into())
+    Err(MemberServiceError::unavailable("MEMBER_MODERATION_LOG_UNAVAILABLE").into())
 }
 
 #[tauri::command]
@@ -1167,9 +1167,9 @@ pub async fn moderate_mark_false_positive(
     request: FalsePositiveRequestDto,
 ) -> Result<Vec<ModerationLogEntryDto>, DesktopError> {
     if request.log_id <= 0 {
-        return Err(MemberServiceError::invalid("moderation_log_invalid").into());
+        return Err(MemberServiceError::invalid("MEMBER_MODERATION_LOG_INVALID").into());
     }
-    Err(MemberServiceError::unavailable("moderation_log_unavailable").into())
+    Err(MemberServiceError::unavailable("MEMBER_MODERATION_LOG_UNAVAILABLE").into())
 }
 
 fn member_status_dto(snapshot: MemberSnapshot, now: i64) -> MemberStatusDto {
@@ -1231,9 +1231,9 @@ fn account_dto(account: MemberAccount) -> MemberAccountDto {
 
 fn account_from_dto(account: MemberAccountDto) -> Result<MemberAccount, DesktopError> {
     let user_uid = UserUid::parse(&account.user_uid)
-        .map_err(|_| MemberServiceError::invalid("auth_uid_invalid"))?;
+        .map_err(|_| MemberServiceError::invalid("MEMBER_AUTH_UID_INVALID"))?;
     if account.username.trim().is_empty() || account.logged_in_at <= 0 {
-        return Err(MemberServiceError::invalid("auth_account_invalid").into());
+        return Err(MemberServiceError::invalid("MEMBER_AUTH_ACCOUNT_INVALID").into());
     }
     Ok(MemberAccount {
         user_uid,
@@ -1280,7 +1280,7 @@ fn map_modules(modules: Vec<MemberModule>) -> Result<Vec<MemberModuleDto>, Deskt
                     MemberModuleStatus::Failed => MemberModuleStatusDto::Failed,
                 },
                 progress_percent: module_progress(module.downloaded_bytes, module.total_bytes)
-                    .map_err(|_| MemberServiceError::invalid("module_progress_invalid"))?,
+                    .map_err(|_| MemberServiceError::invalid("MEMBER_MODULE_PROGRESS_INVALID"))?,
                 downloaded_bytes: module.downloaded_bytes,
                 total_bytes: module.total_bytes,
                 error_code: module.error_code,
@@ -1423,7 +1423,7 @@ fn ai_model_profile_from_dto(
 fn validate_profile_id(profile_id: &str) -> Result<(), DesktopError> {
     uuid::Uuid::parse_str(profile_id)
         .map(|_| ())
-        .map_err(|_| MemberServiceError::invalid("ai_model_profile_invalid").into())
+        .map_err(|_| MemberServiceError::invalid("AI_MODEL_PROFILE_INVALID").into())
 }
 
 fn ai_voice_rules_dto(config: &AiVoiceConfigRecord) -> AiVoiceReplyRulesDto {
@@ -1647,10 +1647,10 @@ fn validate_log_query(request: &LogQueryRequestDto) -> Result<(), DesktopError> 
         || request.ended_at.is_some_and(|value| value <= 0)
         || matches!((request.started_at, request.ended_at), (Some(start), Some(end)) if start > end)
     {
-        return Err(MemberServiceError::invalid("member_log_range_invalid").into());
+        return Err(MemberServiceError::invalid("MEMBER_LOG_RANGE_INVALID").into());
     }
     if let Some(uid) = &request.user_uid {
-        UserUid::parse(uid).map_err(|_| MemberServiceError::invalid("auth_uid_invalid"))?;
+        UserUid::parse(uid).map_err(|_| MemberServiceError::invalid("MEMBER_AUTH_UID_INVALID"))?;
     }
     Ok(())
 }

@@ -69,7 +69,7 @@ async function downloadModel(): Promise<void> {
 
 function showError(value: unknown): void {
   const error = normalizeDesktopError(value);
-  if (error.code !== 'dialog_cancelled')
+  if (error.code !== 'SYS_DIALOG_CANCELLED')
     ElMessage.error(error.message ?? t('common.operationFailed'));
 }
 

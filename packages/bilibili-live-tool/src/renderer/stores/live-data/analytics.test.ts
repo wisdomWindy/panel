@@ -127,7 +127,7 @@ describe('live analytics store', () => {
   it('revokes an issued path grant when export fails', async () => {
     const grantId = 'grant-1' as PathGrantId;
     const failure: DesktopError = {
-      code: 'historical_data_unavailable',
+      code: 'STORAGE_HISTORICAL_UNAVAILABLE',
       message: '历史数据暂不可用',
       retryable: false
     };

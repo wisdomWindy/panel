@@ -26,7 +26,7 @@ impl OpenLiveConfig {
         let access_key_secret = access_key_secret.trim();
         if app_id.is_empty() || access_key_id.is_empty() || access_key_secret.is_empty() {
             return Err(LiveRuntimeError::new(
-                "missing_open_live_credentials",
+                "SYS_OPEN_LIVE_CREDENTIALS_MISSING",
                 "缺少哔哩哔哩开放平台运行时配置",
                 false,
             ));

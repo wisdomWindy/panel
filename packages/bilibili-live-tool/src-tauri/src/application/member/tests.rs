@@ -136,7 +136,7 @@ impl AiSpeechOutput for MissingDeviceSpeech {
             .lock()
             .unwrap()
             .push(voice_id.to_owned());
-        Err(MemberServiceError::invalid("ai_audio_device_invalid"))
+        Err(MemberServiceError::invalid("AUDIO_DEVICE_INVALID"))
     }
 
     async fn stop(&self) -> Result<(), MemberServiceError> {
@@ -249,7 +249,7 @@ async fn ai_generation_rejects_a_concurrent_request() {
             .await
             .unwrap_err()
             .code,
-        "ai_generation_pending"
+        "AI_GEN_PENDING"
     );
     llm.release.notify_one();
     assert_eq!(first.await.unwrap().unwrap().result, "生成结果");
@@ -333,7 +333,7 @@ async fn voice_device_loss_disables_the_confirmed_route_without_fallback() {
             .unwrap()
             .last_error_code
             .as_deref(),
-        Some("ai_audio_device_missing")
+        Some("AUDIO_DEVICE_MISSING")
     );
     state.shutdown().await;
 }
@@ -393,7 +393,7 @@ async fn voice_route_persists_and_tests_the_selected_voice() {
             .await
             .unwrap_err()
             .code,
-        "ai_tts_voice_invalid"
+        "TTS_VOICE_INVALID"
     );
     assert_eq!(
         state
@@ -401,7 +401,7 @@ async fn voice_route_persists_and_tests_the_selected_voice() {
             .await
             .unwrap_err()
             .code,
-        "ai_tts_voice_invalid"
+        "TTS_VOICE_INVALID"
     );
     assert_eq!(speech.spoken_voice_ids.lock().unwrap().len(), 2);
     state.shutdown().await;

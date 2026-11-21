@@ -71,7 +71,7 @@ impl RecordingReconnectWatchdog {
             attempts += 1;
             if attempts > RECORDING_MAX_RECONNECTS {
                 log::warn!("recording stream lost after {attempts} attempts");
-                self.recording.fail("recording_stream_lost").await;
+                self.recording.fail("RECORD_STREAM_LOST").await;
                 return;
             }
             match self.restart(attempts).await {
@@ -79,7 +79,7 @@ impl RecordingReconnectWatchdog {
                 Err(error) => {
                     log::warn!("recording reconnect {attempts} failed: {}", error.code);
                     if attempts >= RECORDING_MAX_RECONNECTS {
-                        self.recording.fail("recording_stream_lost").await;
+                        self.recording.fail("RECORD_STREAM_LOST").await;
                         return;
                     }
                 }
@@ -109,7 +109,7 @@ impl RecordingReconnectWatchdog {
                 quality: self.quality,
             },
         )
-        .map_err(|error| MediaIoError::coded("recording_pipeline_invalid", error.to_string(), false))?;
+        .map_err(|error| MediaIoError::coded("RECORD_PIPELINE_INVALID", error.to_string(), false))?;
         self.recording
             .replace_process(RecorderLaunch {
                 executable,
@@ -720,14 +720,14 @@ impl MediaState {
     /// persists the record, then hands the launch line to the runtime.
     pub async fn start_recording(&self, room_id: &str) -> Result<(), MediaIoError> {
         let room_id = crate::domain::media::validate_recording_room_id(room_id).map_err(|_| {
-            MediaIoError::coded("recording_room_invalid", "请输入正确的直播间号", false)
+            MediaIoError::coded("ROOM_INVALID_ROOM", "请输入正确的直播间号", false)
         })?;
         let services = self.services()?;
         let config = self.recording.config().await;
 
         let grant = config.directory.as_ref().ok_or_else(|| {
             MediaIoError::coded(
-                "recording_directory_required",
+                "RECORD_DIRECTORY_REQUIRED",
                 "请先在录制设置中选择保存目录",
                 false,
             )
@@ -737,7 +737,7 @@ impl MediaState {
             .resolve(&grant.grant_id, PathPurpose::RecordingDirectory)
             .map_err(|_| {
                 MediaIoError::coded(
-                    "recording_directory_required",
+                    "RECORD_DIRECTORY_REQUIRED",
                     "录制目录授权已失效，请重新选择",
                     false,
                 )
@@ -746,7 +746,7 @@ impl MediaState {
             .await
             .map_err(|_| {
                 MediaIoError::coded(
-                    "recording_directory_unavailable",
+                    "RECORD_DIRECTORY_UNAVAILABLE",
                     "录制目录无法创建或不可写",
                     false,
                 )
@@ -768,7 +768,7 @@ impl MediaState {
                 quality: config.quality,
             },
         )
-        .map_err(|error| MediaIoError::coded("recording_pipeline_invalid", error.to_string(), false))?;
+        .map_err(|error| MediaIoError::coded("RECORD_PIPELINE_INVALID", error.to_string(), false))?;
 
         let mut record = services
             .repository

@@ -176,7 +176,7 @@ impl SqliteShellRepository {
                     .any(|entry| !matches!(entry.key.as_str(), LOCALE_KEY | UI_KEY))
                 {
                     return Err(ShellError::new(
-                        "invalid_config_file",
+                        "CONFIG_INVALID_FILE",
                         "interface archive contains an unknown key",
                         false,
                     ));
@@ -187,7 +187,7 @@ impl SqliteShellRepository {
                 let entries: Vec<ConfigEntry> = decode_entries(&section.entries)?;
                 if entries.iter().any(|entry| entry.key != RECORDING_KEY) {
                     return Err(ShellError::new(
-                        "invalid_config_file",
+                        "CONFIG_INVALID_FILE",
                         "recording archive contains an unknown key",
                         false,
                     ));
@@ -379,12 +379,12 @@ impl ConfigArchiveFilePort for NativeConfigArchiveFiles {
     async fn read(&self, path: &Path) -> Result<Vec<u8>, ShellError> {
         tokio::fs::read(path)
             .await
-            .map_err(|error| file_error("config_import_failed", error))
+            .map_err(|error| file_error("CONFIG_IMPORT_FAILED", error))
     }
     async fn write(&self, path: &Path, bytes: &[u8]) -> Result<(), ShellError> {
         tokio::fs::write(path, bytes)
             .await
-            .map_err(|error| file_error("config_export_failed", error))
+            .map_err(|error| file_error("CONFIG_EXPORT_FAILED", error))
     }
 }
 
@@ -399,7 +399,7 @@ impl DirectoryOpenerPort for NativeDirectoryOpener {
         #[cfg(all(unix, not(target_os = "macos")))]
         let result = Command::new("xdg-open").arg(path).spawn();
         result.map(|_| ()).map_err(|error| {
-            ShellError::new("config_directory_unavailable", error.to_string(), true)
+            ShellError::new("CONFIG_DIRECTORY_UNAVAILABLE", error.to_string(), true)
         })
     }
 }
@@ -420,7 +420,7 @@ impl SystemLocalePort for NativeSystemLocale {
 impl SysinfoMetrics {
     pub fn current_process() -> Result<Self, ShellError> {
         let pid = sysinfo::get_current_pid().map_err(|error| {
-            ShellError::new("system_metric_unavailable", error.to_string(), true)
+            ShellError::new("SYS_METRIC_UNAVAILABLE", error.to_string(), true)
         })?;
         let system = System::new_with_specifics(
             RefreshKind::new().with_processes(ProcessRefreshKind::new().with_memory().with_cpu()),
@@ -437,7 +437,7 @@ impl SystemMetricsPort for SysinfoMetrics {
     async fn sample(&self) -> Result<SystemMetrics, ShellError> {
         let mut system = self.system.lock().map_err(|_| {
             ShellError::new(
-                "system_metric_unavailable",
+                "SYS_METRIC_UNAVAILABLE",
                 "metrics lock is poisoned",
                 true,
             )
@@ -448,7 +448,7 @@ impl SystemMetricsPort for SysinfoMetrics {
         );
         let process = system.process(self.pid).ok_or_else(|| {
             ShellError::new(
-                "system_metric_unavailable",
+                "SYS_METRIC_UNAVAILABLE",
                 "current process is unavailable",
                 true,
             )
@@ -462,11 +462,11 @@ impl SystemMetricsPort for SysinfoMetrics {
 }
 
 fn query_error(error: sqlx::Error) -> ShellError {
-    ShellError::new("config_transaction_failed", error.to_string(), true)
+    ShellError::new("CONFIG_TRANSACTION_FAILED", error.to_string(), true)
 }
 
 fn invalid_data(error: impl std::fmt::Display) -> ShellError {
-    ShellError::new("invalid_config_file", error.to_string(), false)
+    ShellError::new("CONFIG_INVALID_FILE", error.to_string(), false)
 }
 
 fn file_error(code: &'static str, error: std::io::Error) -> ShellError {

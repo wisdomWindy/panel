@@ -53,11 +53,11 @@ impl LiveRuntimeError {
     }
 
     pub fn unavailable(message: impl Into<String>) -> Self {
-        Self::new("external_service_unavailable", message, false)
+        Self::new("NET_SERVICE_UNAVAILABLE", message, false)
     }
 
     pub fn storage(message: impl Into<String>) -> Self {
-        Self::new("storage_unavailable", message, true)
+        Self::new("STORAGE_UNAVAILABLE", message, true)
     }
 }
 
@@ -304,7 +304,7 @@ impl LiveFilePort for UnavailableLiveFilePort {
 
 fn unavailable_file<T>() -> Result<T, LiveRuntimeError> {
     Err(LiveRuntimeError::new(
-        "path_authorization_failed",
+        "STORAGE_PATH_DENIED",
         "file access is unavailable",
         false,
     ))

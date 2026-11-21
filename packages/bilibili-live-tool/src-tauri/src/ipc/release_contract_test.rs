@@ -28,7 +28,7 @@ fn safe_release_snapshots_serialize_without_paths_or_secrets() {
         status: UpdateStatus::Unavailable,
         candidate: None,
         progress_percent: None,
-        error_code: Some("update_provider_unavailable".into()),
+        error_code: Some("UPDATE_PROVIDER_UNAVAILABLE".into()),
     };
     let about = AboutSnapshot {
         application_version: "0.1.0".into(),

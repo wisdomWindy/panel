@@ -140,7 +140,7 @@ export const useApplicationShellStore = defineStore('application-shell', () => {
       return await invokeDesktop('path_select', { purpose });
     } catch (value) {
       const mapped = normalizeDesktopError(value);
-      if (mapped.code === 'dialog_cancelled') return null;
+      if (mapped.code === 'SYS_DIALOG_CANCELLED') return null;
       throw mapped;
     }
   }

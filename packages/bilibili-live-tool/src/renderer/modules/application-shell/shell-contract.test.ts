@@ -101,11 +101,11 @@ describe('application shell contracts', () => {
   });
 
   it('maps asynchronous open-live failures to actionable messages', () => {
-    expect(connectionErrorMessageKey('missing_open_live_credentials')).toBe(
+    expect(connectionErrorMessageKey('SYS_OPEN_LIVE_CREDENTIALS_MISSING')).toBe(
       'openLiveConfigMissing'
     );
-    expect(connectionErrorMessageKey('open_live_auth_failed')).toBe('openLiveAuthFailed');
-    expect(connectionErrorMessageKey('open_live_network_error')).toBe('openLiveNetworkFailed');
+    expect(connectionErrorMessageKey('SYS_OPEN_LIVE_AUTH_FAILED')).toBe('openLiveAuthFailed');
+    expect(connectionErrorMessageKey('SYS_OPEN_LIVE_NETWORK_ERROR')).toBe('openLiveNetworkFailed');
     expect(connectionErrorMessageKey('something_new')).toBe('operationFailed');
     expect(connectionErrorMessageKey(null)).toBeNull();
   });

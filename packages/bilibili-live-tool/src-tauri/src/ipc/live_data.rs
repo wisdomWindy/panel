@@ -46,7 +46,7 @@ impl RankingPresenter {
         validate_range(&range)?;
         let mut previous = self.previous.lock().map_err(|_| {
             LiveRuntimeError::new(
-                "ranking_state_unavailable",
+                "STORAGE_RANKING_STATE_UNAVAILABLE",
                 "ranking state is unavailable",
                 true,
             )
@@ -101,7 +101,7 @@ impl TauriLiveEventSink {
     ) -> Result<(), LiveRuntimeError> {
         self.app
             .emit(event, payload)
-            .map_err(|error| LiveRuntimeError::new("event_publish_failed", error.to_string(), true))
+            .map_err(|error| LiveRuntimeError::new("SYS_EVENT_PUBLISH_FAILED", error.to_string(), true))
     }
 }
 
@@ -577,7 +577,7 @@ fn validate_range(range: &DataRangeDto) -> Result<(), LiveRuntimeError> {
 fn validate_export_range(range: &DataRangeDto) -> Result<(), LiveRuntimeError> {
     if !matches!(range, DataRangeDto::LiveSession) {
         return Err(LiveRuntimeError::new(
-            "historical_data_unavailable",
+            "STORAGE_HISTORICAL_UNAVAILABLE",
             "historical data is unavailable",
             false,
         ));
@@ -866,6 +866,6 @@ mod tests {
     fn rejects_export_ranges_without_persisted_history() {
         validate_export_range(&DataRangeDto::LiveSession).unwrap();
         let error = validate_export_range(&DataRangeDto::Today).unwrap_err();
-        assert_eq!(error.code, "historical_data_unavailable");
+        assert_eq!(error.code, "STORAGE_HISTORICAL_UNAVAILABLE");
     }
 }

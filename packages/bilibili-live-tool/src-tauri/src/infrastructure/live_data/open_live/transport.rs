@@ -114,7 +114,7 @@ pub(super) async fn connect_any(
     }
     Err(last_error.unwrap_or_else(|| {
         LiveRuntimeError::new(
-            "open_live_websocket_unavailable",
+            "SYS_OPEN_LIVE_WS_UNAVAILABLE",
             "哔哩哔哩开放平台没有可用的 WebSocket 地址",
             true,
         )
@@ -268,7 +268,7 @@ async fn cleanup(api: &OpenLiveApi, game_id: &str, writer: &mut SplitSink<Socket
 
 fn auth_failed() -> LiveRuntimeError {
     LiveRuntimeError::new(
-        "open_live_auth_failed",
+        "SYS_OPEN_LIVE_AUTH_FAILED",
         "哔哩哔哩开放平台 WebSocket 鉴权失败",
         false,
     )
@@ -284,7 +284,7 @@ fn socket_closed() -> LiveRuntimeError {
 
 fn websocket_error(error: tokio_tungstenite::tungstenite::Error) -> LiveRuntimeError {
     LiveRuntimeError::new(
-        "open_live_websocket_unavailable",
+        "SYS_OPEN_LIVE_WS_UNAVAILABLE",
         format!("哔哩哔哩开放平台 WebSocket 连接失败：{error}"),
         true,
     )
@@ -292,7 +292,7 @@ fn websocket_error(error: tokio_tungstenite::tungstenite::Error) -> LiveRuntimeE
 
 fn websocket_timeout() -> LiveRuntimeError {
     LiveRuntimeError::new(
-        "open_live_websocket_unavailable",
+        "SYS_OPEN_LIVE_WS_UNAVAILABLE",
         "哔哩哔哩开放平台 WebSocket 连接超时",
         true,
     )

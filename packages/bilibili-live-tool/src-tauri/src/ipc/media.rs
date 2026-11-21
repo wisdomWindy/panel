@@ -518,7 +518,7 @@ pub async fn tts_qwen3_models(
         state.qwen3_tts().model_catalog(),
     )
     .await
-    .map_err(|_| MediaIoError::coded("qwen3_tts_timeout", "模型列表请求超时", true))??;
+    .map_err(|_| MediaIoError::coded("TTS_TIMEOUT", "模型列表请求超时", true))??;
     Ok(qwen3_catalog(catalog))
 }
 
@@ -536,7 +536,7 @@ pub async fn tts_qwen3_download_model(
             .start_model_download(request.model.as_deref()),
     )
     .await
-    .map_err(|_| MediaIoError::coded("qwen3_tts_timeout", "模型下载请求超时", true))??;
+    .map_err(|_| MediaIoError::coded("TTS_TIMEOUT", "模型下载请求超时", true))??;
     Ok(qwen3_download(state))
 }
 
@@ -1174,7 +1174,7 @@ fn tts_status(status: TtsRuntimeSnapshot) -> TtsStatusDto {
         TtsStateDto::Paused
     } else if status.current_text.is_some() {
         TtsStateDto::Speaking
-    } else if status.fallback_reason_code == Some("tts_unavailable") {
+    } else if status.fallback_reason_code == Some("TTS_UNAVAILABLE_ENGINE") {
         TtsStateDto::Unavailable
     } else if status.fallback_reason_code.is_some() {
         TtsStateDto::Degraded

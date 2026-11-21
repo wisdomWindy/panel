@@ -177,7 +177,7 @@ impl ApplicationShellState {
         let scopes = validate_config_scopes(scopes)?;
         let archive = self.repository.export_archive(&scopes).await?;
         let bytes = serde_json::to_vec_pretty(&archive)
-            .map_err(|error| ShellError::new("config_export_failed", error.to_string(), false))?;
+            .map_err(|error| ShellError::new("CONFIG_EXPORT_FAILED", error.to_string(), false))?;
         self.files.write(path, &bytes).await?;
         let observed_at = now_millis();
         self.repository.save_last_backup_at(observed_at).await?;
@@ -192,7 +192,7 @@ impl ApplicationShellState {
         let bytes = self.files.read(path).await?;
         let archive: ConfigArchiveV1 = serde_json::from_slice(&bytes).map_err(|_| {
             ShellError::new(
-                "invalid_config_file",
+                "CONFIG_INVALID_FILE",
                 "configuration file is damaged",
                 false,
             )
@@ -338,7 +338,7 @@ pub struct UnavailableSystemMetrics;
 impl SystemMetricsPort for UnavailableSystemMetrics {
     async fn sample(&self) -> Result<SystemMetrics, ShellError> {
         Err(ShellError::new(
-            "system_metric_unavailable",
+            "SYS_METRIC_UNAVAILABLE",
             "system metrics are unavailable",
             true,
         ))
@@ -347,7 +347,7 @@ impl SystemMetricsPort for UnavailableSystemMetrics {
 
 fn storage_unavailable() -> ShellError {
     ShellError::new(
-        "config_transaction_failed",
+        "CONFIG_TRANSACTION_FAILED",
         "configuration storage is unavailable",
         true,
     )

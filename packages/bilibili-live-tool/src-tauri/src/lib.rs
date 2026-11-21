@@ -446,14 +446,14 @@ impl AppState {
 
     pub(crate) fn ai(&self) -> Result<&Arc<AiState>, ipc::error::DesktopError> {
         self.ai.as_ref().ok_or_else(|| {
-            ipc::error::DesktopError::new("ai_storage_unavailable", "AI 鏈湴鏁版嵁鏆備笉鍙敤", true)
+            ipc::error::DesktopError::new("STORAGE_AI_UNAVAILABLE", "AI 鏈湴鏁版嵁鏆備笉鍙敤", true)
         })
     }
 
     pub(crate) fn member(&self) -> Result<&Arc<MemberStates>, ipc::error::DesktopError> {
         self.member.as_ref().ok_or_else(|| {
             ipc::error::DesktopError::new(
-                "member_storage_unavailable",
+                "STORAGE_MEMBER_UNAVAILABLE",
                 "浼氬憳鏈湴鏁版嵁鏆備笉鍙敤",
                 true,
             )

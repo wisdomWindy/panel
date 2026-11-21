@@ -351,11 +351,11 @@ async fn unavailable_adapters_report_stable_non_success_states() {
         .await
         .err()
         .unwrap();
-    assert_eq!(audio_error.code, "media_unavailable");
+    assert_eq!(audio_error.code, "RECORD_UNAVAILABLE");
 
     assert_eq!(
         UnavailableSpeechEngine.voices().await.unwrap_err().code,
-        "media_unavailable"
+        "RECORD_UNAVAILABLE"
     );
     assert_eq!(
         UnavailableRecorderProcessPort
@@ -368,7 +368,7 @@ async fn unavailable_adapters_report_stable_non_success_states() {
             .err()
             .unwrap()
             .code,
-        "media_unavailable"
+        "RECORD_UNAVAILABLE"
     );
     assert_eq!(
         UnavailableNotificationPort
@@ -376,7 +376,7 @@ async fn unavailable_adapters_report_stable_non_success_states() {
             .await
             .unwrap_err()
             .code,
-        "media_unavailable"
+        "RECORD_UNAVAILABLE"
     );
     assert_eq!(
         UnavailableEffectWindowPort
@@ -389,7 +389,7 @@ async fn unavailable_adapters_report_stable_non_success_states() {
             .await
             .unwrap_err()
             .code,
-        "media_unavailable"
+        "RECORD_UNAVAILABLE"
     );
     assert_eq!(
         UnavailableHotkeyPort
@@ -397,7 +397,7 @@ async fn unavailable_adapters_report_stable_non_success_states() {
             .err()
             .unwrap()
             .code,
-        "media_unavailable"
+        "RECORD_UNAVAILABLE"
     );
 }
 
@@ -433,7 +433,7 @@ async fn preview_registry_enforces_owner_expiry_range_and_revocation() {
             .await
             .unwrap_err()
             .code,
-        "media_permission_denied"
+        "SYS_PERMISSION_DENIED"
     );
     assert_eq!(
         registry
@@ -441,7 +441,7 @@ async fn preview_registry_enforces_owner_expiry_range_and_revocation() {
             .await
             .unwrap_err()
             .code,
-        "media_invalid"
+        "RECORD_INVALID_PARAM"
     );
     assert!(registry.revoke(&second.token, "main").unwrap());
     assert!(registry
@@ -461,7 +461,7 @@ async fn local_ffmpeg_adapter_rejects_a_missing_executable() {
         .await
         .err()
         .unwrap();
-    assert_eq!(error.code, "media_unavailable");
+    assert_eq!(error.code, "RECORD_UNAVAILABLE");
 }
 
 #[cfg(windows)]

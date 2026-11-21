@@ -29,15 +29,15 @@ export function normalizeRoomInput(value: string): RoomInputResult {
 
 export function connectionErrorMessageKey(code: string | null): ConnectionErrorMessageKey | null {
   if (code === null) return null;
-  if (code === 'missing_open_live_credentials') return 'openLiveConfigMissing';
+  if (code === 'SYS_OPEN_LIVE_CREDENTIALS_MISSING') return 'openLiveConfigMissing';
   if (code === 'invalid_open_live_app_id') return 'openLiveAppIdInvalid';
-  if (code === 'open_live_api_error') return 'openLiveRejected';
-  if (code === 'open_live_auth_failed') return 'openLiveAuthFailed';
+  if (code === 'SYS_OPEN_LIVE_API_ERROR') return 'openLiveRejected';
+  if (code === 'SYS_OPEN_LIVE_AUTH_FAILED') return 'openLiveAuthFailed';
   if (
     [
-      'open_live_network_error',
-      'open_live_http_error',
-      'open_live_websocket_unavailable',
+      'SYS_OPEN_LIVE_NETWORK_ERROR',
+      'SYS_OPEN_LIVE_HTTP_ERROR',
+      'SYS_OPEN_LIVE_WS_UNAVAILABLE',
       'open_live_websocket_closed',
       'open_live_auth_timeout'
     ].includes(code)
@@ -47,7 +47,7 @@ export function connectionErrorMessageKey(code: string | null): ConnectionErrorM
   if (['invalid_open_live_response', 'invalid_open_live_packet'].includes(code)) {
     return 'openLiveResponseInvalid';
   }
-  if (code === 'reconnect_failed') return 'reconnectFailed';
+  if (code === 'SYS_RECONNECT_FAILED') return 'reconnectFailed';
   return 'operationFailed';
 }
 

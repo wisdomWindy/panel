@@ -183,7 +183,7 @@ async function selectDirectory(): Promise<void> {
     settingsDraft.value = { ...settingsDraft.value, directory };
   } catch (error) {
     const value = error as { code?: string; message?: string };
-    if (value.code !== 'dialog_cancelled')
+    if (value.code !== 'SYS_DIALOG_CANCELLED')
       ElMessage.error(value.message ?? t('recording.messages.directoryFailed'));
   }
 }
@@ -195,7 +195,7 @@ async function setFfmpegSource(source: RecordingConfig['ffmpegSource']): Promise
     settingsDraft.value = { ...settingsDraft.value, ffmpegSource: saved.ffmpegSource };
   } catch (error) {
     const value = error as { code?: string; message?: string };
-    if (value.code !== 'dialog_cancelled')
+    if (value.code !== 'SYS_DIALOG_CANCELLED')
       ElMessage.error(value.message ?? t('recording.messages.ffmpegFailed'));
   }
 }
@@ -297,7 +297,7 @@ async function exportHighlight(highlight: HighlightSummary): Promise<void> {
     ElMessage.success(t('recording.messages.highlightExported'));
   } catch (error) {
     const value = error as { code?: string; message?: string };
-    if (value.code !== 'dialog_cancelled')
+    if (value.code !== 'SYS_DIALOG_CANCELLED')
       ElMessage.error(value.message ?? t('recording.messages.exportFailed'));
   }
 }

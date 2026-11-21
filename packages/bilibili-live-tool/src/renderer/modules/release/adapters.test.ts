@@ -5,7 +5,7 @@ describe('release adapters', () => {
   it('accepts a strict unavailable update snapshot', () => {
     expect(adaptUpdateSnapshot({
       currentVersion: '0.1.0', channel: 'free', status: 'unavailable',
-      candidate: null, progressPercent: null, errorCode: 'update_provider_unavailable'
+      candidate: null, progressPercent: null, errorCode: 'UPDATE_PROVIDER_UNAVAILABLE'
     }).status).toBe('unavailable');
   });
 

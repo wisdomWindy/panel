@@ -61,7 +61,7 @@ describe('live safety store', () => {
   it('revokes a path grant when a safety export fails', async () => {
     const grantId = 'grant-1' as PathGrantId;
     const failure: DesktopError = {
-      code: 'file_permission_denied',
+      code: 'STORAGE_PERMISSION_DENIED',
       message: '没有文件写入权限，请更换位置',
       retryable: false
     };

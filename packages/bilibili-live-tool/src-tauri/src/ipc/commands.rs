@@ -69,7 +69,7 @@ pub async fn path_select(
         .select(selection, request.purpose)
         .map_err(DesktopError::from)?
         .map(PathGrantDto::from)
-        .ok_or_else(|| DesktopError::new("dialog_cancelled", "Path selection was cancelled", false))
+        .ok_or_else(|| DesktopError::new("SYS_DIALOG_CANCELLED", "Path selection was cancelled", false))
 }
 
 #[tauri::command]

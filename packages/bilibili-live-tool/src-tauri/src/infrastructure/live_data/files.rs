@@ -37,7 +37,7 @@ impl GrantedLiveFileStore {
             .map_err(map_path_error)?;
         tokio::fs::read(path)
             .await
-            .map_err(|error| map_io_error("file_read_failed", error))
+            .map_err(|error| map_io_error("STORAGE_READ_FAILED", error))
     }
 
     async fn write(
@@ -53,7 +53,7 @@ impl GrantedLiveFileStore {
             .map_err(map_path_error)?;
         tokio::fs::write(&path, content)
             .await
-            .map_err(|error| map_io_error("file_write_failed", error))?;
+            .map_err(|error| map_io_error("STORAGE_WRITE_FAILED", error))?;
         Ok(ExportReceipt {
             display_path: path.to_string_lossy().into_owned(),
             exported_count,
@@ -165,7 +165,7 @@ impl LiveFilePort for GrantedLiveFileStore {
         let content = super::super::text::with_utf8_bom(
             writer
                 .into_inner()
-                .map_err(|error| map_io_error("file_write_failed", error.into_error()))?,
+                .map_err(|error| map_io_error("STORAGE_WRITE_FAILED", error.into_error()))?,
         );
         self.write(grant_id, PathPurpose::StatExport, &content, 1)
             .await
@@ -228,7 +228,7 @@ impl LiveFilePort for GrantedLiveFileStore {
         let content = super::super::text::with_utf8_bom(
             writer
                 .into_inner()
-                .map_err(|error| map_io_error("file_write_failed", error.into_error()))?,
+                .map_err(|error| map_io_error("STORAGE_WRITE_FAILED", error.into_error()))?,
         );
         self.write(grant_id, PathPurpose::RankExport, &content, count as u32)
             .await
@@ -236,16 +236,16 @@ impl LiveFilePort for GrantedLiveFileStore {
 }
 
 fn map_path_error(error: impl std::fmt::Display) -> LiveRuntimeError {
-    LiveRuntimeError::new("path_authorization_failed", error.to_string(), false)
+    LiveRuntimeError::new("STORAGE_PATH_DENIED", error.to_string(), false)
 }
 
 fn map_codec_error(error: impl std::fmt::Display) -> LiveRuntimeError {
-    LiveRuntimeError::new("invalid_import_file", error.to_string(), false)
+    LiveRuntimeError::new("RULE_INVALID_IMPORT", error.to_string(), false)
 }
 
 fn map_io_error(code: &'static str, error: std::io::Error) -> LiveRuntimeError {
     let code = match error.kind() {
-        std::io::ErrorKind::PermissionDenied => "file_permission_denied",
+        std::io::ErrorKind::PermissionDenied => "STORAGE_PERMISSION_DENIED",
         std::io::ErrorKind::WriteZero => "disk_full",
         _ => code,
     };

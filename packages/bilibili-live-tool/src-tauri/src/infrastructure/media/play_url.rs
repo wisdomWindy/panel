@@ -49,14 +49,14 @@ impl BilibiliPlayUrlResolver {
             .await
             .map_err(|error| {
                 MediaIoError::coded(
-                    "recording_stream_unavailable",
+                    "RECORD_STREAM_UNAVAILABLE",
                     format!("直播间状态查询失败：{error}"),
                     true,
                 )
             })?;
         let body = response.text().await.map_err(|error| {
             MediaIoError::coded(
-                "recording_stream_unavailable",
+                "RECORD_STREAM_UNAVAILABLE",
                 format!("直播间状态读取失败：{error}"),
                 true,
             )
@@ -89,21 +89,21 @@ impl PlayUrlResolver for BilibiliPlayUrlResolver {
             .await
             .map_err(|error| {
                 MediaIoError::coded(
-                    "recording_stream_unavailable",
+                    "RECORD_STREAM_UNAVAILABLE",
                     format!("直播流地址获取失败：{error}"),
                     true,
                 )
             })?;
         if !response.status().is_success() {
             return Err(MediaIoError::coded(
-                "recording_stream_unavailable",
+                "RECORD_STREAM_UNAVAILABLE",
                 format!("直播流地址获取失败：HTTP {}", response.status().as_u16()),
                 true,
             ));
         }
         let body = response.text().await.map_err(|error| {
             MediaIoError::coded(
-                "recording_stream_unavailable",
+                "RECORD_STREAM_UNAVAILABLE",
                 format!("直播流地址读取失败：{error}"),
                 true,
             )
@@ -132,7 +132,7 @@ fn quality_from_qn(qn: u32) -> Option<RecordingQuality> {
 
 pub fn validate_room_id(room_id: &str) -> Result<&str, MediaIoError> {
     crate::domain::media::validate_recording_room_id(room_id).map_err(|_| {
-        MediaIoError::coded("recording_room_invalid", "请输入正确的直播间号", false)
+        MediaIoError::coded("ROOM_INVALID_ROOM", "请输入正确的直播间号", false)
     })
 }
 
@@ -155,7 +155,7 @@ struct RoomInfoData {
 pub fn parse_live_status(body: &str) -> Result<(), MediaIoError> {
     let envelope: RoomInfoEnvelope = serde_json::from_str(body).map_err(|_| {
         MediaIoError::coded(
-            "recording_stream_unavailable",
+            "RECORD_STREAM_UNAVAILABLE",
             "直播间状态响应格式无法识别",
             true,
         )
@@ -168,10 +168,10 @@ pub fn parse_live_status(body: &str) -> Result<(), MediaIoError> {
             message.to_owned()
         };
         if is_offline_message(&message) {
-            return Err(MediaIoError::coded("recording_room_offline", message, false));
+            return Err(MediaIoError::coded("ROOM_OFFLINE", message, false));
         }
         return Err(MediaIoError::coded(
-            "recording_stream_unavailable",
+            "RECORD_STREAM_UNAVAILABLE",
             format!("直播间状态查询失败：{message}"),
             true,
         ));
@@ -179,7 +179,7 @@ pub fn parse_live_status(body: &str) -> Result<(), MediaIoError> {
     match envelope.data {
         Some(data) if data.live_status == 1 => Ok(()),
         _ => Err(MediaIoError::coded(
-            "recording_room_offline",
+            "ROOM_OFFLINE",
             "直播间当前未开播，开始直播后再试",
             false,
         )),
@@ -222,7 +222,7 @@ struct QualityDescription {
 pub fn parse_play_url_response(body: &str) -> Result<ResolvedStream, MediaIoError> {
     let envelope: Envelope = serde_json::from_str(body).map_err(|_| {
         MediaIoError::coded(
-            "recording_stream_unavailable",
+            "RECORD_STREAM_UNAVAILABLE",
             "直播流地址响应格式无法识别",
             true,
         )
@@ -235,10 +235,10 @@ pub fn parse_play_url_response(body: &str) -> Result<ResolvedStream, MediaIoErro
             message.to_owned()
         };
         if is_offline_message(&message) {
-            return Err(MediaIoError::coded("recording_room_offline", message, false));
+            return Err(MediaIoError::coded("ROOM_OFFLINE", message, false));
         }
         return Err(MediaIoError::coded(
-            "recording_stream_unavailable",
+            "RECORD_STREAM_UNAVAILABLE",
             format!("直播流地址获取失败：{message}"),
             true,
         ));
@@ -251,7 +251,7 @@ pub fn parse_play_url_response(body: &str) -> Result<ResolvedStream, MediaIoErro
         .find(|url| !url.trim().is_empty())
         .ok_or_else(|| {
             MediaIoError::coded(
-                "recording_stream_unavailable",
+                "RECORD_STREAM_UNAVAILABLE",
                 "当前直播没有可用的拉流地址",
                 true,
             )
@@ -287,7 +287,7 @@ mod tests {
     fn rejects_a_room_that_is_not_broadcasting() {
         let error =
             parse_live_status(r#"{"code":0,"message":"OK","data":{"live_status":0}}"#).unwrap_err();
-        assert_eq!(error.code, "recording_room_offline");
+        assert_eq!(error.code, "ROOM_OFFLINE");
         assert!(!error.retryable);
         assert!(error.message.contains("未开播"));
     }
@@ -298,7 +298,7 @@ mod tests {
             r#"{"code":19002003,"message":"房间信息不存在","data":null}"#,
         )
         .unwrap_err();
-        assert_eq!(error.code, "recording_room_offline");
+        assert_eq!(error.code, "ROOM_OFFLINE");
     }
 
     #[test]
@@ -316,7 +316,7 @@ mod tests {
     fn treats_an_offline_room_as_a_non_retryable_error() {
         let body = r#"{"code":19002003,"message":"房间信息不存在","data":null}"#;
         let error = parse_play_url_response(body).unwrap_err();
-        assert_eq!(error.code, "recording_room_offline");
+        assert_eq!(error.code, "ROOM_OFFLINE");
         assert!(!error.retryable);
         assert_eq!(error.message, "房间信息不存在");
     }
@@ -325,7 +325,7 @@ mod tests {
     fn treats_an_unknown_platform_error_as_retryable() {
         let body = r#"{"code":-400,"message":"请求错误","data":null}"#;
         let error = parse_play_url_response(body).unwrap_err();
-        assert_eq!(error.code, "recording_stream_unavailable");
+        assert_eq!(error.code, "RECORD_STREAM_UNAVAILABLE");
         assert!(error.retryable);
     }
 
@@ -333,7 +333,7 @@ mod tests {
     fn reports_a_room_without_any_stream_address() {
         let body = r#"{"code":0,"message":"OK","data":{"durl":[]}}"#;
         let error = parse_play_url_response(body).unwrap_err();
-        assert_eq!(error.code, "recording_stream_unavailable");
+        assert_eq!(error.code, "RECORD_STREAM_UNAVAILABLE");
     }
 
     #[test]
@@ -348,17 +348,17 @@ mod tests {
     #[test]
     fn rejects_a_response_that_is_not_json() {
         let error = parse_play_url_response("<html>blocked</html>").unwrap_err();
-        assert_eq!(error.code, "recording_stream_unavailable");
+        assert_eq!(error.code, "RECORD_STREAM_UNAVAILABLE");
     }
 
     #[test]
     fn validates_numeric_room_ids() {
         assert_eq!(validate_room_id(" 21452505 ").unwrap(), "21452505");
-        assert_eq!(validate_room_id("").unwrap_err().code, "recording_room_invalid");
-        assert_eq!(validate_room_id("abc").unwrap_err().code, "recording_room_invalid");
+        assert_eq!(validate_room_id("").unwrap_err().code, "ROOM_INVALID_ROOM");
+        assert_eq!(validate_room_id("abc").unwrap_err().code, "ROOM_INVALID_ROOM");
         assert_eq!(
             validate_room_id("1; rm -rf /").unwrap_err().code,
-            "recording_room_invalid"
+            "ROOM_INVALID_ROOM"
         );
     }
 

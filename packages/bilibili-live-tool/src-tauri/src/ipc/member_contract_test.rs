@@ -63,7 +63,7 @@ fn serializes_safe_member_status_and_tagged_qr_states() {
         capabilities: MemberCapabilitiesDto {
             moderation: MemberCapabilityStateDto::Unavailable,
         },
-        service_error_code: Some("external_service_unavailable".into()),
+        service_error_code: Some("NET_SERVICE_UNAVAILABLE".into()),
     };
 
     let status_json = serde_json::to_value(status).unwrap();

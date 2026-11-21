@@ -16,11 +16,11 @@ describe('media recording store', () => {
 
   it('maps rejected commands and clears operation state in finally', async () => {
     vi.mocked(invokeDesktop).mockRejectedValueOnce({
-      code: 'media_unavailable', message: 'resolver unavailable', retryable: false
+      code: 'RECORD_UNAVAILABLE', message: 'resolver unavailable', retryable: false
     });
     const store = useMediaRecordingStore();
-    await expect(store.start('1' as never)).rejects.toMatchObject({ code: 'media_unavailable' });
-    expect(store.error?.code).toBe('media_unavailable');
+    await expect(store.start('1' as never)).rejects.toMatchObject({ code: 'RECORD_UNAVAILABLE' });
+    expect(store.error?.code).toBe('RECORD_UNAVAILABLE');
     expect(store.pendingOperations.size).toBe(0);
   });
 

@@ -102,10 +102,10 @@ impl Qwen3TtsService {
     /// Validates, persists and applies a new configuration.
     pub async fn save_config(&self, config: Qwen3TtsConfig) -> Result<(), MediaIoError> {
         validate_qwen3_tts_config(&config)
-            .map_err(|error| MediaIoError::coded("qwen3_tts_invalid_config", error.to_string(), false))?;
+            .map_err(|error| MediaIoError::coded("TTS_INVALID_CONFIG", error.to_string(), false))?;
         if let Some(pool) = self.pool.as_ref() {
             let value = serde_json::to_string(&config)
-                .map_err(|_| MediaIoError::coded("qwen3_tts_invalid_config", "config cannot be encoded", false))?;
+                .map_err(|_| MediaIoError::coded("TTS_INVALID_CONFIG", "config cannot be encoded", false))?;
             ConfigRepository::new(pool.clone())
                 .set(QWEN3_TTS_CONFIG_KEY, &value, CONFIG_SCOPE)
                 .await
@@ -137,7 +137,7 @@ impl Qwen3TtsService {
                 true,
             )),
             Err(_) => Err(MediaIoError::coded(
-                "qwen3_tts_timeout",
+                "TTS_TIMEOUT",
                 format!("qwen3 tts request exceeded {timeout_ms}ms"),
                 true,
             )),
@@ -156,7 +156,7 @@ impl Qwen3TtsService {
             }
         }
         if status == reqwest::StatusCode::SERVICE_UNAVAILABLE {
-            return MediaIoError::coded("qwen3_tts_loading", "qwen3 tts model is still loading", true);
+            return MediaIoError::coded("TTS_MODEL_LOADING", "qwen3 tts model is still loading", true);
         }
         if status.is_client_error() {
             return MediaIoError::coded(
@@ -166,7 +166,7 @@ impl Qwen3TtsService {
             );
         }
         MediaIoError::coded(
-            "qwen3_tts_synthesis_failed",
+            "TTS_SYNTHESIS_FAILED_ENGINE",
             format!("qwen3 tts failed ({code}): {body}"),
             true,
         )
@@ -258,7 +258,7 @@ fn translated_code(server_code: &str) -> Option<&'static str> {
     match server_code {
         "tts_model_unknown" => Some("qwen3_tts_model_unknown"),
         "tts_download_busy" => Some("qwen3_tts_download_busy"),
-        "tts_download_unavailable" => Some("qwen3_tts_download_unavailable"),
+        "TTS_DOWNLOAD_UNAVAILABLE_ENGINE" => Some("TTS_DOWNLOAD_UNAVAILABLE"),
         _ => None,
     }
 }
@@ -606,7 +606,7 @@ impl SpeechEnginePort for Qwen3TtsSpeechEngine {
             Ok(result) => result?,
             Err(_) => {
                 return Err(MediaIoError::coded(
-                    "qwen3_tts_timeout",
+                    "TTS_TIMEOUT",
                     "qwen3 tts voice catalogue timed out",
                     true,
                 ))
@@ -861,7 +861,7 @@ mod tests {
             })
             .await
             .unwrap_err();
-        assert_eq!(error.code, "qwen3_tts_loading");
+        assert_eq!(error.code, "TTS_MODEL_LOADING");
         assert!(error.retryable);
     }
 

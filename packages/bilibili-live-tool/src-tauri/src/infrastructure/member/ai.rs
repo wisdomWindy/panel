@@ -158,7 +158,7 @@ fn windows_credential_delete(profile_id: &str) -> Result<(), MemberServiceError>
 }
 
 fn secret_store_error() -> MemberServiceError {
-    MemberServiceError::unavailable("ai_secret_store_unavailable")
+    MemberServiceError::unavailable("AI_MODEL_SECRET_STORE_UNAVAILABLE")
 }
 
 pub struct OpenAiCompatibleLlmProvider {
@@ -187,12 +187,12 @@ impl OpenAiCompatibleLlmProvider {
         if let Some(proxy_url) = profile.proxy_url.as_deref() {
             builder = builder.proxy(
                 reqwest::Proxy::all(proxy_url)
-                    .map_err(|_| MemberServiceError::invalid("ai_model_profile_invalid"))?,
+                    .map_err(|_| MemberServiceError::invalid("AI_MODEL_PROFILE_INVALID"))?,
             );
         }
         let client = builder
             .build()
-            .map_err(|_| MemberServiceError::unavailable("ai_provider_unavailable"))?;
+            .map_err(|_| MemberServiceError::unavailable("AI_MODEL_PROVIDER_UNAVAILABLE"))?;
         let mut request = client.post(endpoint).json(&serde_json::json!({
             "model": profile.model,
             "messages": [
@@ -211,24 +211,24 @@ impl OpenAiCompatibleLlmProvider {
         let response = request
             .send()
             .await
-            .map_err(|_| MemberServiceError::unavailable("ai_provider_unavailable"))?;
+            .map_err(|_| MemberServiceError::unavailable("AI_MODEL_PROVIDER_UNAVAILABLE"))?;
         if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-            return Err(MemberServiceError::unavailable("ai_rate_limited"));
+            return Err(MemberServiceError::unavailable("AI_GEN_RATE_LIMITED"));
         }
         if !response.status().is_success() {
-            return Err(MemberServiceError::unavailable("ai_provider_unavailable"));
+            return Err(MemberServiceError::unavailable("AI_MODEL_PROVIDER_UNAVAILABLE"));
         }
         let payload: ChatCompletionResponse = response
             .json()
             .await
-            .map_err(|_| MemberServiceError::invalid("ai_provider_invalid_response"))?;
+            .map_err(|_| MemberServiceError::invalid("AI_MODEL_PROVIDER_RESPONSE_INVALID"))?;
         payload
             .choices
             .into_iter()
             .next()
             .map(|choice| choice.message.content.trim().to_owned())
             .filter(|content| !content.is_empty())
-            .ok_or_else(|| MemberServiceError::invalid("ai_provider_invalid_response"))
+            .ok_or_else(|| MemberServiceError::invalid("AI_MODEL_PROVIDER_RESPONSE_INVALID"))
     }
 }
 
@@ -240,7 +240,7 @@ impl LlmProvider for OpenAiCompatibleLlmProvider {
             .load_default_ai_model_profile()
             .await?
             .filter(|profile| profile.is_enabled)
-            .ok_or_else(|| MemberServiceError::invalid("ai_model_not_configured"))?;
+            .ok_or_else(|| MemberServiceError::invalid("AI_MODEL_NOT_CONFIGURED"))?;
         let api_key = if profile.has_api_key {
             self.secrets.get(&profile.profile_id).await?
         } else {
@@ -270,11 +270,11 @@ fn chat_completions_url(base_url: &str) -> Result<reqwest::Url, MemberServiceErr
         format!("{trimmed}/v1/chat/completions")
     };
     let url = reqwest::Url::parse(&endpoint)
-        .map_err(|_| MemberServiceError::invalid("ai_model_profile_invalid"))?;
+        .map_err(|_| MemberServiceError::invalid("AI_MODEL_PROFILE_INVALID"))?;
     if matches!(url.scheme(), "http" | "https") {
         Ok(url)
     } else {
-        Err(MemberServiceError::invalid("ai_model_profile_invalid"))
+        Err(MemberServiceError::invalid("AI_MODEL_PROFILE_INVALID"))
     }
 }
 
@@ -311,13 +311,13 @@ impl AiSpeechOutput for SystemAiSpeechOutput {
     async fn devices(&self) -> Result<Vec<AiOutputDeviceRecord>, MemberServiceError> {
         tokio::task::spawn_blocking(windows_output_devices)
             .await
-            .map_err(|_| MemberServiceError::unavailable("ai_audio_device_unavailable"))?
+            .map_err(|_| MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE"))?
     }
 
     async fn voices(&self) -> Result<Vec<AiVoiceRecord>, MemberServiceError> {
         tokio::task::spawn_blocking(windows_voices)
             .await
-            .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?
+            .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?
     }
 
     async fn speak(
@@ -328,7 +328,7 @@ impl AiSpeechOutput for SystemAiSpeechOutput {
         volume: f64,
     ) -> Result<(), MemberServiceError> {
         if text.trim().is_empty() || !volume.is_finite() || !(0.0..=1.0).contains(&volume) {
-            return Err(MemberServiceError::invalid("ai_tts_request_invalid"));
+            return Err(MemberServiceError::invalid("TTS_REQUEST_INVALID"));
         }
         let text = text.to_owned();
         let device_id = device_id.to_owned();
@@ -339,7 +339,7 @@ impl AiSpeechOutput for SystemAiSpeechOutput {
             windows_speak(&text, &device_id, &voice_id, volume, &cancel_epoch, epoch)
         })
         .await
-        .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?
+        .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?
     }
 
     async fn stop(&self) -> Result<(), MemberServiceError> {
@@ -363,12 +363,12 @@ impl AiSpeechOutput for SystemAiSpeechOutput {
     async fn voices(&self) -> Result<Vec<AiVoiceRecord>, MemberServiceError> {
         tokio::task::spawn_blocking(|| {
             let speech = tts::Tts::default()
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             let mut voices = vec![default_ai_voice()];
             voices.extend(
                 speech
                     .voices()
-                    .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?
+                    .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?
                     .into_iter()
                     .map(|voice| AiVoiceRecord {
                         voice_id: voice.id(),
@@ -380,7 +380,7 @@ impl AiSpeechOutput for SystemAiSpeechOutput {
             Ok(voices)
         })
         .await
-        .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?
+        .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?
     }
 
     async fn speak(
@@ -395,34 +395,34 @@ impl AiSpeechOutput for SystemAiSpeechOutput {
             || !volume.is_finite()
             || !(0.0..=1.0).contains(&volume)
         {
-            return Err(MemberServiceError::invalid("ai_audio_device_invalid"));
+            return Err(MemberServiceError::invalid("AUDIO_DEVICE_INVALID"));
         }
         let text = text.to_owned();
         let voice_id = voice_id.to_owned();
         tokio::task::spawn_blocking(move || {
             let mut speech = tts::Tts::default()
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             if voice_id != DEFAULT_AI_VOICE_ID {
                 let voice = speech
                     .voices()
-                    .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?
+                    .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?
                     .into_iter()
                     .find(|voice| voice.id() == voice_id)
-                    .ok_or_else(|| MemberServiceError::invalid("ai_tts_voice_invalid"))?;
+                    .ok_or_else(|| MemberServiceError::invalid("TTS_VOICE_INVALID"))?;
                 speech
                     .set_voice(&voice)
-                    .map_err(|_| MemberServiceError::invalid("ai_tts_voice_invalid"))?;
+                    .map_err(|_| MemberServiceError::invalid("TTS_VOICE_INVALID"))?;
             }
             speech
                 .set_volume(volume as f32)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             speech
                 .speak(text, false)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))
                 .map(|_| ())
         })
         .await
-        .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?
+        .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?
     }
 
     async fn stop(&self) -> Result<(), MemberServiceError> {
@@ -455,29 +455,29 @@ fn windows_voices() -> Result<Vec<AiVoiceRecord>, MemberServiceError> {
     unsafe {
         CoInitializeEx(None, COINIT_MULTITHREADED)
             .ok()
-            .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+            .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
         let result = (|| {
             let speech: ISpeechVoice = CoCreateInstance(&SpVoice, None, CLSCTX_ALL)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             let tokens = speech
                 .GetVoices(&BSTR::new(), &BSTR::new())
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             let count = tokens
                 .Count()
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             let mut voices = vec![default_ai_voice()];
             for index in 0..count {
                 let token = tokens
                     .Item(index)
-                    .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                    .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
                 voices.push(AiVoiceRecord {
                     voice_id: token
                         .Id()
-                        .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?
+                        .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?
                         .to_string(),
                     display_name: token
                         .GetDescription(0)
-                        .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?
+                        .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?
                         .to_string(),
                     is_available: true,
                     is_default: false,
@@ -505,27 +505,27 @@ fn windows_output_devices() -> Result<Vec<AiOutputDeviceRecord>, MemberServiceEr
     unsafe {
         CoInitializeEx(None, COINIT_MULTITHREADED)
             .ok()
-            .map_err(|_| MemberServiceError::unavailable("ai_audio_device_unavailable"))?;
+            .map_err(|_| MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE"))?;
         let result = (|| {
             let voice: ISpeechVoice = CoCreateInstance(&SpVoice, None, CLSCTX_ALL)
-                .map_err(|_| MemberServiceError::unavailable("ai_audio_device_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE"))?;
             let current_id = voice.AudioOutput().ok().and_then(|token| token.Id().ok());
             let tokens = voice
                 .GetAudioOutputs(&BSTR::new(), &BSTR::new())
-                .map_err(|_| MemberServiceError::unavailable("ai_audio_device_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE"))?;
             let count = tokens
                 .Count()
-                .map_err(|_| MemberServiceError::unavailable("ai_audio_device_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE"))?;
             (0..count)
                 .map(|index| {
                     let token = tokens.Item(index).map_err(|_| {
-                        MemberServiceError::unavailable("ai_audio_device_unavailable")
+                        MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE")
                     })?;
                     let id = token.Id().map_err(|_| {
-                        MemberServiceError::unavailable("ai_audio_device_unavailable")
+                        MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE")
                     })?;
                     let description = token.GetDescription(0).map_err(|_| {
-                        MemberServiceError::unavailable("ai_audio_device_unavailable")
+                        MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE")
                     })?;
                     Ok(AiOutputDeviceRecord {
                         device_id: id.to_string(),
@@ -565,37 +565,37 @@ fn windows_speak(
     unsafe {
         CoInitializeEx(None, COINIT_MULTITHREADED)
             .ok()
-            .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+            .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
         let result = (|| {
             let voice: ISpeechVoice = CoCreateInstance(&SpVoice, None, CLSCTX_ALL)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             let tokens = voice
                 .GetAudioOutputs(&BSTR::new(), &BSTR::new())
-                .map_err(|_| MemberServiceError::unavailable("ai_audio_device_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE"))?;
             let count = tokens
                 .Count()
-                .map_err(|_| MemberServiceError::unavailable("ai_audio_device_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE"))?;
             let mut selected = None;
             for index in 0..count {
                 let token = tokens
                     .Item(index)
-                    .map_err(|_| MemberServiceError::unavailable("ai_audio_device_unavailable"))?;
+                    .map_err(|_| MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE"))?;
                 if token.Id().ok().is_some_and(|id| id == device_id) {
                     selected = Some(token);
                     break;
                 }
             }
             let selected =
-                selected.ok_or_else(|| MemberServiceError::invalid("ai_audio_device_invalid"))?;
+                selected.ok_or_else(|| MemberServiceError::invalid("AUDIO_DEVICE_INVALID"))?;
             voice
                 .putref_AudioOutput(&selected)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             let voice_tokens = voice
                 .GetVoices(&BSTR::new(), &BSTR::new())
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             let voice_count = voice_tokens
                 .Count()
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             let mut selected_voice = if voice_id == DEFAULT_AI_VOICE_ID {
                 voice.Voice().ok()
             } else {
@@ -604,7 +604,7 @@ fn windows_speak(
             for index in 0..voice_count {
                 let token = voice_tokens
                     .Item(index)
-                    .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                    .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
                 let id_matches = token.Id().ok().is_some_and(|id| id == voice_id);
                 let is_preferred_default = voice_id == DEFAULT_AI_VOICE_ID
                     && token.GetDescription(0).ok().is_some_and(|name| {
@@ -616,16 +616,16 @@ fn windows_speak(
                 }
             }
             let selected_voice = selected_voice
-                .ok_or_else(|| MemberServiceError::invalid("ai_tts_voice_invalid"))?;
+                .ok_or_else(|| MemberServiceError::invalid("TTS_VOICE_INVALID"))?;
             voice
                 .putref_Voice(&selected_voice)
-                .map_err(|_| MemberServiceError::invalid("ai_tts_voice_invalid"))?;
+                .map_err(|_| MemberServiceError::invalid("TTS_VOICE_INVALID"))?;
             voice
                 .SetVolume((volume * 100.0).round() as i32)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             voice
                 .Speak(&BSTR::from(text), SVSFlagsAsync)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             loop {
                 if cancel_epoch.load(Ordering::Acquire) != epoch {
                     let _ = voice.Speak(&BSTR::new(), SVSFPurgeBeforeSpeak);
@@ -633,7 +633,7 @@ fn windows_speak(
                 }
                 if voice
                     .WaitUntilDone(50)
-                    .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?
+                    .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?
                     .as_bool()
                 {
                     break;

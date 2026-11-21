@@ -150,7 +150,7 @@ impl LiveDataState {
         let _effect = self.effect_lock.lock().await;
         let draft =
             SensitiveRule::new(1, word, category, match_type, is_enabled).map_err(|_| {
-                LiveRuntimeError::new("invalid_sensitive_word", "sensitive word is invalid", false)
+                LiveRuntimeError::new("RULE_INVALID_WORD", "sensitive word is invalid", false)
             })?;
         let mut candidate = self.runtime.lock().await.sensitive_rules.clone();
         candidate.push(draft.clone());
@@ -173,7 +173,7 @@ impl LiveDataState {
         let _effect = self.effect_lock.lock().await;
         let updated =
             SensitiveRule::new(id, word, category, match_type, is_enabled).map_err(|_| {
-                LiveRuntimeError::new("invalid_sensitive_word", "sensitive word is invalid", false)
+                LiveRuntimeError::new("RULE_INVALID_WORD", "sensitive word is invalid", false)
             })?;
         let mut candidate = self.runtime.lock().await.sensitive_rules.clone();
         let target = candidate
@@ -294,7 +294,7 @@ impl LiveDataState {
         let deleted = self.repository.remove_blacklist(uid).await?;
         if deleted {
             let uid = UserUid::parse(uid).map_err(|_| {
-                LiveRuntimeError::new("invalid_user_uid", "user uid is invalid", false)
+                LiveRuntimeError::new("RULE_INVALID_USER", "user uid is invalid", false)
             })?;
             let mut runtime = self.runtime.lock().await;
             runtime.blacklist.remove(&uid);
@@ -314,9 +314,9 @@ impl LiveDataState {
     ) -> Result<(crate::domain::live_data::AudienceIdentity, u64, i64, bool), LiveRuntimeError>
     {
         let room_id = RoomId::parse(room_id)
-            .map_err(|_| LiveRuntimeError::new("invalid_room_id", "room id is invalid", false))?;
+            .map_err(|_| LiveRuntimeError::new("ROOM_INVALID_ID", "room id is invalid", false))?;
         let uid = UserUid::parse(uid)
-            .map_err(|_| LiveRuntimeError::new("invalid_user_uid", "user uid is invalid", false))?;
+            .map_err(|_| LiveRuntimeError::new("RULE_INVALID_USER", "user uid is invalid", false))?;
         let runtime = self.runtime.lock().await;
         if runtime.room.room_id.as_ref() != Some(&room_id) {
             return Err(LiveRuntimeError::new(
@@ -337,7 +337,7 @@ impl LiveDataState {
                 )
             })
             .ok_or_else(|| {
-                LiveRuntimeError::new("audience_not_found", "audience was not found", false)
+                LiveRuntimeError::new("ROOM_AUDIENCE_NOT_FOUND", "audience was not found", false)
             })
     }
 
@@ -563,7 +563,7 @@ impl LiveDataState {
                     attempt += 1;
                     if attempt >= 10 {
                         let reconnect_error = LiveRuntimeError::new(
-                            "reconnect_failed",
+                            "SYS_RECONNECT_FAILED",
                             "room reconnect attempts exhausted",
                             false,
                         );
@@ -778,5 +778,5 @@ fn compile_sensitive(rules: &[SensitiveRule]) -> Result<SensitiveMatcher, LiveRu
 }
 
 fn no_export_data() -> LiveRuntimeError {
-    LiveRuntimeError::new("no_export_data", "there is no data to export", false)
+    LiveRuntimeError::new("STORAGE_NO_EXPORT_DATA", "there is no data to export", false)
 }

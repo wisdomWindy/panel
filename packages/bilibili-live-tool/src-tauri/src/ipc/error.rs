@@ -55,7 +55,7 @@ impl From<ConfigError> for DesktopError {
     fn from(error: ConfigError) -> Self {
         match error {
             ConfigError::InvalidKey => {
-                Self::new("invalid_config_key", "Configuration key is invalid", false)
+                Self::new("CONFIG_INVALID_KEY", "Configuration key is invalid", false)
             }
             ConfigError::InvalidScope => Self::new(
                 "invalid_config_scope",
@@ -70,7 +70,7 @@ impl From<ConfigError> for DesktopError {
 impl From<PathPortError> for DesktopError {
     fn from(_: PathPortError) -> Self {
         Self::new(
-            "path_authorization_failed",
+            "STORAGE_PATH_DENIED",
             "The selected path could not be authorized",
             false,
         )
@@ -82,7 +82,7 @@ impl From<crate::application::data_maintenance::DataMaintenanceError> for Deskto
         use crate::application::data_maintenance::DataMaintenanceError;
         match error {
             DataMaintenanceError::Database(_) => {
-                Self::new("data_maintenance_failed", "Data maintenance failed", true)
+                Self::new("STORAGE_MAINTENANCE_FAILED", "Data maintenance failed", true)
             }
         }
     }
@@ -100,32 +100,32 @@ impl From<ShellError> for DesktopError {    fn from(error: ShellError) -> Self {
 impl From<LiveRuntimeError> for DesktopError {
     fn from(error: LiveRuntimeError) -> Self {
         let message = match error.code {
-            "invalid_room_id" => "房间号无效或未开播",
+            "ROOM_INVALID_ID" => "房间号无效或未开播",
             "invalid_identity_code" => "主播身份码无效",
-            "missing_open_live_credentials" => "内置开放平台凭证无效，请重新安装应用",
+            "SYS_OPEN_LIVE_CREDENTIALS_MISSING" => "内置开放平台凭证无效，请重新安装应用",
             "invalid_open_live_app_id" => "开放平台 appid 无效",
-            "open_live_api_error" => "开放平台拒绝连接，请检查凭证、appid 和主播身份码",
-            "open_live_auth_failed" => "开放平台长链鉴权失败",
-            "open_live_network_error"
-            | "open_live_http_error"
-            | "open_live_websocket_unavailable"
+            "SYS_OPEN_LIVE_API_ERROR" => "开放平台拒绝连接，请检查凭证、appid 和主播身份码",
+            "SYS_OPEN_LIVE_AUTH_FAILED" => "开放平台长链鉴权失败",
+            "SYS_OPEN_LIVE_NETWORK_ERROR"
+            | "SYS_OPEN_LIVE_HTTP_ERROR"
+            | "SYS_OPEN_LIVE_WS_UNAVAILABLE"
             | "open_live_websocket_closed"
             | "open_live_auth_timeout" => "开放平台网络连接失败，请稍后重试",
             "invalid_open_live_response" | "invalid_open_live_packet" => "开放平台返回的数据无效",
-            "external_service_unavailable" => "开放平台凭证失效，请重新配置",
-            "reconnect_failed" => "重连失败，请手动重试",
-            "no_export_data" => "暂无数据可导出",
-            "path_authorization_failed" => "文件授权已失效，请重新选择",
-            "file_permission_denied" => "没有文件写入权限，请更换位置",
+            "NET_SERVICE_UNAVAILABLE" => "开放平台凭证失效，请重新配置",
+            "SYS_RECONNECT_FAILED" => "重连失败，请手动重试",
+            "STORAGE_NO_EXPORT_DATA" => "暂无数据可导出",
+            "STORAGE_PATH_DENIED" => "文件授权已失效，请重新选择",
+            "STORAGE_PERMISSION_DENIED" => "没有文件写入权限，请更换位置",
             "disk_full" => "磁盘空间不足，请清理后重试",
-            "invalid_import_file" => "导入文件格式无效",
-            "invalid_sensitive_word" | "invalid_sensitive_pattern" => "敏感词内容无效",
+            "RULE_INVALID_IMPORT" => "导入文件格式无效",
+            "RULE_INVALID_WORD" | "invalid_sensitive_pattern" => "敏感词内容无效",
             "sensitive_word_not_found" => "敏感词不存在或已删除",
-            "invalid_user_uid" => "用户 UID 无效",
-            "audience_not_found" | "room_context_mismatch" => "当前直播间未找到该用户",
+            "RULE_INVALID_USER" => "用户 UID 无效",
+            "ROOM_AUDIENCE_NOT_FOUND" | "room_context_mismatch" => "当前直播间未找到该用户",
             "room_connection_pending" => "直播间正在连接，请稍候",
-            "storage_unavailable" => "本地数据暂不可用，请稍后重试",
-            "historical_data_unavailable" => "历史数据暂不可用",
+            "STORAGE_UNAVAILABLE" => "本地数据暂不可用，请稍后重试",
+            "STORAGE_HISTORICAL_UNAVAILABLE" => "历史数据暂不可用",
             _ => "操作失败，请稍后重试",
         };
         Self::new(error.code, message, error.retryable)
@@ -135,30 +135,30 @@ impl From<LiveRuntimeError> for DesktopError {
 impl From<MediaIoError> for DesktopError {
     fn from(error: MediaIoError) -> Self {
         let message = match error.code {
-            "media_invalid" => "配置内容无效，请检查后重试",
-            "media_permission_denied" => "文件授权已失效，请重新选择",
-            "media_conflict" => "当前状态不允许此操作",
-            "media_unavailable" => "所需的本地功能当前不可用",
-            "media_operation_failed" => "本地媒体操作失败，请稍后重试",
+            "RECORD_INVALID_PARAM" => "配置内容无效，请检查后重试",
+            "SYS_PERMISSION_DENIED" => "文件授权已失效，请重新选择",
+            "RECORD_CONFLICT" => "当前状态不允许此操作",
+            "RECORD_UNAVAILABLE" => "所需的本地功能当前不可用",
+            "RECORD_OPERATION_FAILED" => "本地媒体操作失败，请稍后重试",
             "qwen3_tts_disabled" => "Qwen3-TTS 语音服务尚未启用",
             "qwen3_tts_unreachable" => "无法连接 Qwen3-TTS 语音服务，请确认服务已启动",
-            "qwen3_tts_timeout" => "Qwen3-TTS 语音服务响应超时，已自动回退",
-            "qwen3_tts_loading" => "Qwen3-TTS 模型正在加载，请稍后重试",
+            "TTS_TIMEOUT" => "Qwen3-TTS 语音服务响应超时，已自动回退",
+            "TTS_MODEL_LOADING" => "Qwen3-TTS 模型正在加载，请稍后重试",
             "qwen3_tts_invalid_request" => "Qwen3-TTS 拒绝了本次合成请求，请检查文本与音色",
             "qwen3_tts_invalid_response" => "Qwen3-TTS 返回的音频无效",
-            "qwen3_tts_invalid_config" => "Qwen3-TTS 配置无效，请检查服务地址、超时与语言",
-            "qwen3_tts_synthesis_failed" => "Qwen3-TTS 语音合成失败，请稍后重试",
+            "TTS_INVALID_CONFIG" => "Qwen3-TTS 配置无效，请检查服务地址、超时与语言",
+            "TTS_SYNTHESIS_FAILED_ENGINE" => "Qwen3-TTS 语音合成失败，请稍后重试",
             "qwen3_tts_model_unknown" => "不支持该语音模型",
             "qwen3_tts_download_busy" => "已有模型正在下载，请等待完成",
-            "qwen3_tts_download_unavailable" => "模型下载不可用，请安装 huggingface_hub 或 modelscope",
-            "recording_room_invalid" => "请输入正确的直播间号",
-            "recording_room_offline" => "直播间当前未开播，开始直播后再试",
-            "recording_stream_unavailable" => "无法获取直播流地址，请稍后重试",
-            "recording_directory_required" => "请先在录制设置中授权保存目录",
-            "recording_directory_unavailable" => "录制目录不可写，请更换保存位置",
-            "recording_ffmpeg_missing" => "未找到可用的 FFmpeg，请在录制设置中选择",
-            "recording_pipeline_invalid" => "录制参数无效，请检查录制设置",
-            "recording_start_failed" => "录制启动失败，请检查 FFmpeg 与网络后重试",
+            "TTS_DOWNLOAD_UNAVAILABLE" => "模型下载不可用，请安装 huggingface_hub 或 modelscope",
+            "ROOM_INVALID_ROOM" => "请输入正确的直播间号",
+            "ROOM_OFFLINE" => "直播间当前未开播，开始直播后再试",
+            "RECORD_STREAM_UNAVAILABLE" => "无法获取直播流地址，请稍后重试",
+            "RECORD_DIRECTORY_REQUIRED" => "请先在录制设置中授权保存目录",
+            "RECORD_DIRECTORY_UNAVAILABLE" => "录制目录不可写，请更换保存位置",
+            "RECORD_FFMPEG_MISSING" => "未找到可用的 FFmpeg，请在录制设置中选择",
+            "RECORD_PIPELINE_INVALID" => "录制参数无效，请检查录制设置",
+            "RECORD_START_FAILED" => "录制启动失败，请检查 FFmpeg 与网络后重试",
             "recording_disk_waterline" => "磁盘可用空间低于水位线，已停止录制",
             _ => "操作失败，请稍后重试",
         };
@@ -169,10 +169,10 @@ impl From<MediaIoError> for DesktopError {
 impl From<ReleaseServiceError> for DesktopError {
     fn from(error: ReleaseServiceError) -> Self {
         let message = match error.code {
-            "update_provider_unavailable" => "更新服务暂不可用",
-            "update_check_failed" => "无法检查更新，请检查网络后重试",
-            "update_not_verified" => "没有可安装的已验证更新",
-            "invalid_update_version" | "invalid_update_manifest" => "更新清单无效",
+            "UPDATE_PROVIDER_UNAVAILABLE" => "更新服务暂不可用",
+            "UPDATE_CHECK_FAILED" => "无法检查更新，请检查网络后重试",
+            "UPDATE_NOT_VERIFIED" => "没有可安装的已验证更新",
+            "UPDATE_INVALID_VERSION" | "UPDATE_INVALID_MANIFEST" => "更新清单无效",
             _ => "发布服务操作失败",
         };
         Self::new(error.code, message, error.retryable)
@@ -186,16 +186,16 @@ mod tests {
 
     #[test]
     fn ai_errors_do_not_report_membership_failures() {
-        let error = DesktopError::from(MemberServiceError::invalid("ai_model_not_configured"));
+        let error = DesktopError::from(MemberServiceError::invalid("AI_MODEL_NOT_CONFIGURED"));
         assert_eq!(error.message, "请先配置并选择默认模型");
-        let error = DesktopError::from(MemberServiceError::invalid("ai_unmapped_error"));
+        let error = DesktopError::from(MemberServiceError::invalid("AI_GEN_UNMAPPED_ERROR"));
         assert!(!error.message.contains("会员"));
     }
 
     #[test]
     fn update_check_failures_are_retryable_and_actionable() {
         let serialized = serde_json::to_value(DesktopError::from(ReleaseServiceError {
-            code: "update_check_failed",
+            code: "UPDATE_CHECK_FAILED",
             retryable: true,
         }))
         .unwrap();
@@ -208,25 +208,25 @@ mod tests {
 impl From<MemberServiceError> for DesktopError {
     fn from(error: MemberServiceError) -> Self {
         let message = match error.code {
-            "auth_uid_invalid" => "UID 无效或查询失败",
-            "ai_input_required" => "请输入内容或选择上下文",
-            "ai_generation_pending" => "正在生成，请稍候",
-            "ai_model_not_configured" => "请先配置并选择默认模型",
-            "ai_api_key_required" => "请填写模型 API Key",
-            "ai_api_key_invalid" => "模型 API Key 无效",
-            "ai_model_profile_not_found" => "模型档案不存在，请刷新后重试",
-            "ai_audio_route_unconfirmed" => "请先确认音频路由",
-            "ai_audio_device_invalid" | "ai_audio_device_missing" => {
+            "MEMBER_AUTH_UID_INVALID" => "UID 无效或查询失败",
+            "AI_GEN_INPUT_REQUIRED" => "请输入内容或选择上下文",
+            "AI_GEN_PENDING" => "正在生成，请稍候",
+            "AI_MODEL_NOT_CONFIGURED" => "请先配置并选择默认模型",
+            "AI_MODEL_API_KEY_REQUIRED" => "请填写模型 API Key",
+            "AI_MODEL_API_KEY_INVALID" => "模型 API Key 无效",
+            "AI_MODEL_PROFILE_NOT_FOUND" => "模型档案不存在，请刷新后重试",
+            "AUDIO_ROUTE_UNCONFIRMED" => "请先确认音频路由",
+            "AUDIO_DEVICE_INVALID" | "AUDIO_DEVICE_MISSING" => {
                 "音频输出设备不可用，请重新选择"
             }
-            "ai_tts_voice_invalid" => "所选声色不可用，请重新选择",
-            "member_storage_unavailable" => "本地数据读取或保存失败，请稍后重试",
-            "member_data_invalid" => "本地配置数据无效，请检查配置",
-            "moderation_risk_required" => "首次启用自动禁言前需确认风险",
-            "membership_service_unavailable" => "会员服务暂不可用，请稍后重试",
-            "auth_qr_unavailable" => "扫码登录暂不可用",
-            "llm_unavailable" => "AI 服务暂不可用",
-            "moderation_api_unavailable" => "禁言接口暂不可用",
+            "TTS_VOICE_INVALID" => "所选声色不可用，请重新选择",
+            "STORAGE_MEMBER_UNAVAILABLE" => "本地数据读取或保存失败，请稍后重试",
+            "MEMBER_DATA_INVALID" => "本地配置数据无效，请检查配置",
+            "MEMBER_MODERATION_RISK_REQUIRED" => "首次启用自动禁言前需确认风险",
+            "MEMBER_SERVICE_UNAVAILABLE" => "会员服务暂不可用，请稍后重试",
+            "MEMBER_AUTH_QR_UNAVAILABLE" => "扫码登录暂不可用",
+            "NET_LLM_UNAVAILABLE" => "AI 服务暂不可用",
+            "MEMBER_MODERATION_API_UNAVAILABLE" => "禁言接口暂不可用",
             code if code.starts_with("ai_") || code.starts_with("llm_") => {
                 "AI 操作失败，请检查配置后重试"
             }

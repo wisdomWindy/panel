@@ -15,23 +15,23 @@ pub struct MediaIoError {
 
 impl MediaIoError {
     pub fn unavailable(message: impl Into<String>) -> Self {
-        Self::new("media_unavailable", message, true)
+        Self::new("RECORD_UNAVAILABLE", message, true)
     }
 
     pub fn invalid(message: impl Into<String>) -> Self {
-        Self::new("media_invalid", message, false)
+        Self::new("RECORD_INVALID_PARAM", message, false)
     }
 
     pub fn permission(message: impl Into<String>) -> Self {
-        Self::new("media_permission_denied", message, false)
+        Self::new("SYS_PERMISSION_DENIED", message, false)
     }
 
     pub fn conflict(message: impl Into<String>) -> Self {
-        Self::new("media_conflict", message, false)
+        Self::new("RECORD_CONFLICT", message, false)
     }
 
     pub fn operation(message: impl Into<String>, retryable: bool) -> Self {
-        Self::new("media_operation_failed", message, retryable)
+        Self::new("RECORD_OPERATION_FAILED", message, retryable)
     }
 
     /// Builds an error with an explicit, adapter-specific code so callers can
@@ -291,7 +291,7 @@ impl PlayUrlResolver for UnavailablePlayUrlResolver {
         _: RecordingQuality,
     ) -> Result<ResolvedStream, MediaIoError> {
         Err(MediaIoError::coded(
-            "recording_stream_unavailable",
+            "RECORD_STREAM_UNAVAILABLE",
             "直播流解析不可用",
             false,
         ))
@@ -303,7 +303,7 @@ pub struct UnavailableFfmpegLocator;
 impl FfmpegLocator for UnavailableFfmpegLocator {
     fn locate(&self, _: FfmpegSource, _: Option<&std::path::Path>) -> Result<PathBuf, MediaIoError> {
         Err(MediaIoError::coded(
-            "recording_ffmpeg_missing",
+            "RECORD_FFMPEG_MISSING",
             "尚未配置 FFmpeg",
             false,
         ))

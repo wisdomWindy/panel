@@ -44,10 +44,10 @@ impl Qwen3TtsAiSpeechOutput {
 
     fn map_error(error: crate::application::media::MediaIoError) -> MemberServiceError {
         match error.code {
-            "qwen3_tts_disabled" => MemberServiceError::invalid("ai_tts_disabled"),
-            "qwen3_tts_invalid_request" => MemberServiceError::invalid("ai_tts_request_invalid"),
-            _ if error.retryable => MemberServiceError::unavailable("ai_tts_unavailable"),
-            _ => MemberServiceError::invalid("ai_tts_failed"),
+            "qwen3_tts_disabled" => MemberServiceError::invalid("TTS_DISABLED"),
+            "qwen3_tts_invalid_request" => MemberServiceError::invalid("TTS_REQUEST_INVALID"),
+            _ if error.retryable => MemberServiceError::unavailable("TTS_UNAVAILABLE"),
+            _ => MemberServiceError::invalid("TTS_SYNTHESIS_FAILED"),
         }
     }
 
@@ -111,13 +111,13 @@ impl AiSpeechOutput for Qwen3TtsAiSpeechOutput {
         volume: f64,
     ) -> Result<(), MemberServiceError> {
         if text.trim().is_empty() {
-            return Err(MemberServiceError::invalid("ai_tts_request_invalid"));
+            return Err(MemberServiceError::invalid("TTS_REQUEST_INVALID"));
         }
         let Some(speaker) = voice_id.strip_prefix(QWEN3_VOICE_PREFIX) else {
             return self.fallback.speak(text, device_id, voice_id, volume).await;
         };
         if !self.service.is_enabled() {
-            return self.route_to_fallback(text, device_id, voice_id, volume, "ai_tts_disabled").await;
+            return self.route_to_fallback(text, device_id, voice_id, volume, "TTS_DISABLED").await;
         }
         let bytes = match self.synthesize_reply(text, Some(speaker)).await {
             Ok(bytes) => bytes,
@@ -155,7 +155,7 @@ impl Qwen3TtsAiSpeechOutput {
         reason: &'static str,
     ) -> Result<(), MemberServiceError> {
         if !self.service.fallback_to_system() {
-            return Err(MemberServiceError::unavailable("ai_tts_unavailable"));
+            return Err(MemberServiceError::unavailable("TTS_UNAVAILABLE"));
         }
         log::debug!("ai voice reply fell back to the system voice: {reason}");
         // The requested id is a Qwen3 speaker; ask the system engine for its own default.
@@ -186,9 +186,9 @@ fn play_wav_on_device(
     let path = std::env::temp_dir().join(format!("bili-ai-tts-{}.wav", uuid::Uuid::new_v4()));
     {
         let mut file =
-            std::fs::File::create(&path).map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+            std::fs::File::create(&path).map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
         file.write_all(bytes)
-            .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+            .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
     }
     let result = speak_stream_with_sapi(&path, device_id, volume, cancel_epoch, epoch);
     let _ = std::fs::remove_file(&path);
@@ -219,52 +219,52 @@ fn speak_stream_with_sapi(
     unsafe {
         CoInitializeEx(None, COINIT_MULTITHREADED)
             .ok()
-            .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+            .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
         let result = (|| {
             let Some(file_name) = path.to_str() else {
-                return Err(MemberServiceError::invalid("ai_audio_device_invalid"));
+                return Err(MemberServiceError::invalid("AUDIO_DEVICE_INVALID"));
             };
             let voice: ISpeechVoice = CoCreateInstance(&SpVoice, None, CLSCTX_ALL)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             let tokens = voice
                 .GetAudioOutputs(&BSTR::new(), &BSTR::new())
-                .map_err(|_| MemberServiceError::unavailable("ai_audio_device_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE"))?;
             let count = tokens
                 .Count()
-                .map_err(|_| MemberServiceError::unavailable("ai_audio_device_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE"))?;
             let mut selected = None;
             for index in 0..count {
                 let token = tokens
                     .Item(index)
-                    .map_err(|_| MemberServiceError::unavailable("ai_audio_device_unavailable"))?;
+                    .map_err(|_| MemberServiceError::unavailable("AUDIO_DEVICE_UNAVAILABLE"))?;
                 if token.Id().ok().is_some_and(|id| id == device_id) {
                     selected = Some(token);
                     break;
                 }
             }
             let selected =
-                selected.ok_or_else(|| MemberServiceError::invalid("ai_audio_device_invalid"))?;
+                selected.ok_or_else(|| MemberServiceError::invalid("AUDIO_DEVICE_INVALID"))?;
             voice
                 .putref_AudioOutput(&selected)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             voice
                 .SetVolume((volume * 100.0).round() as i32)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             let stream: ISpeechFileStream = CoCreateInstance(&SpFileStream, None, CLSCTX_ALL)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             stream
                 .Open(
                     &BSTR::from(file_name),
                     SpeechStreamFileMode(SSFMOpenForRead.0),
                     false.into(),
                 )
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             let base = stream
                 .cast::<windows::Win32::Media::Speech::ISpeechBaseStream>()
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             voice
                 .SpeakStream(&base, SVSFlagsAsync)
-                .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?;
+                .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?;
             loop {
                 if cancel_epoch.load(Ordering::Acquire) != epoch {
                     let _ = voice.Speak(&BSTR::new(), SVSFPurgeBeforeSpeak);
@@ -272,7 +272,7 @@ fn speak_stream_with_sapi(
                 }
                 if voice
                     .WaitUntilDone(50)
-                    .map_err(|_| MemberServiceError::unavailable("ai_tts_unavailable"))?
+                    .map_err(|_| MemberServiceError::unavailable("TTS_UNAVAILABLE"))?
                     .as_bool()
                 {
                     break;
@@ -294,7 +294,7 @@ fn play_wav_on_device(
     _cancel_epoch: &AtomicU64,
     _epoch: u64,
 ) -> Result<(), MemberServiceError> {
-    Err(MemberServiceError::unavailable("ai_tts_unavailable"))
+    Err(MemberServiceError::unavailable("TTS_UNAVAILABLE"))
 }
 
 #[cfg(test)]

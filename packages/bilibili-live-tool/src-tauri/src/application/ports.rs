@@ -15,7 +15,7 @@ pub struct StoredConfig {
 impl StoragePortError {
     pub fn unavailable(message: impl Into<String>) -> Self {
         Self {
-            code: "storage_unavailable",
+            code: "STORAGE_UNAVAILABLE",
             message: message.into(),
             retryable: true,
         }

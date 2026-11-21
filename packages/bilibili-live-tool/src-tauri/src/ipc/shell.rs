@@ -311,7 +311,7 @@ pub async fn ui_reset(state: State<'_, AppState>) -> Result<UiPreferences, Deskt
 fn config_export_result(result: ConfigMutation) -> Result<ConfigExportResultDto, DesktopError> {
     let display_path = result.display_path.ok_or_else(|| {
         DesktopError::new(
-            "config_export_failed",
+            "CONFIG_EXPORT_FAILED",
             "Configuration export returned no destination",
             false,
         )
@@ -336,13 +336,13 @@ impl ShellEventSink for TauriShellEventSink {
     fn publish_locale(&self, value: LocalePreferences) -> Result<(), ShellError> {
         self.app
             .emit_to("main", "locale_changed", value)
-            .map_err(|error| ShellError::new("shell_event_failed", error.to_string(), true))
+            .map_err(|error| ShellError::new("SYS_SHELL_EVENT_FAILED", error.to_string(), true))
     }
 
     fn publish_ui(&self, value: &UiPreferences) -> Result<(), ShellError> {
         self.app
             .emit_to("main", "ui_preferences_changed", value)
-            .map_err(|error| ShellError::new("shell_event_failed", error.to_string(), true))
+            .map_err(|error| ShellError::new("SYS_SHELL_EVENT_FAILED", error.to_string(), true))
     }
 }
 

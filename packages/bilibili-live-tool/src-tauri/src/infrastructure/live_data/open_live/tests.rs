@@ -101,7 +101,7 @@ fn validates_configuration_without_exposing_the_secret() {
     assert!(!format!("{config:?}").contains("test-secret"));
 
     let error = OpenLiveConfig::from_values("0", "", "").unwrap_err();
-    assert_eq!(error.code, "missing_open_live_credentials");
+    assert_eq!(error.code, "SYS_OPEN_LIVE_CREDENTIALS_MISSING");
     assert!(!error.message.contains("test-secret"));
 }
 

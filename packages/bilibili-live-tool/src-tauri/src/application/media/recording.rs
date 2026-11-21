@@ -160,7 +160,7 @@ impl RecordingRuntime {
 
         let mut state = self.state.lock().await;
         state.state = RecordingState::Error;
-        state.failure_code = Some("recording_start_failed");
+        state.failure_code = Some("RECORD_START_FAILED");
         Err(last_error
             .unwrap_or_else(|| MediaIoError::operation("recording failed to start", true)))
     }
@@ -173,7 +173,7 @@ impl RecordingRuntime {
                 RecordingState::Idle => return Ok(()),
                 RecordingState::Starting => {
                     state.state = RecordingState::Error;
-                    state.failure_code = Some("recording_start_interrupted");
+                    state.failure_code = Some("RECORD_START_INTERRUPTED");
                     return Err(MediaIoError::conflict("recording is still starting"));
                 }
                 RecordingState::Recording
@@ -216,7 +216,7 @@ impl RecordingRuntime {
             }
             Err(_) => {
                 state.state = RecordingState::Error;
-                state.failure_code = Some("recording_finalize_failed");
+                state.failure_code = Some("RECORD_FINALIZE_FAILED");
             }
         }
         result

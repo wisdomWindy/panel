@@ -88,6 +88,9 @@ pub fn map_command(body: &[u8]) -> Result<Option<LiveEvent>, LiveRuntimeError> {
         "LIVE_OPEN_PLATFORM_SEND_GIFT" => map_gift(envelope.data)?,
         "LIVE_OPEN_PLATFORM_GUARD" => map_guard(envelope.data)?,
         "LIVE_OPEN_PLATFORM_LIVE_ROOM_ENTER" => map_enter(envelope.data)?,
+        // PRD 9.1.1: DM_MIRROR repeats DM without sender fields; collecting it
+        // would double-count danmaku and lose the audience identity.
+        "LIVE_OPEN_PLATFORM_DM_MIRROR" => return Ok(None),
         _ => return Ok(None),
     };
     event.validate().map_err(invalid_event)?;

@@ -679,6 +679,24 @@ Tauri 的核心优势：
 
 > 说明：连接凭据只能是主播身份码（开放平台 `code`），房间号不具备鉴权能力，仅用于展示、录制与数据归属。
 
+#### 9.1.1 事件命令（CMD）清单
+
+长连推送的消息体形如 `{"cmd":"...","data":{...}}`；`Version=2` 时先 zlib 解压再按 Proto 递归解析。官方开放文档列出的全部命令与处理要求：
+
+| CMD | 含义 | 处理要求 |
+| --- | --- | --- |
+| `LIVE_OPEN_PLATFORM_DM` | 弹幕 | 采集为弹幕事件，携带 `uname` / `uid` / `open_id` / 粉丝勋章 / 舰队等级 / 房管标记 |
+| `LIVE_OPEN_PLATFORM_DM_MIRROR` | 弹幕镜像（不显示发送人信息） | **忽略**：与 `DM` 重复且缺发送人字段，采集会造成重复计数 |
+| `LIVE_OPEN_PLATFORM_SEND_GIFT` | 礼物 | 采集为礼物事件，金额 = `price × gift_num ÷ 10`（分），并绑定礼物音效与提醒 |
+| `LIVE_OPEN_PLATFORM_SUPER_CHAT` | 醒目留言 | 采集为醒目留言事件：保留留言文本、金额与时长，计入营收并在弹幕面板高亮 |
+| `LIVE_OPEN_PLATFORM_SUPER_CHAT_DEL` | 醒目留言撤回 | 按 `message_id` 撤回对应留言的展示，不删除已产生的统计数据 |
+| `LIVE_OPEN_PLATFORM_GUARD` | 上舰（开通 / 续费） | 采集为舰长事件，映射 `guard_level` 1/2/3 → 总督 / 提督 / 舰长，触发上舰特效 |
+| `LIVE_OPEN_PLATFORM_LIKE` | 点赞 | 汇总为互动计数，不逐条展示 |
+| `LIVE_OPEN_PLATFORM_LIVE_ROOM_ENTER` | 进入直播间 | 采集为进入事件，用于在线人数与新增关注面板 |
+| `LIVE_OPEN_PLATFORM_LIVE_START` | 直播开始 | 标记场次开始：重置本场统计，允许自动开录 |
+| `LIVE_OPEN_PLATFORM_LIVE_END` | 直播结束 | 标记场次结束：停止自动录制、封存本场统计 |
+| `LIVE_OPEN_PLATFORM_INTERACTION_END` | 互动玩法结束（心跳过期或主动 END） | 视为连接失效：按断线流程进入重连，不静默吞掉 |
+
 验收标准：弹幕接收延迟＜100ms；连接成功率＞99%；自动重连成功率＞95%；支持 1000 条 / 秒高并发；不产生任何发送弹幕或处置用户的请求。
 
 

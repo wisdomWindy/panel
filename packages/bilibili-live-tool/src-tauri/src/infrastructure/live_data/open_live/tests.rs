@@ -356,6 +356,18 @@ fn maps_guard_and_enter_commands_and_ignores_unknown_commands() {
     );
 }
 
+/// PRD 9.1.1: DM_MIRROR repeats DM without sender fields, so it must not be
+/// collected even though it carries danmaku text.
+#[test]
+fn ignores_the_danmaku_mirror_command() {
+    let mirror = br#"{
+        "cmd":"LIVE_OPEN_PLATFORM_DM_MIRROR",
+        "data":{"room_id":100,"uid":0,"open_id":"","uname":"","timestamp":1710000004,"msg":"mirrored","msg_id":"mirror-1"}
+    }"#;
+
+    assert!(event_mapper::map_command(mirror).unwrap().is_none());
+}
+
 #[tokio::test]
 async fn sends_signed_start_heartbeat_and_end_requests() {
     let responses = vec![

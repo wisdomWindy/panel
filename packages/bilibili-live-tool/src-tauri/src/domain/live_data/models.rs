@@ -166,6 +166,20 @@ pub enum LiveEvent {
     SessionEnded {
         base: LiveEventBase,
     },
+    /// PRD 9.1.1: a paid message. Counted as revenue and shown highlighted.
+    SuperChat {
+        base: LiveEventBase,
+        message_id: i64,
+        content: String,
+        value_minor: i64,
+        duration_seconds: u64,
+    },
+    /// PRD 9.1.1: the platform withdrew one or more paid messages. Only the
+    /// display is removed; revenue that was already counted stays counted.
+    SuperChatDeleted {
+        base: LiveEventBase,
+        message_ids: Vec<i64>,
+    },
 }
 
 impl LiveEvent {
@@ -176,7 +190,9 @@ impl LiveEvent {
             | Self::Captain { base, .. }
             | Self::Enter { base }
             | Self::SessionStarted { base }
-            | Self::SessionEnded { base } => base,
+            | Self::SessionEnded { base }
+            | Self::SuperChat { base, .. }
+            | Self::SuperChatDeleted { base, .. } => base,
         }
     }
 

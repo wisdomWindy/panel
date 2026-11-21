@@ -64,4 +64,38 @@ describe('live feed store', () => {
 
     expect(store.events).toEqual([]);
   });
+
+  it('withdraws paid messages from the feed without touching the rest', () => {
+    const store = useLiveFeedStore();
+    store.accept({
+      kind: 'superChat',
+      eventId: 'sc-1' as DanmuEvent['eventId'],
+      roomId: '1' as DanmuEvent['roomId'],
+      occurredAt: 10,
+      audience,
+      messageId: 77,
+      content: 'paid message',
+      valueMinor: 3000,
+      durationSeconds: 60
+    });
+    store.accept({
+      kind: 'danmu',
+      eventId: 'danmu-1' as DanmuEvent['eventId'],
+      roomId: '1' as DanmuEvent['roomId'],
+      occurredAt: 11,
+      audience,
+      content: 'hello'
+    });
+
+    store.accept({
+      kind: 'superChatDeleted',
+      eventId: 'sc-del-1' as DanmuEvent['eventId'],
+      roomId: '1' as DanmuEvent['roomId'],
+      occurredAt: 12,
+      audience,
+      messageIds: [77]
+    });
+
+    expect(store.events.map(event => event.kind)).toEqual(['danmu']);
+  });
 });

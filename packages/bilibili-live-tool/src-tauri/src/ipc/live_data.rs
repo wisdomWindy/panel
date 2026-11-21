@@ -203,6 +203,37 @@ impl LiveEventSink for TauriLiveEventSink {
                     audience: audience(&base.audience),
                 },
             ),
+            LiveEvent::SuperChat {
+                base,
+                message_id,
+                content,
+                value_minor,
+                duration_seconds,
+            } => self.emit(
+                "super_chat_received",
+                SuperChatEventDto {
+                    kind: "superChat".into(),
+                    event_id: base.event_id.clone(),
+                    room_id: base.room_id.as_str().to_owned(),
+                    occurred_at: base.occurred_at,
+                    audience: audience(&base.audience),
+                    message_id: *message_id,
+                    content: content.clone(),
+                    value_minor: *value_minor,
+                    duration_seconds: *duration_seconds,
+                },
+            ),
+            LiveEvent::SuperChatDeleted { base, message_ids } => self.emit(
+                "super_chat_deleted",
+                SuperChatDeletedEventDto {
+                    kind: "superChatDeleted".into(),
+                    event_id: base.event_id.clone(),
+                    room_id: base.room_id.as_str().to_owned(),
+                    occurred_at: base.occurred_at,
+                    audience: audience(&base.audience),
+                    message_ids: message_ids.clone(),
+                },
+            ),
         }
     }
 

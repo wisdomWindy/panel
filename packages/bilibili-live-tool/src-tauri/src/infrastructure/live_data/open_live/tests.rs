@@ -391,6 +391,42 @@ fn maps_session_start_and_end_into_boundary_events() {
     }
 }
 
+/// PRD 9.1.1: `rmb` is quoted in yuan and must be stored in minor units; the
+/// withdrawal carries ids only (it has no sender identity).
+#[test]
+fn maps_super_chat_value_and_duration_then_withdraws_by_message_id() {
+    let super_chat = br#"{
+        "cmd":"LIVE_OPEN_PLATFORM_SUPER_CHAT",
+        "data":{"room_id":100,"uid":0,"open_id":"open-1","uname":"buyer","timestamp":1710000030,
+                "message":"great stream","msg_id":"sc-msg-1","rmb":30,"start_time":1710000030,
+                "end_time":1710000090,"message_id":77,"guard_level":0}
+    }"#;
+    match event_mapper::map_command(super_chat).unwrap() {
+        Some(LiveEvent::SuperChat {
+            base,
+            message_id,
+            content,
+            value_minor,
+            duration_seconds,
+        }) => {
+            assert_eq!(base.audience.user_uid.as_str(), "open-1");
+            assert_eq!(message_id, 77);
+            assert_eq!(content, "great stream");
+            assert_eq!(value_minor, 3_000);
+            assert_eq!(duration_seconds, 60);
+        }
+        other => panic!("expected super chat, got {other:?}"),
+    }
+
+    let withdrawn = br#"{"cmd":"LIVE_OPEN_PLATFORM_SUPER_CHAT_DEL","data":{"room_id":100,"message_ids":[77,78],"msg_id":"del-1"}}"#;
+    match event_mapper::map_command(withdrawn).unwrap() {
+        Some(LiveEvent::SuperChatDeleted { message_ids, .. }) => {
+            assert_eq!(message_ids, vec![77, 78]);
+        }
+        other => panic!("expected super chat withdrawal, got {other:?}"),
+    }
+}
+
 #[tokio::test]
 async fn sends_signed_start_heartbeat_and_end_requests() {
     let responses = vec![

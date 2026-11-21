@@ -59,7 +59,27 @@ export interface EnterEvent extends LiveEventBase {
 export interface SessionEvent extends LiveEventBase {
   kind: 'sessionStarted' | 'sessionEnded';
 }
-export type LiveEvent = DanmuEvent | GiftEvent | CaptainEvent | EnterEvent | SessionEvent;
+/** PRD 9.1.1: a paid message, counted as revenue and shown highlighted. */
+export interface SuperChatEvent extends LiveEventBase {
+  kind: 'superChat';
+  messageId: number;
+  content: string;
+  valueMinor: number;
+  durationSeconds: number;
+}
+/** PRD 9.1.1: the platform withdrew paid messages; revenue stays counted. */
+export interface SuperChatDeletedEvent extends LiveEventBase {
+  kind: 'superChatDeleted';
+  messageIds: readonly number[];
+}
+export type LiveEvent =
+  | DanmuEvent
+  | GiftEvent
+  | CaptainEvent
+  | EnterEvent
+  | SessionEvent
+  | SuperChatEvent
+  | SuperChatDeletedEvent;
 
 export interface RoomSnapshot {
   status: ConnectionStatus;
@@ -190,6 +210,10 @@ export const LIVE_DATA_EVENT_NAMES = [
   'gift_received',
   'captain_received',
   'enter_received',
+  'session_started',
+  'session_ended',
+  'super_chat_received',
+  'super_chat_deleted',
   'sensitive_word_compile_progress',
   'stat_updated',
   'rank_updated',

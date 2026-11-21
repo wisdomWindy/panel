@@ -143,6 +143,10 @@ pub const LIVE_DATA_EVENT_NAMES: &[&str] = &[
     "gift_received",
     "captain_received",
     "enter_received",
+    "session_started",
+    "session_ended",
+    "super_chat_received",
+    "super_chat_deleted",
     "sensitive_word_compile_progress",
     "stat_updated",
     "rank_updated",
@@ -326,6 +330,31 @@ pub struct EnterEventDto {
     pub room_id: String,
     pub occurred_at: i64,
     pub audience: AudienceIdentityDto,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SuperChatEventDto {
+    pub kind: String,
+    pub event_id: String,
+    pub room_id: String,
+    pub occurred_at: i64,
+    pub audience: AudienceIdentityDto,
+    pub message_id: i64,
+    pub content: String,
+    pub value_minor: i64,
+    pub duration_seconds: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SuperChatDeletedEventDto {
+    pub kind: String,
+    pub event_id: String,
+    pub room_id: String,
+    pub occurred_at: i64,
+    pub audience: AudienceIdentityDto,
+    pub message_ids: Vec<i64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

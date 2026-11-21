@@ -81,6 +81,13 @@ pub fn aggregate_event(mut state: AnalyticsState, event: &LiveEvent) -> Analytic
         // numbers as they are so the next session does not inherit them.
         LiveEvent::SessionStarted { .. } => return AnalyticsState::default(),
         LiveEvent::SessionEnded { .. } => {}
+        // PRD 9.1.1: a paid message is revenue; a withdrawal only removes the
+        // display, so the counted revenue stays.
+        LiveEvent::SuperChat { value_minor, .. } => {
+            state.gift_value_minor += value_minor;
+            add_ranking_value(&mut state.gift, audience, *value_minor);
+        }
+        LiveEvent::SuperChatDeleted { .. } => {}
     }
     state
 }

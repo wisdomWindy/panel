@@ -340,6 +340,7 @@ impl MediaState {
             LiveEvent::SessionEnded { base } => {
                 self.apply_session_boundary(base.room_id.as_str(), false).await;
             }
+            LiveEvent::SuperChat { .. } | LiveEvent::SuperChatDeleted { .. } => {}
         }
         if let Err(error) = self.event_sink.publish_tts(&self.tts.snapshot().await) {
             log::warn!("tts status event is degraded: {}", error.code);

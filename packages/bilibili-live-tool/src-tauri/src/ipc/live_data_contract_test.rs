@@ -9,11 +9,20 @@ use crate::build_channel::foundation_command_names;
 #[test]
 fn exposes_the_approved_live_data_surface_only() {
     assert_eq!(LIVE_DATA_COMMAND_NAMES.len(), 20);
-    assert_eq!(LIVE_DATA_EVENT_NAMES.len(), 9);
+    assert_eq!(LIVE_DATA_EVENT_NAMES.len(), 13);
     assert_eq!(LIVE_DATA_COMMAND_NAMES[0], "room_connect");
     assert_eq!(LIVE_DATA_COMMAND_NAMES[19], "rank_export");
     assert!(LIVE_DATA_EVENT_NAMES.contains(&"room_status_changed"));
     assert!(LIVE_DATA_EVENT_NAMES.contains(&"export_done"));
+    // PRD 9.1.1: session boundaries and paid messages have their own events.
+    for event in [
+        "session_started",
+        "session_ended",
+        "super_chat_received",
+        "super_chat_deleted",
+    ] {
+        assert!(LIVE_DATA_EVENT_NAMES.contains(&event), "{event}");
+    }
     let common_commands = foundation_command_names();
     let permissions = include_str!("../../permissions/foundation.toml");
     for command in LIVE_DATA_COMMAND_NAMES {

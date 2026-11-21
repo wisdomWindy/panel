@@ -90,6 +90,8 @@ pub fn map_command(body: &[u8]) -> Result<Option<LiveEvent>, LiveRuntimeError> {
         "LIVE_OPEN_PLATFORM_LIVE_ROOM_ENTER" => map_enter(envelope.data)?,
         "LIVE_OPEN_PLATFORM_LIVE_START" => map_session(envelope.data, true)?,
         "LIVE_OPEN_PLATFORM_LIVE_END" => map_session(envelope.data, false)?,
+        "LIVE_OPEN_PLATFORM_SUPER_CHAT" => map_super_chat(envelope.data)?,
+        "LIVE_OPEN_PLATFORM_SUPER_CHAT_DEL" => map_super_chat_deleted(envelope.data)?,
         // PRD 9.1.1: DM_MIRROR repeats DM without sender fields; collecting it
         // would double-count danmaku and lose the audience identity.
         "LIVE_OPEN_PLATFORM_DM_MIRROR" => return Ok(None),
@@ -178,8 +180,96 @@ struct SessionData {
     open_id: String,
 }
 
-fn map_session(value: Value, started: bool) -> Result<LiveEvent, LiveRuntimeError> {
-    let data: SessionData = serde_json::from_value(value).map_err(invalid_event)?;
+#[derive(Deserialize)]
+struct SuperChatData {
+    #[serde(flatten)]
+    common: CommonData,
+    message: String,
+    #[serde(default)]
+    rmb: f64,
+    #[serde(default)]
+    start_time: i64,
+    #[serde(default)]
+    end_time: i64,
+    #[serde(default)]
+    message_id: i64,
+}
+
+#[derive(Deserialize)]
+struct SuperChatDeletedData {
+    room_id: u64,
+    #[serde(default)]
+    message_ids: Vec<i64>,
+    #[serde(default)]
+    timestamp: i64,
+    #[serde(default)]
+    uname: String,
+}
+
+/// PRD 9.1.1: a paid message. `rmb` is denominated in yuan, so it is converted
+/// to the minor unit the rest of the pipeline uses.
+fn map_super_chat(value: Value) -> Result<LiveEvent, LiveRuntimeError> {
+    let data: SuperChatData = serde_json::from_value(value).map_err(invalid_event)?;
+    let value_minor = (data.rmb * 100.0).round();
+    if !value_minor.is_finite() || value_minor < 0.0 {
+        return Err(invalid_event("super chat value"));
+    }
+    let duration_seconds = data.end_time.saturating_sub(data.start_time).max(0) as u64;
+    Ok(LiveEvent::SuperChat {
+        base: common_base(&data.common, &data.common.msg_id)?,
+        message_id: data.message_id,
+        content: data.message,
+        value_minor: value_minor as i64,
+        duration_seconds,
+    })
+}
+
+fn map_super_chat_deleted(value: Value) -> Result<LiveEvent, LiveRuntimeError> {
+    let data: SuperChatDeletedData = serde_json::from_value(value).map_err(invalid_event)?;
+    let timestamp = if data.timestamp > 0 {
+        data.timestamp
+    } else {
+        now_seconds()
+    };
+    let event_id = format!("super-chat-del:{}:{timestamp}", data.room_id);
+    // A withdrawal carries no viewer identity; the room stands in for it.
+    let base = LiveEventBase {
+        event_id,
+        room_id: RoomId::parse(&data.room_id.to_string()).map_err(invalid_event)?,
+        occurred_at: timestamp
+            .checked_mul(1_000)
+            .filter(|value| *value > 0)
+            .ok_or_else(|| invalid_event("timestamp"))?,
+        audience: room_audience(data.room_id, &data.uname)?,
+    };
+    Ok(LiveEvent::SuperChatDeleted {
+        base,
+        message_ids: data.message_ids,
+    })
+}
+
+fn now_seconds() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|value| value.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+fn room_audience(room_id: u64, uname: &str) -> Result<AudienceIdentity, LiveRuntimeError> {
+    Ok(AudienceIdentity {
+        user_uid: UserUid::parse(&format!("room-{room_id}")).map_err(invalid_event)?,
+        username: if uname.trim().is_empty() {
+            format!("#{room_id}")
+        } else {
+            uname.trim().to_owned()
+        },
+        user_level: None,
+        medal: None,
+        tags: Vec::new(),
+    })
+}
+
+fn map_session(value: Value, started: bool) -> Result<LiveEvent, LiveRuntimeError> {    let data: SessionData = serde_json::from_value(value).map_err(invalid_event)?;
     let marker = if started { "session-start" } else { "session-end" };
     let event_id = format!("{marker}:{}:{}", data.room_id, data.timestamp);
     // A session boundary has no viewer identity: the "audience" is the room

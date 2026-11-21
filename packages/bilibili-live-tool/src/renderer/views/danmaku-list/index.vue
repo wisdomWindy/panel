@@ -40,7 +40,10 @@ const matchesFilter = (event: LiveEvent, value: Filter): boolean => {
     case 'gift':
       return event.kind === 'gift';
     case 'ordinary':
-      return event.audience.tags.length === 0 && event.kind !== 'gift';
+      return (
+        event.audience.tags.length === 0 &&
+        (event.kind === 'danmu' || event.kind === 'enter')
+      );
     default:
       return true;
   }
@@ -93,6 +96,8 @@ watch(
 function eventText(event: LiveEvent): string {
   if (event.kind === 'danmu') return event.content;
   if (event.kind === 'gift') return `${event.giftName} x${event.quantity}`;
+  if (event.kind === 'superChat') return event.content;
+  if (event.kind === 'superChatDeleted') return '';
   if (event.kind === 'captain')
     return `${t(`danmakuPanel.${event.action}`)}${t(`liveData.tags.${event.level}`)}`;
   return t('danmakuPanel.entry');
@@ -187,7 +192,13 @@ function handleBlacklisted(uid: UserUid): void {
           v-for="event in filteredEvents"
           :key="event.eventId"
           class="flex gap-3 border-b px-3 py-2.5 last:border-b-0"
-          :class="event.kind === 'gift' ? 'app-row-gift' : ''"
+          :class="
+            event.kind === 'superChat'
+              ? 'app-row-super-chat'
+              : event.kind === 'gift'
+                ? 'app-row-gift'
+                : ''
+          "
           style="border-color: var(--app-border)"
         >
           <span class="app-avatar" aria-hidden="true">{{ avatarOf(event) }}</span>
@@ -205,6 +216,12 @@ function handleBlacklisted(uid: UserUid): void {
             </div>
             <p class="app-text mt-1 mb-0 text-sm break-words">
               <template v-if="event.kind === 'danmu'">{{ event.content }}</template>
+              <template v-else-if="event.kind === 'superChat'">
+                <span class="app-badge app-badge--captain mr-1.5">
+                  {{ formatMoneyMinor(event.valueMinor) }}
+                </span>
+                {{ event.content }}
+              </template>
               <template v-else-if="event.kind === 'gift'">
                 {{
                   t('danmakuPanel.giftEvent', {
@@ -223,7 +240,7 @@ function handleBlacklisted(uid: UserUid): void {
                   })
                 }}
               </template>
-              <template v-else>{{ t('danmakuPanel.entry') }}</template>
+              <template v-else-if="event.kind === 'enter'">{{ t('danmakuPanel.entry') }}</template>
             </p>
           </div>
         </article>
@@ -271,6 +288,9 @@ function handleBlacklisted(uid: UserUid): void {
 <style scoped>
 .app-row-gift {
   background: color-mix(in srgb, var(--app-gold) 8%, transparent);
+}
+.app-row-super-chat {
+  background: color-mix(in srgb, var(--app-gold) 16%, transparent);
 }
 .app-avatar {
   display: inline-flex;

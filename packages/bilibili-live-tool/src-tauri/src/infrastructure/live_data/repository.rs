@@ -233,6 +233,8 @@ impl LiveDataRepository {
             LiveEvent::Enter { .. } => "enter",
             LiveEvent::SessionStarted { .. } => "session_started",
             LiveEvent::SessionEnded { .. } => "session_ended",
+            LiveEvent::SuperChat { .. } => "super_chat",
+            LiveEvent::SuperChatDeleted { .. } => "super_chat_deleted",
         };
         let payload = serde_json::json!({
             "eventId": event.base().event_id,

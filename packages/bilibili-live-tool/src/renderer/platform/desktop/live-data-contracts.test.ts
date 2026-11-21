@@ -14,9 +14,18 @@ import {
 describe('live data desktop contracts', () => {
   it('keeps the approved command and event surface closed', () => {
     expect(LIVE_DATA_COMMAND_NAMES).toHaveLength(20);
-    expect(LIVE_DATA_EVENT_NAMES).toHaveLength(9);
+    expect(LIVE_DATA_EVENT_NAMES).toHaveLength(13);
     expect(LIVE_DATA_COMMAND_NAMES[0]).toBe('room_connect');
     expect(LIVE_DATA_COMMAND_NAMES.at(-1)).toBe('rank_export');
+    // PRD 9.1.1: session boundaries and paid messages are first-class events.
+    expect(LIVE_DATA_EVENT_NAMES).toEqual(
+      expect.arrayContaining([
+        'session_started',
+        'session_ended',
+        'super_chat_received',
+        'super_chat_deleted'
+      ])
+    );
   });
 
   it('carries money in minor units and custom ranges in epoch milliseconds', () => {

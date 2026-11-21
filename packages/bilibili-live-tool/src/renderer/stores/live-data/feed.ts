@@ -16,6 +16,15 @@ export const useLiveFeedStore = defineStore('live-feed', () => {
     // Session boundaries are not feed rows: they reset or seal the session
     // instead of appearing as a danmaku line (PRD 9.1.1).
     if (value.kind === 'sessionStarted' || value.kind === 'sessionEnded') return;
+    // A withdrawal removes paid messages from the display but never from the
+    // revenue already counted (PRD 9.1.1).
+    if (value.kind === 'superChatDeleted') {
+      const withdrawn = new Set(value.messageIds);
+      events.value = events.value.filter(
+        event => event.kind !== 'superChat' || !withdrawn.has(event.messageId)
+      );
+      return;
+    }
     const next = [...events.value, adaptLiveEvent(value)];
     events.value = next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
   }

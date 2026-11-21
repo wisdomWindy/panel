@@ -668,7 +668,9 @@
       "selectDirectory": "请先选择录制存储目录",
       "selectLocalFfmpeg": "内置 FFmpeg 尚未提供，请在设置中选择本机 FFmpeg",
       "lowDisk": "磁盘剩余空间低于停止水位",
-      "errorState": "录制状态异常，请检查 FFmpeg 路径"
+      "errorState": "录制状态异常，请检查 FFmpeg 路径",
+      "roomIdRequired": "请填写要录制的房间号",
+      "roomIdInvalid": "房间号只能包含数字"
     },
     "messages": {
       "stopped": "录制已停止",
@@ -720,7 +722,9 @@
       "bundledUnavailable": "内置 FFmpeg 尚未随安装包提供",
       "shortcut": "高光快捷键",
       "saving": "保存中..."
-    }
+    },
+    "manualRoomId": "房间号",
+    "manualRoomIdHint": "输入房间号，无需连接直播间"
   },
   "liveData": {
     "range": {

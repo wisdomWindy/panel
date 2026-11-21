@@ -411,7 +411,7 @@
       "language": "Language",
       "interface": "Interface",
       "data": "Data and privacy",
-    "about": "About and licenses"
+      "about": "About and licenses"
     },
     "categoryHints": {
       "config": "Inspect the configuration location, export or import configuration, and restore defaults",
@@ -668,7 +668,9 @@
       "selectDirectory": "Select a recording directory first",
       "selectLocalFfmpeg": "Bundled FFmpeg is unavailable; select local FFmpeg in settings",
       "lowDisk": "Remaining disk space is below the stop threshold",
-      "errorState": "Recording is in an error state; check the FFmpeg path"
+      "errorState": "Recording is in an error state; check the FFmpeg path",
+      "roomIdRequired": "Enter the room ID to record",
+      "roomIdInvalid": "A room ID contains digits only"
     },
     "messages": {
       "stopped": "Recording stopped",
@@ -720,7 +722,9 @@
       "bundledUnavailable": "Bundled FFmpeg is not included in this installer",
       "shortcut": "Highlight shortcut",
       "saving": "Saving..."
-    }
+    },
+    "manualRoomId": "Room ID",
+    "manualRoomIdHint": "Enter a room ID; no live connection needed"
   },
   "liveData": {
     "range": {

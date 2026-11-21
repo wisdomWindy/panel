@@ -32,8 +32,14 @@ const isActive = computed(() => status.value?.state === 'recording');
 const isTransitioning = computed(() =>
   ['starting', 'stopping', 'finalizing'].includes(status.value?.state ?? '')
 );
+/** PRD 9.12 records a room; a live connection is not required to start. */
+const manualRoomId = ref('');
+
+const targetRoomId = computed(() => room.snapshot.roomId ?? manualRoomId.value.trim());
+
 const startDisabledReason = computed(() => {
-  if (!room.isConnected || !room.snapshot.roomId) return t('recording.reasons.connectRoom');
+  if (!targetRoomId.value) return t('recording.reasons.roomIdRequired');
+  if (!/^\d{1,20}$/.test(targetRoomId.value)) return t('recording.reasons.roomIdInvalid');
   if (!config.value?.directory) return t('recording.reasons.selectDirectory');
   if (config.value.ffmpegSource === 'bundled') return t('recording.reasons.selectLocalFfmpeg');
   if (
@@ -148,8 +154,8 @@ async function handlePrimary(): Promise<void> {
       ElMessage.success(t('recording.messages.stopped'));
       return;
     }
-    if (startDisabledReason.value || !room.snapshot.roomId) return;
-    await store.start(room.snapshot.roomId);
+    if (startDisabledReason.value || !targetRoomId.value) return;
+    await store.start(targetRoomId.value);
     ElMessage.success(t('recording.messages.started'));
   } catch (error) {
     ElMessage.error(
@@ -387,6 +393,19 @@ onMounted(async () => {
             <p v-if="lowDisk" class="mt-2 mb-0 text-xs" style="color: var(--app-gold)">
               {{ t('recording.reasons.lowDisk') }}
             </p>
+          </div>
+          <div v-if="!room.isConnected" class="mt-5">
+            <label class="app-muted mb-1 block text-xs" for="recording-room-id">
+              {{ t('recording.manualRoomId') }}
+            </label>
+            <el-input
+              id="recording-room-id"
+              v-model="manualRoomId"
+              class="!w-56"
+              :maxlength="20"
+              :placeholder="t('recording.manualRoomIdHint')"
+              :aria-label="t('recording.manualRoomId')"
+            />
           </div>
           <div class="mt-5 flex flex-wrap items-center gap-2">
             <el-tooltip

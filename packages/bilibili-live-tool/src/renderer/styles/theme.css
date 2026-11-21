@@ -265,6 +265,35 @@ body {
   font-weight: 600;
 }
 
+/* -- rank chip --------------------------------------------------------- */
+.app-rank {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.app-rank--1 {
+  background: color-mix(in srgb, var(--app-gold) 24%, transparent);
+  color: var(--app-gold);
+}
+.app-rank--2 {
+  background: var(--app-panel-2);
+  color: var(--app-text-2);
+}
+.app-rank--3 {
+  background: color-mix(in srgb, var(--app-orange) 22%, transparent);
+  color: var(--app-orange);
+}
+.app-rank--plain {
+  color: var(--app-text-3);
+}
+
 /* -- identity badges (PRD 9.2 / preview-danmu.png) --------------------- */
 .app-badge {
   display: inline-flex;

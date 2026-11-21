@@ -5,16 +5,26 @@ import { describe, expect, it } from 'vitest';
 const page = readFileSync(fileURLToPath(new URL('./index.vue', import.meta.url)), 'utf8');
 
 describe('rankings page', () => {
-  it('provides a coordinated dark surface for the page chrome', () => {
-    expect(page).toContain('dark:bg-zinc-900');
-    expect(page).toContain('dark:border-zinc-800');
-    expect(page).toContain('dark:text-zinc-100');
-    expect(page).toContain('dark:text-zinc-400');
+  it('renders the three boards side by side on the shared tokens', () => {
+    // The design shows gift / danmaku / captain at once instead of behind tabs.
+    expect(page).toContain('xl:grid-cols-3');
+    expect(page).toContain('v-for="column in columns"');
+    expect(page).toContain('app-card');
+    expect(page).toContain('app-rank');
+    expect(page).not.toContain('el-tabs');
+    expect(page).not.toMatch(/dark:bg-zinc-900|dark:text-zinc-100/);
   });
 
-  it('keeps the table as the single empty ranking owner', () => {
-    expect(page).toContain(':empty-text="t(\'liveData.empty\')"');
+  it('keeps each board as its own empty-state owner', () => {
+    // Every column renders its own placeholder, so one empty board does not
+    // blank the other two.
+    expect(page).toContain('v-if="column.rows.length === 0"');
     expect(page.match(/liveData\.empty/g)).toHaveLength(1);
-    expect(page).not.toContain('rows.length === 0');
+  });
+
+  it('formats each board with its own unit', () => {
+    expect(page).toContain("tab === 'danmu'");
+    expect(page).toContain("t('rankings.danmakuUnit'");
+    expect(page).toContain('formatMoneyMinor');
   });
 });

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ArrowDown, ArrowUp, Download, Minus, Plus } from '@element-plus/icons-vue';
 import { normalizeDesktopError, type DataRange, type UserUid } from '@/platform/desktop';
 import { formatCount, formatMoneyMinor, formatTimestamp } from '@/modules/live-data/formatters';
 import { useLiveAnalyticsStore } from '@/stores/live-data/analytics';
@@ -17,18 +16,28 @@ const analytics = useLiveAnalyticsStore();
 const { t } = useI18n();
 const room = useLiveRoomStore();
 const range = ref<DataRange>({ kind: 'liveSession' });
-const activeTab = ref<RankTab>('gift');
-const limit = ref<TopLimit>(20);
+const limit = ref<TopLimit>(10);
 const selectedUid = ref<UserUid | null>(null);
 const exportVisible = ref(false);
 
-const rows = computed(() => analytics.rankings?.[activeTab.value].slice(0, limit.value) ?? []);
-const totalUsers = computed(() => {
-  if (!analytics.rankings) return 0;
-  if (activeTab.value === 'gift') return analytics.rankings.giftTotalUsers;
-  if (activeTab.value === 'danmu') return analytics.rankings.danmuTotalUsers;
-  return analytics.rankings.captainTotalUsers;
-});
+/** The design shows the three boards side by side instead of behind tabs. */
+const columns = computed(() =>
+  (['gift', 'danmu', 'captain'] as const).map(tab => ({
+    tab,
+    title: t(`rankings.${tab}`),
+    rows: (analytics.rankings?.[tab] ?? []).slice(0, limit.value)
+  }))
+);
+
+const updatedAt = computed(() =>
+  analytics.rankings ? formatTimestamp(analytics.rankings.generatedAt) : '-'
+);
+
+function metricOf(tab: RankTab, row: { amountMinor: number; danmuCount: number }): string {
+  return tab === 'danmu'
+    ? t('rankings.danmakuUnit', { count: formatCount(row.danmuCount) })
+    : formatMoneyMinor(row.amountMinor);
+}
 
 function showError(value: unknown): void {
   const error = normalizeDesktopError(value);
@@ -55,17 +64,6 @@ async function exportData(
   }
 }
 
-function movementIcon(change: 'new' | 'up' | 'down' | 'same') {
-  if (change === 'up') return ArrowUp;
-  if (change === 'down') return ArrowDown;
-  if (change === 'new') return Plus;
-  return Minus;
-}
-
-function movementText(change: 'new' | 'up' | 'down' | 'same'): string {
-  return t(`rankings.${change}`);
-}
-
 watch(
   range,
   () => {
@@ -79,116 +77,81 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="mx-auto flex h-full min-h-[560px] max-w-7xl flex-col bg-white dark:bg-zinc-900">
-    <header
-      class="flex min-h-14 flex-wrap items-center gap-3 border-b border-gray-200 py-2 dark:border-zinc-800"
-    >
-      <h2 class="mr-auto m-0 text-lg font-semibold text-gray-900 dark:text-zinc-100">
+  <section class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
+    <header class="flex flex-wrap items-center gap-2">
+      <h2 class="app-text mr-auto m-0 text-lg font-semibold">
         {{ t('rankings.title') }}
       </h2>
       <DataRangeControl v-model="range" />
-      <el-segmented
-        v-model="limit"
-        :options="[10, 20, 50, 100].map(value => ({ label: `TOP ${value}`, value }))"
-        :aria-label="t('rankings.limitLabel')"
-      />
-      <el-button type="primary" :icon="Download" @click="exportVisible = true">
+      <div class="flex items-center gap-1.5">
+        <button
+          v-for="option in ([10, 20, 50, 100] as const)"
+          :key="option"
+          type="button"
+          class="app-chip"
+          :class="{ 'app-chip--active': limit === option }"
+          :aria-pressed="limit === option"
+          @click="limit = option"
+        >
+          TOP {{ option }}
+        </button>
+      </div>
+      <button type="button" class="app-btn-primary h-8 px-3 text-sm" @click="exportVisible = true">
         {{ t('liveData.exportCsv') }}
-      </el-button>
+      </button>
     </header>
 
     <el-alert
       v-if="analytics.error"
-      class="mt-4"
       :title="analytics.error.message"
       type="error"
       :closable="false"
     />
     <el-alert
       v-if="analytics.rankings && !analytics.rankings.isHistoricalDataAvailable"
-      class="mt-4"
       :title="t('rankings.historyUnavailable')"
       type="warning"
       :closable="false"
     />
 
-    <el-tabs v-model="activeTab" class="mt-3 shrink-0">
-      <el-tab-pane :label="t('rankings.gift')" name="gift" />
-      <el-tab-pane :label="t('rankings.danmaku')" name="danmu" />
-      <el-tab-pane :label="t('rankings.captain')" name="captain" />
-    </el-tabs>
-
-    <div class="min-h-0 flex-1 overflow-x-auto">
-      <el-table
-        v-loading="analytics.rankPending"
-        :data="rows"
-        height="100%"
-        class="min-w-[720px]"
-        :empty-text="t('liveData.empty')"
-        row-key="userUid"
-      >
-        <el-table-column
-          prop="rank"
-          :label="t('rankings.rank')"
-          width="90"
-          align="center"
-        />
-        <el-table-column :label="t('rankings.user')" min-width="220">
-          <template #default="{ row }">
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <section v-for="column in columns" :key="column.tab" class="app-card flex flex-col p-4">
+        <h3 class="app-text m-0 text-sm font-semibold">
+          {{ column.title }}
+          <span class="app-faint">TOP{{ limit }}</span>
+        </h3>
+        <p v-if="column.rows.length === 0" class="app-faint mt-6 mb-0 text-sm">
+          {{ t('liveData.empty') }}
+        </p>
+        <ul v-else class="m-0 mt-3 list-none p-0">
+          <li
+            v-for="row in column.rows"
+            :key="row.userUid"
+            class="flex items-center gap-2 border-b py-2 last:border-b-0"
+            style="border-color: var(--app-border)"
+          >
+            <span
+              class="app-rank"
+              :class="row.rank <= 3 ? `app-rank--${row.rank}` : 'app-rank--plain'"
+              >{{ row.rank }}</span
+            >
             <button
               type="button"
-              class="font-medium text-pink-600 hover:underline focus-visible:outline-2 active:text-pink-700"
+              class="app-text min-w-0 flex-1 truncate text-left text-sm font-medium hover:underline"
               @click="selectedUid = row.userUid"
             >
               {{ row.username }}
             </button>
-            <span class="ml-2 text-xs tabular-nums text-gray-400">{{ row.userUid }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('rankings.metric')" width="190" align="right">
-          <template #default="{ row }">
-            <strong class="tabular-nums">
-              {{
-                activeTab === 'danmu'
-                  ? t('rankings.danmakuUnit', { count: formatCount(row.danmuCount) })
-                  : formatMoneyMinor(row.amountMinor)
-              }}
-            </strong>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('rankings.change')" width="150" align="center">
-          <template #default="{ row }">
-            <span
-              class="inline-flex items-center gap-1"
-              :class="
-                analytics.highlightedUids.has(row.userUid)
-                  ? row.change === 'up' || row.change === 'new'
-                    ? 'font-semibold text-emerald-600'
-                    : row.change === 'down'
-                      ? 'font-semibold text-red-600'
-                      : 'text-gray-500'
-                  : 'text-gray-500'
-              "
-            >
-              <el-icon><component :is="movementIcon(row.change)" /></el-icon>
-              {{ movementText(row.change) }}
+            <span class="app-muted shrink-0 text-xs tabular-nums">
+              {{ metricOf(column.tab, row) }}
             </span>
-          </template>
-        </el-table-column>
-      </el-table>
+          </li>
+        </ul>
+      </section>
     </div>
 
-    <footer
-      class="flex min-h-11 items-center justify-between border-t border-gray-200 px-3 text-sm text-gray-600 dark:border-zinc-800 dark:text-zinc-400"
-    >
-      <span>{{ t('rankings.totalUsers', { count: formatCount(totalUsers) }) }}</span>
-      <span>
-        {{
-          t('rankings.updatedAt', {
-            time: analytics.rankings ? formatTimestamp(analytics.rankings.generatedAt) : '-'
-          })
-        }}
-      </span>
+    <footer class="app-faint text-xs">
+      {{ t('rankings.updatedAt', { time: updatedAt }) }}
     </footer>
 
     <AudienceDetailDrawer

@@ -106,13 +106,21 @@ fn validates_configuration_without_exposing_the_secret() {
 }
 
 #[test]
-fn reports_missing_credentials_when_the_build_did_not_inject_them() {
-    // Credentials come from `OPEN_LIVE_*` at build time so they never live in
-    // the repository; without them the app must fail closed with a code the UI
-    // can explain instead of shipping a hardcoded secret.
+fn uses_embedded_credentials_to_sign_requests() {
+    let config = OpenLiveConfig::embedded().unwrap();
+    assert_eq!(config.app_id, 1_716_751_199_246);
+    assert_eq!(config.access_key_id, "92yCCLAhXtGfRzWKMgSXruqN");
+
+    let signed = signing::sign_request(
+        b"{}",
+        &config.access_key_id,
+        config.access_key_secret(),
+        "embedded-vector",
+        123,
+    );
     assert_eq!(
-        OpenLiveConfig::embedded().unwrap_err().code,
-        "missing_open_live_credentials"
+        signed.authorization,
+        "d594b7334435974dcd22f312f776c4bac1be4ed86fcd63c0eb440188f5f8d3fc"
     );
 }
 

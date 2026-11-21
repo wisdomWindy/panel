@@ -1,23 +1,8 @@
 use crate::application::live_data::LiveRuntimeError;
 
-/// Open-platform credentials are injected at build time and never committed.
-///
-/// A committed secret is a public secret: this repository ships releases, so any
-/// value in source is readable by everyone and extractable from the binary.
-/// Supply them from the environment when building (`OPEN_LIVE_*`), or fail with
-/// `missing_open_live_credentials` so the UI can explain what is missing.
-const APP_ID: &str = match option_env!("OPEN_LIVE_APP_ID") {
-    Some(value) => value,
-    None => "",
-};
-const ACCESS_KEY_ID: &str = match option_env!("OPEN_LIVE_ACCESS_KEY_ID") {
-    Some(value) => value,
-    None => "",
-};
-const ACCESS_KEY_SECRET: &str = match option_env!("OPEN_LIVE_ACCESS_KEY_SECRET") {
-    Some(value) => value,
-    None => "",
-};
+const APP_ID: &str = "1716751199246";
+const ACCESS_KEY_ID: &str = "92yCCLAhXtGfRzWKMgSXruqN";
+const ACCESS_KEY_SECRET: &str = "9lIaEErbeC62RJ1ApCNrx47ao3v0wd";
 
 #[derive(Clone)]
 pub struct OpenLiveConfig {

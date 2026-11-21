@@ -231,6 +231,8 @@ impl LiveDataRepository {
             LiveEvent::Gift { .. } => "gift",
             LiveEvent::Captain { .. } => "captain",
             LiveEvent::Enter { .. } => "enter",
+            LiveEvent::SessionStarted { .. } => "session_started",
+            LiveEvent::SessionEnded { .. } => "session_ended",
         };
         let payload = serde_json::json!({
             "eventId": event.base().event_id,

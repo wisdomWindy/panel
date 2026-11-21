@@ -2,7 +2,7 @@ use crate::{
     application::live_data::LiveRuntimeError,
     domain::live_data::{
         normalize_identity, AudienceIdentity, AudienceIdentityInput, CaptainAction, CaptainLevel,
-        LiveEvent, LiveEventBase, RoomId,
+        LiveEvent, LiveEventBase, RoomId, UserUid,
     },
 };
 use serde::Deserialize;
@@ -88,6 +88,8 @@ pub fn map_command(body: &[u8]) -> Result<Option<LiveEvent>, LiveRuntimeError> {
         "LIVE_OPEN_PLATFORM_SEND_GIFT" => map_gift(envelope.data)?,
         "LIVE_OPEN_PLATFORM_GUARD" => map_guard(envelope.data)?,
         "LIVE_OPEN_PLATFORM_LIVE_ROOM_ENTER" => map_enter(envelope.data)?,
+        "LIVE_OPEN_PLATFORM_LIVE_START" => map_session(envelope.data, true)?,
+        "LIVE_OPEN_PLATFORM_LIVE_END" => map_session(envelope.data, false)?,
         // PRD 9.1.1: DM_MIRROR repeats DM without sender fields; collecting it
         // would double-count danmaku and lose the audience identity.
         "LIVE_OPEN_PLATFORM_DM_MIRROR" => return Ok(None),
@@ -161,6 +163,52 @@ fn map_enter(value: Value) -> Result<LiveEvent, LiveRuntimeError> {
     let event_id = format!("enter:{}:{uid}:{}", data.room_id, data.timestamp);
     Ok(LiveEvent::Enter {
         base: common_base(&data, &event_id)?,
+    })
+}
+
+#[derive(Deserialize)]
+struct SessionData {
+    room_id: u64,
+    timestamp: i64,
+    #[serde(default)]
+    uname: String,
+    #[serde(default)]
+    uid: u64,
+    #[serde(default)]
+    open_id: String,
+}
+
+fn map_session(value: Value, started: bool) -> Result<LiveEvent, LiveRuntimeError> {
+    let data: SessionData = serde_json::from_value(value).map_err(invalid_event)?;
+    let marker = if started { "session-start" } else { "session-end" };
+    let event_id = format!("{marker}:{}:{}", data.room_id, data.timestamp);
+    // A session boundary has no viewer identity: the "audience" is the room
+    // itself, so the shared audience normaliser must not be used here.
+    let audience = AudienceIdentity {
+        user_uid: UserUid::parse(&format!("room-{}", data.room_id)).map_err(invalid_event)?,
+        username: if data.uname.trim().is_empty() {
+            format!("#{}", data.room_id)
+        } else {
+            data.uname.trim().to_owned()
+        },
+        user_level: None,
+        medal: None,
+        tags: Vec::new(),
+    };
+    let base = LiveEventBase {
+        event_id,
+        room_id: RoomId::parse(&data.room_id.to_string()).map_err(invalid_event)?,
+        occurred_at: data
+            .timestamp
+            .checked_mul(1_000)
+            .filter(|value| *value > 0)
+            .ok_or_else(|| invalid_event("timestamp"))?,
+        audience,
+    };
+    Ok(if started {
+        LiveEvent::SessionStarted { base }
+    } else {
+        LiveEvent::SessionEnded { base }
     })
 }
 

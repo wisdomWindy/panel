@@ -334,6 +334,12 @@ impl MediaState {
                 }
             }
             LiveEvent::Danmu { .. } | LiveEvent::Enter { .. } => {}
+            LiveEvent::SessionStarted { base } => {
+                self.apply_session_boundary(base.room_id.as_str(), true).await;
+            }
+            LiveEvent::SessionEnded { base } => {
+                self.apply_session_boundary(base.room_id.as_str(), false).await;
+            }
         }
         if let Err(error) = self.event_sink.publish_tts(&self.tts.snapshot().await) {
             log::warn!("tts status event is degraded: {}", error.code);
@@ -868,8 +874,37 @@ impl MediaState {
             .publish_recording(&self.recording.snapshot().await)
     }
 
-    async fn persist_highlight(
-        &self,
+    /// PRD 9.1.1: `LIVE_START` is the auto-record trigger and `LIVE_END` stops
+    /// it. Manual recordings are never interrupted by a session boundary the
+    /// user did not ask for.
+    async fn apply_session_boundary(&self, room_id: &str, started: bool) {
+        let config = self.recording.config().await;
+        if !config.auto_record {
+            return;
+        }
+        let state = self.recording.snapshot().await.state;
+        if started {
+            if state != crate::domain::media::RecordingState::Idle {
+                return;
+            }
+            if let Err(error) = self.start_recording(room_id).await {
+                log::warn!("automatic recording start is degraded: {}", error.code);
+            }
+            return;
+        }
+        if matches!(
+            state,
+            crate::domain::media::RecordingState::Recording
+                | crate::domain::media::RecordingState::Stopping
+                | crate::domain::media::RecordingState::Finalizing
+        ) {
+            if let Err(error) = self.stop_recording().await {
+                log::warn!("automatic recording stop is degraded: {}", error.code);
+            }
+        }
+    }
+
+    async fn persist_highlight(        &self,
         recording: RecordingRecord,
         marker: crate::domain::media::HighlightWindow,
         trigger_type: crate::application::media::HighlightTriggerType,

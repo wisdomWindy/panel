@@ -41,4 +41,27 @@ describe('live feed store', () => {
 
     expect(store.events.map(event => event.kind)).toEqual(['danmu']);
   });
+
+  it('keeps session boundaries out of the danmaku feed', () => {
+    const store = useLiveFeedStore();
+
+    // PRD 9.1.1: LIVE_START/LIVE_END reset or seal the session; they are not
+    // danmaku rows.
+    store.accept({
+      kind: 'sessionStarted',
+      eventId: 'session-start:1:10' as DanmuEvent['eventId'],
+      roomId: '1' as DanmuEvent['roomId'],
+      occurredAt: 10,
+      audience
+    });
+    store.accept({
+      kind: 'sessionEnded',
+      eventId: 'session-end:1:20' as DanmuEvent['eventId'],
+      roomId: '1' as DanmuEvent['roomId'],
+      occurredAt: 20,
+      audience
+    });
+
+    expect(store.events).toEqual([]);
+  });
 });

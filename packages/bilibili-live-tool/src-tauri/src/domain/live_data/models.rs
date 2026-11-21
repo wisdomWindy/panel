@@ -156,6 +156,16 @@ pub enum LiveEvent {
     Enter {
         base: LiveEventBase,
     },
+    /// PRD 9.1.1: the room went live. Resets per-session statistics and is the
+    /// signal auto-recording waits for.
+    SessionStarted {
+        base: LiveEventBase,
+    },
+    /// PRD 9.1.1: the room ended the session. Seals the statistics for the
+    /// session and stops auto-recording.
+    SessionEnded {
+        base: LiveEventBase,
+    },
 }
 
 impl LiveEvent {
@@ -164,7 +174,9 @@ impl LiveEvent {
             Self::Danmu { base, .. }
             | Self::Gift { base, .. }
             | Self::Captain { base, .. }
-            | Self::Enter { base } => base,
+            | Self::Enter { base }
+            | Self::SessionStarted { base }
+            | Self::SessionEnded { base } => base,
         }
     }
 

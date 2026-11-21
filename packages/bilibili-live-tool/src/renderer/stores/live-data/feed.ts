@@ -13,6 +13,9 @@ export const useLiveFeedStore = defineStore('live-feed', () => {
   const gifts = computed(() => events.value.filter(event => event.kind === 'gift'));
 
   function accept(value: LiveEvent): void {
+    // Session boundaries are not feed rows: they reset or seal the session
+    // instead of appearing as a danmaku line (PRD 9.1.1).
+    if (value.kind === 'sessionStarted' || value.kind === 'sessionEnded') return;
     const next = [...events.value, adaptLiveEvent(value)];
     events.value = next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
   }

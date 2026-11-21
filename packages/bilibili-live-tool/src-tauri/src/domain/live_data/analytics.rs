@@ -77,6 +77,10 @@ pub fn aggregate_event(mut state: AnalyticsState, event: &LiveEvent) -> Analytic
             add_ranking_value(&mut state.captain, audience, *value_minor);
         }
         LiveEvent::Enter { .. } => {}
+        // PRD 9.1.1: a new session starts counting from zero; ending seals the
+        // numbers as they are so the next session does not inherit them.
+        LiveEvent::SessionStarted { .. } => return AnalyticsState::default(),
+        LiveEvent::SessionEnded { .. } => {}
     }
     state
 }

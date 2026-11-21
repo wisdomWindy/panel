@@ -55,7 +55,11 @@ export interface CaptainEvent extends LiveEventBase {
 export interface EnterEvent extends LiveEventBase {
   kind: 'enter';
 }
-export type LiveEvent = DanmuEvent | GiftEvent | CaptainEvent | EnterEvent;
+/** PRD 9.1.1: room session boundary; carries no viewer action of its own. */
+export interface SessionEvent extends LiveEventBase {
+  kind: 'sessionStarted' | 'sessionEnded';
+}
+export type LiveEvent = DanmuEvent | GiftEvent | CaptainEvent | EnterEvent | SessionEvent;
 
 export interface RoomSnapshot {
   status: ConnectionStatus;

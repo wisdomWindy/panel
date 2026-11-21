@@ -368,6 +368,29 @@ fn ignores_the_danmaku_mirror_command() {
     assert!(event_mapper::map_command(mirror).unwrap().is_none());
 }
 
+/// PRD 9.1.1: LIVE_START and LIVE_END mark the session boundary that resets
+/// statistics and gates auto-recording.
+#[test]
+fn maps_session_start_and_end_into_boundary_events() {
+    let start = br#"{"cmd":"LIVE_OPEN_PLATFORM_LIVE_START","data":{"room_id":100,"timestamp":1710000010}}"#;
+    match event_mapper::map_command(start).unwrap() {
+        Some(LiveEvent::SessionStarted { base }) => {
+            assert_eq!(base.room_id.as_str(), "100");
+            assert_eq!(base.event_id, "session-start:100:1710000010");
+            assert_eq!(base.occurred_at, 1_710_000_010_000);
+        }
+        other => panic!("expected session start, got {other:?}"),
+    }
+
+    let end = br#"{"cmd":"LIVE_OPEN_PLATFORM_LIVE_END","data":{"room_id":100,"timestamp":1710000020}}"#;
+    match event_mapper::map_command(end).unwrap() {
+        Some(LiveEvent::SessionEnded { base }) => {
+            assert_eq!(base.event_id, "session-end:100:1710000020");
+        }
+        other => panic!("expected session end, got {other:?}"),
+    }
+}
+
 #[tokio::test]
 async fn sends_signed_start_heartbeat_and_end_requests() {
     let responses = vec![

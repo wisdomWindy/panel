@@ -181,6 +181,28 @@ impl LiveEventSink for TauriLiveEventSink {
                     audience: audience(&base.audience),
                 },
             ),
+            // Session boundaries reuse the enter payload shape: the renderer
+            // only needs kind + room + time to reset or seal its view.
+            LiveEvent::SessionStarted { base } => self.emit(
+                "session_started",
+                EnterEventDto {
+                    kind: "sessionStarted".into(),
+                    event_id: base.event_id.clone(),
+                    room_id: base.room_id.as_str().to_owned(),
+                    occurred_at: base.occurred_at,
+                    audience: audience(&base.audience),
+                },
+            ),
+            LiveEvent::SessionEnded { base } => self.emit(
+                "session_ended",
+                EnterEventDto {
+                    kind: "sessionEnded".into(),
+                    event_id: base.event_id.clone(),
+                    room_id: base.room_id.as_str().to_owned(),
+                    occurred_at: base.occurred_at,
+                    audience: audience(&base.audience),
+                },
+            ),
         }
     }
 

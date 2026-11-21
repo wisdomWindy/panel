@@ -11,6 +11,7 @@ use crate::application::member::{
     DEFAULT_AI_VOICE_ID,
 };
 
+#[cfg_attr(not(windows), allow(dead_code))]
 const KEYRING_SERVICE: &str = "bilibili-live-tool.ai";
 
 pub struct SystemAiSecretStore;

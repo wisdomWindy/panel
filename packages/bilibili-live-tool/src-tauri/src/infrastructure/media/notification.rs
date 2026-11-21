@@ -181,6 +181,7 @@ impl<R: Runtime> NotificationPort for TauriNotificationPort<R> {
     }
 }
 
+#[cfg_attr(not(windows), allow(dead_code))]
 fn validated_gift_image_url(value: &str) -> Option<Url> {
     let url = Url::parse(value.trim()).ok()?;
     let host = url.host_str()?;
@@ -196,6 +197,7 @@ fn validated_gift_image_url(value: &str) -> Option<Url> {
     .then_some(url)
 }
 
+#[cfg_attr(not(windows), allow(dead_code))]
 fn notification_image_cache_name(value: &str, extension: &str) -> String {
     let digest = Sha256::digest(value.as_bytes());
     format!("{digest:x}.{extension}")

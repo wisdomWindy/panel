@@ -175,10 +175,6 @@ struct SessionData {
     timestamp: i64,
     #[serde(default)]
     uname: String,
-    #[serde(default)]
-    uid: u64,
-    #[serde(default)]
-    open_id: String,
 }
 
 #[derive(Deserialize)]

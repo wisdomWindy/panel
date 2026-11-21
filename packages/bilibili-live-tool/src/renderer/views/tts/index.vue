@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { RefreshLeft, VideoPlay } from '@element-plus/icons-vue';
+import { Loading, RefreshLeft, VideoPlay } from '@element-plus/icons-vue';
 import type { Qwen3Language, Qwen3TtsConfig, TtsConfig, TtsEventKind, TtsIdentityKind } from '@/platform/desktop';
 import TtsQueuePanel from '@/components/media/TtsQueuePanel.vue';
 import { validateTtsTemplate, validateTtsTemplates } from '@/modules/media/validation';
@@ -274,13 +274,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-6xl">
-    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="m-0 text-xl font-semibold text-gray-900 dark:text-zinc-100">
+  <section class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
+    <header class="flex flex-wrap items-center gap-3">
+      <div class="min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">
           {{ t('tts.title') }}
         </h2>
-        <p v-if="store.snapshot" class="mt-1 text-sm text-gray-500 dark:text-zinc-400" aria-live="polite">
+        <p v-if="store.snapshot" class="app-muted mt-1 mb-0 text-sm" aria-live="polite">
           {{
             store.snapshot.status.state === 'unavailable'
               ? t('tts.engineUnavailable')
@@ -290,16 +290,16 @@ onMounted(async () => {
       </div>
       <el-switch
         v-model="draft.isEnabled"
+        class="ml-auto shrink-0"
         :active-text="t('common.enabled')"
         :inactive-text="t('common.disabled')"
         :loading="store.pendingOperations.has('setEnabled')"
         @change="handleEnabled"
       />
-    </div>
+    </header>
 
     <el-alert
       v-if="store.error"
-      class="mb-4"
       type="error"
       :closable="false"
       :title="store.error.message"
@@ -310,222 +310,289 @@ onMounted(async () => {
       </el-button>
     </el-alert>
 
-    <el-skeleton v-if="store.pending && !store.snapshot" :rows="8" animated />
+    <el-skeleton
+      v-if="store.pending && !store.snapshot"
+      class="app-card p-4"
+      :rows="8"
+      animated
+    />
 
     <template v-else-if="store.snapshot">
-      <el-form label-position="top" @submit.prevent="handleSave">
-        <div class="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
-          <el-form-item :label="t('tts.engine')">
-            <el-select v-model="draft.selectedEngine" class="w-full" @change="handleEngineChange">
-              <el-option :label="t('tts.systemEngine')" value="system" />
-              <el-option
-                :label="t('tts.cloudEngine')"
-                value="cloud"
-                :disabled="
-                  !store.snapshot.voices.some(
-                    voice => voice.engine === 'cloud' && voice.isAvailable
-                  )
-                "
-              />
-            </el-select>
-            <span v-if="engineUnavailable" class="mt-1 text-xs text-amber-700 dark:text-amber-400">
-              {{ t('tts.cloudUnavailable') }}
-            </span>
-          </el-form-item>
-          <el-form-item :label="t('tts.voice')">
-            <el-select
-              v-model="draft.selectedVoiceId"
-              class="w-full"
-              clearable
-              :disabled="availableVoices.length === 0"
-            >
-              <el-option
-                v-for="voice in availableVoices"
-                :key="voice.voiceId"
-                :label="voice.displayName"
-                :value="voice.voiceId"
-                :disabled="!voice.isAvailable"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item :label="t('tts.rate')">
-            <el-slider
-              v-model="draft.rate"
-              :min="0.5"
-              :max="2"
-              :step="0.1"
-              show-input
-            />
-          </el-form-item>
-          <el-form-item :label="t('tts.volume')">
-            <el-slider
-              v-model="draft.volume"
-              :min="0"
-              :max="1"
-              :step="0.1"
-              show-input
-            />
-          </el-form-item>
-        </div>
-
-        <el-divider content-position="left">
-          {{ t('tts.selection') }}
-        </el-divider>
-        <div class="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
-          <el-form-item :label="t('tts.content')">
-            <el-checkbox-group v-model="draft.eventKinds">
-              <el-checkbox v-for="option in eventOptions" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </el-checkbox>
-            </el-checkbox-group>
-          </el-form-item>
-          <el-form-item :label="t('tts.identityFilter')">
-            <el-checkbox-group v-model="draft.identityKinds">
-              <el-checkbox
-                v-for="option in identityOptions"
-                :key="option.value"
-                :value="option.value"
+      <el-form class="flex flex-col gap-4" label-position="top" @submit.prevent="handleSave">
+        <section class="app-card p-4" aria-labelledby="tts-voice-title">
+          <h3 id="tts-voice-title" class="app-text m-0 text-base font-semibold">
+            {{ t('tts.sections.voice') }}
+          </h3>
+          <p class="app-muted mt-1 mb-0 text-sm">
+            {{ t('tts.sections.voiceHint') }}
+          </p>
+          <div class="mt-4 grid grid-cols-1 gap-x-6 lg:grid-cols-2">
+            <el-form-item :label="t('tts.engine')">
+              <el-select v-model="draft.selectedEngine" class="w-full" @change="handleEngineChange">
+                <el-option :label="t('tts.systemEngine')" value="system" />
+                <el-option
+                  :label="t('tts.cloudEngine')"
+                  value="cloud"
+                  :disabled="
+                    !store.snapshot.voices.some(
+                      voice => voice.engine === 'cloud' && voice.isAvailable
+                    )
+                  "
+                />
+              </el-select>
+              <p
+                v-if="engineUnavailable"
+                class="app-faint m-0 mt-1 w-full text-xs"
+                style="color: var(--app-gold)"
               >
-                {{ option.label }}
-              </el-checkbox>
-            </el-checkbox-group>
-          </el-form-item>
-        </div>
-
-        <el-divider content-position="left">
-          {{ t('tts.templates.title') }}
-        </el-divider>
-        <div class="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
-          <el-form-item :label="t('tts.events.danmu')" :error="templateErrors.danmu">
-            <el-input v-model="draft.templates.danmu" @blur="validateTemplate('danmu')" />
-          </el-form-item>
-          <el-form-item :label="t('tts.events.gift')" :error="templateErrors.gift">
-            <el-input v-model="draft.templates.gift" @blur="validateTemplate('gift')" />
-          </el-form-item>
-          <el-form-item :label="t('tts.events.captain')" :error="templateErrors.captain">
-            <el-input v-model="draft.templates.captain" @blur="validateTemplate('captain')" />
-          </el-form-item>
-        </div>
-
-        <el-divider content-position="left">
-          {{ t('tts.qwen3.title') }}
-        </el-divider>
-        <div class="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
-          <el-form-item :label="t('tts.qwen3.enable')">
-            <el-switch v-model="qwen3Draft.isEnabled" />
-          </el-form-item>
-          <el-form-item :label="t('tts.qwen3.fallback')">
-            <el-switch v-model="qwen3Draft.fallbackToSystem" />
-          </el-form-item>
-          <el-form-item :label="t('tts.qwen3.baseUrl')">
-            <el-input v-model="qwen3Draft.baseUrl" placeholder="http://127.0.0.1:8020" />
-            <span class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
-              {{ t('tts.qwen3.baseUrlHint') }}
-            </span>
-          </el-form-item>
-          <el-form-item :label="t('tts.qwen3.language')">
-            <el-select v-model="qwen3Draft.language" class="w-full">
-              <el-option
-                v-for="language in QWEN3_LANGUAGE_OPTIONS"
-                :key="language"
-                :label="language"
-                :value="language"
+                {{ t('tts.cloudUnavailable') }}
+              </p>
+            </el-form-item>
+            <el-form-item :label="t('tts.voice')">
+              <el-select
+                v-model="draft.selectedVoiceId"
+                class="w-full"
+                clearable
+                :disabled="availableVoices.length === 0"
+              >
+                <el-option
+                  v-for="voice in availableVoices"
+                  :key="voice.voiceId"
+                  :label="voice.displayName"
+                  :value="voice.voiceId"
+                  :disabled="!voice.isAvailable"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item :label="t('tts.rate')">
+              <el-slider
+                v-model="draft.rate"
+                :min="0.5"
+                :max="2"
+                :step="0.1"
+                show-input
               />
-            </el-select>
-          </el-form-item>
-          <el-form-item :label="t('tts.qwen3.aiVoice')">
-            <el-select v-model="qwen3Draft.aiVoiceId" class="w-full" clearable>
-              <el-option
-                v-for="voiceId in qwen3VoiceIds"
-                :key="voiceId"
-                :label="voiceId"
-                :value="voiceId"
+            </el-form-item>
+            <el-form-item :label="t('tts.volume')">
+              <el-slider
+                v-model="draft.volume"
+                :min="0"
+                :max="1"
+                :step="0.1"
+                show-input
               />
-            </el-select>
-            <span class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
-              {{ t('tts.qwen3.aiVoiceHint') }}
+            </el-form-item>
+          </div>
+        </section>
+
+        <section class="app-card p-4" aria-labelledby="tts-selection-title">
+          <h3 id="tts-selection-title" class="app-text m-0 text-base font-semibold">
+            {{ t('tts.selection') }}
+          </h3>
+          <p class="app-muted mt-1 mb-0 text-sm">
+            {{ t('tts.sections.selectionHint') }}
+          </p>
+          <div class="mt-4 grid grid-cols-1 gap-x-6 lg:grid-cols-2">
+            <el-form-item :label="t('tts.content')">
+              <el-checkbox-group v-model="draft.eventKinds">
+                <el-checkbox
+                  v-for="option in eventOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </el-checkbox>
+              </el-checkbox-group>
+            </el-form-item>
+            <el-form-item :label="t('tts.identityFilter')">
+              <el-checkbox-group v-model="draft.identityKinds">
+                <el-checkbox
+                  v-for="option in identityOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </el-checkbox>
+              </el-checkbox-group>
+            </el-form-item>
+          </div>
+        </section>
+
+        <section class="app-card p-4" aria-labelledby="tts-templates-title">
+          <h3 id="tts-templates-title" class="app-text m-0 text-base font-semibold">
+            {{ t('tts.templates.title') }}
+          </h3>
+          <p class="app-muted mt-1 mb-0 text-sm">
+            {{ t('tts.sections.templatesHint') }}
+          </p>
+          <div class="mt-4 grid grid-cols-1 gap-x-6 lg:grid-cols-2">
+            <el-form-item :label="t('tts.events.danmu')" :error="templateErrors.danmu">
+              <el-input v-model="draft.templates.danmu" @blur="validateTemplate('danmu')" />
+            </el-form-item>
+            <el-form-item :label="t('tts.events.gift')" :error="templateErrors.gift">
+              <el-input v-model="draft.templates.gift" @blur="validateTemplate('gift')" />
+            </el-form-item>
+            <el-form-item :label="t('tts.events.captain')" :error="templateErrors.captain">
+              <el-input v-model="draft.templates.captain" @blur="validateTemplate('captain')" />
+            </el-form-item>
+          </div>
+        </section>
+
+        <section class="app-card p-4" aria-labelledby="tts-qwen3-title">
+          <div class="flex flex-wrap items-start gap-3">
+            <div class="mr-auto min-w-0">
+              <h3 id="tts-qwen3-title" class="app-text m-0 text-base font-semibold">
+                {{ t('tts.qwen3.title') }}
+              </h3>
+              <p class="app-muted mt-1 mb-0 text-sm">
+                {{ t('tts.sections.qwen3Hint') }}
+              </p>
+            </div>
+            <span
+              class="app-badge shrink-0"
+              :class="qwen3Health?.ready ? 'app-badge--admin' : 'app-badge--plain'"
+              role="status"
+            >
+              {{
+                qwen3Health?.ready
+                  ? t('tts.qwen3.ready', { model: qwen3Health?.model ?? '' })
+                  : qwen3Health
+                    ? t('tts.qwen3.loading')
+                    : t('tts.qwen3.unreachable')
+              }}
             </span>
-          </el-form-item>
-          <el-form-item :label="t('tts.qwen3.timeout')">
-            <el-input-number
-              v-model="qwen3Draft.timeoutMs"
-              class="w-full"
-              :min="500"
-              :max="60000"
-              :step="500"
-            />
-          </el-form-item>
-          <el-form-item class="lg:col-span-2" :label="t('tts.qwen3.instruct')">
-            <el-input v-model="qwen3Draft.instruct" type="textarea" :rows="2" />
-            <span class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
-              {{ t('tts.qwen3.instructHint') }}
-            </span>
-          </el-form-item>
-        </div>
-        <div class="mb-3 flex flex-wrap items-center gap-3">
-          <el-tag :type="qwen3Health?.ready ? 'success' : 'info'" size="small">
-            {{
-              qwen3Health?.ready
-                ? t('tts.qwen3.ready', { model: qwen3Health?.model ?? '' })
-                : qwen3Health
-                  ? t('tts.qwen3.loading')
-                  : t('tts.qwen3.unreachable')
-            }}
-          </el-tag>
-          <span v-if="qwen3Health?.error" class="text-xs text-amber-700 dark:text-amber-400">
+          </div>
+          <p
+            v-if="qwen3Health?.error"
+            class="app-faint mt-2 mb-0 text-xs"
+            style="color: var(--app-gold)"
+          >
             {{ qwen3Health.error }}
-          </span>
-        </div>
-        <div class="mb-5 flex flex-wrap justify-end gap-2">
-          <el-button :loading="qwen3ProbePending" @click="handleQwen3Probe">
-            {{ t('tts.qwen3.probe') }}
-          </el-button>
-          <el-button
-            :loading="qwen3TestPending"
-            :disabled="!qwen3Draft.isEnabled"
-            @click="handleQwen3Test"
-          >
-            {{ t('common.test') }}
-          </el-button>
-          <el-button
-            type="primary"
-            :loading="qwen3SavePending"
-            :disabled="!qwen3Dirty"
-            @click="handleQwen3Save"
-          >
-            {{ t('common.save') }}
-          </el-button>
-        </div>
+          </p>
+          <div class="mt-4 grid grid-cols-1 gap-x-6 lg:grid-cols-2">
+            <el-form-item :label="t('tts.qwen3.enable')">
+              <el-switch v-model="qwen3Draft.isEnabled" />
+            </el-form-item>
+            <el-form-item :label="t('tts.qwen3.fallback')">
+              <el-switch v-model="qwen3Draft.fallbackToSystem" />
+            </el-form-item>
+            <el-form-item :label="t('tts.qwen3.baseUrl')">
+              <el-input v-model="qwen3Draft.baseUrl" placeholder="http://127.0.0.1:8020" />
+              <p class="app-faint m-0 mt-1 w-full text-xs">
+                {{ t('tts.qwen3.baseUrlHint') }}
+              </p>
+            </el-form-item>
+            <el-form-item :label="t('tts.qwen3.language')">
+              <el-select v-model="qwen3Draft.language" class="w-full">
+                <el-option
+                  v-for="language in QWEN3_LANGUAGE_OPTIONS"
+                  :key="language"
+                  :label="language"
+                  :value="language"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item :label="t('tts.qwen3.aiVoice')">
+              <el-select v-model="qwen3Draft.aiVoiceId" class="w-full" clearable>
+                <el-option
+                  v-for="voiceId in qwen3VoiceIds"
+                  :key="voiceId"
+                  :label="voiceId"
+                  :value="voiceId"
+                />
+              </el-select>
+              <p class="app-faint m-0 mt-1 w-full text-xs">
+                {{ t('tts.qwen3.aiVoiceHint') }}
+              </p>
+            </el-form-item>
+            <el-form-item :label="t('tts.qwen3.timeout')">
+              <el-input-number
+                v-model="qwen3Draft.timeoutMs"
+                class="w-full"
+                :min="500"
+                :max="60000"
+                :step="500"
+              />
+            </el-form-item>
+            <el-form-item class="lg:col-span-2" :label="t('tts.qwen3.instruct')">
+              <el-input v-model="qwen3Draft.instruct" type="textarea" :rows="2" />
+              <p class="app-faint m-0 mt-1 w-full text-xs">
+                {{ t('tts.qwen3.instructHint') }}
+              </p>
+            </el-form-item>
+          </div>
+          <div class="mt-2 flex flex-wrap justify-end gap-2">
+            <el-button :loading="qwen3ProbePending" @click="handleQwen3Probe">
+              {{ t('tts.qwen3.probe') }}
+            </el-button>
+            <el-button
+              :loading="qwen3TestPending"
+              :disabled="!qwen3Draft.isEnabled"
+              @click="handleQwen3Test"
+            >
+              {{ t('common.test') }}
+            </el-button>
+            <button
+              type="button"
+              class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="!qwen3Dirty || qwen3SavePending"
+              @click="handleQwen3Save"
+            >
+              <el-icon v-if="qwen3SavePending" class="is-loading">
+                <Loading />
+              </el-icon>
+              {{ t('common.save') }}
+            </button>
+          </div>
+        </section>
 
-        <div class="mb-5 flex flex-wrap justify-end gap-2">
-          <el-button :icon="RefreshLeft" :disabled="savePending" @click="handleReset">
-            {{ t('common.resetDefaults') }}
-          </el-button>
-          <el-button
-            :icon="VideoPlay"
-            :loading="store.pendingOperations.has('test')"
-            @click="handleTest"
-          >
-            {{ t('common.test') }}
-          </el-button>
-          <el-button
-            native-type="submit"
-            type="primary"
-            :loading="savePending"
-            :disabled="!isDirty"
-          >
-            {{ t('common.save') }}
-          </el-button>
-        </div>
+        <section class="app-card p-4" aria-labelledby="tts-actions-title">
+          <h3 id="tts-actions-title" class="app-text m-0 text-base font-semibold">
+            {{ t('tts.sections.actions') }}
+          </h3>
+          <p class="app-muted mt-1 mb-0 text-sm">
+            {{ t('tts.sections.actionsHint') }}
+          </p>
+          <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <el-button :icon="RefreshLeft" :disabled="savePending" @click="handleReset">
+              {{ t('common.resetDefaults') }}
+            </el-button>
+            <el-button
+              :icon="VideoPlay"
+              :loading="store.pendingOperations.has('test')"
+              @click="handleTest"
+            >
+              {{ t('common.test') }}
+            </el-button>
+            <button
+              type="submit"
+              class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="savePending || !isDirty"
+            >
+              <el-icon v-if="savePending" class="is-loading">
+                <Loading />
+              </el-icon>
+              {{ t('common.save') }}
+            </button>
+          </div>
+        </section>
       </el-form>
 
-      <TtsQueuePanel
-        :status="store.snapshot.status"
-        :pause-pending="store.pendingOperations.has('pause')"
-        :clear-pending="store.pendingOperations.has('clear')"
-        @pause="handlePause"
-        @clear="handleClear"
-      />
+      <div class="app-card p-4">
+        <TtsQueuePanel
+          :status="store.snapshot.status"
+          :pause-pending="store.pendingOperations.has('pause')"
+          :clear-pending="store.pendingOperations.has('clear')"
+          :style="{
+            borderTopWidth: '0px',
+            borderBottomWidth: '0px',
+            paddingTop: '0px',
+            paddingBottom: '0px'
+          }"
+          @pause="handlePause"
+          @clear="handleClear"
+        />
+      </div>
     </template>
-  </div>
+  </section>
 </template>

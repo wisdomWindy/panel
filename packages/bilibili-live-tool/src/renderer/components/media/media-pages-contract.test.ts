@@ -10,7 +10,6 @@ describe('interaction media page contracts', () => {
       'src/renderer/views/tts/index.vue',
       'src/renderer/components/media/TtsQueuePanel.vue',
       'src/renderer/views/recording/index.vue',
-      'src/renderer/components/media/RecordingStatusBand.vue',
       'src/renderer/views/recording/components/RecordingSettingsDialog.vue'
     ];
 
@@ -47,37 +46,33 @@ describe('interaction media page contracts', () => {
     }
   });
 
-  it('pairs reminder-page text and dividers with readable dark-theme variants', () => {
-    const paths = [
+  it('renders reminder pages as token-driven surfaces without per-page dark variants', () => {
+    const pages = [
       'src/renderer/views/captain-effect/index.vue',
       'src/renderer/views/gift-reminder/index.vue',
-      'src/renderer/views/gift-sound/index.vue',
-      'src/renderer/components/media/GiftSoundTable.vue'
+      'src/renderer/views/gift-sound/index.vue'
     ];
+    const tablePath = 'src/renderer/components/media/GiftSoundTable.vue';
 
-    for (const path of paths) {
-      const lines = source(path).split(/\r?\n/);
-      expect(
-        lines.filter(line => /text-gray-\d+/.test(line) && !/dark:text-/.test(line)),
-        path
-      ).toEqual([]);
-      expect(
-        lines.filter(line => /text-red-\d+/.test(line) && !/dark:text-red-/.test(line)),
-        path
-      ).toEqual([]);
-      expect(
-        lines.filter(
-          line => /border-gray-200/.test(line) && !/dark:border-zinc-800/.test(line)
-        ),
-        path
-      ).toEqual([]);
-      expect(
-        lines.filter(
-          line => /divide-gray-200/.test(line) && !/dark:divide-zinc-800/.test(line)
-        ),
-        path
-      ).toEqual([]);
+    for (const path of [...pages, tablePath]) {
+      const content = source(path);
+      expect(content, path).not.toContain('dark:');
+      expect(content, path).not.toMatch(
+        /\bbg-white\b|\btext-gray-\d+|\bborder-gray-\d+|\bdivide-gray-\d+|\bbg-gray-\d+/
+      );
     }
+
+    for (const path of pages) {
+      const content = source(path);
+      expect(content, path).toContain('app-card');
+      expect(content, path).toContain('app-muted');
+      expect(content, path).toContain('app-text');
+      expect(content, path).toContain('app-btn-primary');
+      expect(content, path).toContain('app-chip');
+    }
+
+    expect(source(tablePath)).toContain('app-faint');
+    expect(source(tablePath)).toContain('app-chip');
   });
 
   it('keeps page components behind stores and removes browser/Electron media paths', () => {
@@ -99,7 +94,15 @@ describe('interaction media page contracts', () => {
     const highlightList = source('src/renderer/views/recording/components/HighlightList.vue');
     expect(tts).toContain('TtsQueuePanel');
     expect(tts).toContain('validateTtsTemplate');
-    expect(recording).toContain('RecordingStatusBand');
+    // The redesigned TTS page is token-driven: app-card sections and one primary action.
+    expect(tts).toContain('app-card');
+    expect(tts).toContain('app-btn-primary');
+    expect(tts).toContain('app-muted');
+    expect(tts).not.toContain('dark:');
+    // The recording status surface is now the token-driven control card itself.
+    expect(recording).toContain('app-btn-primary');
+    expect(recording).toContain('app-metric');
+    expect(recording).toContain("t('recording.recordingStatus')");
     expect(recording).toContain('RecordingSettingsDialog');
     expect(`${recording}\n${recordingList}\n${highlightList}`).not.toMatch(
       /pauseRecording|resumeRecording|openRecordingFolder|electronAPI|createElement\('a'\)|\.download\s*=/
@@ -182,9 +185,16 @@ describe('interaction media page contracts', () => {
     const router = source('src/renderer/router/index.ts');
     const navigation = source('src/renderer/modules/application-shell/navigation.ts');
     const locale = source('src/renderer/locales/zh-CN.json');
-    expect(router).toContain('path: \'/captain-effect\'');
-    expect(router).toContain('path: \'/gift-reminder\'');
-    expect(router).toContain('path: \'/gift-sound\'');
+    expect(router).toContain("path: '/reminders'");
+    expect(router).toContain("redirect: '/reminders/gift'");
+    expect(router).toContain("redirect: '/reminders/captain'");
+    expect(router).toContain("redirect: '/reminders/sound'");
+    for (const page of ['gift-reminder', 'captain-effect', 'gift-sound']) {
+      expect(router).toContain(`component: () => import('@/views/${page}/index.vue')`);
+    }
+    expect(router).toContain("path: 'gift'");
+    expect(router).toContain("path: 'captain'");
+    expect(router).toContain("path: 'sound'");
     expect(router).toContain('path: \'/tts\'');
     expect(router).toContain('path: \'/recording\'');
     expect(locale).toContain('提醒配置');

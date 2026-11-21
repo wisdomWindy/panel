@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { CopyDocument, Document, Refresh, Setting } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
+import { CopyDocument, Refresh } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import type {
   AiConfigSaveRequest,
@@ -15,6 +16,7 @@ import AiModelProfilesDialog from './components/AiModelProfilesDialog.vue';
 import AiPersonaConfigDialog from './components/AiPersonaConfigDialog.vue';
 import AiVoiceReplyControl from './components/AiVoiceReplyControl.vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const store = useAIStore();
 const configVisible = ref(false);
@@ -26,7 +28,7 @@ const result = computed(() => {
     : '';
 });
 const generationError = computed(() => {
-  if (store.generation?.errorCode === 'rate_limited') return '服务限流，请稍后重试';
+  if (store.generation?.errorCode === 'rate_limited') return t('ai.result.rateLimited');
   return store.errorFor('generate')?.message ?? store.generation?.errorCode ?? null;
 });
 
@@ -34,9 +36,9 @@ async function copyResult(): Promise<void> {
   if (!result.value) return;
   try {
     await navigator.clipboard.writeText(result.value);
-    ElMessage.success('已复制');
+    ElMessage.success(t('ai.result.copied'));
   } catch {
-    ElMessage.error('复制失败');
+    ElMessage.error(t('ai.result.copyFailed'));
   }
 }
 
@@ -44,7 +46,7 @@ async function saveConfig(request: AiConfigSaveRequest): Promise<void> {
   try {
     await store.saveConfig(request);
     configVisible.value = false;
-    ElMessage.success('配置已保存');
+    ElMessage.success(t('ai.messages.configSaved'));
   } catch {
     // The dialog renders the normalized desktop error.
   }
@@ -56,7 +58,7 @@ async function saveProfile(request: AiModelProfileSaveRequest): Promise<void> {
     if (!store.profiles.some(value => value.isDefault)) {
       await store.setDefaultProfile(profile.profileId);
     }
-    ElMessage.success('模型档案已保存');
+    ElMessage.success(t('ai.messages.profileSaved'));
   } catch {
     // The dialog renders the normalized desktop error.
   }
@@ -65,7 +67,7 @@ async function saveProfile(request: AiModelProfileSaveRequest): Promise<void> {
 async function deleteProfile(profileId: AiModelProfileId): Promise<void> {
   try {
     await store.deleteProfile(profileId);
-    ElMessage.success('模型档案已删除');
+    ElMessage.success(t('ai.messages.profileDeleted'));
   } catch {
     // The dialog renders the normalized desktop error.
   }
@@ -78,9 +80,9 @@ async function setDefaultProfile(profileId: AiModelProfileId): Promise<void> {
 async function testProfile(profileId: AiModelProfileId): Promise<void> {
   try {
     await store.testProfile(profileId);
-    ElMessage.success('模型连接正常');
+    ElMessage.success(t('ai.messages.profileTested'));
   } catch {
-    ElMessage.error(store.error?.message ?? '模型连接失败');
+    ElMessage.error(store.error?.message ?? t('ai.messages.profileTestFailed'));
   }
 }
 
@@ -97,7 +99,7 @@ async function confirmAudioRoute(
   try {
     await store.setOutputDevice(deviceId, voiceId, volume, true);
     if (enableAfterSave) await store.setVoiceReplyEnabled(true, true);
-    ElMessage.success('音频路由已确认');
+    ElMessage.success(t('ai.messages.routeConfirmed'));
   } catch {
     // The page readiness alert renders the normalized desktop error.
   }
@@ -121,25 +123,61 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-5xl">
-    <header class="mb-5 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="m-0 text-xl font-semibold text-gray-900 dark:text-gray-100">
-          AI 助手
+  <div class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
+    <header class="flex flex-wrap items-center justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">
+          {{ t('ai.page.title') }}
         </h2>
-        <p class="mb-0 mt-1 text-sm text-gray-500">
-          自动生成并播报直播互动回复
+        <p class="app-muted mt-1 mb-0 text-sm">
+          {{ t('ai.page.description') }}
         </p>
       </div>
-      <div class="flex gap-2">
-        <el-button :icon="Document" @click="router.push('/ai/log')">
-          日志
-        </el-button>
-        <el-button :icon="Setting" @click="configVisible = true">
-          人设配置
-        </el-button>
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          class="app-icon-btn"
+          :aria-label="t('common.refresh')"
+          :title="t('common.refresh')"
+          @click="store.bootstrap()"
+        >
+          <el-icon><Refresh /></el-icon>
+        </button>
+        <nav
+          class="app-card flex flex-wrap items-center gap-1 p-1"
+          :aria-label="t('ai.page.navLabel')"
+        >
+          <button
+            type="button"
+            class="app-chip app-chip--active"
+            aria-pressed="true"
+          >
+            {{ t('ai.page.tabs.reply') }}
+          </button>
+          <button type="button" class="app-chip" @click="modelsVisible = true">
+            {{ t('ai.page.tabs.models') }}
+          </button>
+          <button type="button" class="app-chip" @click="configVisible = true">
+            {{ t('ai.page.tabs.persona') }}
+          </button>
+          <button type="button" class="app-chip" @click="router.push('/ai/log')">
+            {{ t('ai.page.tabs.logs') }}
+          </button>
+        </nav>
       </div>
     </header>
+
+    <el-alert
+      v-if="store.error && !store.config"
+      type="error"
+      :closable="false"
+      :title="store.error.message"
+      show-icon
+    >
+      <el-button size="small" :icon="Refresh" @click="store.bootstrap()">
+        {{ t('common.retry') }}
+      </el-button>
+    </el-alert>
 
     <AiVoiceReplyControl
       :snapshot="store.voiceReply"
@@ -155,43 +193,46 @@ onMounted(() => {
       @clear="store.clearVoiceQueue"
     />
 
-    <el-alert
-      v-if="store.error && !store.config"
-      class="mb-4"
-      type="error"
-      :closable="false"
-      :title="store.error.message"
-      show-icon
-    >
-      <el-button size="small" :icon="Refresh" @click="store.bootstrap()">
-        重试
-      </el-button>
-    </el-alert>
-
-    <section class="mt-5 border-t border-gray-200 pt-4 dark:border-gray-700">
-      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h3 class="m-0 text-base font-semibold">
-          结果·仅本地预览，不发送
-        </h3>
-        <el-button :icon="CopyDocument" :disabled="!result" @click="copyResult">
-          复制
-        </el-button>
+    <section class="app-card p-5" aria-labelledby="ai-result-title">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="ai-result-title" class="app-text m-0 text-base font-semibold">
+            {{ t('ai.result.title') }}
+          </h3>
+          <p class="app-muted mt-1 mb-0 text-sm">
+            {{ t('ai.result.localOnly') }}
+          </p>
+        </div>
+        <button
+          type="button"
+          class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="!result"
+          @click="copyResult"
+        >
+          <el-icon><CopyDocument /></el-icon>
+          {{ t('ai.result.copy') }}
+        </button>
       </div>
+
       <el-alert
         v-if="generationError"
-        class="mb-3"
+        class="mt-3"
         type="error"
         :closable="false"
         :title="generationError"
         show-icon
       />
-      <el-input
-        :model-value="result"
-        type="textarea"
-        readonly
-        :rows="8"
-        resize="vertical"
-      />
+      <div class="app-surface-2 mt-3 min-h-24 rounded-lg border app-hairline p-3">
+        <p
+          v-if="result"
+          class="app-text m-0 text-sm break-words whitespace-pre-wrap"
+        >
+          {{ result }}
+        </p>
+        <p v-else class="app-faint m-0 text-sm">
+          {{ t('ai.result.empty') }}
+        </p>
+      </div>
     </section>
 
     <AiPersonaConfigDialog

@@ -47,46 +47,104 @@ const routes: RouteRecordRaw[] = [
     meta: { titleKey: 'gift.title' }
   },
   {
-    path: '/settings',
-    name: 'Settings',
-    component: () => import('@/views/settings/index.vue'),
-    meta: { titleKey: 'settings.title' }
-  },
-  {
-    path: '/logs',
-    name: 'Logs',
-    component: () => import('@/views/logs/index.vue'),
-    meta: { titleKey: 'logs.title' }
-  },
-  {
     path: '/sensitive-words',
-    name: 'SensitiveWords',
-    component: () => import('@/views/sensitive-words/index.vue'),
-    meta: { titleKey: 'sensitiveWords.title' }
+    redirect: '/risk/sensitive'
   },
   {
     path: '/blacklist',
-    name: 'Blacklist',
-    component: () => import('@/views/blacklist/index.vue'),
-    meta: { titleKey: 'blacklist.title' }
+    redirect: '/risk/blacklist'
+  },
+  {
+    path: '/risk',
+    component: () => import('@/components/application-shell/SectionGroup.vue'),
+    redirect: '/risk/sensitive',
+    meta: { titleKey: 'shell.navigation.risk' },
+    children: [
+      {
+        path: 'sensitive',
+        name: 'SensitiveWords',
+        component: () => import('@/views/sensitive-words/index.vue'),
+        meta: { titleKey: 'sensitiveWords.title' }
+      },
+      {
+        path: 'blacklist',
+        name: 'Blacklist',
+        component: () => import('@/views/blacklist/index.vue'),
+        meta: { titleKey: 'blacklist.title' }
+      }
+    ]
   },
   {
     path: '/captain-effect',
-    name: 'CaptainEffect',
-    component: () => import('@/views/captain-effect/index.vue'),
-    meta: { titleKey: 'captainEffect.title' }
+    redirect: '/reminders/captain'
   },
   {
     path: '/gift-reminder',
-    name: 'GiftReminder',
-    component: () => import('@/views/gift-reminder/index.vue'),
-    meta: { titleKey: 'giftReminder.title' }
+    redirect: '/reminders/gift'
+  },
+  {
+    path: '/gift-sound',
+    redirect: '/reminders/sound'
+  },
+  {
+    path: '/reminders',
+    component: () => import('@/components/application-shell/SectionGroup.vue'),
+    redirect: '/reminders/gift',
+    meta: { titleKey: 'shell.navigation.reminders' },
+    children: [
+      {
+        path: 'gift',
+        name: 'GiftReminder',
+        component: () => import('@/views/gift-reminder/index.vue'),
+        meta: { titleKey: 'giftReminder.title' }
+      },
+      {
+        path: 'captain',
+        name: 'CaptainEffect',
+        component: () => import('@/views/captain-effect/index.vue'),
+        meta: { titleKey: 'captainEffect.title' }
+      },
+      {
+        path: 'sound',
+        name: 'GiftSound',
+        component: () => import('@/views/gift-sound/index.vue'),
+        meta: { titleKey: 'giftSound.title' }
+      }
+    ]
+  },
+  {
+    path: '/settings',
+    component: () => import('@/components/application-shell/SectionGroup.vue'),
+    redirect: '/settings/general',
+    meta: { titleKey: 'settings.title' },
+    children: [
+      {
+        path: 'general',
+        name: 'Settings',
+        component: () => import('@/views/settings/index.vue'),
+        meta: { titleKey: 'settings.title' }
+      },
+      {
+        path: 'logs',
+        name: 'Logs',
+        component: () => import('@/views/logs/index.vue'),
+        meta: { titleKey: 'logs.title' }
+      },
+      {
+        path: 'update',
+        name: 'UpdateLog',
+        component: () => import('@/views/update-log/index.vue'),
+        meta: { titleKey: 'update.title' }
+      }
+    ]
+  },
+  {
+    path: '/logs',
+    redirect: '/settings/logs'
   },
   {
     path: '/update-log',
-    name: 'UpdateLog',
-    component: () => import('@/views/update-log/index.vue'),
-    meta: { titleKey: 'update.title' }
+    redirect: '/settings/update'
   },
   {
     path: '/tts',
@@ -99,12 +157,6 @@ const routes: RouteRecordRaw[] = [
     name: 'Recording',
     component: () => import('@/views/recording/index.vue'),
     meta: { titleKey: 'recording.title' }
-  },
-  {
-    path: '/gift-sound',
-    name: 'GiftSound',
-    component: () => import('@/views/gift-sound/index.vue'),
-    meta: { titleKey: 'giftSound.title' }
   },
   ...memberChannel.routes
 ];

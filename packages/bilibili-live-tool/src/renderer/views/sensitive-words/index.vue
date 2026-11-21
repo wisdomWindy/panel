@@ -34,6 +34,13 @@ const categoryLabels = computed<Record<SensitiveWordCategory, string>>(() => ({
   custom: t('sensitiveWords.categories.custom')
 }));
 
+const categoryOptions = computed(() =>
+  (['all', 'illegal', 'advertising', 'personal_attack', 'custom'] as const).map(value => ({
+    value,
+    label: value === 'all' ? t('sensitiveWords.allCategories') : categoryLabels.value[value]
+  }))
+);
+
 const filteredRows = computed(() => {
   const query = search.value.trim();
   return safety.sensitiveWords.items.filter(
@@ -46,6 +53,25 @@ const filteredRows = computed(() => {
 const enabledCount = computed(
   () => safety.sensitiveWords.items.filter(row => row.isEnabled).length
 );
+
+const emptyText = computed(() =>
+  safety.sensitiveWords.items.length === 0
+    ? t('sensitiveWords.empty')
+    : t('sensitiveWords.noMatches')
+);
+
+function categoryTone(value: SensitiveWordCategory): string {
+  switch (value) {
+    case 'illegal':
+      return 'app-badge--admin';
+    case 'advertising':
+      return 'app-badge--captain';
+    case 'personal_attack':
+      return 'app-badge--governor';
+    default:
+      return 'app-badge--plain';
+  }
+}
 
 function showError(value: unknown): void {
   const error = normalizeDesktopError(value);
@@ -122,20 +148,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="mx-auto flex h-full min-h-[560px] max-w-7xl flex-col bg-white dark:bg-zinc-900">
-    <header class="flex min-h-14 flex-wrap items-center gap-3 border-b border-gray-200 py-2 dark:border-zinc-800">
-      <h2 class="mr-auto m-0 text-lg font-semibold text-gray-900 dark:text-zinc-100">
-        {{ t('sensitiveWords.title') }}
-      </h2>
-      <el-select v-model="category" class="!w-32" :aria-label="t('sensitiveWords.categoryLabel')">
-        <el-option :label="t('sensitiveWords.allCategories')" value="all" />
-        <el-option
-          v-for="(label, value) in categoryLabels"
-          :key="value"
-          :label="label"
-          :value="value"
-        />
-      </el-select>
+  <section class="mx-auto flex h-full min-h-[560px] w-full max-w-[1180px] flex-col gap-3">
+    <header class="flex flex-wrap items-center gap-2">
+      <div class="mr-auto min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">
+          {{ t('sensitiveWords.title') }}
+        </h2>
+        <p class="app-muted mt-1 mb-0 text-sm">
+          {{ t('sensitiveWords.description') }}
+        </p>
+      </div>
       <el-input
         v-model="search"
         clearable
@@ -148,91 +170,155 @@ onMounted(() => {
         <el-option label="JSON" value="json" />
         <el-option label="TXT" value="txt" />
       </el-select>
-      <el-button :icon="Upload" :loading="safety.mutationPending" @click="importWords">
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="safety.mutationPending"
+        :aria-busy="safety.mutationPending"
+        @click="importWords"
+      >
+        <el-icon><Upload /></el-icon>
         {{ t('common.import') }}
-      </el-button>
-      <el-button :icon="Download" :loading="safety.mutationPending" @click="exportWords">
+      </button>
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="safety.mutationPending"
+        :aria-busy="safety.mutationPending"
+        @click="exportWords"
+      >
+        <el-icon><Download /></el-icon>
         {{ t('common.export') }}
-      </el-button>
-      <el-button type="primary" :icon="Plus" @click="openCreate">
+      </button>
+      <button
+        type="button"
+        class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-sm"
+        @click="openCreate"
+      >
+        <el-icon><Plus /></el-icon>
         {{ t('sensitiveWords.create') }}
-      </el-button>
+      </button>
     </header>
+
+    <div
+      class="flex flex-wrap items-center gap-1.5"
+      role="group"
+      :aria-label="t('sensitiveWords.categoryLabel')"
+    >
+      <button
+        v-for="option in categoryOptions"
+        :key="option.value"
+        type="button"
+        class="app-chip"
+        :class="{ 'app-chip--active': category === option.value }"
+        :aria-pressed="category === option.value"
+        @click="category = option.value"
+      >
+        {{ option.label }}
+      </button>
+    </div>
 
     <el-progress
       v-if="safety.compileProgress.percentage > 0 && safety.compileProgress.percentage < 100"
-      class="my-3"
       :percentage="safety.compileProgress.percentage"
     />
-    <p v-if="importResult" class="my-2 text-sm text-gray-600 dark:text-zinc-400">
+    <p v-if="importResult" class="app-muted my-0 text-sm">
       {{ importResult }}
     </p>
     <el-alert
       v-if="safety.error"
-      class="my-3"
       :title="safety.error.message"
       type="error"
       :closable="false"
+      show-icon
     />
 
-    <div class="min-h-0 flex-1 overflow-x-auto">
-      <el-table
-        v-loading="safety.pending"
-        :data="filteredRows"
-        height="100%"
-        class="min-w-[760px]"
-        row-key="id"
-      >
-        <el-table-column prop="word" :label="t('sensitiveWords.word')" min-width="220" />
-        <el-table-column :label="t('sensitiveWords.category')" width="130">
-          <template #default="{ row }">
-            {{ categoryLabels[row.category as SensitiveWordCategory] }}
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('sensitiveWords.matchType')" width="120">
-          <template #default="{ row }">
-            {{ row.matchType === 'exact' ? t('sensitiveWords.exact') : t('sensitiveWords.fuzzy') }}
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('common.enable')" width="100">
-          <template #default="{ row }">
-            <el-switch
-              :model-value="row.isEnabled"
-              :loading="safety.mutationPending"
-              @change="
-                (value: string | number | boolean) =>
-                  safety.toggleSensitiveWord(row.id, Boolean(value)).catch(showError)
-              "
-            />
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('common.actions')" width="130" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              :icon="Edit"
-              link
-              :aria-label="t('sensitiveWords.editLabel')"
-              @click="openEdit(row)"
-            />
-            <el-button
-              :icon="Delete"
-              link
-              type="danger"
-              :aria-label="t('sensitiveWords.deleteLabel')"
-              @click="remove(row)"
-            />
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
+    <section class="app-card flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="min-h-0 flex-1 overflow-x-auto">
+        <el-table
+          v-loading="safety.pending"
+          :data="filteredRows"
+          :empty-text="emptyText"
+          height="100%"
+          class="min-w-[760px]"
+          header-cell-class-name="app-faint"
+          row-key="id"
+        >
+          <el-table-column
+            prop="word"
+            :label="t('sensitiveWords.word')"
+            min-width="220"
+            show-overflow-tooltip
+          />
+          <el-table-column :label="t('sensitiveWords.category')" width="130">
+            <template #default="{ row }">
+              <span class="app-badge" :class="categoryTone(row.category as SensitiveWordCategory)">
+                {{ categoryLabels[row.category as SensitiveWordCategory] }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('sensitiveWords.matchType')" width="120">
+            <template #default="{ row }">
+              <span class="app-faint">
+                {{
+                  row.matchType === 'exact' ? t('sensitiveWords.exact') : t('sensitiveWords.fuzzy')
+                }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('common.enable')" width="100">
+            <template #default="{ row }">
+              <el-switch
+                :model-value="row.isEnabled"
+                :loading="safety.mutationPending"
+                @change="
+                  (value: string | number | boolean) =>
+                    safety.toggleSensitiveWord(row.id, Boolean(value)).catch(showError)
+                "
+              />
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('common.actions')" width="130" fixed="right">
+            <template #default="{ row }">
+              <button
+                type="button"
+                class="app-icon-btn"
+                :aria-label="t('sensitiveWords.editLabel')"
+                @click="openEdit(row)"
+              >
+                <el-icon><Edit /></el-icon>
+              </button>
+              <button
+                type="button"
+                class="app-icon-btn"
+                :style="{ color: 'var(--app-red)' }"
+                :aria-label="t('sensitiveWords.deleteLabel')"
+                @click="remove(row)"
+              >
+                <el-icon><Delete /></el-icon>
+              </button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
-    <footer
-      class="flex min-h-11 items-center gap-6 border-t border-gray-200 px-3 text-sm text-gray-600 dark:border-zinc-800 dark:text-zinc-400"
-    >
-      <span>{{ t('common.total') }} {{ safety.sensitiveWords.items.length }}</span>
-      <span>{{ t('sensitiveWords.enabledCount', { count: enabledCount }) }}</span>
-      <span>{{ t('common.todayHits') }} {{ safety.sensitiveWords.todayHitCount }}</span>
-    </footer>
+      <footer
+        class="app-faint flex min-h-10 flex-wrap items-center gap-x-6 gap-y-1 border-t px-3 text-sm"
+        style="border-color: var(--app-border)"
+      >
+        <span>
+          {{ t('common.total') }}
+          <strong class="app-text tabular-nums">{{ safety.sensitiveWords.items.length }}</strong>
+        </span>
+        <span>
+          {{ t('sensitiveWords.enabledCount', { count: enabledCount }) }}
+        </span>
+        <span>
+          {{ t('common.todayHits') }}
+          <strong class="app-text tabular-nums">{{ safety.sensitiveWords.todayHitCount }}</strong>
+        </span>
+      </footer>
+    </section>
 
     <el-dialog
       v-model="dialogVisible"
@@ -276,13 +362,36 @@ onMounted(() => {
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">
-          {{ t('common.cancel') }}
-        </el-button>
-        <el-button type="primary" :loading="safety.mutationPending" @click="submit">
-          {{ t('common.save') }}
-        </el-button>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="app-chip" @click="dialogVisible = false">
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="app-btn-primary inline-flex h-8 items-center px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="safety.mutationPending"
+            :aria-busy="safety.mutationPending"
+            @click="submit"
+          >
+            {{ t('common.save') }}
+          </button>
+        </div>
       </template>
     </el-dialog>
   </section>
 </template>
+
+<style scoped>
+.app-card :deep(.el-table) {
+  --el-table-border-color: var(--app-border);
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: transparent;
+  --el-table-header-text-color: var(--app-text-3);
+  --el-table-text-color: var(--app-text);
+  --el-table-row-hover-bg-color: var(--app-panel-2);
+}
+.app-card :deep(.el-table th.el-table__cell) {
+  font-weight: 500;
+}
+</style>

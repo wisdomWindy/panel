@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { Delete, FolderOpened, VideoPlay, Warning } from '@element-plus/icons-vue';
+import { Loading, Warning } from '@element-plus/icons-vue';
 import type { GiftId, GiftSoundBinding } from '@/platform/desktop';
 
 defineProps<{
@@ -19,13 +19,13 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <div class="min-h-[360px] overflow-x-auto border-y border-gray-200 dark:border-zinc-800">
+  <div class="min-h-[360px] overflow-x-auto">
     <el-table
       v-if="rows.length"
       :data="rows"
       row-key="giftId"
       height="360"
-      class="min-w-[820px]"
+      class="min-w-[880px]"
     >
       <el-table-column
         prop="giftName"
@@ -35,11 +35,15 @@ const { t } = useI18n();
       />
       <el-table-column :label="t('giftSound.file')" min-width="190" show-overflow-tooltip>
         <template #default="{ row }">
-          <span v-if="row.isMissing" class="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
+          <span
+            v-if="row.isMissing"
+            class="inline-flex items-center gap-1"
+            style="color: var(--app-red)"
+          >
             <el-icon><Warning /></el-icon>
             {{ row.soundFileName ?? t('giftSound.fileMissing') }}
           </span>
-          <span v-else class="text-gray-600 dark:text-zinc-300">
+          <span v-else :class="row.soundFileName ? 'app-text' : 'app-faint'">
             {{ row.soundFileName ?? t('giftSound.unbound') }}
           </span>
         </template>
@@ -52,6 +56,7 @@ const { t } = useI18n();
             :max="1"
             :step="0.1"
             :disabled="!row.soundFileName"
+            :aria-label="`${t('captainEffect.volume')}: ${row.giftName}`"
             @update:model-value="$emit('volume', row.giftId, $event)"
           />
         </template>
@@ -61,46 +66,64 @@ const { t } = useI18n();
           <el-switch
             :model-value="row.isEnabled"
             :disabled="!row.soundFileName"
+            :aria-label="`${t('common.enable')}: ${row.giftName}`"
             @update:model-value="$emit('enabled', row.giftId, $event)"
           />
         </template>
       </el-table-column>
       <el-table-column
         :label="t('common.actions')"
-        width="156"
+        width="236"
         fixed="right"
         align="right"
       >
         <template #default="{ row }">
-          <el-tooltip :content="t('captainEffect.previewSound')">
-            <el-button
-              circle
-              :icon="VideoPlay"
-              :loading="pendingOperations.has('previewSound')"
-              :disabled="!row.soundFileName || row.isMissing"
-              :aria-label="`${t('captainEffect.previewSound')}: ${row.giftName}`"
+          <div class="flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              class="app-chip whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40"
+              :disabled="
+                !row.soundFileName || row.isMissing || pendingOperations.has('previewSound')
+              "
+              :aria-label="`${t('giftSound.preview')}: ${row.giftName}`"
               @click="$emit('preview', row)"
-            />
-          </el-tooltip>
-          <el-tooltip :content="t('giftSound.selectFile')">
-            <el-button
-              circle
-              :icon="FolderOpened"
-              :loading="pendingOperations.has(`bindSound:${row.giftId}`)"
+            >
+              <el-icon v-if="pendingOperations.has('previewSound')" class="is-loading">
+                <Loading />
+              </el-icon>
+              {{ t('giftSound.preview') }}
+            </button>
+            <button
+              type="button"
+              class="app-chip whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40"
+              :disabled="pendingOperations.has(`bindSound:${row.giftId}`)"
               :aria-label="`${t('giftSound.replaceSound')}: ${row.giftName}`"
               @click="$emit('replace', row)"
-            />
-          </el-tooltip>
-          <el-tooltip :content="t('giftSound.removeBinding')">
-            <el-button
-              circle
-              :icon="Delete"
-              :disabled="!row.soundFileName"
-              :loading="pendingOperations.has(`removeSound:${row.giftId}`)"
+            >
+              <el-icon
+                v-if="pendingOperations.has(`bindSound:${row.giftId}`)"
+                class="is-loading"
+              >
+                <Loading />
+              </el-icon>
+              {{ row.soundFileName ? t('giftSound.replace') : t('giftSound.bind') }}
+            </button>
+            <button
+              type="button"
+              class="app-chip whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40"
+              :disabled="!row.soundFileName || pendingOperations.has(`removeSound:${row.giftId}`)"
               :aria-label="`${t('giftSound.removeBinding')}: ${row.giftName}`"
               @click="$emit('remove', row)"
-            />
-          </el-tooltip>
+            >
+              <el-icon
+                v-if="pendingOperations.has(`removeSound:${row.giftId}`)"
+                class="is-loading"
+              >
+                <Loading />
+              </el-icon>
+              {{ t('giftSound.remove') }}
+            </button>
+          </div>
         </template>
       </el-table-column>
     </el-table>

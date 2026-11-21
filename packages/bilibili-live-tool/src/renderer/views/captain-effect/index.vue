@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Delete, FolderOpened, RefreshLeft, VideoPlay } from '@element-plus/icons-vue';
+import { Delete, FolderOpened, Loading, RefreshLeft, VideoPlay } from '@element-plus/icons-vue';
 import type { CaptainEffectConfig, SoundBindingSummary } from '@/platform/desktop';
 import { validateHexColor, validateVolume } from '@/modules/media/validation';
 import { useMediaEffectsStore } from '@/stores/media/effects';
@@ -158,56 +158,66 @@ onUnmounted(store.dispose);
 </script>
 
 <template>
-  <section class="min-w-0">
-    <header class="mb-5 flex flex-wrap items-center gap-3 border-b border-gray-200 pb-4 dark:border-zinc-800">
-      <div class="min-w-56 flex-1">
-        <h2 class="m-0 text-xl font-semibold text-gray-900 dark:text-zinc-100">
-          {{ t('captainEffect.title') }}
-        </h2>
-        <p class="mb-0 mt-1 text-xs text-gray-500 dark:text-zinc-400">
-          {{ t('captainEffect.description') }}
-        </p>
+  <section class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
+    <header class="flex flex-wrap items-center gap-2">
+      <div class="mr-auto min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">{{ t('captainEffect.title') }}</h2>
+        <p class="app-muted mt-1 mb-0 text-sm">{{ t('captainEffect.description') }}</p>
       </div>
-      <el-button
-        :icon="VideoPlay"
-        :loading="store.previewPending"
-        :disabled="!formValid"
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :aria-busy="store.previewPending"
+        :disabled="!formValid || store.previewPending"
         @click="preview"
       >
+        <el-icon v-if="store.previewPending" class="is-loading"><Loading /></el-icon>
+        <el-icon v-else><VideoPlay /></el-icon>
         {{ t('captainEffect.preview') }}
-      </el-button>
-      <el-button :icon="RefreshLeft" :disabled="store.savePending" @click="resetDefaults">
+      </button>
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="store.savePending"
+        @click="resetDefaults"
+      >
+        <el-icon><RefreshLeft /></el-icon>
         {{ t('common.resetDefaults') }}
-      </el-button>
-      <el-button
-        type="primary"
-        :loading="store.savePending"
-        :disabled="!formValid"
+      </button>
+      <button
+        type="button"
+        class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+        :aria-busy="store.savePending"
+        :disabled="!formValid || store.savePending"
         @click="save"
       >
+        <el-icon v-if="store.savePending" class="is-loading"><Loading /></el-icon>
         {{ t('common.save') }}
-      </el-button>
+      </button>
     </header>
 
     <el-alert
       v-if="store.error"
-      class="mb-4"
       type="error"
       :closable="false"
       :title="store.error.message"
       show-icon
     />
 
-    <div v-loading="store.pending" class="min-h-[420px]">
-      <el-form label-position="top" class="grid grid-cols-1 gap-x-8 lg:grid-cols-2">
-        <div class="border-b border-gray-200 pb-5 dark:border-zinc-800 lg:border-b-0 lg:border-r lg:pr-8">
-          <h3 class="mb-4 mt-0 text-base font-semibold text-gray-800 dark:text-zinc-200">
-            {{ t('captainEffect.visual') }}
-          </h3>
-          <el-form-item :label="t('captainEffect.template')">
+    <div v-loading="store.pending" class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <section class="app-card p-5" aria-labelledby="captain-effect-visual-title">
+        <h3 id="captain-effect-visual-title" class="app-text m-0 text-base font-semibold">
+          {{ t('captainEffect.visual') }}
+        </h3>
+        <p class="app-muted mt-1 mb-0 text-sm">{{ t('captainEffect.visualHint') }}</p>
+
+        <div class="mt-4 flex flex-col gap-3">
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('captainEffect.template') }}</span>
             <el-select
               v-model="draft.presetId"
-              class="w-full"
+              class="w-44"
+              :aria-label="t('captainEffect.template')"
               :disabled="!store.snapshot"
               @change="handlePresetChange"
             >
@@ -223,12 +233,22 @@ onUnmounted(store.dispose);
                 :value="preset.presetId"
               />
             </el-select>
-          </el-form-item>
-          <el-form-item :label="t('captainEffect.duration')">
-            <el-segmented v-model="draft.durationSeconds" :options="[3, 5, 8, 10]" class="w-full" />
-          </el-form-item>
-          <el-form-item :label="t('captainEffect.position')">
-            <el-select v-model="draft.position" class="w-full">
+          </div>
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('captainEffect.duration') }}</span>
+            <el-segmented
+              v-model="draft.durationSeconds"
+              :options="[3, 5, 8, 10]"
+              :aria-label="t('captainEffect.duration')"
+            />
+          </div>
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('captainEffect.position') }}</span>
+            <el-select
+              v-model="draft.position"
+              class="w-44"
+              :aria-label="t('captainEffect.position')"
+            >
               <el-option
                 v-for="item in positionOptions"
                 :key="item.value"
@@ -236,116 +256,141 @@ onUnmounted(store.dispose);
                 :value="item.value"
               />
             </el-select>
-          </el-form-item>
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <el-form-item :label="t('captainEffect.windowWidth')">
-              <el-input-number
-                v-model="draft.windowWidth"
-                class="w-full"
-                :min="320"
-                :max="1920"
-                :step="10"
-                controls-position="right"
-              />
-            </el-form-item>
-            <el-form-item :label="t('captainEffect.windowHeight')">
-              <el-input-number
-                v-model="draft.windowHeight"
-                class="w-full"
-                :min="180"
-                :max="1080"
-                :step="10"
-                controls-position="right"
-              />
-            </el-form-item>
           </div>
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <el-form-item :label="t('captainEffect.primaryColor')">
-              <div class="flex w-full items-center gap-3">
-                <el-color-picker v-model="draft.primaryColor" />
-                <el-input v-model="draft.primaryColor" maxlength="7" />
-              </div>
-            </el-form-item>
-            <el-form-item :label="t('captainEffect.secondaryColor')">
-              <div class="flex w-full items-center gap-3">
-                <el-color-picker v-model="draft.secondaryColor" />
-                <el-input v-model="draft.secondaryColor" maxlength="7" />
-              </div>
-            </el-form-item>
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('captainEffect.windowWidth') }}</span>
+            <el-input-number
+              v-model="draft.windowWidth"
+              class="!w-40"
+              :min="320"
+              :max="1920"
+              :step="10"
+              controls-position="right"
+              :aria-label="t('captainEffect.windowWidth')"
+            />
+          </div>
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('captainEffect.windowHeight') }}</span>
+            <el-input-number
+              v-model="draft.windowHeight"
+              class="!w-40"
+              :min="180"
+              :max="1080"
+              :step="10"
+              controls-position="right"
+              :aria-label="t('captainEffect.windowHeight')"
+            />
+          </div>
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('captainEffect.primaryColor') }}</span>
+            <div class="flex items-center gap-2">
+              <el-color-picker
+                v-model="draft.primaryColor"
+                :aria-label="t('captainEffect.primaryColor')"
+              />
+              <el-input v-model="draft.primaryColor" maxlength="7" class="!w-28" />
+            </div>
+          </div>
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('captainEffect.secondaryColor') }}</span>
+            <div class="flex items-center gap-2">
+              <el-color-picker
+                v-model="draft.secondaryColor"
+                :aria-label="t('captainEffect.secondaryColor')"
+              />
+              <el-input v-model="draft.secondaryColor" maxlength="7" class="!w-28" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card p-5" aria-labelledby="captain-effect-sound-title">
+        <h3 id="captain-effect-sound-title" class="app-text m-0 text-base font-semibold">
+          {{ t('captainEffect.soundAndCombo') }}
+        </h3>
+        <p class="app-muted mt-1 mb-0 text-sm">{{ t('captainEffect.soundHint') }}</p>
+
+        <div class="mt-4 flex flex-col">
+          <div
+            v-for="row in soundRows"
+            :key="row.key"
+            class="flex flex-wrap items-center gap-2 border-t app-hairline py-2 first:border-t-0 first:pt-0"
+          >
+            <span class="app-muted w-20 shrink-0 text-sm">{{ row.label }}</span>
+            <span
+              class="min-w-0 flex-1 truncate text-sm"
+              :class="draft[row.key] ? 'app-text' : 'app-faint'"
+              :style="draft[row.key]?.isMissing ? { color: 'var(--app-red)' } : undefined"
+            >
+              {{ draft[row.key]?.fileName ?? t('captainEffect.notSelected') }}
+            </span>
+            <div class="flex shrink-0 items-center gap-1">
+              <el-tooltip :content="t('captainEffect.selectSound')">
+                <button
+                  type="button"
+                  class="app-icon-btn"
+                  :aria-label="`${t('captainEffect.selectSound')}: ${row.label}`"
+                  @click="selectSound(row.key)"
+                >
+                  <el-icon><FolderOpened /></el-icon>
+                </button>
+              </el-tooltip>
+              <el-tooltip :content="t('captainEffect.previewSound')">
+                <button
+                  type="button"
+                  class="app-icon-btn disabled:cursor-not-allowed disabled:opacity-40"
+                  :disabled="!draft[row.key]"
+                  :aria-label="`${t('captainEffect.previewSound')}: ${row.label}`"
+                  @click="draft[row.key] && previewSound(draft[row.key]!)"
+                >
+                  <el-icon><VideoPlay /></el-icon>
+                </button>
+              </el-tooltip>
+              <el-tooltip :content="t('captainEffect.removeSound')">
+                <button
+                  type="button"
+                  class="app-icon-btn disabled:cursor-not-allowed disabled:opacity-40"
+                  :disabled="!draft[row.key]"
+                  :aria-label="`${t('captainEffect.removeSound')}: ${row.label}`"
+                  @click="draft[row.key] = null"
+                >
+                  <el-icon><Delete /></el-icon>
+                </button>
+              </el-tooltip>
+            </div>
           </div>
         </div>
 
-        <div class="pt-5 lg:pt-0">
-          <h3 class="mb-4 mt-0 text-base font-semibold text-gray-800 dark:text-zinc-200">
-            {{ t('captainEffect.soundAndCombo') }}
-          </h3>
-          <div class="mb-5 divide-y divide-gray-200 border-y border-gray-200 dark:divide-zinc-800 dark:border-zinc-800">
-            <div
-              v-for="row in soundRows"
-              :key="row.key"
-              class="grid min-h-14 grid-cols-[90px_minmax(0,1fr)_auto] items-center gap-3 py-2"
-            >
-              <span class="text-sm text-gray-700 dark:text-zinc-300">{{ row.label }}</span>
-              <span
-                :class="
-                  draft[row.key]?.isMissing
-                    ? 'truncate text-sm text-red-600 dark:text-red-400'
-                    : 'truncate text-sm text-gray-500 dark:text-zinc-400'
-                "
-              >
-                {{ draft[row.key]?.fileName ?? t('captainEffect.notSelected') }}
-              </span>
-              <div class="flex items-center gap-1">
-                <el-tooltip :content="t('captainEffect.selectSound')">
-                  <el-button
-                    circle
-                    :icon="FolderOpened"
-                    :aria-label="`${t('captainEffect.selectSound')}: ${row.label}`"
-                    @click="selectSound(row.key)"
-                  />
-                </el-tooltip>
-                <el-tooltip :content="t('captainEffect.previewSound')">
-                  <el-button
-                    circle
-                    :icon="VideoPlay"
-                    :disabled="!draft[row.key]"
-                    :aria-label="`${t('captainEffect.previewSound')}: ${row.label}`"
-                    @click="draft[row.key] && previewSound(draft[row.key]!)"
-                  />
-                </el-tooltip>
-                <el-tooltip :content="t('captainEffect.removeSound')">
-                  <el-button
-                    circle
-                    :icon="Delete"
-                    :disabled="!draft[row.key]"
-                    :aria-label="`${t('captainEffect.removeSound')}: ${row.label}`"
-                    @click="draft[row.key] = null"
-                  />
-                </el-tooltip>
-              </div>
+        <div class="mt-3 flex flex-col gap-3">
+          <div class="border-t app-hairline pt-3">
+            <div class="flex items-center justify-between gap-3">
+              <span class="app-muted shrink-0 text-sm">{{ t('captainEffect.volume') }}</span>
+              <span class="app-text text-sm tabular-nums">{{ Math.round(draft.volume * 100) }}%</span>
             </div>
-          </div>
-          <el-form-item :label="t('captainEffect.volume')">
             <el-slider
               v-model="draft.volume"
+              class="mt-1"
               :min="0"
               :max="1"
               :step="0.1"
-              show-input
+              :aria-label="t('captainEffect.volume')"
             />
-          </el-form-item>
-          <el-form-item :label="t('captainEffect.combo')">
-            <el-switch v-model="draft.comboEnabled" />
-          </el-form-item>
-          <el-form-item :label="t('captainEffect.comboWindow')">
+          </div>
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('captainEffect.combo') }}</span>
+            <el-switch v-model="draft.comboEnabled" :aria-label="t('captainEffect.combo')" />
+          </div>
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('captainEffect.comboWindow') }}</span>
             <el-segmented
               v-model="draft.comboWindowSeconds"
               :options="[5, 10, 30]"
               :disabled="!draft.comboEnabled"
+              :aria-label="t('captainEffect.comboWindow')"
             />
-          </el-form-item>
+          </div>
         </div>
-      </el-form>
+      </section>
     </div>
   </section>
 </template>

@@ -1,23 +1,40 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { Delete, Download, Search, Star } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { useConfigStore } from '../../stores/config';
+
+interface LogEntry {
+  timestamp: number;
+  level: 'debug' | 'info' | 'warn' | 'error';
+  message: string;
+  isHighlight?: boolean;
+}
 
 const configStore = useConfigStore();
 const { locale, t } = useI18n();
 
 const logContainer = ref<HTMLElement>();
-const filterLevel = ref('');
+const filterLevel = ref<LogEntry['level'] | ''>('');
 const filterKeyword = ref('');
 const autoScroll = ref(true);
 const showHighlights = ref(true);
 
-  interface LogEntry {
-    timestamp: number;
-    level: 'debug' | 'info' | 'warn' | 'error';
-    message: string;
-    isHighlight?: boolean;
-  }
+const levelFilters = [
+  { value: '' as const, labelKey: 'logs.all' },
+  { value: 'debug' as const, labelKey: 'logs.debug' },
+  { value: 'info' as const, labelKey: 'logs.info' },
+  { value: 'warn' as const, labelKey: 'logs.warn' },
+  { value: 'error' as const, labelKey: 'logs.error' }
+];
+
+const levelColors: Record<LogEntry['level'], string> = {
+  debug: 'var(--app-text-3)',
+  info: 'var(--app-blue)',
+  warn: 'var(--app-orange)',
+  error: 'var(--app-red)'
+};
 
 const logs = ref<LogEntry[]>([]);
 
@@ -67,12 +84,12 @@ function addLog(level: LogEntry['level'], message: string) {
     message
   });
 
-  // 限制日志行数
+  // Cap the buffer at the configured maximum number of rows.
   if (logs.value.length > configStore.config.maxLogLines) {
     logs.value = logs.value.slice(-configStore.config.maxLogLines);
   }
 
-  // 自动滚动到底部
+  // Keep the viewport pinned to the newest row while auto-scroll is on.
   if (autoScroll.value) {
     nextTick(() => {
       scrollToBottom();
@@ -115,12 +132,21 @@ function handleExport() {
 
 function handleMarkHighlight() {
   addLog('info', t('logs.highlightMarked'));
-  logs.value[logs.value.length - 1].isHighlight = true;
+  const latest = logs.value[logs.value.length - 1];
+  if (latest) {
+    latest.isHighlight = true;
+  }
   ElMessage.success(t('logs.highlightMarked'));
 }
 
 function toggleHighlights() {
   showHighlights.value = !showHighlights.value;
+}
+
+function rowStyle(log: LogEntry): Record<string, string> | undefined {
+  return log.isHighlight
+    ? { background: 'color-mix(in srgb, var(--app-gold) 16%, transparent)' }
+    : undefined;
 }
 
 onMounted(() => {
@@ -133,82 +159,105 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="p-8 h-[calc(100vh-100px)]">
-    <el-card>
-      <template #header>
-        <div class="flex justify-between items-center">
-          <span class="font-semibold text-gray-700">{{ t('logs.title') }}</span>
-          <div class="flex items-center gap-2">
-            <el-select v-model="filterLevel" :placeholder="t('logs.filterLevel')" width="120">
-              <el-option :label="t('logs.all')" value="" />
-              <el-option label="Debug" value="debug" />
-              <el-option label="Info" value="info" />
-              <el-option label="Warning" value="warn" />
-              <el-option label="Error" value="error" />
-            </el-select>
-            <el-input
-              v-model="filterKeyword"
-              :placeholder="t('logs.keyword')"
-              width="200"
-              clearable
-            />
-            <el-switch v-model="autoScroll" :active-text="t('logs.autoScroll')" />
-            <el-button @click="handleClear">
-              {{ t('logs.clear') }}
-            </el-button>
-            <el-button @click="handleMarkHighlight">
-              {{ t('logs.markHighlight') }}
-            </el-button>
-            <el-button :type="showHighlights ? 'primary' : 'default'" @click="toggleHighlights">
-              {{ t('logs.showHighlights') }}
-            </el-button>
-            <el-button @click="handleExport">
-              {{ t('common.export') }}
-            </el-button>
-          </div>
-        </div>
-      </template>
+  <section class="mx-auto flex w-full max-w-[1180px] min-w-0 flex-col gap-4">
+    <header class="flex flex-wrap items-center justify-between gap-3">
+      <div class="mr-auto min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">
+          {{ t('logs.title') }}
+        </h2>
+        <p class="app-muted mt-1 mb-0 text-sm">
+          {{ t('logs.pageHint') }}
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <el-input
+          v-model="filterKeyword"
+          class="w-56"
+          :placeholder="t('logs.keyword')"
+          :aria-label="t('logs.keyword')"
+          clearable
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+        <button type="button" class="app-chip" @click="handleMarkHighlight">
+          <el-icon><Star /></el-icon>
+          {{ t('logs.markHighlight') }}
+        </button>
+        <button type="button" class="app-chip" @click="handleClear">
+          <el-icon><Delete /></el-icon>
+          {{ t('logs.clear') }}
+        </button>
+        <button
+          type="button"
+          class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3.5 text-sm"
+          @click="handleExport"
+        >
+          <el-icon><Download /></el-icon>
+          {{ t('common.export') }}
+        </button>
+      </div>
+    </header>
 
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="app-faint text-xs">{{ t('logs.filterLevel') }}</span>
+      <button
+        v-for="option in levelFilters"
+        :key="option.value || 'all'"
+        type="button"
+        class="app-chip"
+        :aria-pressed="filterLevel === option.value"
+        @click="filterLevel = option.value"
+      >
+        {{ t(option.labelKey) }}
+      </button>
+      <div class="ml-auto flex flex-wrap items-center gap-3">
+        <el-switch v-model="autoScroll" :active-text="t('logs.autoScroll')" />
+        <button
+          type="button"
+          class="app-chip"
+          :aria-pressed="showHighlights"
+          @click="toggleHighlights"
+        >
+          {{ t('logs.showHighlights') }}
+        </button>
+      </div>
+    </div>
+
+    <section class="app-card flex min-h-[420px] flex-col overflow-hidden">
+      <div class="app-hairline flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2.5">
+        <span class="app-muted text-xs font-semibold">{{ t('logs.console') }}</span>
+        <span class="app-faint text-xs tabular-nums">
+          {{ t('logs.count', { count: filteredLogs.length }) }}
+        </span>
+      </div>
       <div
         ref="logContainer"
-        class="h-[calc(100vh-220px)] overflow-y-auto bg-gray-900 rounded-md p-3 font-mono text-sm"
+        class="app-surface-2 min-h-0 flex-1 overflow-y-auto p-3 font-mono text-xs leading-5"
         @scroll="handleScroll"
       >
         <div
           v-for="(log, index) in filteredLogs"
           :key="index"
-          :class="[
-            'flex py-1 border-b border-gray-800 hover:bg-gray-800',
-            `log-${log.level}`,
-            log.isHighlight ? 'bg-yellow-900' : ''
-          ]"
+          class="app-hairline flex gap-3 border-b py-1 last:border-b-0"
+          :style="rowStyle(log)"
         >
-          <span class="text-gray-600 mr-2 min-w-[150px]">{{ formatTime(log.timestamp) }}</span>
-          <span
-            :class="[
-              'mr-2 min-w-[70px] font-bold',
-              log.level === 'debug' && 'text-gray-600',
-              log.level === 'info' && 'text-blue-400',
-              log.level === 'warn' && 'text-yellow-400',
-              log.level === 'error' && 'text-red-500'
-            ]"
-          >
-            {{ log.level.toUpperCase() }}
+          <span class="app-faint w-[88px] shrink-0 tabular-nums">
+            {{ formatTime(log.timestamp) }}
           </span>
           <span
-            :class="[
-              'flex-1 break-all',
-              log.level === 'debug' && 'text-gray-500',
-              log.level === 'info' && 'text-gray-300',
-              log.level === 'warn' && 'text-yellow-200',
-              log.level === 'error' && 'text-red-300'
-            ]"
+            class="w-14 shrink-0 font-semibold uppercase"
+            :style="{ color: levelColors[log.level] }"
           >
-            {{ log.message }}
+            {{ log.level }}
           </span>
+          <span class="app-text min-w-0 flex-1 break-all">{{ log.message }}</span>
         </div>
-        <el-empty v-if="filteredLogs.length === 0" :description="t('logs.noLogs')" />
+        <div v-if="filteredLogs.length === 0" class="flex min-h-[220px] items-center justify-center">
+          <el-empty :image-size="72" :description="t('logs.noLogs')" />
+        </div>
       </div>
-    </el-card>
-  </div>
+    </section>
+  </section>
 </template>

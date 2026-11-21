@@ -43,13 +43,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="border-t border-gray-200 py-4 dark:border-zinc-800">
-    <h3 class="m-0 mb-2 text-sm font-medium text-gray-700 dark:text-zinc-200">
+  <section class="app-card p-4">
+    <h3 class="app-text m-0 mb-2 text-sm font-medium">
       {{ title }}
     </h3>
     <div
       v-if="points.length === 0"
-      class="flex min-h-[280px] items-center justify-center text-sm text-gray-400 dark:text-zinc-400"
+      class="app-faint flex min-h-[280px] items-center justify-center text-sm"
     >
       {{ t('liveData.empty') }}
     </div>

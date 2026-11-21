@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Download, RefreshLeft, Search, Upload } from '@element-plus/icons-vue';
+import { Download, Loading, RefreshLeft, Search, Upload } from '@element-plus/icons-vue';
 import type { GiftId, GiftSoundBinding } from '@/platform/desktop';
 import { useMediaGiftsStore } from '@/stores/media/gifts';
 import GiftSoundTable from '@/components/media/GiftSoundTable.vue';
@@ -147,88 +147,132 @@ onMounted(load);
 </script>
 
 <template>
-  <section class="min-w-0">
-    <header class="mb-4 flex flex-wrap items-center gap-3 border-b border-gray-200 pb-4 dark:border-zinc-800">
-      <div class="min-w-56 flex-1">
-        <h2 class="m-0 text-xl font-semibold text-gray-900 dark:text-zinc-100">
-          {{ t('giftSound.title') }}
-        </h2>
-        <p class="mb-0 mt-1 text-xs text-gray-500 dark:text-zinc-400">
-          {{ t('giftSound.description') }}
-        </p>
+  <section class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
+    <header class="flex flex-wrap items-center gap-2">
+      <div class="mr-auto min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">{{ t('giftSound.title') }}</h2>
+        <p class="app-muted mt-1 mb-0 text-sm">{{ t('giftSound.description') }}</p>
       </div>
-      <el-button
-        :icon="Upload"
-        :loading="store.pendingOperations.has('importSounds')"
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :aria-busy="store.pendingOperations.has('importSounds')"
+        :disabled="store.pendingOperations.has('importSounds')"
         @click="importSounds"
       >
+        <el-icon
+          v-if="store.pendingOperations.has('importSounds')"
+          class="is-loading"
+        ><Loading /></el-icon>
+        <el-icon v-else><Upload /></el-icon>
         {{ t('common.import') }}
-      </el-button>
-      <el-button
-        :icon="Download"
-        :loading="store.pendingOperations.has('exportSounds')"
+      </button>
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :aria-busy="store.pendingOperations.has('exportSounds')"
+        :disabled="store.pendingOperations.has('exportSounds')"
         @click="exportSounds"
       >
+        <el-icon
+          v-if="store.pendingOperations.has('exportSounds')"
+          class="is-loading"
+        ><Loading /></el-icon>
+        <el-icon v-else><Download /></el-icon>
         {{ t('common.export') }}
-      </el-button>
-      <el-button :icon="RefreshLeft" :disabled="savePending" @click="resetDefaults">
+      </button>
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="savePending"
+        @click="resetDefaults"
+      >
+        <el-icon><RefreshLeft /></el-icon>
         {{ t('common.resetDefaults') }}
-      </el-button>
-      <el-button type="primary" :loading="savePending" @click="save">
+      </button>
+      <button
+        type="button"
+        class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+        :aria-busy="savePending"
+        :disabled="savePending"
+        @click="save"
+      >
+        <el-icon v-if="savePending" class="is-loading"><Loading /></el-icon>
         {{ t('common.save') }}
-      </el-button>
+      </button>
     </header>
 
     <el-alert
       v-if="store.error"
-      class="mb-4"
       type="error"
       :closable="false"
       :title="store.error.message"
       show-icon
     />
 
-    <div class="mb-3 flex flex-wrap items-center gap-3">
-      <el-input
-        v-model="search"
-        :prefix-icon="Search"
-        clearable
-        :placeholder="t('giftSound.searchPlaceholder')"
-        class="!w-64"
-      />
-      <el-checkbox v-model="boundOnly">
-        {{ t('giftSound.boundOnly') }}
-      </el-checkbox>
-      <span class="ml-auto text-xs text-gray-500 dark:text-zinc-400">
-        {{ filteredRows.length }} / {{ drafts.length }}
-      </span>
-    </div>
+    <section class="app-card p-4" aria-labelledby="gift-sound-bindings-title">
+      <div class="flex flex-wrap items-center gap-2">
+        <h3 id="gift-sound-bindings-title" class="app-text m-0 text-base font-semibold">
+          {{ t('giftSound.bindings') }}
+        </h3>
+        <span class="app-faint text-xs tabular-nums">
+          {{ filteredRows.length }} / {{ drafts.length }}
+        </span>
+        <div class="ml-auto flex flex-wrap items-center gap-2">
+          <el-input
+            v-model="search"
+            :prefix-icon="Search"
+            clearable
+            :placeholder="t('giftSound.searchPlaceholder')"
+            :aria-label="t('giftSound.searchPlaceholder')"
+            class="!w-56"
+          />
+          <button
+            type="button"
+            class="app-chip"
+            :class="{ 'app-chip--active': boundOnly }"
+            :aria-pressed="boundOnly"
+            @click="boundOnly = !boundOnly"
+          >
+            {{ t('giftSound.boundOnly') }}
+          </button>
+        </div>
+      </div>
+      <p class="app-faint mt-1 mb-0 text-xs">{{ t('giftSound.bindingsHint') }}</p>
+      <div v-loading="store.pending" class="mt-3">
+        <GiftSoundTable
+          :rows="filteredRows"
+          :pending-operations="store.pendingOperations"
+          @preview="previewSound"
+          @replace="replaceSound"
+          @remove="removeSound"
+          @volume="(giftId, value) => updateRow(giftId, { volume: value })"
+          @enabled="(giftId, value) => updateRow(giftId, { isEnabled: value })"
+        />
+      </div>
+    </section>
 
-    <div v-loading="store.pending">
-      <GiftSoundTable
-        :rows="filteredRows"
-        :pending-operations="store.pendingOperations"
-        @preview="previewSound"
-        @replace="replaceSound"
-        @remove="removeSound"
-        @volume="(giftId, value) => updateRow(giftId, { volume: value })"
-        @enabled="(giftId, value) => updateRow(giftId, { isEnabled: value })"
-      />
-    </div>
-
-    <footer class="mt-4 flex flex-wrap items-center gap-5 border-t border-gray-200 pt-4 dark:border-zinc-800">
-      <span class="text-sm font-medium text-gray-800 dark:text-zinc-200">{{ t('giftSound.globalVolume') }}</span>
-      <el-slider
-        v-model="globalVolume"
-        :min="0"
-        :max="1"
-        :step="0.1"
-        show-input
-        class="!w-72"
-      />
-      <span class="ml-auto text-sm text-gray-500 dark:text-zinc-400">
-        {{ t('giftSound.queue', { count: store.soundSnapshot?.queueCapacityPerSecond ?? 10 }) }}
-      </span>
-    </footer>
+    <section class="app-card p-4" aria-labelledby="gift-sound-playback-title">
+      <h3 id="gift-sound-playback-title" class="app-text m-0 text-base font-semibold">
+        {{ t('giftSound.playback') }}
+      </h3>
+      <p class="app-muted mt-1 mb-0 text-sm">{{ t('giftSound.playbackHint') }}</p>
+      <div class="mt-3 flex flex-wrap items-center gap-4 border-t app-hairline pt-3">
+        <span class="app-muted shrink-0 text-sm">{{ t('giftSound.globalVolume') }}</span>
+        <span class="app-text text-sm tabular-nums">{{ Math.round(globalVolume * 100) }}%</span>
+        <el-slider
+          v-model="globalVolume"
+          :min="0"
+          :max="1"
+          :step="0.1"
+          show-input
+          class="!w-72"
+          :aria-label="t('giftSound.globalVolume')"
+        />
+        <span class="app-faint ml-auto text-sm">
+          {{ t('giftSound.queue', { count: store.soundSnapshot?.queueCapacityPerSecond ?? 10 }) }}
+        </span>
+      </div>
+    </section>
   </section>
 </template>

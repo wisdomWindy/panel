@@ -50,10 +50,15 @@ function classTokens(html: string): string[] {
 
 function expectSharedPageSurface(html: string): void {
   const tokens = classTokens(html);
-  expect(tokens).toContain('dark:bg-zinc-900');
-  expect(tokens).toContain('dark:border-zinc-800');
-  expect(tokens).toContain('dark:text-zinc-100');
-  expect(tokens).toContain('dark:text-zinc-400');
+  // The risk pages are token-driven cards: one palette, no per-page dark: literals.
+  expect(tokens).toEqual(
+    expect.arrayContaining(['app-card', 'app-text', 'app-faint', 'app-chip', 'app-btn-primary'])
+  );
+  expect(tokens.some(token => token.startsWith('dark:'))).toBe(false);
+  expect(html).not.toContain('dark:');
+  expect(html).not.toContain('bg-white');
+  expect(html).not.toContain('text-gray-');
+  expect(html).not.toContain('border-gray-');
 }
 
 describe('dark theme page surfaces', () => {
@@ -125,11 +130,11 @@ describe('dark theme page surfaces', () => {
   it.each([
     ['sensitive words', SensitiveWordsPage],
     ['blacklist', BlacklistPage]
-  ])('renders the %s page header, table frame, and footer as one dark surface', async (_, page) => {
+  ])('renders the %s page as one token-driven card surface', async (_, page) => {
     expectSharedPageSurface(await renderPage(page));
   });
 
-  it('renders empty trend chart framing with readable dark tokens', async () => {
+  it('renders empty trend chart framing with the shared card tokens', async () => {
     const app = createSSRApp(TrendChart, {
       title: 'trend',
       points: [],
@@ -139,8 +144,7 @@ describe('dark theme page surfaces', () => {
     app.use(createTestI18n());
     const tokens = classTokens(await renderToString(app));
 
-    expect(tokens).toEqual(
-      expect.arrayContaining(['dark:border-zinc-800', 'dark:text-zinc-200', 'dark:text-zinc-400'])
-    );
+    expect(tokens).toEqual(expect.arrayContaining(['app-card', 'app-text', 'app-faint']));
+    expect(tokens.some(token => token.startsWith('dark:'))).toBe(false);
   });
 });

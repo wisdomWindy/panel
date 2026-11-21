@@ -23,6 +23,10 @@ const filteredRows = computed(() => {
 
 const duplicate = computed(() => safety.blacklist.items.find(row => row.uid === form.uid));
 
+const emptyText = computed(() =>
+  safety.blacklist.items.length === 0 ? t('blacklist.noRecords') : t('blacklist.noMatches')
+);
+
 function showError(value: unknown): void {
   const error = normalizeDesktopError(value);
   if (error.code !== 'dialog_cancelled')
@@ -108,11 +112,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="mx-auto flex h-full min-h-[560px] max-w-7xl flex-col bg-white dark:bg-zinc-900">
-    <header class="flex min-h-14 flex-wrap items-center gap-3 border-b border-gray-200 py-2 dark:border-zinc-800">
-      <h2 class="mr-auto m-0 text-lg font-semibold text-gray-900 dark:text-zinc-100">
-        {{ t('blacklist.title') }}
-      </h2>
+  <section class="mx-auto flex h-full min-h-[560px] w-full max-w-[1180px] flex-col gap-3">
+    <header class="flex flex-wrap items-center gap-2">
+      <div class="mr-auto min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">
+          {{ t('blacklist.title') }}
+        </h2>
+        <p class="app-muted mt-1 mb-0 text-sm">
+          {{ t('blacklist.description') }}
+        </p>
+      </div>
       <el-input
         v-model="search"
         clearable
@@ -120,68 +129,100 @@ onMounted(() => {
         :placeholder="t('blacklist.searchPlaceholder')"
         :aria-label="t('blacklist.searchPlaceholder')"
       />
-      <el-button :icon="Upload" :loading="safety.mutationPending" @click="importRows">
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="safety.mutationPending"
+        :aria-busy="safety.mutationPending"
+        @click="importRows"
+      >
+        <el-icon><Upload /></el-icon>
         {{ t('common.import') }}
-      </el-button>
-      <el-button :icon="Download" :loading="safety.mutationPending" @click="exportRows">
+      </button>
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="safety.mutationPending"
+        :aria-busy="safety.mutationPending"
+        @click="exportRows"
+      >
+        <el-icon><Download /></el-icon>
         {{ t('common.export') }}
-      </el-button>
-      <el-button type="primary" :icon="Plus" @click="openDialog">
+      </button>
+      <button
+        type="button"
+        class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-sm"
+        @click="openDialog"
+      >
+        <el-icon><Plus /></el-icon>
         {{ t('blacklist.manualAdd') }}
-      </el-button>
+      </button>
     </header>
 
-    <p v-if="importResult" class="my-2 text-sm text-gray-600 dark:text-zinc-400">
+    <p v-if="importResult" class="app-muted my-0 text-sm">
       {{ importResult }}
     </p>
     <el-alert
       v-if="safety.error"
-      class="my-3"
       :title="safety.error.message"
       type="error"
       :closable="false"
+      show-icon
     />
 
-    <div class="min-h-0 flex-1 overflow-x-auto">
-      <el-table
-        v-loading="safety.pending"
-        :data="filteredRows"
-        height="100%"
-        class="min-w-[840px]"
-        row-key="uid"
-      >
-        <el-table-column prop="uid" label="UID" width="180" />
-        <el-table-column prop="username" :label="t('blacklist.username')" min-width="160" />
-        <el-table-column :label="t('blacklist.reason')" min-width="220">
-          <template #default="{ row }">
-            {{ row.reason ?? '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('blacklist.createdAt')" width="190">
-          <template #default="{ row }">
-            {{ formatDate(row.createdAt) }}
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('common.actions')" width="90" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              :icon="Delete"
-              link
-              type="danger"
-              :aria-label="t('blacklist.removeTitle')"
-              @click="remove(row)"
-            />
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
+    <section class="app-card flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="min-h-0 flex-1 overflow-x-auto">
+        <el-table
+          v-loading="safety.pending"
+          :data="filteredRows"
+          :empty-text="emptyText"
+          height="100%"
+          class="min-w-[840px]"
+          header-cell-class-name="app-faint"
+          row-key="uid"
+        >
+          <el-table-column prop="uid" label="UID" width="180" />
+          <el-table-column prop="username" :label="t('blacklist.username')" min-width="160" />
+          <el-table-column :label="t('blacklist.reason')" min-width="220" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span class="app-muted">{{ row.reason ?? '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('blacklist.createdAt')" width="190">
+            <template #default="{ row }">
+              <span class="app-faint tabular-nums">{{ formatDate(row.createdAt) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('common.actions')" width="90" fixed="right">
+            <template #default="{ row }">
+              <button
+                type="button"
+                class="app-icon-btn"
+                :style="{ color: 'var(--app-red)' }"
+                :aria-label="t('blacklist.removeTitle')"
+                @click="remove(row)"
+              >
+                <el-icon><Delete /></el-icon>
+              </button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
-    <footer
-      class="flex min-h-11 items-center gap-6 border-t border-gray-200 px-3 text-sm text-gray-600 dark:border-zinc-800 dark:text-zinc-400"
-    >
-      <span>{{ t('common.total') }} {{ safety.blacklist.items.length }}</span>
-      <span>{{ t('common.todayAdded') }} {{ safety.blacklist.todayAddedCount }}</span>
-    </footer>
+      <footer
+        class="app-faint flex min-h-10 flex-wrap items-center gap-x-6 gap-y-1 border-t px-3 text-sm"
+        style="border-color: var(--app-border)"
+      >
+        <span>
+          {{ t('common.total') }}
+          <strong class="app-text tabular-nums">{{ safety.blacklist.items.length }}</strong>
+        </span>
+        <span>
+          {{ t('common.todayAdded') }}
+          <strong class="app-text tabular-nums">{{ safety.blacklist.todayAddedCount }}</strong>
+        </span>
+      </footer>
+    </section>
 
     <el-dialog
       v-model="dialogVisible"
@@ -213,13 +254,36 @@ onMounted(() => {
         :closable="false"
       />
       <template #footer>
-        <el-button @click="dialogVisible = false">
-          {{ t('common.cancel') }}
-        </el-button>
-        <el-button type="primary" :loading="safety.mutationPending" @click="submit">
-          {{ duplicate ? t('blacklist.updateReason') : t('common.add') }}
-        </el-button>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="app-chip" @click="dialogVisible = false">
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="app-btn-primary inline-flex h-8 items-center px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="safety.mutationPending"
+            :aria-busy="safety.mutationPending"
+            @click="submit"
+          >
+            {{ duplicate ? t('blacklist.updateReason') : t('common.add') }}
+          </button>
+        </div>
       </template>
     </el-dialog>
   </section>
 </template>
+
+<style scoped>
+.app-card :deep(.el-table) {
+  --el-table-border-color: var(--app-border);
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: transparent;
+  --el-table-header-text-color: var(--app-text-3);
+  --el-table-text-color: var(--app-text);
+  --el-table-row-hover-bg-color: var(--app-panel-2);
+}
+.app-card :deep(.el-table th.el-table__cell) {
+  font-weight: 500;
+}
+</style>

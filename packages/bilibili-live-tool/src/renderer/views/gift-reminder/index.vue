@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Bell, VideoPlay } from '@element-plus/icons-vue';
+import { Bell, Loading, VideoPlay } from '@element-plus/icons-vue';
 import type { GiftEvent, GiftNotifyConfig } from '@/platform/desktop';
 import { formatClockTime, formatMoneyMinor } from '@/modules/media/formatters';
 import { useMediaGiftsStore } from '@/stores/media/gifts';
@@ -69,136 +69,175 @@ onMounted(load);
 </script>
 
 <template>
-  <section class="min-w-0">
-    <header class="mb-5 flex flex-wrap items-center gap-3 border-b border-gray-200 pb-4 dark:border-zinc-800">
-      <div class="min-w-56 flex-1">
-        <h2 class="m-0 text-xl font-semibold text-gray-900 dark:text-zinc-100">
-          {{ t('giftReminder.title') }}
-        </h2>
-        <p class="mb-0 mt-1 text-xs text-gray-500 dark:text-zinc-400">
-          {{ t('giftReminder.description') }}
-        </p>
+  <section class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
+    <header class="flex flex-wrap items-center gap-2">
+      <div class="mr-auto min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">{{ t('giftReminder.title') }}</h2>
+        <p class="app-muted mt-1 mb-0 text-sm">{{ t('giftReminder.description') }}</p>
       </div>
-      <el-button
-        :icon="VideoPlay"
-        :loading="testPending"
-        :disabled="!methodValid"
+      <button
+        type="button"
+        class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+        :aria-busy="testPending"
+        :disabled="!methodValid || testPending"
         @click="testReminder"
       >
+        <el-icon v-if="testPending" class="is-loading"><Loading /></el-icon>
+        <el-icon v-else><VideoPlay /></el-icon>
         {{ t('giftReminder.test') }}
-      </el-button>
-      <el-button
-        type="primary"
-        :icon="Bell"
-        :loading="savePending"
-        :disabled="!methodValid"
+      </button>
+      <button
+        type="button"
+        class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+        :aria-busy="savePending"
+        :disabled="!methodValid || savePending"
         @click="save"
       >
+        <el-icon v-if="savePending" class="is-loading"><Loading /></el-icon>
+        <el-icon v-else><Bell /></el-icon>
         {{ t('common.save') }}
-      </el-button>
+      </button>
     </header>
 
     <el-alert
       v-if="store.error"
-      class="mb-4"
       type="error"
       :closable="false"
       :title="store.error.message"
       show-icon
     />
 
-    <div
-      v-loading="store.pending"
-      class="grid min-h-64 grid-cols-1 gap-x-8 border-b border-gray-200 pb-5 dark:border-zinc-800 lg:grid-cols-2"
-    >
-      <el-form label-position="top">
-        <div class="flex min-h-10 items-center justify-between border-b border-gray-200 pb-3 dark:border-zinc-800">
-          <span class="text-sm font-medium text-gray-800 dark:text-zinc-200">{{ t('giftReminder.enabled') }}</span>
-          <el-switch v-model="draft.isEnabled" />
+    <div v-loading="store.pending" class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <section class="app-card p-5" aria-labelledby="gift-reminder-alert-title">
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="mr-auto min-w-0">
+            <h3 id="gift-reminder-alert-title" class="app-text m-0 text-base font-semibold">
+              {{ t('giftReminder.sections.alert') }}
+            </h3>
+            <p class="app-muted mt-1 mb-0 text-sm">{{ t('giftReminder.thresholdHint') }}</p>
+          </div>
+          <span class="app-muted shrink-0 text-sm">{{ t('giftReminder.enabled') }}</span>
+          <el-switch v-model="draft.isEnabled" :aria-label="t('giftReminder.enabled')" />
         </div>
-        <el-form-item class="mt-4" :label="t('giftReminder.threshold')">
-          <el-input-number
-            v-model="draft.highValueThresholdMinor"
-            :min="0"
-            :step="100"
-            class="!w-full"
-          />
-        </el-form-item>
-        <el-form-item
-          :label="t('giftReminder.methods')"
-          :error="methodValid ? '' : t('giftReminder.methodRequired')"
-        >
-          <el-checkbox
-            v-model="draft.methods.systemNotification"
-            :label="t('giftReminder.systemNotification')"
-          />
-          <el-checkbox v-model="draft.methods.localPopup" :label="t('giftReminder.localPopup')" />
-          <el-checkbox v-model="draft.methods.sound" :label="t('giftReminder.sound')" />
-        </el-form-item>
-      </el-form>
 
-      <el-form label-position="top">
-        <el-form-item :label="t('giftReminder.combo')">
-          <el-switch v-model="draft.comboEnabled" />
-        </el-form-item>
-        <el-form-item :label="t('giftReminder.comboWindow')">
-          <el-segmented
-            v-model="draft.comboWindowSeconds"
-            :options="[5, 10, 30]"
-            :disabled="!draft.comboEnabled"
-          />
-        </el-form-item>
-        <el-form-item :label="t('giftReminder.popupPosition')">
-          <el-select v-model="draft.popupPosition" class="w-full">
-            <el-option :label="t('captainEffect.positions.topLeft')" value="topLeft" />
-            <el-option :label="t('captainEffect.positions.topRight')" value="topRight" />
-            <el-option :label="t('captainEffect.positions.bottomLeft')" value="bottomLeft" />
-            <el-option :label="t('captainEffect.positions.bottomRight')" value="bottomRight" />
-            <el-option :label="t('captainEffect.positions.center')" value="center" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="t('giftReminder.displayDuration')">
-          <el-input-number
-            v-model="draft.popupDurationSeconds"
-            :min="1"
-            :max="30"
-            class="!w-full"
-          />
-        </el-form-item>
-      </el-form>
+        <div class="mt-4 flex flex-col gap-3">
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('giftReminder.threshold') }}</span>
+            <el-input-number
+              v-model="draft.highValueThresholdMinor"
+              :min="0"
+              :step="100"
+              class="!w-40"
+              :aria-label="t('giftReminder.threshold')"
+            />
+          </div>
+          <div class="flex flex-col gap-2 border-t app-hairline pt-3">
+            <span class="app-muted text-sm">{{ t('giftReminder.methods') }}</span>
+            <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <el-checkbox v-model="draft.methods.systemNotification">
+                {{ t('giftReminder.systemNotification') }}
+              </el-checkbox>
+              <el-checkbox v-model="draft.methods.localPopup">
+                {{ t('giftReminder.localPopup') }}
+              </el-checkbox>
+              <el-checkbox v-model="draft.methods.sound">
+                {{ t('giftReminder.sound') }}
+              </el-checkbox>
+            </div>
+            <p
+              v-if="!methodValid"
+              class="m-0 text-xs"
+              style="color: var(--app-red)"
+              role="alert"
+            >
+              {{ t('giftReminder.methodRequired') }}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card p-5" aria-labelledby="gift-reminder-behavior-title">
+        <h3 id="gift-reminder-behavior-title" class="app-text m-0 text-base font-semibold">
+          {{ t('giftReminder.sections.behavior') }}
+        </h3>
+        <p class="app-muted mt-1 mb-0 text-sm">{{ t('giftReminder.sections.behaviorHint') }}</p>
+
+        <div class="mt-4 flex flex-col gap-3">
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('giftReminder.combo') }}</span>
+            <el-switch v-model="draft.comboEnabled" :aria-label="t('giftReminder.combo')" />
+          </div>
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('giftReminder.comboWindow') }}</span>
+            <el-segmented
+              v-model="draft.comboWindowSeconds"
+              :options="[5, 10, 30]"
+              :disabled="!draft.comboEnabled"
+              :aria-label="t('giftReminder.comboWindow')"
+            />
+          </div>
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('giftReminder.popupPosition') }}</span>
+            <el-select
+              v-model="draft.popupPosition"
+              class="w-40"
+              :aria-label="t('giftReminder.popupPosition')"
+            >
+              <el-option :label="t('captainEffect.positions.topLeft')" value="topLeft" />
+              <el-option :label="t('captainEffect.positions.topRight')" value="topRight" />
+              <el-option :label="t('captainEffect.positions.bottomLeft')" value="bottomLeft" />
+              <el-option :label="t('captainEffect.positions.bottomRight')" value="bottomRight" />
+              <el-option :label="t('captainEffect.positions.center')" value="center" />
+            </el-select>
+          </div>
+          <div class="flex min-h-8 items-center justify-between gap-3 border-t app-hairline pt-3">
+            <span class="app-muted shrink-0 text-sm">{{ t('giftReminder.displayDuration') }}</span>
+            <el-input-number
+              v-model="draft.popupDurationSeconds"
+              :min="1"
+              :max="30"
+              class="!w-40"
+              :aria-label="t('giftReminder.displayDuration')"
+            />
+          </div>
+        </div>
+      </section>
     </div>
 
-    <div class="grid grid-cols-3 border-b border-gray-200 dark:border-zinc-800">
-      <div class="px-4 py-4">
-        <span class="block text-xs text-gray-500 dark:text-zinc-400">{{ t('dashboard.giftRevenue') }}</span>
-        <strong class="mt-1 block text-xl tabular-nums text-gray-900 dark:text-zinc-100">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <article class="app-card p-4">
+        <p class="app-metric-label m-0">{{ t('dashboard.giftRevenue') }}</p>
+        <p class="app-metric-value mt-1.5 mb-0">
           {{ formatMoneyMinor(store.notifySnapshot?.totalValueMinor ?? 0) }}
-        </strong>
-      </div>
-      <div class="border-l border-gray-200 px-4 py-4 dark:border-zinc-800">
-        <span class="block text-xs text-gray-500 dark:text-zinc-400">{{ t('giftReminder.donors') }}</span>
-        <strong class="mt-1 block text-xl tabular-nums text-gray-900 dark:text-zinc-100">
+        </p>
+      </article>
+      <article class="app-card p-4">
+        <p class="app-metric-label m-0">{{ t('giftReminder.donors') }}</p>
+        <p class="app-metric-value mt-1.5 mb-0 tabular-nums">
           {{ store.notifySnapshot?.donorCount ?? 0 }}
-        </strong>
-      </div>
-      <div class="border-l border-gray-200 px-4 py-4 dark:border-zinc-800">
-        <span class="block text-xs text-gray-500 dark:text-zinc-400">{{ t('giftReminder.giftCount') }}</span>
-        <strong class="mt-1 block text-xl tabular-nums text-gray-900 dark:text-zinc-100">
+        </p>
+      </article>
+      <article class="app-card p-4">
+        <p class="app-metric-label m-0">{{ t('giftReminder.giftCount') }}</p>
+        <p class="app-metric-value mt-1.5 mb-0 tabular-nums">
           {{ store.notifySnapshot?.giftCount ?? 0 }}
-        </strong>
-      </div>
+        </p>
+      </article>
     </div>
 
-    <div class="pt-5">
-      <h3 class="mb-3 mt-0 text-base font-semibold text-gray-800 dark:text-zinc-200">
-        {{ t('giftReminder.recent') }}
-      </h3>
+    <section class="app-card p-4" aria-labelledby="gift-reminder-recent-title">
+      <div class="flex flex-wrap items-baseline gap-2">
+        <h3 id="gift-reminder-recent-title" class="app-text m-0 text-base font-semibold">
+          {{ t('giftReminder.recent') }}
+        </h3>
+        <span class="app-faint text-xs">{{ t('giftReminder.recentHint') }}</span>
+      </div>
       <el-table
         v-if="store.notifySnapshot?.latestGifts.length"
         :data="store.notifySnapshot.latestGifts"
         row-key="eventId"
         height="300"
-        class="w-full"
+        class="mt-3 w-full"
         @row-click="showGift"
       >
         <el-table-column
@@ -231,7 +270,7 @@ onMounted(load);
         </el-table-column>
       </el-table>
       <el-empty v-else :description="t('gift.empty')" class="h-[300px]" />
-    </div>
+    </section>
 
     <GiftDetailDrawer v-model="drawerVisible" :gift="selectedGift" />
   </section>

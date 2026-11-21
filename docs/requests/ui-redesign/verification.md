@@ -1,51 +1,54 @@
-# 验证记录：主界面按 PRD v2 与设计图重构
+# 验证记录：主界面按 PRD v2 与设计图全量重构
 
 日期：2026-11-21 ｜ 输入：`docs/requirements/`（PRD v2 + 8 张设计图 + HTML 原型）
 
-## 1. 本轮完成
+## 1. 完成范围（10 个导航页全覆盖）
 
-| 项 | 证据 |
-| --- | --- |
-| 设计令牌 | `src/renderer/styles/theme.css`，色值与 `ui/bilibili-live-helper-ui.html` 逐项一致（`--app-bg/#13151a` 等），并覆写 Element Plus 深色变量 |
-| 顶部工具栏 | 重写 `AppShellToolbar.vue`：48px、品牌、房间输入、连接按钮（含状态点）、通知/设置图标 |
-| 左侧导航 | 重写 `AppShellNavigation.vue`：自定义导航项 + 激活左色条，208px，分组悬停展开子项 |
-| 底部状态栏 | 重写 `AppShellStatusBar.vue`：7 字段、状态点、竖直分隔线 |
-| 四区布局 | `App.vue` 网格行高改为 48/1fr/32，壳层背景统一走令牌 |
-| 首屏「直播间」 | 新增 `views/live-room/index.vue`：房间信息 + 4 指标卡 + 最近事件流 |
-| 路由 | `/` 重定向到 `/live`；导航首项 `liveRoom → /live` |
-| 国际化 | 新增 `liveRoom.*`（13 键）与 `shell.navigation.liveRoom`、`liveData.tags.ordinary`，中英双语对齐 |
-| 弹幕面板 | 重写：身份 chip 过滤（全部/房管/舰长/礼物/普通）+ 实时计数、身份图例侧栏、行内头像、礼物行高亮；`AudienceIdentityView` 改用统一徽标令牌 |
-| 数据看板 | 重写：5 张指标卡走 `app-metric`，趋势图改为两列网格，Qwen3 模型卡改用徽标与主按钮 |
-| 排行榜 | 重写：送礼/弹幕/舰长三榜并排（设计图为三联布局，取消页签），名次徽标、空态按列独立 |
+| 导航项 | 路由 | 状态 |
+| --- | --- | --- |
+| 直播间 | `/live` | ✅ 新建：房间信息 + 4 指标卡 + 最近事件流 |
+| 弹幕面板 | `/danmaku-list` | ✅ 身份 chip 过滤 + 身份图例 + 行内头像 + 礼物行高亮 |
+| 数据看板 | `/dashboard` | ✅ 指标卡网格 + 两列趋势图 + Qwen3 模型卡 |
+| 排行榜 | `/rankings` | ✅ 送礼/弹幕/舰长三榜并排 + 名次徽标 |
+| 风控中心 | `/risk/{sensitive,blacklist}` | ✅ 分组页签；两子页令牌化（chip 筛选、卡片表格） |
+| 提醒配置 | `/reminders/{gift,captain,sound}` | ✅ 分组页签；三子页令牌化 |
+| 语音播报 | `/tts` | ✅ 头部 + 6 张 `app-card`（引擎/选择/模板/Qwen3/操作/队列） |
+| 直播录制 | `/recording` | ✅ 控制卡 + 配置卡 + 5 张指标卡 + 列表卡 |
+| AI 助手 | `/ai` | ✅ 页头页签 + 左设置卡 / 右队列卡 + 结果卡 |
+| 系统设置 | `/settings/{general,logs,update}` | ✅ 分组页签；三子页令牌化 |
+
+配套：
+- 设计令牌 `styles/theme.css`（16 个色值 + Element Plus 深色变量覆写 + 30 余个工具类）。
+- 外壳四区（48px 工具栏 / 208px 导航 / 状态栏）全部令牌化。
+- 分组页签组件 `SectionGroup.vue`；旧路径（`/sensitive-words`、`/gift-reminder`、`/logs`、`/update-log` 等）保留为 redirect，深链不断。
+- 清理真正无引用的组件：`RecordingStatusBand.vue`、`AiContextList.vue`。
 
 ## 2. 验证
 
 | 检查 | 命令 | 结果 |
 | --- | --- | --- |
-| 前端测试 | `pnpm exec vitest run --mode free` | ✅ **48 files / 154 tests passed** |
+| 前端测试 | `pnpm exec vitest run --mode free` | ✅ **49 files / 162 tests passed** |
 | 类型检查 | `pnpm exec tsc --noEmit -p tsconfig.eslint.json` | ✅ exit 0 |
-| 生产构建 | `pnpm build:web:free` | ✅ `built in 6.55s` |
+| 生产构建 | `pnpm build:web:free` | ✅ `built in 6.33s` |
+| 双语键一致性 | 全量键集合比对 | ✅ 890 / 890，无单边键 |
 
-基线对照：改造前 47 files / 151 tests 通过。新增 3 项 `live-room-page.test.ts`；
-`shell-components-contract.test.ts` 与 `shell-contract.test.ts` 的 4 处断言按新契约更新（未删除断言，改为表达新结构）。
+改造前基线：47 files / 151 tests。新增/改写测试均表达新契约（如断言 `app-card`、`not.toContain('dark:')`），未删除既有断言。
 
-## 3. 未完成（如实说明）
+## 3. 仍未令牌化（已用脚本审计，非估计）
 
-PRD 共有 10 个导航页，本轮完成**外壳 + 直播间**两个层次，其余页面仍是旧版内容，仅通过 Element Plus 深色变量继承新配色：
+以下文件仍含旧 `dark:` 类，但都已不在免费版主导航路径上，或属于成员态/覆盖层：
 
-| 页面 | 状态 |
+| 文件 | 影响面 |
 | --- | --- |
-| 弹幕面板 | ✅ 已完成（身份 chip、图例侧栏、行内头像、礼物行高亮） |
-| 数据看板 | ✅ 已完成（指标卡网格、两列趋势图） |
-| 排行榜 | 旧模板，配色随令牌 |
-| 风控中心 / 提醒配置 | 仍为多个菜单项分组展开，未合并为页签式分组页 |
-| 语音播报 / 直播录制 / AI 助手 / 系统设置 | 旧模板，配色随令牌 |
+| `views/settings/components/{ConfigManagementPanel,InterfaceSettingsPanel,LanguageSettings,LayoutEditorDialog}.vue` | 系统设置「配置/语言/界面/关于」面板内部 |
+| `views/ai/log.vue` | AI 审计日志页 |
+| `views/connection/index.vue` | 旧连接页（已从导航移除，仅保留路由） |
+| `components/media/GiftAlertOverlay.vue` | 礼物弹窗覆盖层 |
+| `views/moderation/*`、`views/membership/*`、`components/member/MembershipPausedNotice.vue` | 成员版专属 |
 
-## 4. 下一步（按设计图逐页对齐）
+这些页面在 `html.dark` 下仍可读（走 Element Plus 深色变量），只是配色是 zinc 系而非设计图的 `#1c1f27` 系。
 
-1. 弹幕面板：身份 chip 过滤 + 身份图例侧栏 + 行内徽标（`preview-danmu.png`）。
-2. 数据看板/排行榜：指标卡与榜单表格按 `preview-board.png`、`preview-rank.png` 重排。
-3. 风控中心、提醒配置、系统设置：合并为分组页，子页签 + 二级路由。
-4. 录制/AI/播报：按 `preview-record.png`、`preview-ai.png`、`preview-tts.png` 重排版式。
+## 4. 已知偏差
 
-> 说明：设计图中的「新增关注」指标后端当前无数据来源（WebSocket 仅提供进入事件），首页第 4 张卡改为「在线人数」，未伪造数据。
+- 设计图首页第 4 张卡是「新增关注」，后端事件流无关注数据，改为「在线人数」，未伪造指标。
+- 设计图看板底部的「礼物类型分布」没有对应后端聚合，未实现。

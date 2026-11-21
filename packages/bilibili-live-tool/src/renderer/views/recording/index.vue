@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Setting, Star, VideoCamera, VideoPause } from '@element-plus/icons-vue';
+import { Loading, Setting, Star, VideoCamera, VideoPause } from '@element-plus/icons-vue';
 import type {
   HighlightSummary,
   PreviewSession,
   RecordingConfig,
   RecordingSummary
 } from '@/platform/desktop';
-import RecordingStatusBand from '@/components/media/RecordingStatusBand.vue';
+import { formatBytes, formatDuration } from '@/modules/media/formatters';
 import { validateFileNameStem } from '@/modules/media/validation';
 import { useLiveRoomStore } from '@/stores/live-data/room';
 import { useMediaRecordingStore } from '@/stores/media/recording';
@@ -24,7 +24,7 @@ const settingsVisible = ref(false);
 const settingsDraft = ref<RecordingConfig | null>(null);
 const preview = ref<PreviewSession | null>(null);
 const previewTitle = ref('');
-const primaryButton = ref<{ $el?: HTMLElement } | null>(null);
+const primaryButton = ref<HTMLButtonElement | null>(null);
 
 const config = computed(() => store.config);
 const status = computed(() => store.status);
@@ -44,7 +44,7 @@ const startDisabledReason = computed(() => {
     return t('recording.reasons.lowDisk');
   }
   // An error state must stay retryable: the backend accepts a restart from
-  // Error, and the primary button already offers "重试录制".
+  // Error, and the primary button already offers the retry label.
   return null;
 });
 const primaryText = computed(() =>
@@ -54,6 +54,81 @@ const primaryText = computed(() =>
       ? t('recording.retryRecording')
       : t('recording.startRecording')
 );
+const primaryPending = computed(
+  () => store.pendingOperations.has(isActive.value ? 'stop' : 'start') || isTransitioning.value
+);
+const markPending = computed(() => store.pendingOperations.has('markHighlight'));
+const primaryDisabled = computed(
+  () => primaryPending.value || (!isActive.value && !!startDisabledReason.value)
+);
+
+const stateText = computed(() => (status.value ? t(`recording.${status.value.state}`) : ''));
+const stateDotClass = computed(() => {
+  switch (status.value?.state) {
+    case 'recording':
+    case 'error':
+      return 'app-status-dot--danger';
+    case 'starting':
+    case 'stopping':
+    case 'finalizing':
+      return 'app-status-dot--warning';
+    default:
+      return 'app-status-dot--success';
+  }
+});
+
+const elapsedText = computed(() => formatDuration(status.value?.elapsedSeconds ?? 0));
+const fileSizeText = computed(() => formatBytes(status.value?.fileSizeBytes ?? 0));
+const remainingText = computed(() => {
+  const remaining = status.value?.diskRemainingBytes ?? 0;
+  return remaining > 0 ? formatBytes(remaining) : '--';
+});
+const quotaText = computed(() => formatBytes(config.value?.quotaBytes ?? 0));
+// The backend reports free volume space instead of quota consumption, so the
+// quota gauge is derived from the sizes of the listed recording files.
+const storedBytes = computed(() =>
+  store.recordings.reduce((total, recording) => total + recording.sizeBytes, 0)
+);
+const quotaPercent = computed(() => {
+  const quota = config.value?.quotaBytes ?? 0;
+  if (quota <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((storedBytes.value / quota) * 100)));
+});
+const diskUsageText = computed(() => `${formatBytes(storedBytes.value)} / ${quotaText.value}`);
+const lowDisk = computed(
+  () =>
+    (status.value?.diskRemainingBytes ?? 0) > 0 &&
+    !!config.value &&
+    (status.value?.diskRemainingBytes ?? 0) < config.value.waterlineBytes
+);
+
+const qualityText = computed(() => {
+  const quality = config.value?.quality ?? 'original';
+  const qualityKey =
+    quality === 'original' ? 'qualityOriginal' : quality === 'high' ? 'qualityHigh' : 'qualityStandard';
+  return t(`recording.settings.${qualityKey}`);
+});
+const ffmpegSourceText = computed(() =>
+  config.value?.ffmpegSource === 'local'
+    ? t('recording.settings.local')
+    : t('recording.settings.bundled')
+);
+
+const tabs = computed(() => [
+  { id: 'recordings' as const, label: t('recording.fileList'), count: store.recordings.length },
+  { id: 'highlights' as const, label: t('recording.highlightList'), count: store.highlights.length }
+]);
+const metricCards = computed(() => [
+  { id: 'duration', label: t('recording.duration'), value: elapsedText.value },
+  { id: 'fileSize', label: t('recording.fileSize'), value: fileSizeText.value },
+  { id: 'remaining', label: t('recording.remainingSpace'), value: remainingText.value },
+  { id: 'quota', label: t('recording.quota'), value: quotaText.value },
+  {
+    id: 'highlights',
+    label: t('recording.highlightCount'),
+    value: String(status.value?.highlightCount ?? 0)
+  }
+]);
 
 function cloneConfig(value: RecordingConfig): RecordingConfig {
   return { ...value, directory: value.directory ? { ...value.directory } : null };
@@ -127,7 +202,7 @@ async function saveSettings(): Promise<void> {
     settingsVisible.value = false;
     ElMessage.success(t('recording.messages.saved'));
     await nextTick();
-    primaryButton.value?.$el?.focus();
+    primaryButton.value?.focus();
   } catch (error) {
     ElMessage.error((error as { message?: string }).message ?? t('common.saveFailed'));
   }
@@ -257,90 +332,205 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-6xl">
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <h2 class="m-0 text-xl font-semibold text-gray-900 dark:text-zinc-100">
-        {{ t('recording.liveTitle') }}
-      </h2>
-      <div class="flex flex-wrap items-center gap-2">
-        <el-tooltip :content="!isActive && startDisabledReason ? startDisabledReason : primaryText">
-          <span>
-            <el-button
-              ref="primaryButton"
-              :type="isActive ? 'danger' : 'primary'"
-              :icon="isActive ? VideoPause : VideoCamera"
-              :loading="store.pendingOperations.has(isActive ? 'stop' : 'start') || isTransitioning"
-              :disabled="!isActive && !!startDisabledReason"
-              @click="handlePrimary"
-            >
-              {{ primaryText }}
-            </el-button>
-          </span>
-        </el-tooltip>
-        <el-button
-          :icon="Star"
-          :disabled="!isActive"
-          :loading="store.pendingOperations.has('markHighlight')"
-          @click="handleMark"
-        >
-          {{ t('recording.manualMark') }}
-        </el-button>
-        <el-button :icon="Setting" :disabled="!config || isActive" @click="openSettings">
-          {{ t('recording.settingsButton') }}
-        </el-button>
+  <section class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
+    <header class="flex flex-wrap items-center gap-2">
+      <div class="mr-auto min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">{{ t('recording.liveTitle') }}</h2>
+        <p class="app-muted mt-1 mb-0 text-sm">{{ t('recording.pageHint') }}</p>
       </div>
-    </div>
+    </header>
 
     <el-alert
       v-if="store.error"
-      class="mb-4"
       type="error"
       :closable="false"
       :title="store.error.message"
       show-icon
     >
-      <el-button size="small" @click="store.refresh()">
-        {{ t('common.retry') }}
-      </el-button>
+      <el-button size="small" @click="store.refresh()">{{ t('common.retry') }}</el-button>
     </el-alert>
 
     <el-skeleton v-if="store.pending && (!config || !status)" :rows="8" animated />
     <template v-else-if="config && status">
-      <RecordingStatusBand :status="status" :config="config" />
-      <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600 dark:text-zinc-300">
-        <span>
-          {{ t('recording.highlightShortcut') }}
-          <kbd class="rounded border border-gray-300 bg-gray-50 px-2 py-1 font-mono dark:border-zinc-700 dark:bg-zinc-900">
-            {{ config.shortcut }}
-          </kbd>
-        </span>
-        <span v-if="startDisabledReason && !isActive" class="text-amber-700 dark:text-amber-400">
-          {{ startDisabledReason }}
-        </span>
+      <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <section class="app-card p-5" :aria-label="t('recording.recordingStatus')">
+          <h3 class="app-text m-0 text-sm font-semibold">{{ t('recording.recordingStatus') }}</h3>
+          <div class="mt-3" aria-live="polite">
+            <div class="flex items-center gap-2">
+              <span class="app-status-dot" :class="stateDotClass" aria-hidden="true" />
+              <p class="app-text m-0 text-3xl font-bold leading-tight">{{ stateText }}</p>
+            </div>
+            <p class="app-muted mt-2 mb-0 text-sm">
+              {{ t('recording.sessionDuration') }}
+              <span class="app-text ml-1 font-mono tabular-nums">{{ elapsedText }}</span>
+            </p>
+          </div>
+          <div class="mt-5">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <span class="app-muted text-sm">{{ t('recording.diskUsage') }}</span>
+              <span class="app-text text-sm tabular-nums">{{ diskUsageText }}</span>
+            </div>
+            <div
+              class="mt-2 h-2 w-full overflow-hidden rounded-full"
+              style="background: var(--app-panel-2)"
+              role="progressbar"
+              :aria-label="t('recording.diskUsage')"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-valuenow="quotaPercent"
+            >
+              <div
+                class="h-full rounded-full"
+                :style="{ width: `${quotaPercent}%`, background: 'var(--app-accent)' }"
+              />
+            </div>
+            <p v-if="lowDisk" class="mt-2 mb-0 text-xs" style="color: var(--app-gold)">
+              {{ t('recording.reasons.lowDisk') }}
+            </p>
+          </div>
+          <div class="mt-5 flex flex-wrap items-center gap-2">
+            <el-tooltip
+              :content="!isActive && startDisabledReason ? startDisabledReason : primaryText"
+            >
+              <span class="inline-flex">
+                <button
+                  ref="primaryButton"
+                  type="button"
+                  class="app-btn-primary inline-flex h-9 items-center gap-1.5 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                  :style="isActive ? { background: 'var(--app-red)' } : undefined"
+                  :aria-busy="primaryPending"
+                  :disabled="primaryDisabled"
+                  @click="handlePrimary"
+                >
+                  <el-icon v-if="primaryPending" class="is-loading"><Loading /></el-icon>
+                  <el-icon v-else>
+                    <VideoPause v-if="isActive" />
+                    <VideoCamera v-else />
+                  </el-icon>
+                  {{ primaryText }}
+                </button>
+              </span>
+            </el-tooltip>
+            <button
+              type="button"
+              class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+              :aria-busy="markPending"
+              :disabled="!isActive || markPending"
+              @click="handleMark"
+            >
+              <el-icon v-if="markPending" class="is-loading"><Loading /></el-icon>
+              <el-icon v-else><Star /></el-icon>
+              {{ t('recording.manualMark') }} · {{ config.shortcut }}
+            </button>
+          </div>
+          <p
+            v-if="startDisabledReason && !isActive"
+            class="mt-3 mb-0 text-xs"
+            style="color: var(--app-gold)"
+          >
+            {{ startDisabledReason }}
+          </p>
+          <p v-if="status.lastErrorCode" class="mt-2 mb-0 text-xs" style="color: var(--app-red)">
+            {{ t('recording.lastError') }}: {{ status.lastErrorCode }}
+          </p>
+        </section>
+
+        <section class="app-card p-5">
+          <h3 class="app-text m-0 text-base font-semibold">{{ t('recording.config') }}</h3>
+          <dl class="m-0 mt-3 grid grid-cols-1 gap-2.5 text-sm">
+            <div class="flex min-w-0 items-center justify-between gap-3">
+              <dt class="app-muted shrink-0">{{ t('recording.settings.directory') }}</dt>
+              <dd
+                class="app-text m-0 min-w-0 truncate text-right"
+                :title="config.directory?.displayPath ?? ''"
+              >
+                {{ config.directory?.displayPath ?? t('common.notSelected') }}
+              </dd>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <dt class="app-muted">{{ t('recording.format') }}</dt>
+              <dd class="app-text m-0 font-medium">{{ config.format.toUpperCase() }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <dt class="app-muted">{{ t('recording.quality') }}</dt>
+              <dd class="app-text m-0 font-medium">{{ qualityText }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <dt class="app-muted">{{ t('recording.settings.ffmpegSource') }}</dt>
+              <dd class="app-text m-0 font-medium">{{ ffmpegSourceText }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <dt class="app-muted">{{ t('recording.settings.stopWaterline') }}</dt>
+              <dd class="app-text m-0 font-medium tabular-nums">
+                {{ formatBytes(config.waterlineBytes) }}
+              </dd>
+            </div>
+          </dl>
+          <p class="app-faint mt-3 mb-0 text-xs">{{ t('recording.ffmpegLicenseHint') }}</p>
+          <div class="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="isActive"
+              @click="openSettings"
+            >
+              <el-icon><Setting /></el-icon>
+              {{ t('recording.settingsButton') }}
+            </button>
+            <span
+              v-if="config.ffmpegSource === 'bundled'"
+              class="text-xs"
+              style="color: var(--app-gold)"
+            >
+              {{ t('recording.settings.bundledUnavailable') }}
+            </span>
+          </div>
+        </section>
       </div>
 
-      <el-tabs v-model="activeTab" class="mt-4">
-        <el-tab-pane :label="t('recording.fileList')" name="recordings">
-          <RecordingList
-            :recordings="store.recordings"
-            :loading="store.pending"
-            :pending-operations="store.pendingOperations"
-            @preview="showRecordingPreview"
-            @rename="renameRecording"
-            @delete="deleteRecording"
-          />
-        </el-tab-pane>
-        <el-tab-pane :label="t('recording.highlightClips')" name="highlights">
-          <HighlightList
-            :highlights="store.highlights"
-            :loading="store.pending"
-            :pending-operations="store.pendingOperations"
-            @preview="showHighlightPreview"
-            @export="exportHighlight"
-            @delete="deleteHighlight"
-          />
-        </el-tab-pane>
-      </el-tabs>
+      <div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+        <article v-for="card in metricCards" :key="card.id" class="app-metric">
+          <p class="app-metric-label m-0">{{ card.label }}</p>
+          <p class="app-metric-value mt-1.5 mb-0">{{ card.value }}</p>
+        </article>
+      </div>
+
+      <section class="app-card p-4">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            type="button"
+            class="app-chip"
+            :class="{ 'app-chip--active': activeTab === tab.id }"
+            :aria-pressed="activeTab === tab.id"
+            @click="activeTab = tab.id"
+          >
+            {{ tab.label }}
+            <span class="app-faint tabular-nums">{{ tab.count }}</span>
+          </button>
+        </div>
+        <RecordingList
+          v-if="activeTab === 'recordings'"
+          class="mt-3"
+          :recordings="store.recordings"
+          :loading="store.pending"
+          :pending-operations="store.pendingOperations"
+          @preview="showRecordingPreview"
+          @rename="renameRecording"
+          @delete="deleteRecording"
+        />
+        <HighlightList
+          v-else
+          class="mt-3"
+          :highlights="store.highlights"
+          :loading="store.pending"
+          :pending-operations="store.pendingOperations"
+          @preview="showHighlightPreview"
+          @export="exportHighlight"
+          @delete="deleteHighlight"
+        />
+      </section>
     </template>
 
     <RecordingSettingsDialog
@@ -368,8 +558,8 @@ onMounted(async () => {
         :src="preview.url"
         controls
         autoplay
-        class="max-h-[65vh] w-full bg-black"
+        class="max-h-[65vh] w-full rounded-lg bg-black"
       />
     </el-dialog>
-  </div>
+  </section>
 </template>

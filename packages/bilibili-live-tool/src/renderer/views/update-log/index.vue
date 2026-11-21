@@ -43,24 +43,32 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="min-w-0 bg-white px-7 py-6 dark:bg-gray-900">
-    <header class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-5 dark:border-gray-700">
-      <div>
-        <h2 class="m-0 text-xl font-semibold">
+  <section class="mx-auto flex w-full max-w-[1180px] min-w-0 flex-col gap-4">
+    <header class="flex flex-wrap items-center justify-between gap-3">
+      <div class="mr-auto min-w-0">
+        <h2 class="app-text m-0 text-lg font-semibold">
           {{ t('update.title') }}
         </h2>
-        <p class="mb-0 mt-1 text-sm text-gray-500">
-          {{ t('update.currentVersion') }}:
-          <span class="font-semibold text-gray-900 dark:text-gray-100">v{{ store.update?.currentVersion ?? '--' }}</span>
+        <p class="app-muted mt-1 mb-0 text-sm">
+          {{ t('update.pageHint') }}
         </p>
       </div>
-      <el-button :icon="Refresh" :loading="store.pending.has('checkUpdate')" @click="check">
+      <button
+        type="button"
+        class="app-btn-primary inline-flex h-9 shrink-0 items-center gap-1.5 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+        :aria-busy="store.pending.has('checkUpdate')"
+        :disabled="store.pending.has('checkUpdate')"
+        @click="check"
+      >
+        <el-icon :class="{ 'is-loading': store.pending.has('checkUpdate') }">
+          <Refresh />
+        </el-icon>
         {{ t('update.checkUpdate') }}
-      </el-button>
+      </button>
     </header>
+
     <el-alert
       v-if="store.error"
-      class="mt-5"
       type="warning"
       show-icon
       :closable="false"
@@ -68,28 +76,68 @@ onMounted(() => {
     />
     <el-alert
       v-else-if="store.update?.status === 'unavailable'"
-      class="mt-5"
       type="info"
       show-icon
       :closable="false"
       :title="t('update.unavailable')"
     />
-    <div v-if="store.update?.candidate" class="mt-6">
-      <div class="flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-700">
-        <h3 class="m-0 text-sm font-semibold">
-          v{{ store.update.candidate.version }}
+
+    <section class="app-card p-5" :aria-label="t('update.versionHistory')">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h3 class="app-text m-0 text-base font-semibold">
+          {{ t('update.versionHistory') }}
         </h3>
-        <el-button type="primary" link @click="isDialogOpen = true">
-          {{ t('update.whatsNew') }}
-        </el-button>
+        <span
+          v-if="store.update?.candidate"
+          class="app-badge app-badge--plain shrink-0"
+        >
+          {{ t('update.hasUpdate') }}
+        </span>
       </div>
-      <ul class="space-y-2 pl-5 text-sm">
-        <li v-for="note in store.update.candidate.releaseNotes" :key="note">
-          {{ note }}
-        </li>
-      </ul>
-    </div>
-    <el-empty v-else-if="!store.error" :description="t('update.noChangelog')" />
+
+      <article
+        v-if="store.update?.candidate"
+        class="rounded-lg border p-4"
+        style="border-color: var(--app-border); background: var(--app-panel-2)"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="app-text text-sm font-semibold tabular-nums">
+              v{{ store.update.candidate.version }}
+            </span>
+            <span
+              v-if="store.update.candidate.isForced"
+              class="app-badge app-badge--plain"
+              style="color: var(--app-red)"
+            >
+              {{ t('update.forced') }}
+            </span>
+          </div>
+          <button type="button" class="app-chip" @click="isDialogOpen = true">
+            {{ t('update.whatsNew') }}
+          </button>
+        </div>
+        <ul class="app-muted m-0 mt-3 list-disc space-y-1.5 pl-5 text-sm">
+          <li v-for="note in store.update.candidate.releaseNotes" :key="note">
+            {{ note }}
+          </li>
+        </ul>
+      </article>
+
+      <el-empty
+        v-else-if="!store.error"
+        :image-size="72"
+        :description="t('update.noChangelog')"
+      />
+
+      <div class="app-hairline mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+        <span class="app-faint text-xs">{{ t('update.currentVersion') }}</span>
+        <span class="app-text text-sm font-semibold tabular-nums">
+          v{{ store.update?.currentVersion ?? '--' }}
+        </span>
+      </div>
+    </section>
+
     <UpdateAvailableDialog
       v-if="store.update"
       v-model="isDialogOpen"

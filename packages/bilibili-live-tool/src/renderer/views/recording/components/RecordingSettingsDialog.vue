@@ -1,26 +1,26 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { FolderOpened } from '@element-plus/icons-vue';
+import { FolderOpened, Loading } from '@element-plus/icons-vue';
 import type { RecordingConfig } from '@/platform/desktop';
 import { formatBytes } from '@/modules/media/formatters';
 
 const props = defineProps<{
-    visible: boolean;
-    modelValue: RecordingConfig;
-    pending?: boolean;
-    pathPending?: boolean;
-    ffmpegPending?: boolean;
-  }>();
+  visible: boolean;
+  modelValue: RecordingConfig;
+  pending?: boolean;
+  pathPending?: boolean;
+  ffmpegPending?: boolean;
+}>();
 const { t } = useI18n();
 
 const emit = defineEmits<{
-    'update:visible': [visible: boolean];
-    'update:modelValue': [config: RecordingConfig];
-    save: [];
-    selectDirectory: [];
-    setFfmpegSource: [source: RecordingConfig['ffmpegSource']];
-  }>();
+  'update:visible': [visible: boolean];
+  'update:modelValue': [config: RecordingConfig];
+  save: [];
+  selectDirectory: [];
+  setFfmpegSource: [source: RecordingConfig['ffmpegSource']];
+}>();
 
 const config = computed({
   get: () => props.modelValue,
@@ -39,17 +39,17 @@ function close(): void {
 <template>
   <el-dialog
     :model-value="visible"
-    :title="t('recording.settings.title')"
     width="min(720px, calc(100vw - 32px))"
     destroy-on-close
     @close="close"
   >
+    <template #header>
+      <h3 class="app-text m-0 text-base font-semibold">{{ t('recording.settings.title') }}</h3>
+    </template>
     <div class="max-h-[calc(100vh-190px)] overflow-y-auto pr-2">
       <el-form label-position="top" @submit.prevent="emit('save')">
-        <el-divider content-position="left">
-          {{ t('recording.settings.encoding') }}
-        </el-divider>
-        <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
+        <h4 class="app-text m-0 text-sm font-semibold">{{ t('recording.settings.encoding') }}</h4>
+        <div class="mt-3 grid grid-cols-1 gap-x-5 md:grid-cols-2">
           <el-form-item :label="t('recording.format')">
             <el-select
               :model-value="config.format"
@@ -80,21 +80,27 @@ function close(): void {
               :placeholder="t('common.notSelected')"
             />
             <el-tooltip :content="t('recording.settings.selectDirectory')">
-              <el-button
-                :icon="FolderOpened"
-                circle
-                :loading="pathPending"
-                :aria-label="t('recording.settings.selectDirectory')"
-                @click="emit('selectDirectory')"
-              />
+              <span class="inline-flex">
+                <button
+                  type="button"
+                  class="app-icon-btn shrink-0 disabled:cursor-not-allowed disabled:opacity-50"
+                  :aria-label="t('recording.settings.selectDirectory')"
+                  :aria-busy="pathPending"
+                  :disabled="pathPending"
+                  @click="emit('selectDirectory')"
+                >
+                  <el-icon v-if="pathPending" class="is-loading"><Loading /></el-icon>
+                  <el-icon v-else><FolderOpened /></el-icon>
+                </button>
+              </span>
             </el-tooltip>
           </div>
         </el-form-item>
 
-        <el-divider content-position="left">
+        <h4 class="app-text mt-5 mb-0 text-sm font-semibold">
           {{ t('recording.settings.segmentation') }}
-        </el-divider>
-        <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
+        </h4>
+        <div class="mt-3 grid grid-cols-1 gap-x-5 md:grid-cols-2">
           <el-form-item :label="t('recording.segmentEnabled')">
             <el-switch
               :model-value="config.segmentationEnabled"
@@ -118,10 +124,10 @@ function close(): void {
           </el-form-item>
         </div>
 
-        <el-divider content-position="left">
+        <h4 class="app-text mt-5 mb-0 text-sm font-semibold">
           {{ t('recording.settings.highlight') }}
-        </el-divider>
-        <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
+        </h4>
+        <div class="mt-3 grid grid-cols-1 gap-x-5 md:grid-cols-2">
           <el-form-item :label="t('recording.danmakuThreshold')">
             <el-input-number
               :model-value="config.danmakuThreshold"
@@ -131,14 +137,14 @@ function close(): void {
             />
           </el-form-item>
           <el-form-item :label="t('recording.settings.highlightDuration')">
-            <span class="text-sm text-gray-700 dark:text-zinc-300">{{ t('recording.settings.highlightWindow') }}</span>
+            <span class="app-muted text-sm">{{ t('recording.settings.highlightWindow') }}</span>
           </el-form-item>
         </div>
 
-        <el-divider content-position="left">
+        <h4 class="app-text mt-5 mb-0 text-sm font-semibold">
           {{ t('recording.settings.diskProtection') }}
-        </el-divider>
-        <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
+        </h4>
+        <div class="mt-3 grid grid-cols-1 gap-x-5 md:grid-cols-2">
           <el-form-item :label="t('recording.settings.diskQuota')">
             <el-select
               :model-value="config.quotaBytes"
@@ -163,10 +169,10 @@ function close(): void {
           </el-form-item>
         </div>
 
-        <el-divider content-position="left">
+        <h4 class="app-text mt-5 mb-0 text-sm font-semibold">
           {{ t('recording.settings.ffmpegAndShortcut') }}
-        </el-divider>
-        <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
+        </h4>
+        <div class="mt-3 grid grid-cols-1 gap-x-5 md:grid-cols-2">
           <el-form-item :label="t('recording.settings.ffmpegSource')">
             <el-segmented
               :model-value="config.ffmpegSource"
@@ -179,7 +185,8 @@ function close(): void {
             />
             <span
               v-if="config.ffmpegSource === 'bundled'"
-              class="mt-1 block text-xs text-amber-700 dark:text-amber-400"
+              class="mt-1 block text-xs"
+              style="color: var(--app-gold)"
             >
               {{ t('recording.settings.bundledUnavailable') }}
             </span>
@@ -195,12 +202,20 @@ function close(): void {
       </el-form>
     </div>
     <template #footer>
-      <el-button :disabled="pending" @click="close">
-        {{ t('common.cancel') }}
-      </el-button>
-      <el-button type="primary" :loading="pending" @click="emit('save')">
-        {{ t('common.save') }}
-      </el-button>
+      <div class="flex items-center justify-end gap-2">
+        <button type="button" class="app-chip h-8 px-4" @click="close">
+          {{ t('common.cancel') }}
+        </button>
+        <button
+          type="button"
+          class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="pending"
+          @click="emit('save')"
+        >
+          <el-icon v-if="pending" class="is-loading"><Loading /></el-icon>
+          {{ pending ? t('recording.settings.saving') : t('common.save') }}
+        </button>
+      </div>
     </template>
   </el-dialog>
 </template>

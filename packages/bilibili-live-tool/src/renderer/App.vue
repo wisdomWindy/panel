@@ -78,7 +78,7 @@ watch(
         snapshot?.candidate && ['available', 'downloading', 'downloaded'].includes(snapshot.status);
     if (!isActionable) {
       isUpdateDialogOpen.value = false;
-    } else if (route.path !== '/update-log') {
+    } else if (!route.path.startsWith('/settings/update')) {
       isUpdateDialogOpen.value = true;
     }
   }
@@ -119,7 +119,7 @@ function openNotifications(): void {
 }
 
 function openSettings(): void {
-  void router.push('/settings');
+  void router.push('/settings/general');
 }
 
 async function handleDownloadUpdate(): Promise<void> {
@@ -199,7 +199,7 @@ onUnmounted(() => {
       <AppShellStatusBar :items="statusItems" />
     </div>
     <UpdateAvailableDialog
-      v-if="release.update && release.update.candidate && route.path !== '/update-log'"
+      v-if="release.update && release.update.candidate && !route.path.startsWith('/settings/update')"
       v-model="isUpdateDialogOpen"
       :snapshot="release.update"
       :is-pending="isReleasePending"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Delete, Edit, Plus, Promotion, Refresh } from '@element-plus/icons-vue';
 import type {
   AiModelProfile,
@@ -24,6 +25,7 @@ const emit = defineEmits<{
   test: [profileId: AiModelProfileId];
 }>();
 
+const { t } = useI18n();
 const editorVisible = ref(false);
 const draft = reactive({
   profileId: null as AiModelProfileId | null,
@@ -40,6 +42,9 @@ const draft = reactive({
 
 const canSave = computed(() =>
   Boolean(draft.name.trim() && draft.baseUrl.trim() && draft.model.trim())
+);
+const defaultProfileName = computed(() =>
+  props.profiles.find(profile => profile.isDefault)?.name ?? t('ai.voice.emptyModel')
 );
 
 watch(
@@ -96,23 +101,30 @@ function submit(): void {
 }
 
 function connectionLabel(profile: AiModelProfile): string {
-  return ({
-    untested: '未测试',
-    testing: '测试中',
-    available: '可用',
-    unavailable: '不可用'
-  })[profile.connectionState];
+  return t(`ai.models.connection.${profile.connectionState}`);
+}
+
+function providerLabel(kind: AiProviderKind): string {
+  return t(`ai.models.provider.${kind}`);
 }
 </script>
 
 <template>
   <el-dialog
     :model-value="visible"
-    title="AI 模型配置"
     width="min(920px, 96vw)"
     :close-on-click-modal="!pending"
     @update:model-value="emit('update:visible', $event)"
   >
+    <template #header>
+      <h3 class="app-text m-0 text-base font-semibold">
+        {{ t('ai.models.title') }}
+      </h3>
+      <p class="app-muted mt-1 mb-0 text-sm">
+        {{ t('ai.models.hint') }}
+      </p>
+    </template>
+
     <el-alert
       v-if="errorMessage"
       class="mb-4"
@@ -122,29 +134,41 @@ function connectionLabel(profile: AiModelProfile): string {
       show-icon
     />
 
-    <div class="mb-3 flex justify-end">
-      <el-button :icon="Plus" type="primary" @click="edit()">
-        新增档案
-      </el-button>
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+      <p class="app-faint m-0 text-xs">
+        {{ t('ai.models.defaultHint', { name: defaultProfileName }) }}
+      </p>
+      <button
+        type="button"
+        class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-sm"
+        @click="edit()"
+      >
+        <el-icon><Plus /></el-icon>
+        {{ t('ai.models.add') }}
+      </button>
     </div>
 
-    <el-table :data="profiles" empty-text="尚未配置模型档案">
-      <el-table-column label="档案名" min-width="150">
+    <el-table :data="profiles" :empty-text="t('ai.models.empty')">
+      <el-table-column :label="t('ai.models.column.name')" min-width="150">
         <template #default="{ row }">
-          <span>{{ row.name }}</span>
+          <span class="app-text">{{ row.name }}</span>
           <el-tag v-if="row.isDefault" class="ml-2" size="small">
-            默认
+            {{ t('ai.models.default') }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="providerKind" label="Provider" width="130" />
-      <el-table-column prop="model" label="模型" min-width="160" />
-      <el-table-column label="状态" width="100">
+      <el-table-column :label="t('ai.models.column.provider')" width="150">
+        <template #default="{ row }">
+          {{ providerLabel(row.providerKind) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="model" :label="t('ai.models.column.model')" min-width="160" />
+      <el-table-column :label="t('ai.models.column.status')" width="100">
         <template #default="{ row }">
           {{ connectionLabel(row) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="250" fixed="right">
+      <el-table-column :label="t('ai.models.column.actions')" width="250" fixed="right">
         <template #default="{ row }">
           <el-button
             link
@@ -152,7 +176,7 @@ function connectionLabel(profile: AiModelProfile): string {
             :disabled="pending"
             @click="emit('test', row.profileId)"
           >
-            测试
+            {{ t('ai.models.test') }}
           </el-button>
           <el-button
             link
@@ -160,7 +184,7 @@ function connectionLabel(profile: AiModelProfile): string {
             :disabled="pending"
             @click="edit(row)"
           >
-            编辑
+            {{ t('ai.models.edit') }}
           </el-button>
           <el-button
             v-if="!row.isDefault"
@@ -169,7 +193,7 @@ function connectionLabel(profile: AiModelProfile): string {
             :disabled="pending || !row.isEnabled"
             @click="emit('setDefault', row.profileId)"
           >
-            设为默认
+            {{ t('ai.models.setDefault') }}
           </el-button>
           <el-button
             v-if="!row.isDefault"
@@ -179,41 +203,50 @@ function connectionLabel(profile: AiModelProfile): string {
             :disabled="pending"
             @click="emit('delete', row.profileId)"
           >
-            删除
+            {{ t('ai.models.delete') }}
           </el-button>
         </template>
       </el-table-column>
     </el-table>
+    <p class="app-faint mt-3 mb-0 text-xs">
+      {{ t('ai.models.secretHint') }}
+    </p>
 
-    <el-drawer
-      v-model="editorVisible"
-      :title="draft.profileId ? '编辑模型档案' : '新增模型档案'"
-      size="min(520px, 94vw)"
-      append-to-body
-    >
+    <el-drawer v-model="editorVisible" size="min(520px, 94vw)" append-to-body>
+      <template #header>
+        <h3 class="app-text m-0 text-base font-semibold">
+          {{ draft.profileId ? t('ai.models.editor.editTitle') : t('ai.models.editor.createTitle') }}
+        </h3>
+        <p class="app-muted mt-1 mb-0 text-sm">
+          {{ t('ai.models.editor.hint') }}
+        </p>
+      </template>
       <el-form label-position="top" @submit.prevent="submit">
-        <el-form-item label="档案名" required>
+        <el-form-item :label="t('ai.models.editor.name')" required>
           <el-input v-model="draft.name" maxlength="60" />
         </el-form-item>
-        <el-form-item label="Provider 类型" required>
+        <el-form-item :label="t('ai.models.editor.providerKind')" required>
           <el-select v-model="draft.providerKind" class="w-full">
-            <el-option label="云模型" value="cloud" />
-            <el-option label="聚合 API" value="aggregator" />
-            <el-option label="本地模型服务" value="local" />
-            <el-option label="自定义 OpenAI 兼容" value="customOpenAi" />
+            <el-option :label="t('ai.models.provider.cloud')" value="cloud" />
+            <el-option :label="t('ai.models.provider.aggregator')" value="aggregator" />
+            <el-option :label="t('ai.models.provider.local')" value="local" />
+            <el-option :label="t('ai.models.provider.customOpenAi')" value="customOpenAi" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Base URL" required>
+        <el-form-item :label="t('ai.models.editor.baseUrl')" required>
           <el-input v-model="draft.baseUrl" placeholder="https://api.example.com/v1" />
         </el-form-item>
-        <el-form-item label="模型名" required>
+        <el-form-item :label="t('ai.models.editor.model')" required>
           <el-input v-model="draft.model" />
         </el-form-item>
-        <el-form-item label="API Key">
+        <el-form-item :label="t('ai.models.editor.apiKey')">
           <el-input v-model="draft.apiKeyReplacement" type="password" show-password />
+          <p class="app-faint m-0 mt-1 w-full text-xs">
+            {{ t('ai.models.editor.apiKeyHint') }}
+          </p>
         </el-form-item>
         <div class="grid gap-x-4 sm:grid-cols-2">
-          <el-form-item label="推理强度">
+          <el-form-item :label="t('ai.models.editor.reasoningEffort')">
             <el-select v-model="draft.reasoningEffort" class="w-full">
               <el-option label="none" value="none" />
               <el-option label="minimal" value="minimal" />
@@ -224,7 +257,7 @@ function connectionLabel(profile: AiModelProfile): string {
               <el-option label="max" value="max" />
             </el-select>
           </el-form-item>
-          <el-form-item label="最大 Token">
+          <el-form-item :label="t('ai.models.editor.maxTokens')">
             <el-input-number
               v-model="draft.maxTokens"
               :min="1"
@@ -232,7 +265,7 @@ function connectionLabel(profile: AiModelProfile): string {
               class="w-full"
             />
           </el-form-item>
-          <el-form-item label="超时（秒）">
+          <el-form-item :label="t('ai.models.editor.timeout')">
             <el-input-number
               v-model="draft.timeoutSeconds"
               :min="1"
@@ -240,23 +273,30 @@ function connectionLabel(profile: AiModelProfile): string {
               class="w-full"
             />
           </el-form-item>
-          <el-form-item label="启用档案">
+          <el-form-item :label="t('ai.models.editor.enabled')">
             <el-switch v-model="draft.isEnabled" />
           </el-form-item>
         </div>
       </el-form>
       <template #footer>
-        <el-button :disabled="pending" @click="editorVisible = false">
-          取消
-        </el-button>
-        <el-button
-          type="primary"
-          :loading="pending"
-          :disabled="!canSave"
-          @click="submit"
-        >
-          保存
-        </el-button>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            class="app-chip disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="pending"
+            @click="editorVisible = false"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="app-btn-primary h-8 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="pending || !canSave"
+            @click="submit"
+          >
+            {{ t('common.save') }}
+          </button>
+        </div>
       </template>
     </el-drawer>
   </el-dialog>

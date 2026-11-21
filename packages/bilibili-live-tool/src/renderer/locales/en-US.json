@@ -92,7 +92,166 @@
     "maxTokens": "Max Tokens",
     "temperature": "Temperature",
     "enabled": "Enable AI",
-    "notConfigured": "API Key not configured"
+    "notConfigured": "API Key not configured",
+    "page": {
+      "title": "AI Assistant",
+      "description": "Generate and speak live chat replies automatically",
+      "navLabel": "AI assistant page navigation",
+      "tabs": {
+        "reply": "Reply",
+        "models": "Models",
+        "persona": "Persona",
+        "logs": "Logs"
+      }
+    },
+    "voice": {
+      "title": "AI voice reply",
+      "hint": "Generate replies by rule and speak them through the local TTS device",
+      "modelLabel": "Current model",
+      "emptyModel": "Not configured",
+      "switchModel": "Switch",
+      "triggerScope": "Trigger scope",
+      "globalCooldown": "Global cooldown",
+      "userCooldown": "Per-user cooldown",
+      "outputDevice": "TTS output device",
+      "outputMissing": "Not selected",
+      "routeGuide": "Audio route guide",
+      "testPlayback": "Test playback",
+      "rulesAction": "Reply rules",
+      "seconds": "{count}s",
+      "modelRequired": "Configure and select a default model first",
+      "deviceRequired": "Select and confirm a TTS output device first",
+      "scope": {
+        "all": "All danmaku",
+        "questions": "Questions only",
+        "captains": "Captains only",
+        "keywords": "Keywords only",
+        "highValue": "High-value users only"
+      },
+      "route": {
+        "title": "AI audio route",
+        "hint": "Pick the TTS output device and voice, test the sound, then confirm OBS or the live tool can capture it",
+        "device": "TTS output device",
+        "voice": "Voice",
+        "volume": "Volume",
+        "test": "Test playback",
+        "confirmCheckbox": "I confirm OBS or the live tool can capture the test sound",
+        "confirm": "Confirm",
+        "confirmAndEnable": "Confirm and enable"
+      },
+      "rule": {
+        "title": "AI voice reply rules",
+        "hint": "Constrain trigger scope and playback rate to avoid flooding",
+        "triggerScope": "Trigger scope",
+        "keywords": "Keywords (one per line)",
+        "globalCooldown": "Global cooldown (seconds)",
+        "userCooldown": "Per-user cooldown (seconds)",
+        "capacity": "Queue capacity",
+        "duplicateFilter": "Duplicate and similarity filter"
+      }
+    },
+    "queue": {
+      "title": "AI voice reply queue",
+      "pending": "{count} pending",
+      "capacity": "· capacity {capacity}",
+      "speaking": "Speaking",
+      "idle": "Queue idle",
+      "paused": "Paused",
+      "unavailable": "Playback unavailable",
+      "empty": "Queue is idle; waiting for danmaku to trigger a reply",
+      "pause": "Pause playback",
+      "resume": "Resume playback",
+      "skip": "Skip current",
+      "clear": "Clear queue"
+    },
+    "result": {
+      "title": "Context and generated result (local only)",
+      "localOnly": "Result is previewed locally and never sent",
+      "empty": "Waiting for danmaku to trigger an automatic reply",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "rateLimited": "Service rate limited. Try again later."
+    },
+    "persona": {
+      "title": "AI persona settings",
+      "hint": "Instant-chat style is a hard constraint; persona prompts cannot override length, format, or self-reference limits",
+      "identity": "AI identity",
+      "speakingStyle": "Speaking style",
+      "style": {
+        "concise": "Concise",
+        "natural": "Natural",
+        "detailed": "Detailed"
+      },
+      "systemPrompt": "System prompt",
+      "maxLength": "Max length",
+      "maxSentences": "Max sentences",
+      "danmakuContext": "Danmaku history count",
+      "manualContext": "Manual input count",
+      "sensitiveFilter": "Sensitive word filter",
+      "bannedWords": "Banned words"
+    },
+    "models": {
+      "title": "AI model profiles",
+      "hint": "No model is bundled; configure an API or a local model service",
+      "defaultHint": "Current default: {name}",
+      "add": "Add profile",
+      "empty": "No model profiles configured",
+      "default": "Default",
+      "test": "Test",
+      "edit": "Edit",
+      "setDefault": "Set default",
+      "delete": "Delete",
+      "secretHint": "API keys stay on this device and are never echoed after saving",
+      "column": {
+        "name": "Profile",
+        "provider": "Provider",
+        "model": "Model",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "provider": {
+        "cloud": "Cloud model",
+        "aggregator": "Aggregator API",
+        "local": "Local model service",
+        "customOpenAi": "Custom OpenAI compatible"
+      },
+      "connection": {
+        "untested": "Untested",
+        "testing": "Testing",
+        "available": "Available",
+        "unavailable": "Unavailable"
+      },
+      "editor": {
+        "createTitle": "New model profile",
+        "editTitle": "Edit model profile",
+        "hint": "Profiles stay on this device; one provider can hold multiple models",
+        "name": "Profile name",
+        "providerKind": "Provider type",
+        "baseUrl": "Base URL",
+        "model": "Model name",
+        "apiKey": "API Key",
+        "apiKeyHint": "Leave empty to keep the current key",
+        "reasoningEffort": "Reasoning effort",
+        "maxTokens": "Max tokens",
+        "timeout": "Timeout (seconds)",
+        "enabled": "Profile enabled"
+      }
+    },
+    "context": {
+      "source": {
+        "danmaku": "Danmaku",
+        "manual": "Manual"
+      }
+    },
+    "messages": {
+      "configSaved": "Configuration saved",
+      "profileSaved": "Model profile saved",
+      "profileDeleted": "Model profile deleted",
+      "profileTested": "Model connection OK",
+      "profileTestFailed": "Model connection failed",
+      "routeConfirmed": "Audio route confirmed"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -139,6 +298,7 @@
   },
   "blacklist": {
     "title": "Blacklist",
+    "description": "Maintain the local blacklist; listed users are hidden from the danmaku panel and voice broadcast.",
     "userId": "User ID",
     "username": "Username",
     "reason": "Reason",
@@ -146,6 +306,7 @@
     "unbanTime": "Unban Time",
     "permanent": "Permanent",
     "noRecords": "No blacklist records",
+    "noMatches": "No blacklist records match the current filter",
     "addTitle": "Add to Blacklist",
     "userIdPlaceholder": "Bilibili User ID",
     "usernamePlaceholder": "Enter username",
@@ -227,11 +388,18 @@
   },
   "settings": {
     "title": "Settings",
+    "pageHint": "Manage configuration, language, interface, and license information in one place",
     "categories": {
       "config": "Configuration",
       "language": "Language",
       "interface": "Interface",
       "about": "About and licenses"
+    },
+    "categoryHints": {
+      "config": "Inspect the configuration location, export or import configuration, and restore defaults",
+      "language": "Follow the system language or pick one for the interface",
+      "interface": "Adjust theme, accent color, font size, and layout display",
+      "about": "Review the application version and third-party licenses, and check for updates"
     },
     "config": {
       "location": "Configuration location",
@@ -336,6 +504,7 @@
   },
   "logs": {
     "title": "Logs",
+    "pageHint": "Follow runtime logs in real time and filter them by level or keyword",
     "level": "Log Level",
     "all": "All",
     "debug": "Debug",
@@ -347,6 +516,8 @@
     "message": "Message",
     "timestamp": "Timestamp",
     "noLogs": "No log records",
+    "console": "Log console",
+    "count": "{count} entries",
     "filterLevel": "Filter level",
     "keyword": "Keyword",
     "autoScroll": "Auto scroll",
@@ -379,12 +550,14 @@
   "recording": {
     "title": "Recording",
     "liveTitle": "Live Recording",
+    "pageHint": "Record the live stream to local storage and mark highlight clips anytime",
     "startRecording": "Start Recording",
     "stopRecording": "Stop Recording",
     "pauseRecording": "Pause",
     "resumeRecording": "Resume",
     "markHighlight": "Mark Highlight",
     "recordingStatus": "Recording Status",
+    "sessionDuration": "Session duration",
     "duration": "Duration",
     "fileSize": "Size",
     "highlightCount": "Highlights",
@@ -431,12 +604,16 @@
     "retryRecording": "Retry recording",
     "settingsButton": "Settings",
     "highlightShortcut": "Highlight shortcut:",
+    "ffmpegLicenseHint": "FFmpeg is a prebuilt LGPL build; see Settings · About and licenses for details",
+    "lastError": "Last error",
     "highlightClips": "Highlight clips",
     "size": "Size",
     "preview": "Preview",
     "rename": "Rename",
     "clipUnavailable": "Clip not generated",
     "disk": "Disk",
+    "diskUsage": "Disk usage",
+    "remainingSpace": "Remaining space",
     "quota": "Quota",
     "file": "File",
     "reasons": {
@@ -494,7 +671,8 @@
       "bundled": "Bundled",
       "local": "Local",
       "bundledUnavailable": "Bundled FFmpeg is not included in this installer",
-      "shortcut": "Highlight shortcut"
+      "shortcut": "Highlight shortcut",
+      "saving": "Saving..."
     }
   },
   "liveData": {
@@ -550,9 +728,12 @@
   },
   "sensitiveWords": {
     "title": "Sensitive Words",
+    "description": "Maintain built-in and custom sensitive words; matches are masked or replaced before danmaku reach the room.",
     "allCategories": "All categories",
     "categoryLabel": "Sensitive word category",
     "searchPlaceholder": "Search sensitive words",
+    "empty": "No sensitive words",
+    "noMatches": "No sensitive words match the current filter",
     "fileFormat": "File format",
     "create": "Add",
     "word": "Sensitive word",
@@ -608,6 +789,15 @@
     "selection": "Broadcast selection",
     "content": "Broadcast content",
     "identityFilter": "Identity filter",
+    "sections": {
+      "voice": "Engine and voice",
+      "voiceHint": "Choose a speech engine and tune the voice, rate, and volume",
+      "selectionHint": "Pick the events and identities that trigger a broadcast",
+      "templatesHint": "Compose broadcast copy with placeholder tokens; validated on blur",
+      "qwen3Hint": "Connect the local Qwen3-TTS service with timeout and fallback settings",
+      "actions": "Save and test",
+      "actionsHint": "Changes take effect after saving"
+    },
     "events": {
       "danmu": "Danmaku",
       "gift": "Gift",
@@ -651,6 +841,7 @@
     "description": "Configure local effects for purchases, renewals, and consecutive captain events",
     "preview": "Preview",
     "visual": "Visual and position",
+    "visualHint": "The template sets the effect style; position and window size control the popup area",
     "template": "Effect template",
     "duration": "Duration",
     "position": "Display position",
@@ -660,6 +851,7 @@
     "primaryColor": "Primary color",
     "secondaryColor": "Secondary color",
     "soundAndCombo": "Sound and consecutive triggers",
+    "soundHint": "Bind a local sound to first purchases, renewals, and consecutive captain events",
     "volume": "Volume",
     "combo": "Merge consecutive events",
     "comboWindow": "Merge window",
@@ -747,7 +939,14 @@
     "giftCount": "Gift count",
     "recent": "Recent gifts",
     "saved": "Gift alert settings saved",
-    "testFailed": "Gift alert test failed"
+    "testFailed": "Gift alert test failed",
+    "thresholdHint": "Alert only when a gift reaches this value",
+    "recentHint": "Select a row to open the gift details",
+    "sections": {
+      "alert": "Alert conditions",
+      "behavior": "Merging and popup",
+      "behaviorHint": "Merge consecutive gifts from one viewer and show the popup at the configured position and duration"
+    }
   },
   "giftSound": {
     "title": "Gift Sounds",
@@ -775,11 +974,21 @@
     "selectFile": "Select MP3/WAV file",
     "replaceSound": "Replace sound",
     "removeBinding": "Remove binding",
-    "empty": "No configurable gifts yet"
+    "empty": "No configurable gifts yet",
+    "bindings": "Gift sound bindings",
+    "bindingsHint": "Search, then preview, replace, or remove a binding row by row",
+    "playback": "Playback",
+    "playbackHint": "Control the gift sound volume and queue rate in one place",
+    "preview": "Play",
+    "replace": "Replace",
+    "remove": "Remove",
+    "bind": "Bind"
   },
   "update": {
     "title": "Update Log",
+    "pageHint": "Check for a new release and review version history and release notes",
     "currentVersion": "Current Version",
+    "versionHistory": "Version history",
     "latestVersion": "Latest Version",
     "hasUpdate": "New version available",
     "noUpdate": "Already latest version",
@@ -798,6 +1007,7 @@
     "gotIt": "Got it",
     "availableTitle": "New version available",
     "updateNow": "Update now",
+    "forced": "Required update",
     "later": "Later",
     "skipVersion": "Skip this version",
     "restartInstall": "Restart and install",

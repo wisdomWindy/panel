@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { AiConfig, AiConfigSaveRequest, AiSpeakingStyle } from '@/platform/desktop';
 
 const props = defineProps<{
-    visible: boolean;
-    config: AiConfig | null;
-    pending: boolean;
-    errorMessage: string | null;
-  }>();
+  visible: boolean;
+  config: AiConfig | null;
+  pending: boolean;
+  errorMessage: string | null;
+}>();
 
 const emit = defineEmits<{
-    'update:visible': [value: boolean];
-    save: [request: AiConfigSaveRequest];
-  }>();
+  'update:visible': [value: boolean];
+  save: [request: AiConfigSaveRequest];
+}>();
 
+const { t } = useI18n();
 const draft = reactive({
   identity: '',
   speakingStyle: 'natural' as AiSpeakingStyle,
@@ -61,11 +63,18 @@ function submit(): void {
 <template>
   <el-dialog
     :model-value="visible"
-    title="AI 人设配置"
     width="min(680px, 94vw)"
     :close-on-click-modal="!pending"
     @update:model-value="emit('update:visible', $event)"
   >
+    <template #header>
+      <h3 class="app-text m-0 text-base font-semibold">
+        {{ t('ai.persona.title') }}
+      </h3>
+      <p class="app-muted mt-1 mb-0 text-sm">
+        {{ t('ai.persona.hint') }}
+      </p>
+    </template>
     <el-alert
       v-if="errorMessage"
       class="mb-4"
@@ -76,22 +85,22 @@ function submit(): void {
     />
     <el-form label-position="top" @submit.prevent="submit">
       <div class="grid gap-x-4 sm:grid-cols-2">
-        <el-form-item label="AI 身份设定">
+        <el-form-item :label="t('ai.persona.identity')">
           <el-input v-model="draft.identity" />
         </el-form-item>
-        <el-form-item label="说话风格">
+        <el-form-item :label="t('ai.persona.speakingStyle')">
           <el-select v-model="draft.speakingStyle" class="w-full">
-            <el-option label="极简" value="concise" />
-            <el-option label="自然" value="natural" />
-            <el-option label="稍详细" value="detailed" />
+            <el-option :label="t('ai.persona.style.concise')" value="concise" />
+            <el-option :label="t('ai.persona.style.natural')" value="natural" />
+            <el-option :label="t('ai.persona.style.detailed')" value="detailed" />
           </el-select>
         </el-form-item>
       </div>
-      <el-form-item label="系统提示词">
+      <el-form-item :label="t('ai.persona.systemPrompt')">
         <el-input v-model="draft.systemPrompt" type="textarea" :rows="3" />
       </el-form-item>
       <div class="grid gap-x-4 sm:grid-cols-2">
-        <el-form-item label="最大长度">
+        <el-form-item :label="t('ai.persona.maxLength')">
           <el-input-number
             v-model="draft.maxLength"
             :min="20"
@@ -99,7 +108,7 @@ function submit(): void {
             class="w-full"
           />
         </el-form-item>
-        <el-form-item label="最大句数">
+        <el-form-item :label="t('ai.persona.maxSentences')">
           <el-input-number
             v-model="draft.maxSentences"
             :min="1"
@@ -107,32 +116,34 @@ function submit(): void {
             class="w-full"
           />
         </el-form-item>
-        <el-form-item label="历史弹幕条数">
+        <el-form-item :label="t('ai.persona.danmakuContext')">
           <el-input-number v-model="draft.danmakuContextCount" :min="0" class="w-full" />
         </el-form-item>
-        <el-form-item label="人工输入条数">
+        <el-form-item :label="t('ai.persona.manualContext')">
           <el-input-number v-model="draft.manualContextCount" :min="0" class="w-full" />
         </el-form-item>
       </div>
-      <el-form-item label="敏感词过滤">
+      <el-form-item :label="t('ai.persona.sensitiveFilter')">
         <el-switch v-model="draft.isSensitiveFilterEnabled" />
       </el-form-item>
-      <el-form-item v-if="draft.isSensitiveFilterEnabled" label="敏感词库">
+      <el-form-item v-if="draft.isSensitiveFilterEnabled" :label="t('ai.persona.bannedWords')">
         <el-input v-model="draft.bannedWordsText" type="textarea" :rows="3" />
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button :disabled="pending" @click="emit('update:visible', false)">
-        取消
-      </el-button>
-      <el-button
-        type="primary"
-        :loading="pending"
-        :disabled="!config"
-        @click="submit"
-      >
-        保存
-      </el-button>
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <button type="button" class="app-chip" :disabled="pending" @click="emit('update:visible', false)">
+          {{ t('common.cancel') }}
+        </button>
+        <button
+          type="button"
+          class="app-btn-primary h-8 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="pending || !config"
+          @click="submit"
+        >
+          {{ t('common.save') }}
+        </button>
+      </div>
     </template>
   </el-dialog>
 </template>

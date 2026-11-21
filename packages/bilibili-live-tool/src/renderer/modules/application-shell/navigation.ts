@@ -19,13 +19,13 @@ const freeTree = (): readonly ShellNavigationItem[] => Object.freeze([
   item('dashboard', '/dashboard'),
   item('rankings', '/rankings'),
   item('risk', undefined, Object.freeze([
-    item('sensitiveWords', '/sensitive-words'),
-    item('blacklist', '/blacklist')
+    item('sensitiveWords', '/risk/sensitive'),
+    item('blacklist', '/risk/blacklist')
   ])),
   item('reminders', undefined, Object.freeze([
-    item('captainEffect', '/captain-effect'),
-    item('giftReminder', '/gift-reminder'),
-    item('giftSound', '/gift-sound')
+    item('giftReminder', '/reminders/gift'),
+    item('captainEffect', '/reminders/captain'),
+    item('giftSound', '/reminders/sound')
   ])),
   item('tts', '/tts'),
   item('recording', '/recording'),

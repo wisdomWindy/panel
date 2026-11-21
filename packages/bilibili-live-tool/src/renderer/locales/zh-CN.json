@@ -92,7 +92,166 @@
     "maxTokens": "最大 Token 数",
     "temperature": "温度",
     "enabled": "启用 AI",
-    "notConfigured": "未配置 API Key"
+    "notConfigured": "未配置 API Key",
+    "page": {
+      "title": "AI 助手",
+      "description": "自动生成并播报直播互动回复",
+      "navLabel": "AI 助手页面导航",
+      "tabs": {
+        "reply": "回复",
+        "models": "模型配置",
+        "persona": "人设配置",
+        "logs": "日志"
+      }
+    },
+    "voice": {
+      "title": "AI 语音回复",
+      "hint": "按规则自动生成回复并在本地 TTS 播报",
+      "modelLabel": "当前模型",
+      "emptyModel": "未配置",
+      "switchModel": "切换",
+      "triggerScope": "触发范围",
+      "globalCooldown": "全局冷却",
+      "userCooldown": "单用户冷却",
+      "outputDevice": "TTS 输出设备",
+      "outputMissing": "未选择",
+      "routeGuide": "音频路由向导",
+      "testPlayback": "测试播报",
+      "rulesAction": "回复规则",
+      "seconds": "{count} 秒",
+      "modelRequired": "请先配置并选择默认模型",
+      "deviceRequired": "请先选择并确认 TTS 输出设备",
+      "scope": {
+        "all": "全部弹幕",
+        "questions": "仅提问",
+        "captains": "仅舰长",
+        "keywords": "仅关键词",
+        "highValue": "仅高价值用户"
+      },
+      "route": {
+        "title": "AI 音频路由",
+        "hint": "选择 TTS 输出设备与声色，试听后确认 OBS/直播姬 能采集到声音",
+        "device": "TTS 输出设备",
+        "voice": "声色",
+        "volume": "音量",
+        "test": "测试播报",
+        "confirmCheckbox": "我已确认 OBS/直播姬 能采集到测试音",
+        "confirm": "确认",
+        "confirmAndEnable": "确认并开启"
+      },
+      "rule": {
+        "title": "AI 语音回复规则",
+        "hint": "限制触发范围与播报频率，避免刷屏与失控",
+        "triggerScope": "触发范围",
+        "keywords": "关键词（每行一个）",
+        "globalCooldown": "全局冷却（秒）",
+        "userCooldown": "单用户冷却（秒）",
+        "capacity": "队列上限",
+        "duplicateFilter": "重复/相似拦截"
+      }
+    },
+    "queue": {
+      "title": "AI 语音回复队列",
+      "pending": "待播 {count} 条",
+      "capacity": "· 上限 {capacity}",
+      "speaking": "正在播报",
+      "idle": "队列空闲",
+      "paused": "已暂停",
+      "unavailable": "播报不可用",
+      "empty": "队列空闲，等待观众弹幕触发",
+      "pause": "暂停播报",
+      "resume": "继续播报",
+      "skip": "跳过当前",
+      "clear": "清空队列"
+    },
+    "result": {
+      "title": "上下文/生成结果（仅本地显示）",
+      "localOnly": "结果仅本地预览，不发送",
+      "empty": "等待观众弹幕触发自动回复",
+      "copy": "复制",
+      "copied": "已复制",
+      "copyFailed": "复制失败",
+      "rateLimited": "服务限流，请稍后重试"
+    },
+    "persona": {
+      "title": "AI 人设配置",
+      "hint": "即时聊天风格为硬约束，人设提示词不能覆盖长度、格式与自指限制",
+      "identity": "AI 身份设定",
+      "speakingStyle": "说话风格",
+      "style": {
+        "concise": "极简",
+        "natural": "自然",
+        "detailed": "稍详细"
+      },
+      "systemPrompt": "系统提示词",
+      "maxLength": "最大长度",
+      "maxSentences": "最大句数",
+      "danmakuContext": "历史弹幕条数",
+      "manualContext": "人工输入条数",
+      "sensitiveFilter": "敏感词过滤",
+      "bannedWords": "敏感词库"
+    },
+    "models": {
+      "title": "AI 模型配置",
+      "hint": "软件不内置模型，需自行配置 API 或本地模型服务",
+      "defaultHint": "当前默认：{name}",
+      "add": "新增档案",
+      "empty": "尚未配置模型档案",
+      "default": "默认",
+      "test": "测试",
+      "edit": "编辑",
+      "setDefault": "设为默认",
+      "delete": "删除",
+      "secretHint": "API Key 仅保存在本机，保存后不再回显",
+      "column": {
+        "name": "档案名",
+        "provider": "Provider",
+        "model": "模型",
+        "status": "状态",
+        "actions": "操作"
+      },
+      "provider": {
+        "cloud": "云模型",
+        "aggregator": "聚合 API",
+        "local": "本地模型服务",
+        "customOpenAi": "自定义 OpenAI 兼容"
+      },
+      "connection": {
+        "untested": "未测试",
+        "testing": "测试中",
+        "available": "可用",
+        "unavailable": "不可用"
+      },
+      "editor": {
+        "createTitle": "新增模型档案",
+        "editTitle": "编辑模型档案",
+        "hint": "档案只保存在本机，可为同一 Provider 配置多套模型",
+        "name": "档案名",
+        "providerKind": "Provider 类型",
+        "baseUrl": "Base URL",
+        "model": "模型名",
+        "apiKey": "API Key",
+        "apiKeyHint": "留空表示保留现有 Key",
+        "reasoningEffort": "推理强度",
+        "maxTokens": "最大 Token",
+        "timeout": "超时（秒）",
+        "enabled": "启用档案"
+      }
+    },
+    "context": {
+      "source": {
+        "danmaku": "弹幕",
+        "manual": "人工"
+      }
+    },
+    "messages": {
+      "configSaved": "配置已保存",
+      "profileSaved": "模型档案已保存",
+      "profileDeleted": "模型档案已删除",
+      "profileTested": "模型连接正常",
+      "profileTestFailed": "模型连接失败",
+      "routeConfirmed": "音频路由已确认"
+    }
   },
   "dashboard": {
     "title": "数据看板",
@@ -139,6 +298,7 @@
   },
   "blacklist": {
     "title": "黑名单管理",
+    "description": "维护本地黑名单，名单内用户的弹幕与语音播报会被永久屏蔽。",
     "userId": "用户ID",
     "username": "用户名",
     "reason": "原因",
@@ -146,6 +306,7 @@
     "unbanTime": "解封时间",
     "permanent": "永久",
     "noRecords": "暂无黑名单记录",
+    "noMatches": "没有符合条件的黑名单记录",
     "addTitle": "添加黑名单",
     "userIdPlaceholder": "B站用户ID",
     "usernamePlaceholder": "请输入用户名",
@@ -227,11 +388,18 @@
   },
   "settings": {
     "title": "设置",
+    "pageHint": "统一管理配置、语言、界面与许可信息",
     "categories": {
       "config": "配置管理",
       "language": "语言",
       "interface": "界面",
       "about": "关于与许可"
+    },
+    "categoryHints": {
+      "config": "查看配置位置、导出或导入配置，并恢复默认值",
+      "language": "跟随系统语言，或为界面指定一种语言",
+      "interface": "调整主题、强调色、字号与布局显示",
+      "about": "查看应用版本与第三方许可，并检查更新"
     },
     "config": {
       "location": "配置位置",
@@ -336,6 +504,7 @@
   },
   "logs": {
     "title": "实时日志",
+    "pageHint": "实时查看运行日志，并按级别或关键词筛选",
     "level": "日志级别",
     "all": "全部",
     "debug": "调试",
@@ -347,6 +516,8 @@
     "message": "消息",
     "timestamp": "时间",
     "noLogs": "暂无日志记录",
+    "console": "日志控制台",
+    "count": "共 {count} 条",
     "filterLevel": "筛选级别",
     "keyword": "关键词",
     "autoScroll": "自动滚动",
@@ -379,12 +550,14 @@
   "recording": {
     "title": "录制管理",
     "liveTitle": "直播录制",
+    "pageHint": "录制直播流并保存到本地，随时标记高光片段",
     "startRecording": "开始录制",
     "stopRecording": "停止录制",
     "pauseRecording": "暂停",
     "resumeRecording": "继续",
     "markHighlight": "标记高光",
     "recordingStatus": "录制状态",
+    "sessionDuration": "本场时长",
     "duration": "时长",
     "fileSize": "大小",
     "highlightCount": "高光",
@@ -431,12 +604,16 @@
     "retryRecording": "重试录制",
     "settingsButton": "设置",
     "highlightShortcut": "高光快捷键：",
+    "ffmpegLicenseHint": "FFmpeg 为 LGPL 预编译构建，许可详情见「设置 · 关于与许可」",
+    "lastError": "最近错误",
     "highlightClips": "高光片段",
     "size": "大小",
     "preview": "预览",
     "rename": "重命名",
     "clipUnavailable": "片段未生成",
     "disk": "磁盘",
+    "diskUsage": "磁盘占用",
+    "remainingSpace": "剩余空间",
     "quota": "配额",
     "file": "文件",
     "reasons": {
@@ -494,7 +671,8 @@
       "bundled": "内置",
       "local": "本机",
       "bundledUnavailable": "内置 FFmpeg 尚未随安装包提供",
-      "shortcut": "高光快捷键"
+      "shortcut": "高光快捷键",
+      "saving": "保存中..."
     }
   },
   "liveData": {
@@ -550,9 +728,12 @@
   },
   "sensitiveWords": {
     "title": "敏感词管理",
+    "description": "维护内置与自定义敏感词，命中后按匹配方式屏蔽或替换弹幕。",
     "allCategories": "全部分类",
     "categoryLabel": "敏感词分类",
     "searchPlaceholder": "搜索敏感词",
+    "empty": "暂无敏感词",
+    "noMatches": "没有符合条件的敏感词",
     "fileFormat": "文件格式",
     "create": "新增",
     "word": "敏感词",
@@ -608,6 +789,15 @@
     "selection": "播报选择",
     "content": "播报内容",
     "identityFilter": "身份过滤",
+    "sections": {
+      "voice": "引擎与音色",
+      "voiceHint": "选择语音引擎，并调整音色、语速与音量",
+      "selectionHint": "勾选需要播报的事件类型与触发身份",
+      "templatesHint": "使用占位符组合播报文案，失焦时自动校验",
+      "qwen3Hint": "连接本地 Qwen3-TTS 服务，可配置超时与回退策略",
+      "actions": "保存与测试",
+      "actionsHint": "修改配置后需保存才会生效"
+    },
     "events": {
       "danmu": "弹幕",
       "gift": "礼物",
@@ -651,6 +841,7 @@
     "description": "配置首次开通、续费与连续上舰的本地展示",
     "preview": "预览",
     "visual": "视觉与位置",
+    "visualHint": "模板决定动效风格，位置与窗口尺寸控制弹出区域",
     "template": "特效模板",
     "duration": "持续时间",
     "position": "显示位置",
@@ -660,6 +851,7 @@
     "primaryColor": "主色",
     "secondaryColor": "副色",
     "soundAndCombo": "声音与连续触发",
+    "soundHint": "为首次开通、续费与连续上舰分别绑定本地音效",
     "volume": "音量",
     "combo": "连续上舰合并",
     "comboWindow": "合并窗口",
@@ -747,7 +939,14 @@
     "giftCount": "礼物数量",
     "recent": "最近礼物",
     "saved": "礼物提醒配置已保存",
-    "testFailed": "测试提醒失败"
+    "testFailed": "测试提醒失败",
+    "thresholdHint": "仅当礼物价值达到该阈值时触发提醒",
+    "recentHint": "点击任意一行查看礼物详情",
+    "sections": {
+      "alert": "提醒条件",
+      "behavior": "合并与弹出",
+      "behaviorHint": "合并同一观众的连续礼物，并按设定位置与时长展示弹窗"
+    }
   },
   "giftSound": {
     "title": "礼物音效",
@@ -775,11 +974,21 @@
     "selectFile": "选择 MP3/WAV 文件",
     "replaceSound": "替换音效",
     "removeBinding": "移除绑定",
-    "empty": "当前尚无可配置礼物"
+    "empty": "当前尚无可配置礼物",
+    "bindings": "礼物音效绑定",
+    "bindingsHint": "搜索后可逐行试听、更换或移除绑定",
+    "playback": "播放设置",
+    "playbackHint": "统一控制礼物音效的播放音量与队列节奏",
+    "preview": "试听",
+    "replace": "更换",
+    "remove": "删除",
+    "bind": "绑定"
   },
   "update": {
     "title": "更新日志",
+    "pageHint": "检查新版本，并查看版本记录与更新说明",
     "currentVersion": "当前版本",
+    "versionHistory": "版本记录",
     "latestVersion": "最新版本",
     "hasUpdate": "有新版本可用",
     "noUpdate": "已是最新版本",
@@ -798,6 +1007,7 @@
     "gotIt": "知道了",
     "availableTitle": "发现新版本",
     "updateNow": "立即更新",
+    "forced": "强制更新",
     "later": "稍后",
     "skipVersion": "跳过此版本",
     "restartInstall": "重启安装",

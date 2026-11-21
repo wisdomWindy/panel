@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import {
   invokeDesktop,
@@ -73,7 +73,7 @@ describe('live analytics store', () => {
         danmuRate: 1,
         giftValueMinor: 0,
         captainCount: 0,
-        filteredCount: 0
+        likeCount: 0,        filteredCount: 0
       },
       trendPoints: [],
       generatedAt: 1,
@@ -110,7 +110,7 @@ describe('live analytics store', () => {
         danmuRate: 0,
         giftValueMinor: 0,
         captainCount: 0,
-        filteredCount: 0
+        likeCount: 0,        filteredCount: 0
       },
       trendPoints: [],
       generatedAt,

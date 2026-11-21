@@ -341,6 +341,8 @@ impl MediaState {
                 self.apply_session_boundary(base.room_id.as_str(), false).await;
             }
             LiveEvent::SuperChat { .. } | LiveEvent::SuperChatDeleted { .. } => {}
+            // PRD 9.1.1: likes only feed the interaction counter.
+            LiveEvent::Like { .. } => {}
         }
         if let Err(error) = self.event_sink.publish_tts(&self.tts.snapshot().await) {
             log::warn!("tts status event is degraded: {}", error.code);

@@ -311,7 +311,8 @@
     "danmakuRate": "弹幕速率",
     "giftRevenue": "礼物总价值",
     "captainCount": "舰长总数",
-    "giftTrend": "礼物收益趋势"
+    "giftTrend": "礼物收益趋势",
+    "likeCount": "互动点赞"
   },
   "blacklist": {
     "title": "黑名单管理",

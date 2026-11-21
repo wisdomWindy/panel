@@ -92,6 +92,7 @@ pub fn map_command(body: &[u8]) -> Result<Option<LiveEvent>, LiveRuntimeError> {
         "LIVE_OPEN_PLATFORM_LIVE_END" => map_session(envelope.data, false)?,
         "LIVE_OPEN_PLATFORM_SUPER_CHAT" => map_super_chat(envelope.data)?,
         "LIVE_OPEN_PLATFORM_SUPER_CHAT_DEL" => map_super_chat_deleted(envelope.data)?,
+        "LIVE_OPEN_PLATFORM_LIKE" => map_like(envelope.data)?,
         // PRD 9.1.1: DM_MIRROR repeats DM without sender fields; collecting it
         // would double-count danmaku and lose the audience identity.
         "LIVE_OPEN_PLATFORM_DM_MIRROR" => return Ok(None),
@@ -245,6 +246,24 @@ fn map_super_chat_deleted(value: Value) -> Result<LiveEvent, LiveRuntimeError> {
     Ok(LiveEvent::SuperChatDeleted {
         base,
         message_ids: data.message_ids,
+    })
+}
+
+#[derive(Deserialize)]
+struct LikeData {
+    #[serde(flatten)]
+    common: CommonData,
+    #[serde(default)]
+    like_count: u64,
+}
+
+/// PRD 9.1.1: `like_count` is how many likes this batch contributed; the value
+/// is summed into the session counter instead of being listed per event.
+fn map_like(value: Value) -> Result<LiveEvent, LiveRuntimeError> {
+    let data: LikeData = serde_json::from_value(value).map_err(invalid_event)?;
+    Ok(LiveEvent::Like {
+        base: common_base(&data.common, &data.common.msg_id)?,
+        count: data.like_count,
     })
 }
 

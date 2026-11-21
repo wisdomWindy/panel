@@ -104,6 +104,7 @@ describe('dark theme page surfaces', () => {
         danmuRate: 3,
         giftValueMinor: 4,
         captainCount: 5,
+        likeCount: 7,
         filteredCount: 6
       },
       trendPoints: [],
@@ -116,8 +117,8 @@ describe('dark theme page surfaces', () => {
     });
     const tokens = classTokens(html);
 
-    // Metric cards and the model card share the token palette.
-    expect(tokens.filter(token => token === 'app-metric')).toHaveLength(5);
+    // Six metric cards now: online, danmaku, rate, gift, captains, likes.
+    expect(tokens.filter(token => token === 'app-metric')).toHaveLength(6);
     expect(tokens).toContain('app-metric-value');
     expect(tokens).toContain('app-card');
     expect(tokens).toContain('app-btn-primary');

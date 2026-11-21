@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import {
   LIVE_DATA_COMMAND_NAMES,
   LIVE_DATA_EVENT_NAMES,
@@ -58,7 +58,7 @@ describe('live data desktop contracts', () => {
         danmuRate: 0,
         giftValueMinor: event.valueMinor,
         captainCount: 0,
-        filteredCount: 0
+        likeCount: 0,        filteredCount: 0
       },
       trendPoints: [],
       generatedAt: 1_700_000_000_000,

@@ -9,6 +9,7 @@ pub struct AnalyticsState {
     danmu_count: u64,
     gift_value_minor: i64,
     captain_count: u64,
+    like_count: u64,
     filtered_count: u64,
     first_event_at: Option<i64>,
     danmu: HashMap<UserUid, RankingValue>,
@@ -88,6 +89,10 @@ pub fn aggregate_event(mut state: AnalyticsState, event: &LiveEvent) -> Analytic
             add_ranking_value(&mut state.gift, audience, *value_minor);
         }
         LiveEvent::SuperChatDeleted { .. } => {}
+        // PRD 9.1.1: likes only feed the interaction counter.
+        LiveEvent::Like { count, .. } => {
+            state.like_count = state.like_count.saturating_add(*count);
+        }
     }
     state
 }
@@ -114,6 +119,7 @@ pub struct StatMetrics {
     pub danmu_rate: f64,
     pub gift_value_minor: i64,
     pub captain_count: u64,
+    pub like_count: u64,
     pub filtered_count: u64,
 }
 
@@ -128,6 +134,7 @@ pub fn build_stat_snapshot(state: &AnalyticsState, generated_at: i64) -> StatMet
         danmu_rate: ((state.danmu_count as f64 / elapsed_seconds) * 10.0).round() / 10.0,
         gift_value_minor: state.gift_value_minor,
         captain_count: state.captain_count,
+        like_count: state.like_count,
         filtered_count: state.filtered_count,
     }
 }

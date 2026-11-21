@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import type { DanmuEvent, StatSnapshot } from '@/platform/desktop';
 import { adaptLiveEvent, adaptStatSnapshot } from './adapters';
 
@@ -12,7 +12,7 @@ describe('live data adapters', () => {
         danmuRate: 0.5,
         giftValueMinor: 1234,
         captainCount: 3,
-        filteredCount: 4
+        likeCount: 0,        filteredCount: 4
       },
       trendPoints: [
         {
@@ -22,7 +22,7 @@ describe('live data adapters', () => {
           danmuRate: 0.5,
           giftValueMinor: 1234,
           captainCount: 3,
-          filteredCount: 4
+          likeCount: 0,          filteredCount: 4
         }
       ],
       generatedAt: 10,

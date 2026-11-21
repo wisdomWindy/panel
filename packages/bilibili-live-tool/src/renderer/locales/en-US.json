@@ -311,7 +311,8 @@
     "danmakuRate": "Danmaku Rate",
     "giftRevenue": "Gift Revenue",
     "captainCount": "Captains",
-    "giftTrend": "Gift Revenue Trend"
+    "giftTrend": "Gift Revenue Trend",
+    "likeCount": "Likes"
   },
   "blacklist": {
     "title": "Blacklist",

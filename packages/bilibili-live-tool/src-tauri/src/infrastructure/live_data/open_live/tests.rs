@@ -427,6 +427,25 @@ fn maps_super_chat_value_and_duration_then_withdraws_by_message_id() {
     }
 }
 
+/// PRD 9.1.1: `like_count` is summed into the session counter and is never
+/// turned into a per-event display row.
+#[test]
+fn maps_likes_into_a_counted_event() {
+    let like = br#"{
+        "cmd":"LIVE_OPEN_PLATFORM_LIKE",
+        "data":{"room_id":100,"uid":0,"open_id":"open-2","uname":"liker",
+                "timestamp":1710000040,"like_text":"liked","like_count":114,"msg_id":"like-1"}
+    }"#;
+    match event_mapper::map_command(like).unwrap() {
+        Some(LiveEvent::Like { base, count }) => {
+            assert_eq!(count, 114);
+            assert_eq!(base.audience.username, "liker");
+            assert_eq!(base.event_id, "like-1");
+        }
+        other => panic!("expected like, got {other:?}"),
+    }
+}
+
 #[tokio::test]
 async fn sends_signed_start_heartbeat_and_end_requests() {
     let responses = vec![

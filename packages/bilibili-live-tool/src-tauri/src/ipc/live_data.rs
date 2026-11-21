@@ -234,6 +234,9 @@ impl LiveEventSink for TauriLiveEventSink {
                     message_ids: message_ids.clone(),
                 },
             ),
+            // PRD 9.1.1: likes are aggregated into the interaction counter and
+            // deliberately have no per-event IPC message.
+            LiveEvent::Like { .. } => Ok(()),
         }
     }
 
@@ -721,6 +724,7 @@ fn stat_metrics(metrics: &StatMetrics) -> StatMetricsDto {
         danmu_rate: metrics.danmu_rate,
         gift_value_minor: metrics.gift_value_minor,
         captain_count: metrics.captain_count,
+        like_count: metrics.like_count,
         filtered_count: metrics.filtered_count,
     }
 }

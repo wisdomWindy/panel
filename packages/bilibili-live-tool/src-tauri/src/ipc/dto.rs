@@ -1066,6 +1066,7 @@ pub struct StatMetricsDto {
     pub danmu_rate: f64,
     pub gift_value_minor: i64,
     pub captain_count: u64,
+    pub like_count: u64,
     pub filtered_count: u64,
 }
 

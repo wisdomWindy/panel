@@ -1,4 +1,4 @@
-import type { EventId, GiftId, PathGrantId, RoomId, UserUid } from './base';
+﻿import type { EventId, GiftId, PathGrantId, RoomId, UserUid } from './base';
 
 export type ConnectionStatus =
   | 'disconnected'
@@ -133,6 +133,7 @@ export interface StatMetrics {
   danmuRate: number;
   giftValueMinor: number;
   captainCount: number;
+  likeCount: number;
   filteredCount: number;
 }
 export interface StatTrendPoint extends StatMetrics {

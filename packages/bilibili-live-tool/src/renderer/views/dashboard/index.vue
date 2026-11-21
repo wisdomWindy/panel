@@ -27,7 +27,8 @@ const metricCards = computed(() => [
     label: t('dashboard.giftRevenue'),
     value: formatMoneyMinor(metrics()?.giftValueMinor ?? 0)
   },
-  { id: 'captain', label: t('dashboard.captainCount'), value: formatCount(metrics()?.captainCount ?? 0) }
+  { id: 'captain', label: t('dashboard.captainCount'), value: formatCount(metrics()?.captainCount ?? 0) },
+  { id: 'like', label: t('dashboard.likeCount'), value: formatCount(metrics()?.likeCount ?? 0) }
 ]);
 
 // -- Qwen3-TTS model download -------------------------------------------

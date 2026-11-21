@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import type { StatTrendPoint } from '@/platform/desktop';
 import { buildTrendOption } from './charts';
 
@@ -9,7 +9,7 @@ const point: StatTrendPoint = {
   danmuRate: 2.5,
   giftValueMinor: 1234,
   captainCount: 3,
-  filteredCount: 4
+  likeCount: 0,  filteredCount: 4
 };
 
 describe('dashboard chart options', () => {

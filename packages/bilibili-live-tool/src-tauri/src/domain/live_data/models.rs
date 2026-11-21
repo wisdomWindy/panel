@@ -180,6 +180,12 @@ pub enum LiveEvent {
         base: LiveEventBase,
         message_ids: Vec<i64>,
     },
+    /// PRD 9.1.1: the free "like" gesture. It is aggregated into an
+    /// interaction counter and never listed row by row.
+    Like {
+        base: LiveEventBase,
+        count: u64,
+    },
 }
 
 impl LiveEvent {
@@ -192,7 +198,8 @@ impl LiveEvent {
             | Self::SessionStarted { base }
             | Self::SessionEnded { base }
             | Self::SuperChat { base, .. }
-            | Self::SuperChatDeleted { base, .. } => base,
+            | Self::SuperChatDeleted { base, .. }
+            | Self::Like { base, .. } => base,
         }
     }
 

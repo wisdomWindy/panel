@@ -481,12 +481,8 @@ onMounted(async () => {
             <el-form-item :label="t('tts.qwen3.fallback')">
               <el-switch v-model="qwen3Draft.fallbackToSystem" />
             </el-form-item>
-            <el-form-item :label="t('tts.qwen3.baseUrl')">
-              <el-input v-model="qwen3Draft.baseUrl" placeholder="http://127.0.0.1:8020" />
-              <p class="app-faint m-0 mt-1 w-full text-xs">
-                {{ t('tts.qwen3.baseUrlHint') }}
-              </p>
-            </el-form-item>
+            <!-- 服务地址 is intentionally not editable: the app starts its own
+                 service on a free port and persists that address (PRD 9.11). -->
             <el-form-item :label="t('tts.qwen3.language')">
               <el-select v-model="qwen3Draft.language" class="w-full">
                 <el-option

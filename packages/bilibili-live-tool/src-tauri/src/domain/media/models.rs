@@ -242,6 +242,16 @@ const fn default_true() -> bool {
     true
 }
 
+/// Older records could store an explicit null, which serde(default) does not
+/// cover; treat it as the empty instruction so a stale row cannot brick TTS.
+fn string_or_empty_on_null<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+    Ok(value.unwrap_or_default())
+}
+
 /// Connection and voice settings for the Qwen3-TTS speech service.
 ///
 /// The record is shared by the two speech paths (live-event 播报 and AI voice
@@ -258,7 +268,7 @@ pub struct Qwen3TtsConfig {
     pub voice_id: Option<String>,
     #[serde(default = "default_qwen3_language")]
     pub language: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_empty_on_null")]
     pub instruct: String,
     #[serde(default = "default_qwen3_timeout_ms")]
     pub timeout_ms: u64,

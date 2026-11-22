@@ -71,6 +71,12 @@ function integer(value: unknown, field: string, minimum = 0): number {
   return result;
 }
 
+/// Optional text: absent, null or empty all mean "unset".
+function emptyableString(value: unknown, field: string): string {
+  if (value === undefined || value === null) return '';
+  return string(value, field, true);
+}
+
 function nullableString(value: unknown, field: string): string | null {
   return value === null ? null : string(value, field);
 }
@@ -346,7 +352,8 @@ function qwen3Config(value: unknown): Qwen3TtsConfig {
     baseUrl: string(source.baseUrl, 'qwen3TtsConfig.baseUrl'),
     voiceId: nullableString(source.voiceId, 'qwen3TtsConfig.voiceId'),
     language: enumeration(source.language, QWEN3_LANGUAGES, 'qwen3TtsConfig.language'),
-    instruct: string(source.instruct, 'qwen3TtsConfig.instruct'),
+    // Optional by design: an empty instruction means "use the default voice".
+    instruct: emptyableString(source.instruct, 'qwen3TtsConfig.instruct'),
     timeoutMs: integer(source.timeoutMs, 'qwen3TtsConfig.timeoutMs'),
     fallbackToSystem: boolean(source.fallbackToSystem, 'qwen3TtsConfig.fallbackToSystem'),
     aiVoiceId: nullableString(source.aiVoiceId, 'qwen3TtsConfig.aiVoiceId'),

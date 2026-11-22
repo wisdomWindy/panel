@@ -172,9 +172,23 @@ async function handleEnabled(value: boolean): Promise<void> {
   try {
     await store.setEnabled(value);
     draft.isEnabled = value;
+    // Enabling 播报 is the only action that should be needed: bring the local
+    // service up in the background instead of asking for a second click.
+    if (value) await ensureQwen3Service();
   } catch (error) {
     draft.isEnabled = !value;
     ElMessage.error((error as { message?: string }).message ?? t('common.operationFailed'));
+  }
+}
+
+/** Best-effort service start; failures surface through the model card status. */
+async function ensureQwen3Service(): Promise<void> {
+  try {
+    await store.startQwen3Service();
+    await store.loadQwen3Models().catch(() => undefined);
+    await store.loadQwen3().catch(() => undefined);
+  } catch {
+    // The card shows the reason; enabling 播报 must still succeed.
   }
 }
 

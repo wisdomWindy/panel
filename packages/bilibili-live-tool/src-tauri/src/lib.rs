@@ -326,6 +326,9 @@ impl AppState {
         {
             log::warn!("recording hotkey is degraded: {error}");
         }
+        // PRD 9.11: when 语音播报 is already enabled, the local speech service
+        // must come up by itself; the operator never starts a process.
+        let speech_enabled = tts.config().await.is_enabled;
         let media = MediaState::new(effects, gifts, tts, recording)
             .with_recording_clients(
                 Arc::new(BilibiliPlayUrlResolver::new()),
@@ -338,11 +341,34 @@ impl AppState {
             // start-recording never depends on a folder dialog.
             .with_default_recording_directory(default_recording_directory(&app))
             .with_managed_ffmpeg_directory(managed_ffmpeg_directory(&app))
-            .with_qwen3_service_launcher(Arc::new(Qwen3ServiceLauncher::for_current_app(
-                app.path()
+            .with_qwen3_service_launcher({
+                let log_directory = app
+                    .path()
                     .app_log_dir()
-                    .unwrap_or_else(|_| std::env::temp_dir().join("biliLiveHelper/logs")),
-            )));
+                    .unwrap_or_else(|_| std::env::temp_dir().join("biliLiveHelper/logs"));
+                let launcher = Arc::new(Qwen3ServiceLauncher::for_current_app(log_directory));
+                if speech_enabled {
+                    let config = qwen3_tts.config();
+                    let base_url = config.base_url.clone();
+                    let starter = launcher.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let port = crate::infrastructure::media::port_from_base_url(&base_url);
+                        match starter.ensure_running(&base_url, port).await {
+                            Ok(status) => log::info!(
+                                "qwen3 service auto-started: started={} url={}",
+                                status.started,
+                                status.base_url
+                            ),
+                            Err(error) => log::warn!(
+                                "qwen3 service auto-start failed: {} {}",
+                                error.code,
+                                error.message
+                            ),
+                        }
+                    });
+                }
+                launcher
+            });
         let media = if let Some(pool) = pool.clone() {
             media.with_services(MediaServices {
                 repository: Arc::new(SqliteMediaRepository::new(pool)),

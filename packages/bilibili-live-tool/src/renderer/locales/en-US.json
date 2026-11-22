@@ -921,7 +921,7 @@
       "ready": "Downloaded",
       "notDownloaded": "Not downloaded",
       "failed": "Download failed",
-      "serviceDown": "The local speech service is not running; it starts automatically, or use the button below.",
+      "serviceDown": "The local speech service is not running; enabling 语音播报 starts it automatically.",
       "serviceDownShort": "Speech service offline",
       "startService": "Start local speech service",
       "serviceStarting": "Starting…",

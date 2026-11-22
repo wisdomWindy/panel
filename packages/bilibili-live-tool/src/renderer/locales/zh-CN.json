@@ -921,7 +921,7 @@
       "ready": "已下载",
       "notDownloaded": "未下载",
       "failed": "下载失败",
-      "serviceDown": "本地语音服务未运行，可自动启动或点击下方按钮手动启动。",
+      "serviceDown": "本地语音服务未运行：启用右上角「语音播报」后会自动启动。",
       "serviceDownShort": "语音服务未启动",
       "startService": "启动本地语音服务",
       "serviceStarting": "正在启动…",

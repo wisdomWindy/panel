@@ -130,18 +130,11 @@ onMounted(async () => {
     <p v-if="modelError" class="mt-2 mb-0 text-sm" style="color: var(--app-red)" role="alert">
       {{ modelError }}
     </p>
-    <div v-else-if="!modelServiceAvailable" class="mt-2 flex flex-wrap items-center gap-3">
+    <!-- No start button: enabling 语音播报 owns the service lifecycle (PRD 9.11). -->
+    <div v-else-if="!modelServiceAvailable" class="mt-2">
       <p class="m-0 text-sm" style="color: var(--app-gold)">
-        {{ t('tts.qwen3Model.serviceDown') }}
+        {{ starting ? t('tts.qwen3Model.serviceStarting') : t('tts.qwen3Model.serviceDown') }}
       </p>
-      <button
-        type="button"
-        class="app-chip h-7 px-2 text-xs"
-        :disabled="starting"
-        @click="startService()"
-      >
-        {{ starting ? t('tts.qwen3Model.serviceStarting') : t('tts.qwen3Model.startService') }}
-      </button>
     </div>
   </section>
 </template>

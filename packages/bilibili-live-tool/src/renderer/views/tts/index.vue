@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { Loading, RefreshLeft, VideoPlay } from '@element-plus/icons-vue';
 import type { Qwen3Language, Qwen3TtsConfig, TtsConfig, TtsEventKind, TtsIdentityKind } from '@/platform/desktop';
 import TtsQueuePanel from '@/components/media/TtsQueuePanel.vue';
+import Qwen3ModelCard from '@/components/media/Qwen3ModelCard.vue';
 import { validateTtsTemplate, validateTtsTemplates } from '@/modules/media/validation';
 import { useMediaTtsStore } from '@/stores/media/tts';
 import { resolvePreferredVoiceId } from './voice-selection';
@@ -316,6 +317,9 @@ onMounted(async () => {
       :rows="8"
       animated
     />
+
+    <!-- The model belongs to the speech feature, next to its engine settings. -->
+    <Qwen3ModelCard />
 
     <template v-else-if="store.snapshot">
       <el-form class="flex flex-col gap-4" label-position="top" @submit.prevent="handleSave">

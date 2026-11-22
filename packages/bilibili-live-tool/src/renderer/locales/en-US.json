@@ -283,20 +283,6 @@
     "title": "Dashboard",
     "exportCsv": "Export CSV",
     "historyUnavailable": "Historical data is currently unavailable",
-    "qwen3Model": {
-      "title": "Qwen3-TTS 1.7B speech model",
-      "description": "Download once to generate broadcast and AI-reply speech locally (about 4.5 GB; the local speech service must be running).",
-      "download": "Download model",
-      "redownload": "Download again",
-      "started": "Download started; progress is shown on this card",
-      "downloading": "Downloading…",
-      "downloadingPercent": "Downloading {percent}%",
-      "ready": "Downloaded",
-      "notDownloaded": "Not downloaded",
-      "failed": "Download failed",
-      "serviceDown": "The local speech service is not running: start services/qwen3-tts/server.py, then refresh this page.",
-      "serviceDownShort": "Speech service offline"
-    },
     "overview": "System Overview",
     "connected": "Connected",
     "disconnected": "Disconnected",
@@ -911,6 +897,20 @@
       "pause": "Pause broadcast",
       "clear": "Clear queue",
       "fallback": "Fallback engine in use: {reason}"
+    },
+    "qwen3Model": {
+      "title": "Qwen3-TTS 1.7B speech model",
+      "description": "Download once to generate broadcast and AI-reply speech locally (about 4.5 GB; the local speech service must be running).",
+      "download": "Download model",
+      "redownload": "Download again",
+      "started": "Download started; progress is shown on this card",
+      "downloading": "Downloading…",
+      "downloadingPercent": "Downloading {percent}%",
+      "ready": "Downloaded",
+      "notDownloaded": "Not downloaded",
+      "failed": "Download failed",
+      "serviceDown": "The local speech service is not running: start services/qwen3-tts/server.py, then refresh this page.",
+      "serviceDownShort": "Speech service offline"
     }
   },
   "captainEffect": {

@@ -122,10 +122,6 @@ describe('dark theme page surfaces', () => {
     expect(tokens).toContain('app-metric-value');
     expect(tokens).toContain('app-card');
     expect(tokens).toContain('app-btn-primary');
-    // The Qwen3-TTS model card shows the "service offline" hint when the
-    // catalogue cannot be loaded.
-    expect(html).toContain('Qwen3-TTS 1.7B');
-    expect(html).toContain('本地语音服务未启动');
   });
 
   it.each([

@@ -283,20 +283,6 @@
     "title": "数据看板",
     "exportCsv": "导出 CSV",
     "historyUnavailable": "历史数据暂不可用",
-    "qwen3Model": {
-      "title": "Qwen3-TTS 1.7B 语音模型",
-      "description": "下载后即可用 Qwen3-TTS 生成直播播报与 AI 回复语音（约 4.5 GB，需本地语音服务运行）。",
-      "download": "下载模型",
-      "redownload": "重新下载",
-      "started": "已开始下载，可在本卡片查看进度",
-      "downloading": "下载中…",
-      "downloadingPercent": "下载中 {percent}%",
-      "ready": "已下载",
-      "notDownloaded": "未下载",
-      "failed": "下载失败",
-      "serviceDown": "本地语音服务未启动：请先启动 services/qwen3-tts/server.py，然后刷新本页。",
-      "serviceDownShort": "语音服务未启动"
-    },
     "overview": "系统概览",
     "connected": "已连接",
     "disconnected": "未连接",
@@ -911,6 +897,20 @@
       "pause": "暂停播报",
       "clear": "清空队列",
       "fallback": "当前已使用降级引擎：{reason}"
+    },
+    "qwen3Model": {
+      "title": "Qwen3-TTS 1.7B 语音模型",
+      "description": "下载后即可用 Qwen3-TTS 生成直播播报与 AI 回复语音（约 4.5 GB，需本地语音服务运行）。",
+      "download": "下载模型",
+      "redownload": "重新下载",
+      "started": "已开始下载，可在本卡片查看进度",
+      "downloading": "下载中…",
+      "downloadingPercent": "下载中 {percent}%",
+      "ready": "已下载",
+      "notDownloaded": "未下载",
+      "failed": "下载失败",
+      "serviceDown": "本地语音服务未启动：请先启动 services/qwen3-tts/server.py，然后刷新本页。",
+      "serviceDownShort": "语音服务未启动"
     }
   },
   "captainEffect": {

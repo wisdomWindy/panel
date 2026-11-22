@@ -70,7 +70,8 @@ use ipc::media::{
     gift_notify_get, gift_notify_save, gift_notify_test, gift_sound_export, gift_sound_import,
     gift_sound_list, gift_sound_remove, gift_sound_save, gift_sound_set,
     handle_media_preview_protocol, highlight_delete, highlight_export, highlight_list,
-    highlight_mark, highlight_preview, recording_delete, recording_get_config, recording_list,
+    ffmpeg_install, highlight_mark, highlight_preview, recording_delete, recording_get_config,
+    recording_list,
     recording_preview, recording_rename, recording_save_config, recording_set_ffmpeg_source,
     recording_start, recording_status, recording_stop, sound_preview, tts_clear, tts_get,
     tts_pause, tts_qwen3_download_model, tts_qwen3_get, tts_qwen3_models, tts_qwen3_save,
@@ -327,11 +328,15 @@ impl AppState {
         let media = MediaState::new(effects, gifts, tts, recording)
             .with_recording_clients(
                 Arc::new(BilibiliPlayUrlResolver::new()),
-                Arc::new(AppFfmpegLocator::for_current_app()),
+                Arc::new(
+                    AppFfmpegLocator::for_current_app()
+                        .with_managed_root(managed_ffmpeg_directory(&app)),
+                ),
             )
             // PRD 9.12: recordings land in `<install or data dir>/download` so
             // start-recording never depends on a folder dialog.
-            .with_default_recording_directory(default_recording_directory(&app));
+            .with_default_recording_directory(default_recording_directory(&app))
+            .with_managed_ffmpeg_directory(managed_ffmpeg_directory(&app));
         let media = if let Some(pool) = pool.clone() {
             media.with_services(MediaServices {
                 repository: Arc::new(SqliteMediaRepository::new(pool)),
@@ -537,6 +542,15 @@ fn default_recording_directory(app: &tauri::AppHandle) -> std::path::PathBuf {
         log::warn!("default recording directory is unavailable: {error}");
     }
     directory
+}
+
+/// FFmpeg installed by the app lives here, outside `PATH` and outside the
+/// operator's own tool directories.
+fn managed_ffmpeg_directory(app: &tauri::AppHandle) -> std::path::PathBuf {
+    app.path()
+        .app_data_dir()
+        .map(|data| data.join("ffmpeg"))
+        .unwrap_or_else(|_| std::env::temp_dir().join("biliLiveHelper/ffmpeg"))
 }
 
 fn install_startup_crash_reporter() {    std::panic::set_hook(Box::new(|info| {
@@ -757,6 +771,7 @@ pub fn run() {
         tts_qwen3_test,
         tts_qwen3_models,
         tts_qwen3_download_model,
+        ffmpeg_install,
         recording_get_config,
         recording_save_config,
         recording_set_ffmpeg_source,
@@ -888,6 +903,7 @@ pub fn run() {
         tts_qwen3_test,
         tts_qwen3_models,
         tts_qwen3_download_model,
+        ffmpeg_install,
         recording_get_config,
         recording_save_config,
         recording_set_ffmpeg_source,

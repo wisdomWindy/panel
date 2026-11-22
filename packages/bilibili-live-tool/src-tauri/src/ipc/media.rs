@@ -1224,6 +1224,7 @@ fn recording_config(config: RecordingConfig) -> RecordingConfigDto {
         ffmpeg_source: match config.ffmpeg_source {
             FfmpegSource::Bundled => FfmpegSourceDto::Bundled,
             FfmpegSource::System => FfmpegSourceDto::System,
+            FfmpegSource::Installed => FfmpegSourceDto::Installed,
             FfmpegSource::Local => FfmpegSourceDto::Local,
         },
         shortcut: config.shortcut,
@@ -1494,6 +1495,7 @@ const fn ffmpeg_source_from_dto(source: FfmpegSourceDto) -> FfmpegSource {
     match source {
         FfmpegSourceDto::Bundled => FfmpegSource::Bundled,
         FfmpegSourceDto::System => FfmpegSource::System,
+        FfmpegSourceDto::Installed => FfmpegSource::Installed,
         FfmpegSourceDto::Local => FfmpegSource::Local,
     }
 }
@@ -1559,4 +1561,23 @@ mod tests {
         assert_eq!(response.headers()[header::CONTENT_RANGE], "bytes 2-4/10");
         assert_eq!(response.body(), &[1, 2, 3]);
     }
+}
+#[tauri::command]
+pub async fn ffmpeg_install(state: State<'_, AppState>) -> Result<String, DesktopError> {
+    let directory = state
+        .media()
+        .managed_ffmpeg_directory()
+        .map(std::path::Path::to_path_buf)
+        .ok_or_else(|| {
+            DesktopError::from(crate::application::media::MediaIoError::coded(
+                "RECORD_FFMPEG_INSTALL_FAILED",
+                "无法确定 FFmpeg 安装目录",
+                true,
+            ))
+        })?;
+    let path = crate::infrastructure::media::FfmpegInstaller::new(directory)
+        .install()
+        .await
+        .map_err(DesktopError::from)?;
+    Ok(path.display().to_string())
 }

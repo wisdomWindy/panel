@@ -174,6 +174,7 @@ pub const MEDIA_COMMAND_NAMES: &[&str] = &[
     "tts_test",
     "tts_pause",
     "tts_clear",
+    "ffmpeg_install",
     "recording_get_config",
     "recording_save_config",
     "recording_set_ffmpeg_source",
@@ -541,6 +542,7 @@ pub enum RecordingQualityDto {
 pub enum FfmpegSourceDto {
     Bundled,
     System,
+    Installed,
     Local,
 }
 

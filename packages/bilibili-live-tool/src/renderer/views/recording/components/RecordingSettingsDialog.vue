@@ -11,6 +11,7 @@ const props = defineProps<{
   pending?: boolean;
   pathPending?: boolean;
   ffmpegPending?: boolean;
+  installPending?: boolean;
 }>();
 const { t } = useI18n();
 
@@ -20,6 +21,7 @@ const emit = defineEmits<{
   save: [];
   selectDirectory: [];
   setFfmpegSource: [source: RecordingConfig['ffmpegSource']];
+  installFfmpeg: [];
 }>();
 
 const config = computed({
@@ -179,11 +181,20 @@ function close(): void {
               :options="[
                 { label: t('recording.settings.bundled'), value: 'bundled' },
                 { label: t('recording.settings.system'), value: 'system' },
+                { label: t('recording.settings.installed'), value: 'installed' },
                 { label: t('recording.settings.local'), value: 'local' }
               ]"
               :disabled="ffmpegPending"
               @change="emit('setFfmpegSource', $event)"
             />
+            <button
+              type="button"
+              class="app-chip mt-1 inline-flex h-7 items-center gap-1 px-2 text-xs"
+              :disabled="installPending"
+              @click="emit('installFfmpeg')"
+            >
+              {{ installPending ? t('recording.settings.installing') : t('recording.settings.installFfmpeg') }}
+            </button>
             <span
               v-if="config.ffmpegSource === 'bundled'"
               class="mt-1 block text-xs"
@@ -196,6 +207,12 @@ function close(): void {
               class="app-muted mt-1 block text-xs"
             >
               {{ t('recording.settings.systemHint') }}
+            </span>
+            <span
+              v-else-if="config.ffmpegSource === 'installed'"
+              class="app-muted mt-1 block text-xs"
+            >
+              {{ t('recording.settings.installedHint') }}
             </span>
           </el-form-item>
           <el-form-item :label="t('recording.settings.shortcut')">

@@ -12,15 +12,16 @@ use crate::{
 
 #[test]
 fn exposes_the_approved_media_surface_only() {
-    assert_eq!(MEDIA_COMMAND_NAMES.len(), 40);
+    assert_eq!(MEDIA_COMMAND_NAMES.len(), 41);
     assert_eq!(MEDIA_COMMAND_NAMES[0], "captain_effect_get");
     assert_eq!(MEDIA_COMMAND_NAMES[1], "captain_effect_current");
-    assert_eq!(MEDIA_COMMAND_NAMES[34], "highlight_delete");
-    assert_eq!(MEDIA_COMMAND_NAMES[35], "tts_qwen3_get");
-    assert_eq!(MEDIA_COMMAND_NAMES[36], "tts_qwen3_save");
-    assert_eq!(MEDIA_COMMAND_NAMES[37], "tts_qwen3_test");
-    assert_eq!(MEDIA_COMMAND_NAMES[38], "tts_qwen3_models");
-    assert_eq!(MEDIA_COMMAND_NAMES[39], "tts_qwen3_download_model");
+    assert_eq!(MEDIA_COMMAND_NAMES[20], "ffmpeg_install");
+    assert_eq!(MEDIA_COMMAND_NAMES[35], "highlight_delete");
+    assert_eq!(MEDIA_COMMAND_NAMES[36], "tts_qwen3_get");
+    assert_eq!(MEDIA_COMMAND_NAMES[37], "tts_qwen3_save");
+    assert_eq!(MEDIA_COMMAND_NAMES[38], "tts_qwen3_test");
+    assert_eq!(MEDIA_COMMAND_NAMES[39], "tts_qwen3_models");
+    assert_eq!(MEDIA_COMMAND_NAMES[40], "tts_qwen3_download_model");
     assert_eq!(MEDIA_EVENT_NAMES.len(), 7);
     assert_eq!(MEDIA_EVENT_NAMES[0], "captain_effect_trigger");
     assert_eq!(MEDIA_EVENT_NAMES[6], "highlight_created");

@@ -135,6 +135,21 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     if (grantId) await invokeDesktop('path_revoke', { grantId }).catch(() => undefined);
   }
 
+  /** Installs FFmpeg into the app's own data directory (no PATH changes). */
+  function installFfmpeg(): Promise<string> {
+    return runOperation('installFfmpeg', async () => {
+      const path = await invokeDesktop('ffmpeg_install', undefined);
+      const adapted = adaptRecordingConfig(
+        await invokeDesktop('recording_set_ffmpeg_source', {
+          source: 'installed',
+          grantId: null
+        })
+      );
+      config.value = adapted;
+      return path;
+    });
+  }
+
   function setFfmpegSource(source: FfmpegSource): Promise<RecordingConfig> {
     return runOperation('setFfmpegSource', async () => {
       let grantId: PathGrantId | null = null;
@@ -269,6 +284,7 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     saveConfig,
     selectDirectory,
     discardDirectorySelection,
+    installFfmpeg,
     setFfmpegSource,
     start,
     stop,

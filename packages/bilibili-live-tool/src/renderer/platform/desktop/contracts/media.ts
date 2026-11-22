@@ -179,7 +179,7 @@ export interface Qwen3ModelCatalog {
 
 export type RecordingFormat = 'mp4' | 'flv';
 export type RecordingQuality = 'original' | 'high' | 'standard';
-export type FfmpegSource = 'bundled' | 'system' | 'local';
+export type FfmpegSource = 'bundled' | 'system' | 'installed' | 'local';
 export type RecordingState = 'idle' | 'starting' | 'recording' | 'stopping' | 'finalizing' | 'error';
 export type RecordingItemState = 'recording' | 'completed' | 'partial' | 'failed';
 export type HighlightTriggerType = 'danmakuSurge' | 'manual';
@@ -235,7 +235,10 @@ export const MEDIA_COMMAND_NAMES = [
   'gift_sound_list', 'gift_sound_set', 'gift_sound_remove', 'gift_sound_save',
   'gift_sound_import', 'gift_sound_export', 'sound_preview',
   'tts_get', 'tts_save', 'tts_set_enabled', 'tts_test', 'tts_pause', 'tts_clear',
-  'recording_get_config', 'recording_save_config', 'recording_set_ffmpeg_source',
+  'ffmpeg_install',
+  'recording_get_config',
+  'recording_save_config',
+  'recording_set_ffmpeg_source',
   'recording_status', 'recording_start', 'recording_stop', 'recording_list',
   'recording_preview', 'recording_rename', 'recording_delete',
   'highlight_list', 'highlight_mark', 'highlight_preview', 'highlight_export', 'highlight_delete',
@@ -279,6 +282,7 @@ export interface MediaCommandRequestMap {
   tts_qwen3_download_model: { model: string | null };
   recording_get_config: undefined;
   recording_save_config: { config: RecordingConfig };
+  ffmpeg_install: undefined;
   recording_set_ffmpeg_source: { source: FfmpegSource; grantId: PathGrantId | null };
   recording_status: undefined;
   recording_start: { roomId: RoomId };
@@ -322,6 +326,7 @@ export interface MediaCommandResultMap {
   tts_qwen3_download_model: Qwen3DownloadState;
   recording_get_config: RecordingConfig;
   recording_save_config: RecordingConfig;
+  ffmpeg_install: string;
   recording_set_ffmpeg_source: RecordingConfig;
   recording_status: RecordingStatus;
   recording_start: RecordingStatus;

@@ -19,6 +19,8 @@ pub struct AppFfmpegLocator {
     system_roots: Vec<PathBuf>,
     /// Tests disable PATH probing so the result only depends on injected roots.
     probe_path: bool,
+    /// Directory the app installs FFmpeg into on the operator's behalf.
+    managed_root: Option<PathBuf>,
 }
 
 impl AppFfmpegLocator {
@@ -39,6 +41,7 @@ impl AppFfmpegLocator {
             bundled_roots,
             system_roots: default_system_roots(),
             probe_path: true,
+            managed_root: None,
         }
     }
 
@@ -47,7 +50,14 @@ impl AppFfmpegLocator {
             bundled_roots,
             system_roots: default_system_roots(),
             probe_path: false,
+            managed_root: None,
         }
+    }
+
+    /// Points the locator at the app-managed install directory.
+    pub fn with_managed_root(mut self, directory: PathBuf) -> Self {
+        self.managed_root = Some(directory);
+        self
     }
 
     pub fn with_system_roots(mut self, system_roots: Vec<PathBuf>) -> Self {
@@ -66,6 +76,11 @@ impl AppFfmpegLocator {
         }
         roots.extend(self.system_roots.iter().cloned());
         roots
+    }
+
+    fn locate_managed(&self) -> Option<PathBuf> {
+        let candidate = self.managed_root.as_ref()?.join(binary_name());
+        candidate.is_file().then_some(candidate)
     }
 
     fn locate_system(&self) -> Option<PathBuf> {
@@ -90,6 +105,7 @@ impl FfmpegLocator for AppFfmpegLocator {
                 .iter()
                 .map(|root| root.join(binary_name()))
                 .find(|candidate| candidate.is_file())
+                .or_else(|| self.locate_managed())
                 .or_else(|| self.locate_system())
                 .ok_or_else(|| {
                     MediaIoError::coded(
@@ -98,6 +114,14 @@ impl FfmpegLocator for AppFfmpegLocator {
                         false,
                     )
                 }),
+            // Binary the app installed itself; nothing else is considered.
+            FfmpegSource::Installed => self.locate_managed().ok_or_else(|| {
+                MediaIoError::coded(
+                    "RECORD_FFMPEG_MISSING",
+                    "应用内 FFmpeg 尚未安装，请点击一键安装",
+                    false,
+                )
+            }),
             FfmpegSource::System => self.locate_system().ok_or_else(|| {
                 MediaIoError::coded(
                     "RECORD_FFMPEG_MISSING",

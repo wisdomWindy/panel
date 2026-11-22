@@ -71,6 +71,7 @@ commands.allow = [
   "tts_qwen3_test",
   "tts_qwen3_models",
   "tts_qwen3_download_model",
+  "ffmpeg_install",
   "recording_get_config",
   "recording_save_config",
   "recording_set_ffmpeg_source",

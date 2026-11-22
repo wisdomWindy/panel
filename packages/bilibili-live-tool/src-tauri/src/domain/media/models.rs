@@ -344,6 +344,8 @@ pub enum FfmpegSource {
     Bundled,
     /// Whatever FFmpeg the machine already has (PATH and the usual installers).
     System,
+    /// Installed by the app itself into its own data directory.
+    Installed,
     /// A file the operator picked and authorized.
     Local,
 }

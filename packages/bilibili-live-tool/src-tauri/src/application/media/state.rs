@@ -237,6 +237,8 @@ pub struct MediaState {
     pub(crate) play_url: Arc<dyn PlayUrlResolver>,
     pub(crate) ffmpeg: Arc<dyn FfmpegLocator>,
     default_recording_directory: Option<PathBuf>,
+    /// Directory holding the FFmpeg the app installed on the operator's behalf.
+    managed_ffmpeg_directory: Option<PathBuf>,
 }
 
 impl MediaState {
@@ -259,6 +261,7 @@ impl MediaState {
             play_url: Arc::new(UnavailablePlayUrlResolver),
             ffmpeg: Arc::new(UnavailableFfmpegLocator),
             default_recording_directory: None,
+            managed_ffmpeg_directory: None,
         }
     }
 
@@ -278,6 +281,15 @@ impl MediaState {
     pub fn with_default_recording_directory(mut self, directory: PathBuf) -> Self {
         self.default_recording_directory = Some(directory);
         self
+    }
+
+    pub fn with_managed_ffmpeg_directory(mut self, directory: PathBuf) -> Self {
+        self.managed_ffmpeg_directory = Some(directory);
+        self
+    }
+
+    pub fn managed_ffmpeg_directory(&self) -> Option<&Path> {
+        self.managed_ffmpeg_directory.as_deref()
     }
 
     pub fn default_recording_directory(&self) -> Option<&Path> {
@@ -539,7 +551,7 @@ impl MediaState {
     ) -> Result<RecordingConfig, MediaIoError> {
         let executable = match source {
             // Nothing to store: both resolve to whatever is available at start.
-            FfmpegSource::Bundled | FfmpegSource::System => None,
+            FfmpegSource::Bundled | FfmpegSource::System | FfmpegSource::Installed => None,
             FfmpegSource::Local => Some(
                 self.services()?
                     .grants

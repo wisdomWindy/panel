@@ -694,7 +694,9 @@
       "highlightExported": "高光片段已导出",
       "exportFailed": "导出失败",
       "highlightDeleted": "高光已删除",
-      "directorySaved": "存储路径已保存"
+      "directorySaved": "存储路径已保存",
+      "ffmpegInstalled": "FFmpeg 安装完成",
+      "ffmpegInstallFailed": "FFmpeg 安装失败"
     },
     "dialogs": {
       "renamePrompt": "输入新文件名",
@@ -729,14 +731,19 @@
       "shortcut": "高光快捷键",
       "saving": "保存中...",
       "system": "本机已安装",
-      "systemHint": "自动使用 PATH 或常见安装位置中的 FFmpeg；未检测到时会提示"
+      "systemHint": "自动使用 PATH 或常见安装位置中的 FFmpeg；未检测到时会提示",
+      "installed": "应用内安装",
+      "installedHint": "使用应用自己安装的 FFmpeg（不影响系统环境）",
+      "installFfmpeg": "一键安装 FFmpeg",
+      "installing": "正在安装…"
     },
     "manualRoomId": "房间号",
     "manualRoomIdHint": "输入房间号，无需连接直播间",
     "ffmpegPrompt": {
       "title": "未找到 FFmpeg",
       "body": "录制需要 FFmpeg。请安装 FFmpeg 后重试，或在录制设置中选择本机已安装的 FFmpeg 文件。",
-      "openSettings": "打开录制设置"
+      "openSettings": "打开录制设置",
+      "installNow": "一键安装"
     }
   },
   "liveData": {
@@ -1277,6 +1284,9 @@
     "RECORD_STREAM_UNAVAILABLE": "当前没有可用的直播流",
     "STORAGE_UNAVAILABLE": "本地数据暂不可用，请重启应用后重试",
     "STORAGE_PATH_DENIED": "未获得该路径的访问授权",
-    "SYS_DIALOG_CANCELLED": "已取消选择"
+    "SYS_DIALOG_CANCELLED": "已取消选择",
+    "RECORD_FFMPEG_DOWNLOAD_FAILED": "FFmpeg 安装包下载失败，请检查网络后重试",
+    "RECORD_FFMPEG_INSTALL_FAILED": "FFmpeg 安装失败，请检查磁盘空间与权限后重试",
+    "RECORD_FFMPEG_UNSUPPORTED": "当前平台请通过系统包管理器安装 FFmpeg"
   }
 }

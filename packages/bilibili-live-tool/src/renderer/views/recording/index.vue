@@ -178,8 +178,8 @@ async function handlePrimary(): Promise<void> {
 }
 
 /**
- * PRD 9.12: recording needs FFmpeg. Missing it is an install problem, not a
- * generic failure, so it gets its own prompt with a route to the settings.
+ * PRD 9.12: recording needs FFmpeg. Missing it is an install problem, so the
+ * prompt offers the one-click install that stays inside the app's own folder.
  */
 async function promptInstallFfmpeg(): Promise<void> {
   try {
@@ -188,13 +188,34 @@ async function promptInstallFfmpeg(): Promise<void> {
       t('recording.ffmpegPrompt.title'),
       {
         type: 'warning',
-        confirmButtonText: t('recording.ffmpegPrompt.openSettings'),
-        cancelButtonText: t('common.cancel')
+        confirmButtonText: t('recording.ffmpegPrompt.installNow'),
+        cancelButtonText: t('recording.ffmpegPrompt.openSettings'),
+        distinguishCancelAndClose: true
       }
     );
-    openSettings();
-  } catch {
-    // Dismissed: nothing to do.
+    await installFfmpeg();
+  } catch (action) {
+    // Cancel means "take me to the settings"; close means "not now".
+    if (action === 'cancel') openSettings();
+  }
+}
+
+/** Downloads FFmpeg into the app data directory and switches the source to it. */
+async function installFfmpeg(): Promise<void> {
+  const pending = ElMessage({ message: t('recording.settings.installing'), duration: 0 });
+  try {
+    await store.installFfmpeg();
+    pending.close();
+    ElMessage.success(t('recording.messages.ffmpegInstalled'));
+    if (settingsDraft.value) {
+      settingsDraft.value = { ...settingsDraft.value, ffmpegSource: 'installed' };
+    }
+  } catch (error) {
+    pending.close();
+    const value = error as { code?: string; message?: string };
+    ElMessage.error(
+      describeError(value.code, value.message ?? t('recording.messages.ffmpegInstallFailed'))
+    );
   }
 }
 
@@ -619,9 +640,11 @@ onMounted(async () => {
       :pending="store.pendingOperations.has('saveConfig')"
       :path-pending="store.pendingOperations.has('selectDirectory')"
       :ffmpeg-pending="store.pendingOperations.has('setFfmpegSource')"
+      :install-pending="store.pendingOperations.has('installFfmpeg')"
       @update:visible="handleSettingsVisibility"
       @select-directory="selectDirectory"
       @set-ffmpeg-source="setFfmpegSource"
+      @install-ffmpeg="installFfmpeg"
       @save="saveSettings"
     />
 

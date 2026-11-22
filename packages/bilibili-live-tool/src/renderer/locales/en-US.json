@@ -694,7 +694,9 @@
       "highlightExported": "Highlight clip exported",
       "exportFailed": "Export failed",
       "highlightDeleted": "Highlight deleted",
-      "directorySaved": "Recording folder saved"
+      "directorySaved": "Recording folder saved",
+      "ffmpegInstalled": "FFmpeg installed",
+      "ffmpegInstallFailed": "FFmpeg installation failed"
     },
     "dialogs": {
       "renamePrompt": "Enter a new file name",
@@ -729,14 +731,19 @@
       "shortcut": "Highlight shortcut",
       "saving": "Saving...",
       "system": "Installed",
-      "systemHint": "Uses FFmpeg found on PATH or in the usual install locations"
+      "systemHint": "Uses FFmpeg found on PATH or in the usual install locations",
+      "installed": "Installed by app",
+      "installedHint": "Uses the FFmpeg this app installed; the system environment stays untouched",
+      "installFfmpeg": "Install FFmpeg",
+      "installing": "Installing…"
     },
     "manualRoomId": "Room ID",
     "manualRoomIdHint": "Enter a room ID; no live connection needed",
     "ffmpegPrompt": {
       "title": "FFmpeg not found",
       "body": "Recording needs FFmpeg. Install it and try again, or pick an installed FFmpeg in the recording settings.",
-      "openSettings": "Open recording settings"
+      "openSettings": "Open recording settings",
+      "installNow": "Install now"
     }
   },
   "liveData": {
@@ -1277,6 +1284,9 @@
     "RECORD_STREAM_UNAVAILABLE": "No playable stream is available right now",
     "STORAGE_UNAVAILABLE": "Local data is unavailable; restart the app and try again",
     "STORAGE_PATH_DENIED": "Access to that path was not granted",
-    "SYS_DIALOG_CANCELLED": "Selection cancelled"
+    "SYS_DIALOG_CANCELLED": "Selection cancelled",
+    "RECORD_FFMPEG_DOWNLOAD_FAILED": "The FFmpeg installer could not be downloaded; check the network and retry",
+    "RECORD_FFMPEG_INSTALL_FAILED": "FFmpeg installation failed; check free disk space and permissions",
+    "RECORD_FFMPEG_UNSUPPORTED": "Install FFmpeg with your system package manager on this platform"
   }
 }

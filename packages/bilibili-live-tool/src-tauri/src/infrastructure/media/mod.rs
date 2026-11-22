@@ -1,5 +1,6 @@
 mod audio;
 mod ffmpeg;
+mod ffmpeg_installer;
 mod ffmpeg_locator;
 mod files;
 mod hotkey;
@@ -13,6 +14,7 @@ mod window;
 
 pub use audio::{RodioAudioOutput, UnavailableAudioOutput};
 pub use ffmpeg::{LocalFfmpegProcessPort, UnavailableRecorderProcessPort};
+pub use ffmpeg_installer::FfmpegInstaller;
 pub use ffmpeg_locator::AppFfmpegLocator;
 pub use play_url::{parse_play_url_response, quality_qn, validate_room_id, BilibiliPlayUrlResolver};
 

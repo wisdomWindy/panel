@@ -5,31 +5,22 @@ import { fileURLToPath } from 'node:url';
 const source = (path: string) =>
   readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8');
 
-describe('qwen3 model card', () => {
-  it('lives next to the speech settings instead of the dashboard', () => {
-    const ttsPage = source('../tts/index.vue');
-    const dashboard = source('../dashboard/index.vue');
+describe('speech model handling', () => {
+  it('keeps the model download out of the UI, because it is automatic', () => {
+    const ttsPage = source('./index.vue');
 
-    expect(ttsPage).toContain('Qwen3ModelCard');
-    expect(dashboard).not.toContain('qwen3');
+    // The runtime and the weights are prepared when 播报 is enabled or when the
+    // stored configuration already has it on, so the page needs no card, button
+    // or progress bar for them.
+    expect(ttsPage).not.toContain('Qwen3ModelCard');
+    expect(ttsPage).not.toContain('downloadQwen3Model');
+    expect(ttsPage).not.toContain('tts_qwen3_download_model');
   });
 
-  it('downloads through the store and reports progress', () => {
-    const card = source('../../components/media/Qwen3ModelCard.vue');
+  it('still reports preparation progress while it runs', () => {
+    const ttsPage = source('./index.vue');
 
-    expect(card).toContain("t('tts.qwen3Model.title')");
-    expect(card).toContain('@click="downloadModel"');
-    expect(card).toContain('media.downloadQwen3Model');
-    expect(card).toContain('media.loadQwen3Models');
-    expect(card).toContain('tts.qwen3Model.serviceDown');
-    expect(card).toContain('<el-progress');
-    expect(card).not.toMatch(/invokeDesktop|listenDesktop/);
-  });
-
-  it('keeps the default model id in the service catalogue, not the view', () => {
-    const card = source('../../components/media/Qwen3ModelCard.vue');
-
-    expect(card).not.toContain('Qwen/Qwen3-TTS');
-    expect(card).toContain('primaryModel');
+    expect(ttsPage).toContain('SpeechPrepareDialog');
+    expect(ttsPage).toContain('ensureSpeechReady');
   });
 });

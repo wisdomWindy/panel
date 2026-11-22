@@ -328,7 +328,10 @@ impl AppState {
             .with_recording_clients(
                 Arc::new(BilibiliPlayUrlResolver::new()),
                 Arc::new(AppFfmpegLocator::for_current_app()),
-            );
+            )
+            // PRD 9.12: recordings land in `<install or data dir>/download` so
+            // start-recording never depends on a folder dialog.
+            .with_default_recording_directory(default_recording_directory(&app));
         let media = if let Some(pool) = pool.clone() {
             media.with_services(MediaServices {
                 repository: Arc::new(SqliteMediaRepository::new(pool)),
@@ -516,8 +519,27 @@ impl AppState {
 /// Startup crashes happen before the log plugin exists, so a plain panic hook
 /// appends to a fixed file the user can send us. Without it an instant exit
 /// leaves no evidence at all.
-fn install_startup_crash_reporter() {
-    std::panic::set_hook(Box::new(|info| {
+/// Recordings default to `download` beside the installed executable, or inside
+/// the per-user data directory for a development build.
+fn default_recording_directory(app: &tauri::AppHandle) -> std::path::PathBuf {
+    let directory = if cfg!(debug_assertions) {
+        app.path()
+            .app_data_dir()
+            .map(|data| data.join("download"))
+            .unwrap_or_else(|_| std::env::temp_dir().join("biliLiveHelper/download"))
+    } else {
+        std::env::current_exe()
+            .ok()
+            .and_then(|executable| executable.parent().map(|parent| parent.join("download")))
+            .unwrap_or_else(|| std::env::temp_dir().join("biliLiveHelper/download"))
+    };
+    if let Err(error) = std::fs::create_dir_all(&directory) {
+        log::warn!("default recording directory is unavailable: {error}");
+    }
+    directory
+}
+
+fn install_startup_crash_reporter() {    std::panic::set_hook(Box::new(|info| {
         let location = info
             .location()
             .map(|value| format!("{}:{}", value.file(), value.line()))

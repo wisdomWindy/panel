@@ -1,3 +1,7 @@
+/// Reserved grant id for the app-owned `download` folder: recording must work
+/// without the operator picking a directory first.
+pub const APP_DOWNLOAD_GRANT_ID: &str = "app-download";
+
 use std::{
     collections::{HashSet, VecDeque},
     path::{Path, PathBuf},
@@ -232,6 +236,7 @@ pub struct MediaState {
     event_sink: Arc<dyn MediaEventSink>,
     pub(crate) play_url: Arc<dyn PlayUrlResolver>,
     pub(crate) ffmpeg: Arc<dyn FfmpegLocator>,
+    default_recording_directory: Option<PathBuf>,
 }
 
 impl MediaState {
@@ -253,6 +258,7 @@ impl MediaState {
             event_sink: Arc::new(NoopMediaEventSink),
             play_url: Arc::new(UnavailablePlayUrlResolver),
             ffmpeg: Arc::new(UnavailableFfmpegLocator),
+            default_recording_directory: None,
         }
     }
 
@@ -265,6 +271,17 @@ impl MediaState {
         self.play_url = play_url;
         self.ffmpeg = ffmpeg;
         self
+    }
+
+    /// PRD 9.12 recording must work out of the box, so the app owns a default
+    /// `download` folder; the operator can still point elsewhere.
+    pub fn with_default_recording_directory(mut self, directory: PathBuf) -> Self {
+        self.default_recording_directory = Some(directory);
+        self
+    }
+
+    pub fn default_recording_directory(&self) -> Option<&Path> {
+        self.default_recording_directory.as_deref()
     }
 
     pub fn with_services(mut self, services: MediaServices) -> Self {
@@ -726,23 +743,31 @@ impl MediaState {
         let services = self.services()?;
         let config = self.recording.config().await;
 
-        let grant = config.directory.as_ref().ok_or_else(|| {
-            MediaIoError::coded(
-                "RECORD_DIRECTORY_REQUIRED",
-                "请先在录制设置中选择保存目录",
-                false,
-            )
-        })?;
-        let directory = services
-            .grants
-            .resolve(&grant.grant_id, PathPurpose::RecordingDirectory)
-            .map_err(|_| {
-                MediaIoError::coded(
-                    "RECORD_DIRECTORY_REQUIRED",
-                    "录制目录授权已失效，请重新选择",
-                    false,
-                )
-            })?;
+        let grant = config.directory.as_ref();
+        // A configured grant wins; otherwise the app-owned `download` folder is
+        // used so recording works without asking the operator to pick a folder.
+        let directory = match grant {
+            Some(grant) if grant.grant_id != APP_DOWNLOAD_GRANT_ID => services
+                .grants
+                .resolve(&grant.grant_id, PathPurpose::RecordingDirectory)
+                .map_err(|_| {
+                    MediaIoError::coded(
+                        "RECORD_DIRECTORY_REQUIRED",
+                        "录制目录授权已失效，请重新选择",
+                        false,
+                    )
+                })?,
+            _ => self
+                .default_recording_directory
+                .clone()
+                .ok_or_else(|| {
+                    MediaIoError::coded(
+                        "RECORD_DIRECTORY_REQUIRED",
+                        "请先在录制设置中选择保存目录",
+                        false,
+                    )
+                })?,
+        };
         tokio::fs::create_dir_all(&directory)
             .await
             .map_err(|_| {

@@ -635,7 +635,18 @@ fn qwen3_config_from_dto(config: Qwen3TtsConfigDto) -> crate::domain::media::Qwe
 pub async fn recording_get_config(
     state: State<'_, AppState>,
 ) -> Result<RecordingConfigDto, DesktopError> {
-    Ok(recording_config(state.media().recording().config().await))
+    let mut config = recording_config(state.media().recording().config().await);
+    // PRD 9.12: show the app-owned default so the operator sees where files go
+    // without having to pick a folder first.
+    if config.directory.is_none() {
+        if let Some(directory) = state.media().default_recording_directory() {
+            config.directory = Some(RecordingDirectoryDto {
+                grant_id: crate::application::media::APP_DOWNLOAD_GRANT_ID.to_owned(),
+                display_path: directory.display().to_string(),
+            });
+        }
+    }
+    Ok(config)
 }
 
 #[tauri::command]

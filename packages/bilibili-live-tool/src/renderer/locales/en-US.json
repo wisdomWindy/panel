@@ -743,7 +743,12 @@
       "systemHint": "Uses FFmpeg found on PATH or in the usual install locations"
     },
     "manualRoomId": "Room ID",
-    "manualRoomIdHint": "Enter a room ID; no live connection needed"
+    "manualRoomIdHint": "Enter a room ID; no live connection needed",
+    "ffmpegPrompt": {
+      "title": "FFmpeg not found",
+      "body": "Recording needs FFmpeg. Install it and try again, or pick an installed FFmpeg in the recording settings.",
+      "openSettings": "Open recording settings"
+    }
   },
   "liveData": {
     "range": {

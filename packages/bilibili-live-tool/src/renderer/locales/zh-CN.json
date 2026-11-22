@@ -743,7 +743,12 @@
       "systemHint": "自动使用 PATH 或常见安装位置中的 FFmpeg；未检测到时会提示"
     },
     "manualRoomId": "房间号",
-    "manualRoomIdHint": "输入房间号，无需连接直播间"
+    "manualRoomIdHint": "输入房间号，无需连接直播间",
+    "ffmpegPrompt": {
+      "title": "未找到 FFmpeg",
+      "body": "录制需要 FFmpeg。请安装 FFmpeg 后重试，或在录制设置中选择本机已安装的 FFmpeg 文件。",
+      "openSettings": "打开录制设置"
+    }
   },
   "liveData": {
     "range": {

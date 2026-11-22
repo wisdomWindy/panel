@@ -41,8 +41,6 @@ const targetRoomId = computed(() => room.snapshot.roomId ?? manualRoomId.value.t
 const startDisabledReason = computed(() => {
   if (!targetRoomId.value) return t('recording.reasons.roomIdRequired');
   if (!/^\d{1,20}$/.test(targetRoomId.value)) return t('recording.reasons.roomIdInvalid');
-  if (!config.value?.directory) return t('recording.reasons.selectDirectory');
-  if (config.value.ffmpegSource === 'bundled') return t('recording.reasons.selectLocalFfmpeg');
   if (
     status.value &&
       status.value.diskRemainingBytes > 0 &&
@@ -50,8 +48,9 @@ const startDisabledReason = computed(() => {
   ) {
     return t('recording.reasons.lowDisk');
   }
-  // An error state must stay retryable: the backend accepts a restart from
-  // Error, and the primary button already offers the retry label.
+  // A missing save folder or FFmpeg no longer blocks the click: the backend
+  // falls back to the app-owned `download` folder, and a missing FFmpeg is
+  // reported with an install prompt when the operator actually starts.
   return null;
 });
 const primaryText = computed(() =>
@@ -167,9 +166,35 @@ async function handlePrimary(): Promise<void> {
     await store.start(targetRoomId.value);
     ElMessage.success(t('recording.messages.started'));
   } catch (error) {
+    const value = error as { code?: string; message?: string };
+    if (value.code === 'RECORD_FFMPEG_MISSING') {
+      await promptInstallFfmpeg();
+      return;
+    }
     ElMessage.error(
-      (error as { message?: string }).message ?? t('recording.messages.operationFailed')
+      describeError(value.code, value.message ?? t('recording.messages.operationFailed'))
     );
+  }
+}
+
+/**
+ * PRD 9.12: recording needs FFmpeg. Missing it is an install problem, not a
+ * generic failure, so it gets its own prompt with a route to the settings.
+ */
+async function promptInstallFfmpeg(): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      t('recording.ffmpegPrompt.body'),
+      t('recording.ffmpegPrompt.title'),
+      {
+        type: 'warning',
+        confirmButtonText: t('recording.ffmpegPrompt.openSettings'),
+        cancelButtonText: t('common.cancel')
+      }
+    );
+    openSettings();
+  } catch {
+    // Dismissed: nothing to do.
   }
 }
 

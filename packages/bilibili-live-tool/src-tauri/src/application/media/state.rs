@@ -521,7 +521,8 @@ impl MediaState {
         grant_id: Option<&str>,
     ) -> Result<RecordingConfig, MediaIoError> {
         let executable = match source {
-            FfmpegSource::Bundled => None,
+            // Nothing to store: both resolve to whatever is available at start.
+            FfmpegSource::Bundled | FfmpegSource::System => None,
             FfmpegSource::Local => Some(
                 self.services()?
                     .grants

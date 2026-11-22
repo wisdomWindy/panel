@@ -736,9 +736,11 @@
       "ffmpegSource": "FFmpeg source",
       "bundled": "Bundled",
       "local": "Local",
-      "bundledUnavailable": "Bundled FFmpeg is not included in this installer",
+      "bundledUnavailable": "The bundled FFmpeg is not shipped yet; an installed FFmpeg will be used instead",
       "shortcut": "Highlight shortcut",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "system": "Installed",
+      "systemHint": "Uses FFmpeg found on PATH or in the usual install locations"
     },
     "manualRoomId": "Room ID",
     "manualRoomIdHint": "Enter a room ID; no live connection needed"

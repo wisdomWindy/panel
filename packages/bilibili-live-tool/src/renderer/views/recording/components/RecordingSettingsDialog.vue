@@ -177,7 +177,8 @@ function close(): void {
             <el-segmented
               :model-value="config.ffmpegSource"
               :options="[
-                { label: t('recording.settings.bundled'), value: 'bundled', disabled: true },
+                { label: t('recording.settings.bundled'), value: 'bundled' },
+                { label: t('recording.settings.system'), value: 'system' },
                 { label: t('recording.settings.local'), value: 'local' }
               ]"
               :disabled="ffmpegPending"
@@ -189,6 +190,12 @@ function close(): void {
               style="color: var(--app-gold)"
             >
               {{ t('recording.settings.bundledUnavailable') }}
+            </span>
+            <span
+              v-else-if="config.ffmpegSource === 'system'"
+              class="app-muted mt-1 block text-xs"
+            >
+              {{ t('recording.settings.systemHint') }}
             </span>
           </el-form-item>
           <el-form-item :label="t('recording.settings.shortcut')">

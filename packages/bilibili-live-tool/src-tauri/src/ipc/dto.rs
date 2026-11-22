@@ -540,6 +540,7 @@ pub enum RecordingQualityDto {
 #[serde(rename_all = "camelCase")]
 pub enum FfmpegSourceDto {
     Bundled,
+    System,
     Local,
 }
 

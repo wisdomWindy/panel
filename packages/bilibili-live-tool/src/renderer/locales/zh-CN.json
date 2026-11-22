@@ -736,9 +736,11 @@
       "ffmpegSource": "FFmpeg 来源",
       "bundled": "内置",
       "local": "本机",
-      "bundledUnavailable": "内置 FFmpeg 尚未随安装包提供",
+      "bundledUnavailable": "内置 FFmpeg 尚未随安装包提供，将自动改用本机已安装的 FFmpeg",
       "shortcut": "高光快捷键",
-      "saving": "保存中..."
+      "saving": "保存中...",
+      "system": "本机已安装",
+      "systemHint": "自动使用 PATH 或常见安装位置中的 FFmpeg；未检测到时会提示"
     },
     "manualRoomId": "房间号",
     "manualRoomIdHint": "输入房间号，无需连接直播间"

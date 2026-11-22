@@ -340,7 +340,11 @@ pub enum RecordingQuality {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum FfmpegSource {
+    /// Shipped sidecar; falls back to a system install when absent.
     Bundled,
+    /// Whatever FFmpeg the machine already has (PATH and the usual installers).
+    System,
+    /// A file the operator picked and authorized.
     Local,
 }
 

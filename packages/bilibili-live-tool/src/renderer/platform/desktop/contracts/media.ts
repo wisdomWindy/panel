@@ -179,7 +179,7 @@ export interface Qwen3ModelCatalog {
 
 export type RecordingFormat = 'mp4' | 'flv';
 export type RecordingQuality = 'original' | 'high' | 'standard';
-export type FfmpegSource = 'bundled' | 'local';
+export type FfmpegSource = 'bundled' | 'system' | 'local';
 export type RecordingState = 'idle' | 'starting' | 'recording' | 'stopping' | 'finalizing' | 'error';
 export type RecordingItemState = 'recording' | 'completed' | 'partial' | 'failed';
 export type HighlightTriggerType = 'danmakuSurge' | 'manual';

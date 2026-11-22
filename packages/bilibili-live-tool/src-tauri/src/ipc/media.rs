@@ -1212,6 +1212,7 @@ fn recording_config(config: RecordingConfig) -> RecordingConfigDto {
         waterline_bytes: config.waterline_bytes,
         ffmpeg_source: match config.ffmpeg_source {
             FfmpegSource::Bundled => FfmpegSourceDto::Bundled,
+            FfmpegSource::System => FfmpegSourceDto::System,
             FfmpegSource::Local => FfmpegSourceDto::Local,
         },
         shortcut: config.shortcut,
@@ -1481,6 +1482,7 @@ const fn recording_quality_from_dto(quality: RecordingQualityDto) -> RecordingQu
 const fn ffmpeg_source_from_dto(source: FfmpegSourceDto) -> FfmpegSource {
     match source {
         FfmpegSourceDto::Bundled => FfmpegSource::Bundled,
+        FfmpegSourceDto::System => FfmpegSource::System,
         FfmpegSourceDto::Local => FfmpegSource::Local,
     }
 }

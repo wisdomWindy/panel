@@ -46,17 +46,73 @@ pub async fn open_database(path: &Path) -> Result<SqlitePool, DatabaseError> {
         .metadata()
         .map(|metadata| metadata.len() > 0)
         .unwrap_or(false);
-    let mut pool = connect(options.clone()).await?;
+    let prepared = prepare_database(options.clone(), path, existed).await;
+    match prepared {
+        Ok(pool) => {
+            prune_migration_backups(path, 3).await?;
+            Ok(pool)
+        }
+        Err(error) => {
+            // A database carrying an incompatible schema (or not a database at
+            // all) must not brick the app: move it aside and start clean.
+            log::warn!(
+                "database preparation failed ({}); recreating a fresh database",
+                error
+            );
+            quarantine_database(path).await?;
+            let fresh = connect(options).await?;
+            MIGRATOR.run(&fresh).await?;
+            prune_migration_backups(path, 3).await?;
+            Ok(fresh)
+        }
+    }
+}
 
+async fn prepare_database(
+    options: SqliteConnectOptions,
+    path: &Path,
+    existed: bool,
+) -> Result<SqlitePool, DatabaseError> {
+    let mut pool = connect(options.clone()).await?;
     if existed && !has_migration_history(&pool).await? {
         pool.close().await;
         tokio::fs::copy(path, migration_backup_path(path)?).await?;
         pool = connect(options).await?;
     }
-
     MIGRATOR.run(&pool).await?;
-    prune_migration_backups(path, 3).await?;
     Ok(pool)
+}
+
+/// Renames the unusable database (and its WAL sidecars) so the data is kept for
+/// inspection instead of being deleted.
+async fn quarantine_database(path: &Path) -> Result<(), DatabaseError> {
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|value| value.as_secs())
+        .unwrap_or(0);
+    let mut target = path.to_path_buf();
+    let name = path
+        .file_name()
+        .ok_or(DatabaseError::InvalidPath)?
+        .to_string_lossy()
+        .to_string();
+    target.set_file_name(format!("{name}.broken-{stamp}"));
+    tokio::fs::rename(path, &target).await?;
+    for suffix in ["-wal", "-shm"] {
+        let mut sidecar = path.to_path_buf();
+        sidecar.set_file_name(format!("{name}{suffix}"));
+        if sidecar.exists() {
+            let mut moved = target.clone();
+            moved.set_file_name(format!(
+                "{}.broken-{stamp}{suffix}",
+                path.file_name()
+                    .ok_or(DatabaseError::InvalidPath)?
+                    .to_string_lossy()
+            ));
+            let _ = tokio::fs::rename(&sidecar, &moved).await;
+        }
+    }
+    Ok(())
 }
 
 pub struct SqliteDatabase {
@@ -214,6 +270,7 @@ async fn run_transactional_batch(
     Ok(())
 }
 
+#[cfg(test)]
 #[cfg(test)]
 mod tests {
     use sqlx::{

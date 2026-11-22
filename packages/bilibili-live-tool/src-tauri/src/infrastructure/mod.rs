@@ -8,3 +8,6 @@ pub mod path_grants;
 pub mod release;
 pub mod shell;
 pub mod text;
+
+#[cfg(test)]
+mod database_recovery_test;

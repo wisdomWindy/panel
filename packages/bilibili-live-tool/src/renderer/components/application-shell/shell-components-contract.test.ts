@@ -86,6 +86,16 @@ describe('application shell component contract', () => {
     }
   });
 
+  it('keeps grouped navigation entries visible while their children expand', () => {
+    const navigation = source('./AppShellNavigation.vue');
+
+    // The group header must carry the expanded state instead of being replaced
+    // by its children, which previously made the first-level item disappear.
+    expect(navigation).toContain(':aria-expanded="isGroupActive(item, activeRoute)"');
+    expect(navigation).toContain('app-nav-link--group-active');
+    expect(navigation).toContain('<div v-if="isGroupActive(item, activeRoute)" class="app-nav-sub">');
+  });
+
   it('uses the biliLiveHelper product name across the desktop and renderer surfaces', () => {
     const rootHtml = source('../../../../index.html');
     const router = source('../../router/index.ts');

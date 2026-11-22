@@ -51,9 +51,21 @@ function open(item: ShellNavigationItem): void {
   >
     <nav aria-label="primary" class="flex flex-col gap-0.5 px-2">
       <template v-for="item in items" :key="item.id">
-        <!-- Grouped entry: the group header opens its first child and the
-             children stay visible in the rail so the IA matches PRD 8.1. -->
+        <!-- Grouped entry: the header always stays visible so the rail keeps
+             showing the PRD 8.1 first-level item; its children expand beneath
+             whenever the group is active. -->
         <template v-if="item.children">
+          <button
+            type="button"
+            class="app-nav-link"
+            :class="{ 'app-nav-link--group-active': isGroupActive(item, activeRoute) }"
+            :disabled="item.isDisabled"
+            :aria-expanded="isGroupActive(item, activeRoute)"
+            @click="open({ ...item, route: entryRoute(item) })"
+          >
+            <el-icon v-if="icons[item.id]" class="shrink-0"><component :is="icons[item.id]" /></el-icon>
+            <span class="sr-only md:not-sr-only">{{ t(item.labelKey) }}</span>
+          </button>
           <div v-if="isGroupActive(item, activeRoute)" class="app-nav-sub">
             <button
               type="button"
@@ -68,16 +80,6 @@ function open(item: ShellNavigationItem): void {
               <span class="sr-only md:not-sr-only">{{ t(child.labelKey) }}</span>
             </button>
           </div>
-          <button
-            v-else
-            type="button"
-            class="app-nav-link"
-            :disabled="item.isDisabled"
-            @click="open({ ...item, route: entryRoute(item) })"
-          >
-            <el-icon v-if="icons[item.id]" class="shrink-0"><component :is="icons[item.id]" /></el-icon>
-            <span class="sr-only md:not-sr-only">{{ t(item.labelKey) }}</span>
-          </button>
         </template>
         <button
           v-else
@@ -107,5 +109,10 @@ function open(item: ShellNavigationItem): void {
 .app-nav-link--child {
   padding: 7px 10px;
   font-size: 13px;
+}
+/* The group header stays visible while expanded; only the tone changes. */
+.app-nav-link--group-active {
+  color: var(--app-text);
+  font-weight: 600;
 }
 </style>

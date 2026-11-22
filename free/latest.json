@@ -1,31 +1,31 @@
 {
-  "version": "0.4.6",
-  "notes": "biliLiveHelper v0.4.6 for Windows x64, macOS Apple Silicon, and macOS Intel.",
-  "pub_date": "2026-11-22T04:48:36.162Z",
+  "version": "0.4.7",
+  "notes": "biliLiveHelper v0.4.7 for Windows x64, macOS Apple Silicon, and macOS Intel.",
+  "pub_date": "2026-11-22T06:02:32.516Z",
   "platforms": {
-    "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWdnS3l2L3A0OStLSzVUcjhTN09OWFlGbFRXTG9aTHZpbkFpKy91ZCtoOUZqWTR6RUVWclZYSmxBWkh2WnNDaHRreHBUQ0R3RUI2N3N4dzRuSjlLSmc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzIyNjEzCWZpbGU6YmlsaUxpdmVIZWxwZXJfMC40LjZfeDY0LXNldHVwLmV4ZQpiSFNKMnM0NVBuOXhMV1JPcHkxcW51NHZNMVNqMTNGYUltOE9EWTJySXJhakkxMVBKOVZQS3ByVDRoaVBrSnMzWVF2dHFxeGJwVWxhdnBjT1h0eCtBZz09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.6/biliLiveHelper_0.4.6_Windows_x64-setup.exe"
-    },
-    "windows-x86_64-nsis": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWdnS3l2L3A0OStLSzVUcjhTN09OWFlGbFRXTG9aTHZpbkFpKy91ZCtoOUZqWTR6RUVWclZYSmxBWkh2WnNDaHRreHBUQ0R3RUI2N3N4dzRuSjlLSmc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzIyNjEzCWZpbGU6YmlsaUxpdmVIZWxwZXJfMC40LjZfeDY0LXNldHVwLmV4ZQpiSFNKMnM0NVBuOXhMV1JPcHkxcW51NHZNMVNqMTNGYUltOE9EWTJySXJhakkxMVBKOVZQS3ByVDRoaVBrSnMzWVF2dHFxeGJwVWxhdnBjT1h0eCtBZz09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.6/biliLiveHelper_0.4.6_Windows_x64-setup.exe"
-    },
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWpETEpBSjA3OWE2M0l4RFNVTVMzaER0bUZJdVBTOVdCYmFhZGxzMXl0K3NjYjJTcWNWcEV2eFZrVCtaYzFZdnJMRWdYRDFaTDZTOHlxSS9QK2FmM3drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzIyNjgxCWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negovYjNOckdocGtrQUtLRjdmZkNKSkNLS2RiTm9VS0s4ektMZTBZRlhVT0ttb0k5SWtidndCSlU1dm1EelVBS29CZ1hOZyt5L2tkNTU0c0k3aWRqendEQT09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.6/biliLiveHelper_0.4.6_macOS_AppleSilicon.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXBjdkNBVEhOREU5TnNnMkJxMjlId0o2QVpyTXU5WmxtcFlmeWpiMFh4WTd6TGdEdndaZE8rOUMyVGlybFRnVjYzekh3MU9EZzhXMmNUSzA2QXFQQXdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzI2OTg2CWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negpVV0NGYW9oTEdYUUQxWHo3TGppK1RudjdzRkFmTFdweE5weGFPcC8welZxRjVjMzM5d1N4SDRabVhreGRneWZZb1hGUVpyUmcyWVlXYnB0U093Q2dCUT09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.7/biliLiveHelper_0.4.7_macOS_AppleSilicon.app.tar.gz"
     },
     "darwin-aarch64-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWpETEpBSjA3OWE2M0l4RFNVTVMzaER0bUZJdVBTOVdCYmFhZGxzMXl0K3NjYjJTcWNWcEV2eFZrVCtaYzFZdnJMRWdYRDFaTDZTOHlxSS9QK2FmM3drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzIyNjgxCWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negovYjNOckdocGtrQUtLRjdmZkNKSkNLS2RiTm9VS0s4ektMZTBZRlhVT0ttb0k5SWtidndCSlU1dm1EelVBS29CZ1hOZyt5L2tkNTU0c0k3aWRqendEQT09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.6/biliLiveHelper_0.4.6_macOS_AppleSilicon.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXBjdkNBVEhOREU5TnNnMkJxMjlId0o2QVpyTXU5WmxtcFlmeWpiMFh4WTd6TGdEdndaZE8rOUMyVGlybFRnVjYzekh3MU9EZzhXMmNUSzA2QXFQQXdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzI2OTg2CWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negpVV0NGYW9oTEdYUUQxWHo3TGppK1RudjdzRkFmTFdweE5weGFPcC8welZxRjVjMzM5d1N4SDRabVhreGRneWZZb1hGUVpyUmcyWVlXYnB0U093Q2dCUT09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.7/biliLiveHelper_0.4.7_macOS_AppleSilicon.app.tar.gz"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXNtTG9McTRUbFFDc1ppTEF4V3lPNFlmQzFNU1QwUHZGdTdMMTF5WlZ4VE4vUkJ4dUhEU0dHUDMrSTJwSTVFYUEzVWN2d1I3eUs2M0NhcXl3QngrK3dJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzI3MTg5CWZpbGU6YmlsaUxpdmVIZWxwZXJfMC40LjdfeDY0LXNldHVwLmV4ZQoxUmcyUU92Q2pXQS83VG9EWHo5Ukp4U29vbmE2U3dGL1ZRbk56R0Y2ZHFVZmpwcnlzQTkrUmJlZGQ2L083VWxjMEZJcXFnVmUvUDhBcVVBVmtTTHBDUT09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.7/biliLiveHelper_0.4.7_Windows_x64-setup.exe"
+    },
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXNtTG9McTRUbFFDc1ppTEF4V3lPNFlmQzFNU1QwUHZGdTdMMTF5WlZ4VE4vUkJ4dUhEU0dHUDMrSTJwSTVFYUEzVWN2d1I3eUs2M0NhcXl3QngrK3dJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzI3MTg5CWZpbGU6YmlsaUxpdmVIZWxwZXJfMC40LjdfeDY0LXNldHVwLmV4ZQoxUmcyUU92Q2pXQS83VG9EWHo5Ukp4U29vbmE2U3dGL1ZRbk56R0Y2ZHFVZmpwcnlzQTkrUmJlZGQ2L083VWxjMEZJcXFnVmUvUDhBcVVBVmtTTHBDUT09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.7/biliLiveHelper_0.4.7_Windows_x64-setup.exe"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW5JM0FmYkIyNEhOaDJpSXBrbURFblJCNGw4N2k5YzdzaUI3a0FvZ2d0eURqUUhHWGdyVU5qRy9Rbm9hWng3QU4vOWE0WDFIKzFVV1JBY21BeStPdXdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzIyOTA4CWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negpiMGFuMjBuZTZ6RU9ybmh2MVo3dENVVDN0eFFnWVpmdDc4NksvM0tVTkRTZitiZXQzbjdXYkFocVRXRy8rZ0d2ZGNoSE9HbkZXVVladlpBZ1BuNmxDUT09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.6/biliLiveHelper_0.4.6_macOS_Intel.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW15Q1B1V2FHNEk5THFHM0JsSG80MHRxeUkvbGZ2NS90ejc1NmJQc3ZpRUZnQmgrS0YvRFhZTEdJc2JsZXRDVXpRMVQ1Ly9CdzN2dXdFcjREMjdlVmc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzI3MzQ3CWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negpLaHNnSjFBYTdTcXZ1bnRyeWFwK3EzK2ZtRncwSHhpZWdBbDVBN0I0eCtqaFFuVVlKRUNCNjR6R2V3c0puOGtmdVlVTXpCSUJ5VDYyTDVEUFVaazFCdz09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.7/biliLiveHelper_0.4.7_macOS_Intel.app.tar.gz"
     },
     "darwin-x86_64-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW5JM0FmYkIyNEhOaDJpSXBrbURFblJCNGw4N2k5YzdzaUI3a0FvZ2d0eURqUUhHWGdyVU5qRy9Rbm9hWng3QU4vOWE0WDFIKzFVV1JBY21BeStPdXdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzIyOTA4CWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negpiMGFuMjBuZTZ6RU9ybmh2MVo3dENVVDN0eFFnWVpmdDc4NksvM0tVTkRTZitiZXQzbjdXYkFocVRXRy8rZ0d2ZGNoSE9HbkZXVVladlpBZ1BuNmxDUT09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.6/biliLiveHelper_0.4.6_macOS_Intel.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW15Q1B1V2FHNEk5THFHM0JsSG80MHRxeUkvbGZ2NS90ejc1NmJQc3ZpRUZnQmgrS0YvRFhZTEdJc2JsZXRDVXpRMVQ1Ly9CdzN2dXdFcjREMjdlVmc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzI3MzQ3CWZpbGU6YmlsaUxpdmVIZWxwZXIuYXBwLnRhci5negpLaHNnSjFBYTdTcXZ1bnRyeWFwK3EzK2ZtRncwSHhpZWdBbDVBN0I0eCtqaFFuVVlKRUNCNjR6R2V3c0puOGtmdVlVTXpCSUJ5VDYyTDVEUFVaazFCdz09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.7/biliLiveHelper_0.4.7_macOS_Intel.app.tar.gz"
     }
   },
   "rolloutPercent": 100,

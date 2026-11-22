@@ -311,15 +311,15 @@ onMounted(async () => {
       </el-button>
     </el-alert>
 
+    <!-- The model belongs to the speech feature, next to its engine settings. -->
+    <Qwen3ModelCard />
+
     <el-skeleton
       v-if="store.pending && !store.snapshot"
       class="app-card p-4"
       :rows="8"
       animated
     />
-
-    <!-- The model belongs to the speech feature, next to its engine settings. -->
-    <Qwen3ModelCard />
 
     <template v-else-if="store.snapshot">
       <el-form class="flex flex-col gap-4" label-position="top" @submit.prevent="handleSave">

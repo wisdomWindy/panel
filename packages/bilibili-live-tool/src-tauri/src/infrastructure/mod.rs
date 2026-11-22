@@ -3,6 +3,7 @@ pub mod database;
 pub mod database_location;
 pub mod live_data;
 pub mod media;
+pub mod process;
 pub mod member;
 pub mod path_grants;
 pub mod release;

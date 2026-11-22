@@ -207,7 +207,7 @@ async fn run(
     log: std::fs::File,
     timeout_seconds: u64,
 ) -> Result<(), MediaIoError> {
-    let mut command = tokio::process::Command::new(program);
+    let mut command = crate::infrastructure::process::quiet_tokio(program);
     command
         .args(arguments)
         .current_dir(working_directory)
@@ -253,7 +253,7 @@ async fn run(
 }
 
 fn probe_modules(python: &Path) -> Result<(), String> {
-    let output = std::process::Command::new(python)
+    let output = crate::infrastructure::process::quiet(python)
         .args(["-c", &format!("import {REQUIRED_MODULES}")])
         .stdin(Stdio::null())
         .output()

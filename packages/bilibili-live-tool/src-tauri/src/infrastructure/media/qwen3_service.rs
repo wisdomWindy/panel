@@ -7,7 +7,7 @@
 
 use std::{
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Stdio,
     time::Duration,
 };
 
@@ -114,7 +114,7 @@ impl Qwen3ServiceLauncher {
         let stdout = std::fs::File::create(self.log_directory.join("qwen3-tts.out.log"));
         let stderr = std::fs::File::create(self.log_directory.join("qwen3-tts.err.log"));
 
-        let mut command = Command::new(python);
+        let mut command = crate::infrastructure::process::quiet(python);
         command
             .arg(script)
             .args(["--host", "127.0.0.1", "--port", &port.to_string()])

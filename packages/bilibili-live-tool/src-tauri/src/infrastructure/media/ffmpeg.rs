@@ -2,7 +2,7 @@ use std::{path::Path, process::Stdio};
 
 use tokio::{
     io::{AsyncRead, AsyncReadExt},
-    process::{Child, Command},
+    process::Child,
     task::JoinHandle,
 };
 
@@ -35,7 +35,7 @@ impl RecorderProcessPort for LocalFfmpegProcessPort {
                 ));
             }
         }
-        let mut command = Command::new(&launch.executable);
+        let mut command = crate::infrastructure::process::quiet_tokio(&launch.executable);
         command
             .args(&launch.arguments)
             .stdin(Stdio::null())
@@ -65,7 +65,7 @@ impl RecorderProcessPort for LocalFfmpegProcessPort {
 
     async fn run(&self, executable: &Path, arguments: &[String]) -> Result<(), MediaIoError> {
         validate_executable(executable)?;
-        let output = Command::new(executable)
+        let output = crate::infrastructure::process::quiet_tokio(executable)
             .args(arguments)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())

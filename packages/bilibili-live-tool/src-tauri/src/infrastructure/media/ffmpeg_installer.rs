@@ -6,7 +6,6 @@
 
 use std::{
     path::{Path, PathBuf},
-    process::Command,
     time::Duration,
 };
 
@@ -125,7 +124,7 @@ fn extract(archive: &Path, destination: &Path) -> Result<(), MediaIoError> {
         ("bsdtar", vec!["-xf"]),
         ("unzip", vec!["-o", "-q"]),
     ] {
-        let status = Command::new(program)
+        let status = crate::infrastructure::process::quiet(program)
             .args(&arguments)
             .arg(archive)
             .args(["-C", &destination.display().to_string()])

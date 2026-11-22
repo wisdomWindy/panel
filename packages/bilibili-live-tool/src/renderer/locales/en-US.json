@@ -942,7 +942,8 @@
                                     "starting":  "Preparing the speech runtime…",
                                     "ready":  "Speech runtime ready and service started",
                                     "failed":  "Preparing the speech runtime failed",
-                                    "sizeHint":  "First use downloads the runtime and the model (about 6-7 GB), once only."
+                                    "sizeHint":  "First use downloads the runtime and the model (about 6-7 GB), once only.",
+                                    "elapsed":  "Elapsed {seconds}s"
                                 }
             },
     "captainEffect":  {

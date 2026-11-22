@@ -1641,19 +1641,31 @@ pub async fn tts_qwen3_prepare_environment(
         .clone();
     let handle = app.clone();
     let mirror = state.qwen3_tts().config().pip_mirror.index_url();
-    let status = environment
-        .prepare(
-            mirror,move |stage, message| {
-            use tauri::Emitter;
-            let _ = handle.emit(
-                crate::infrastructure::media::ENVIRONMENT_PROGRESS_EVENT,
-                serde_json::json!({ "stage": stage, "message": message }),
+    crate::infrastructure::media::emit_environment_progress(
+        &app,
+        "start",
+        "正在检查语音运行环境…",
+    );
+    let emitter = handle.clone();
+    let prepared = environment
+        .prepare(mirror, move |stage, message| {
+            crate::infrastructure::media::emit_environment_progress(
+                &emitter, stage, message,
             );
         })
-        .await?;
-    Ok(status)
+        .await;
+    match prepared {
+        Ok(status) => Ok(status),
+        Err(error) => {
+            crate::infrastructure::media::emit_environment_progress(
+                &handle,
+                "failed",
+                &error.message,
+            );
+            Err(error.into())
+        }
+    }
 }
-
 fn unavailable_environment() -> crate::application::media::MediaIoError {
     crate::application::media::MediaIoError::coded(
         "TTS_ENVIRONMENT_INCOMPLETE",

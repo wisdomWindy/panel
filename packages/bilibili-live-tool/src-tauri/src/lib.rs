@@ -328,9 +328,6 @@ impl AppState {
         {
             log::warn!("recording hotkey is degraded: {error}");
         }
-        // PRD 9.11: when 语音播报 is already enabled, the local speech service
-        // must come up by itself; the operator never starts a process.
-        let speech_enabled = tts.config().await.is_enabled;
         // PRD 9.11: when 语音播报 is already enabled, the whole speech stack --
         // runtime dependencies, the local service and the weights -- comes up
         // without any interaction.
@@ -362,13 +359,23 @@ impl AppState {
             let starter = qwen3_launcher.clone();
             let runtime = qwen3_environment.clone();
             let service = qwen3_tts.clone();
+            let emitter = app.clone();
             tauri::async_runtime::spawn(async move {
                 if !runtime.status().ready {
                     let mirror = service.config().pip_mirror.index_url();
                     log::info!("speech runtime missing; installing it automatically");
+                    crate::infrastructure::media::emit_environment_progress(
+                        &emitter,
+                        "start",
+                        "正在检查语音运行环境…",
+                    );
+                    let reporter = emitter.clone();
                     if let Err(error) = runtime
-                        .prepare(mirror, |stage, message| {
+                        .prepare(mirror, move |stage, message| {
                             log::info!("speech runtime [{stage}]: {message}");
+                            crate::infrastructure::media::emit_environment_progress(
+                                &reporter, stage, message,
+                            );
                         })
                         .await
                     {
@@ -376,6 +383,11 @@ impl AppState {
                             "speech runtime install failed: {} {}",
                             error.code,
                             error.message
+                        );
+                        crate::infrastructure::media::emit_environment_progress(
+                            &emitter,
+                            "failed",
+                            &error.message,
                         );
                         return;
                     }

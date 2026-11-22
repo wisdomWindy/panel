@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import SpeechPrepareDialog from '@/components/media/SpeechPrepareDialog.vue';
+import { useMediaTtsStore } from '@/stores/media/tts';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -151,7 +153,12 @@ async function handleSkipUpdate(): Promise<void> {
   }
 }
 
+const tts = useMediaTtsStore();
+
 onMounted(() => {
+  // The speech runtime may be installed at start-up when the stored
+  // configuration already enables 播报, so the panel lives in the shell.
+  void tts.attachEnvironmentEvents();
   void Promise.allSettled([
     applicationShellRuntime.start(),
     aiRuntime.start(),
@@ -174,6 +181,8 @@ onUnmounted(() => {
 
 <template>
   <el-config-provider :locale="elementPlusLocale">
+    <SpeechPrepareDialog />
+
     <div
       :aria-busy="shell.pending"
       class="app-bg grid h-screen min-h-0 min-w-0 grid-rows-[var(--shell-toolbar-height,48px)_minmax(0,1fr)_var(--shell-status-height,32px)] overflow-hidden text-[length:var(--shell-font-size,14px)] opacity-[var(--shell-opacity,0.98)]"

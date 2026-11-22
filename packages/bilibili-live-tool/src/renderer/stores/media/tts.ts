@@ -231,19 +231,33 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
     }
   }
 
-  /** Keeps the dialog text in sync with the preparation stages. */
+  /**
+   * Subscribes the shell to preparation events. Start-up installs (configuration
+   * already enables 播报) arrive through the same event stream, so the panel shows
+   * the progress no matter which page is open.
+   */
+  async function attachEnvironmentEvents(): Promise<void> {
+    await listenEnvironmentProgress().catch(() => null);
+  }
+
+  const TERMINAL_STAGES = new Set(['ready', 'failed', 'idle']);
+
   function listenEnvironmentProgress(): Promise<() => void> {
     return listenDesktop('tts_environment_progress', payload => {
       const value = payload as { stage?: unknown; message?: unknown } | null;
-      if (typeof value?.message === 'string') {
-        environmentProgress.value = {
-          stage: typeof value.stage === 'string' ? value.stage : 'progress',
-          message: value.message
-        };
+      const stage = typeof value?.stage === 'string' ? value.stage : 'progress';
+      if (TERMINAL_STAGES.has(stage)) {
+        preparing.value = false;
+        environmentProgress.value = null;
+        return;
       }
+      preparing.value = true;
+      environmentProgress.value = {
+        stage,
+        message: typeof value?.message === 'string' ? value.message : ''
+      };
     });
   }
-
   async function startQwen3Service(): Promise<Qwen3TtsSnapshot> {
     const adapted = adaptQwen3TtsSnapshot(await invokeDesktop('tts_qwen3_start', undefined));
     qwen3.value = adapted;
@@ -280,5 +294,5 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
     stopModelPolling();
   }
 
-  return { snapshot, qwen3, qwen3Catalog, pending, pendingOperations, error, load, refresh, save, setEnabled, test, pause, clear, replaceStatus, loadQwen3, saveQwen3, testQwen3, loadQwen3Models, downloadQwen3Model, startQwen3Service, ensureSpeechReady, preparing, environment, environmentProgress, prepareEnvironment, loadEnvironmentStatus, listenEnvironmentProgress, stopModelPolling, dispose };
+  return { snapshot, qwen3, qwen3Catalog, pending, pendingOperations, error, load, refresh, save, setEnabled, test, pause, clear, replaceStatus, loadQwen3, saveQwen3, testQwen3, loadQwen3Models, downloadQwen3Model, startQwen3Service, ensureSpeechReady, attachEnvironmentEvents, preparing, environment, environmentProgress, prepareEnvironment, loadEnvironmentStatus, listenEnvironmentProgress, stopModelPolling, dispose };
 });

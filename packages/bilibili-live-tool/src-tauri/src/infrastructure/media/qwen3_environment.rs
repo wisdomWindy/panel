@@ -314,3 +314,13 @@ mod tests {
         assert_eq!(path.file_name().unwrap(), expected);
     }
 }
+
+/// Publishes one preparation stage to the UI. Both the on-demand path and the
+/// start-up path use it, so the progress panel looks identical either way.
+pub fn emit_progress(app: &tauri::AppHandle, stage: &str, message: &str) {
+    use tauri::Emitter;
+    let _ = app.emit(
+        ENVIRONMENT_PROGRESS_EVENT,
+        serde_json::json!({ "stage": stage, "message": message }),
+    );
+}

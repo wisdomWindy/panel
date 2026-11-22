@@ -31,7 +31,10 @@ pub use files::{
 pub use hotkey::{TauriHotkeyPort, UnavailableHotkeyPort};
 pub use notification::{TauriNotificationPort, UnavailableNotificationPort};
 pub use preview::PreviewRegistry;
-pub use qwen3_environment::{EnvironmentStatus, Qwen3Environment, ENVIRONMENT_PROGRESS_EVENT};
+pub use qwen3_environment::{
+    emit_progress as emit_environment_progress, EnvironmentStatus, Qwen3Environment,
+    ENVIRONMENT_PROGRESS_EVENT,
+};
 pub use qwen3_service::{port_from_base_url, Qwen3ServiceLauncher, ServiceStatus};
 pub use qwen_tts::{
     compose_instruct, Qwen3DownloadState, Qwen3DownloadStatus, Qwen3ModelCatalog, Qwen3ModelEntry,

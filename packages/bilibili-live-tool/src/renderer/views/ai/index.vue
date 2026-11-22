@@ -16,10 +16,13 @@ import { useAIStore } from '@/stores/ai';
 import AiModelProfilesDialog from './components/AiModelProfilesDialog.vue';
 import AiPersonaConfigDialog from './components/AiPersonaConfigDialog.vue';
 import AiVoiceReplyControl from './components/AiVoiceReplyControl.vue';
+import SpeechPrepareDialog from '@/components/media/SpeechPrepareDialog.vue';
+import { useMediaTtsStore } from '@/stores/media/tts';
 
 const { t } = useI18n();
 const router = useRouter();
 const store = useAIStore();
+const speech = useMediaTtsStore();
 const configVisible = ref(false);
 const modelsVisible = ref(false);
 const result = computed(() => {
@@ -106,7 +109,16 @@ async function setVoiceReplyEnabled(isEnabled: boolean, confirmed: boolean): Pro
       return;
     }
   }
-  await store.setVoiceReplyEnabled(isEnabled, confirmed, isEnabled).catch(() => undefined);
+  const snapshot = await store.setVoiceReplyEnabled(isEnabled, confirmed, isEnabled).catch(() =>
+    undefined
+  );
+  // PRD 9.11/12.2: AI 语音回复 needs the same local speech runtime as 播报, so
+  // enabling it here runs the identical one-click preparation.
+  if (snapshot?.isEnabled) {
+    await speech.ensureSpeechReady().catch(error => {
+      ElMessage.error((error as { message?: string }).message ?? t('tts.environment.failed'));
+    });
+  }
 }
 
 async function confirmAudioRoute(
@@ -312,4 +324,5 @@ onMounted(() => {
       @refresh-models="handleRefreshModels"
     />
   </div>
+  <SpeechPrepareDialog />
 </template>

@@ -203,6 +203,34 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
     return status;
   }
 
+  const preparing = ref(false);
+
+  /**
+   * Full one-stop preparation: runtime environment -> service -> model weights.
+   * Called when the operator enables speech (播报 or AI 语音回复); never on page
+   * mount, so browsing the UI cannot start a multi-gigabyte download.
+   */
+  async function ensureSpeechReady(): Promise<Qwen3EnvironmentStatus | null> {
+    if (preparing.value) return environment.value;
+    preparing.value = true;
+    const stopListening = await listenEnvironmentProgress().catch(() => null);
+    try {
+      const status = await loadEnvironmentStatus();
+      if (!status.ready) await prepareEnvironment();
+      await startQwen3Service();
+      const catalog = await loadQwen3Models();
+      await loadQwen3().catch(() => undefined);
+      const target = catalog.models.find(model => model.isDefault) ?? catalog.models[0];
+      if (target && !target.isInstalled) {
+        await downloadQwen3Model(target.modelId).catch(() => undefined);
+      }
+      return environment.value;
+    } finally {
+      preparing.value = false;
+      stopListening?.();
+    }
+  }
+
   /** Keeps the dialog text in sync with the preparation stages. */
   function listenEnvironmentProgress(): Promise<() => void> {
     return listenDesktop('tts_environment_progress', payload => {
@@ -252,5 +280,5 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
     stopModelPolling();
   }
 
-  return { snapshot, qwen3, qwen3Catalog, pending, pendingOperations, error, load, refresh, save, setEnabled, test, pause, clear, replaceStatus, loadQwen3, saveQwen3, testQwen3, loadQwen3Models, downloadQwen3Model, startQwen3Service, environment, environmentProgress, prepareEnvironment, loadEnvironmentStatus, listenEnvironmentProgress, stopModelPolling, dispose };
+  return { snapshot, qwen3, qwen3Catalog, pending, pendingOperations, error, load, refresh, save, setEnabled, test, pause, clear, replaceStatus, loadQwen3, saveQwen3, testQwen3, loadQwen3Models, downloadQwen3Model, startQwen3Service, ensureSpeechReady, preparing, environment, environmentProgress, prepareEnvironment, loadEnvironmentStatus, listenEnvironmentProgress, stopModelPolling, dispose };
 });

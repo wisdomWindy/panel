@@ -1258,5 +1258,17 @@
       "cleanupFailed": "模块清理失败",
       "orderCancelFailed": "订单取消失败"
     }
+  },
+  "errors": {
+    "RECORD_FFMPEG_MISSING": "未找到可用的 FFmpeg，请安装或在录制设置中选择",
+    "RECORD_DIRECTORY_REQUIRED": "请先选择录制存储目录",
+    "RECORD_DIRECTORY_UNAVAILABLE": "存储目录不可用，请重新选择",
+    "RECORD_ROOM_INVALID": "房间号格式不正确",
+    "RECORD_OFFLINE": "直播间当前未开播，无法录制",
+    "RECORD_CONFLICT": "录制状态冲突，请稍后重试",
+    "RECORD_STREAM_UNAVAILABLE": "当前没有可用的直播流",
+    "STORAGE_UNAVAILABLE": "本地数据暂不可用，请重启应用后重试",
+    "STORAGE_PATH_DENIED": "未获得该路径的访问授权",
+    "SYS_DIALOG_CANCELLED": "已取消选择"
   }
 }

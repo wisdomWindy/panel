@@ -23,6 +23,7 @@ import {
   adaptRecordingSummaries,
   adaptRecordingSummary
 } from '@/modules/media/adapters';
+import { isUserCancellation } from '@/modules/common/error-text';
 
 export const useMediaRecordingStore = defineStore('media-recording', () => {
   const config = ref<RecordingConfig | null>(null);
@@ -46,7 +47,8 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     const current = effect()
       .catch(value => {
         const mapped = normalizeDesktopError(value);
-        if (localGeneration === generation) error.value = mapped;
+        // A dismissed dialog is not a failure worth an error banner.
+        if (localGeneration === generation && !isUserCancellation(mapped.code)) error.value = mapped;
         throw mapped;
       })
       .finally(() => {
@@ -88,7 +90,8 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
       })
       .catch(value => {
         const mapped = normalizeDesktopError(value);
-        if (localGeneration === generation) error.value = mapped;
+        // A dismissed dialog is not a failure worth an error banner.
+        if (localGeneration === generation && !isUserCancellation(mapped.code)) error.value = mapped;
         throw mapped;
       })
       .finally(() => {

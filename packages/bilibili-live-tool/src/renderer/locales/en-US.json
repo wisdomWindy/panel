@@ -1258,5 +1258,17 @@
       "cleanupFailed": "Module cleanup failed",
       "orderCancelFailed": "Order cancellation failed"
     }
+  },
+  "errors": {
+    "RECORD_FFMPEG_MISSING": "No usable FFmpeg found; install one or pick it in the recording settings",
+    "RECORD_DIRECTORY_REQUIRED": "Choose a recording folder first",
+    "RECORD_DIRECTORY_UNAVAILABLE": "The recording folder is unavailable; choose another one",
+    "RECORD_ROOM_INVALID": "The room ID format is invalid",
+    "RECORD_OFFLINE": "The room is not live, so recording cannot start",
+    "RECORD_CONFLICT": "Recording state conflict; try again shortly",
+    "RECORD_STREAM_UNAVAILABLE": "No playable stream is available right now",
+    "STORAGE_UNAVAILABLE": "Local data is unavailable; restart the app and try again",
+    "STORAGE_PATH_DENIED": "Access to that path was not granted",
+    "SYS_DIALOG_CANCELLED": "Selection cancelled"
   }
 }

@@ -9,6 +9,7 @@ import type {
   RecordingSummary
 } from '@/platform/desktop';
 import { formatBytes, formatDuration } from '@/modules/media/formatters';
+import { errorKey, isUserCancellation } from '@/modules/common/error-text';
 import { validateFileNameStem } from '@/modules/media/validation';
 import { useLiveRoomStore } from '@/stores/live-data/room';
 import { useMediaRecordingStore } from '@/stores/media/recording';
@@ -108,6 +109,12 @@ const lowDisk = computed(
     (status.value?.diskRemainingBytes ?? 0) < config.value.waterlineBytes
 );
 
+/** Localised text for a backend error, falling back to its own message. */
+function describeError(code: string | null | undefined, fallback: string): string {
+  const key = errorKey(code);
+  return key ? t(key) : fallback;
+}
+
 const qualityText = computed(() => {
   const quality = config.value?.quality ?? 'original';
   const qualityKey =
@@ -117,7 +124,9 @@ const qualityText = computed(() => {
 const ffmpegSourceText = computed(() =>
   config.value?.ffmpegSource === 'local'
     ? t('recording.settings.local')
-    : t('recording.settings.bundled')
+    : config.value?.ffmpegSource === 'system'
+      ? t('recording.settings.system')
+      : t('recording.settings.bundled')
 );
 
 const tabs = computed(() => [
@@ -362,10 +371,10 @@ onMounted(async () => {
     </header>
 
     <el-alert
-      v-if="store.error"
+      v-if="store.error && !isUserCancellation(store.error.code)"
       type="error"
       :closable="false"
-      :title="store.error.message"
+      :title="describeError(store.error.code, store.error.message)"
       show-icon
     >
       <el-button size="small" @click="store.refresh()">{{ t('common.retry') }}</el-button>

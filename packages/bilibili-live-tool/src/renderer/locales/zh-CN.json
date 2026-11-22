@@ -237,7 +237,9 @@
         "reasoningEffort": "推理强度",
         "maxTokens": "最大 Token",
         "timeout": "超时（秒）",
-        "enabled": "启用档案"
+        "enabled": "启用档案",
+        "modelPlaceholder": "选择或输入模型名",
+        "addModel": "添加模型"
       }
     },
     "context": {

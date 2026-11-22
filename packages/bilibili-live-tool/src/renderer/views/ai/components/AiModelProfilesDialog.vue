@@ -15,6 +15,8 @@ const props = defineProps<{
   profiles: readonly AiModelProfile[];
   pending: boolean;
   errorMessage: string | null;
+  /** Mainstream presets plus the operator's own ids. */
+  modelOptions: readonly { value: string; label: string; vendor: string }[];
 }>();
 
 const emit = defineEmits<{
@@ -23,6 +25,7 @@ const emit = defineEmits<{
   delete: [profileId: AiModelProfileId];
   setDefault: [profileId: AiModelProfileId];
   test: [profileId: AiModelProfileId];
+  addModel: [value: string];
 }>();
 
 const { t } = useI18n();
@@ -53,6 +56,13 @@ watch(
     if (!visible) editorVisible.value = false;
   }
 );
+
+/** Keeps an id the presets do not cover and makes it selectable right away. */
+function addModel(): void {
+  const value = draft.model.trim();
+  if (!value) return;
+  emit('addModel', value);
+}
 
 function edit(profile?: AiModelProfile): void {
   Object.assign(draft, profile ? {
@@ -237,7 +247,31 @@ function providerLabel(kind: AiProviderKind): string {
           <el-input v-model="draft.baseUrl" placeholder="https://api.example.com/v1" />
         </el-form-item>
         <el-form-item :label="t('ai.models.editor.model')" required>
-          <el-input v-model="draft.model" />
+          <div class="flex w-full min-w-0 items-center gap-2">
+            <!-- Pick from the mainstream list or type any OpenAI-compatible id. -->
+            <el-select
+              v-model="draft.model"
+              class="min-w-0 flex-1"
+              filterable
+              allow-create
+              default-first-option
+              :placeholder="t('ai.models.editor.modelPlaceholder')"
+            >
+              <el-option
+                v-for="option in props.modelOptions"
+                :key="option.value"
+                :label="option.vendor ? `${option.label} · ${option.vendor}` : option.label"
+                :value="option.value"
+              />
+            </el-select>
+            <button
+              type="button"
+              class="app-chip h-9 shrink-0 px-3 text-sm"
+              @click="addModel"
+            >
+              {{ t('ai.models.editor.addModel') }}
+            </button>
+          </div>
         </el-form-item>
         <el-form-item :label="t('ai.models.editor.apiKey')">
           <el-input v-model="draft.apiKeyReplacement" type="password" show-password />

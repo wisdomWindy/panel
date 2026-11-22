@@ -136,8 +136,14 @@ async function updateVoiceRules(rules: AiVoiceReplyRules): Promise<void> {
   await store.updateVoiceRules(rules).catch(() => undefined);
 }
 
+/** Keeps a custom model id so it is offered again next time. */
+function handleAddModel(value: string): void {
+  void store.addCustomModel(value);
+}
+
 onMounted(() => {
   void store.bootstrap().catch(() => undefined);
+  void store.loadCustomModels();
 });
 </script>
 
@@ -285,12 +291,14 @@ onMounted(() => {
     <AiModelProfilesDialog
       v-model:visible="modelsVisible"
       :profiles="store.profiles"
+      :model-options="store.modelOptions"
       :pending="store.pendingOperations.has('saveProfile')"
       :error-message="store.errorFor('saveProfile', 'deleteProfile', 'setDefaultProfile', 'testProfile')?.message ?? null"
       @save="saveProfile"
       @delete="deleteProfile"
       @set-default="setDefaultProfile"
       @test="testProfile"
+      @add-model="handleAddModel"
     />
   </div>
 </template>

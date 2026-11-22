@@ -1,5 +1,7 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
+import { mergeModelOptions, normalizeCustomModels } from '@/modules/ai/model-presets';
+import type { ConfigKey } from '@/platform/desktop';
 import {
   invokeDesktop,
   normalizeDesktopError,
@@ -30,18 +32,49 @@ import {
   adaptAiVoiceReplySnapshot
 } from '@/modules/ai/adapters';
 
+const CUSTOM_MODELS_KEY = 'ai.customModels' as ConfigKey;
+
 export const useAIStore = defineStore('ai', () => {
   const config = ref<AiConfig | null>(null);
   const profiles = ref<readonly AiModelProfile[]>([]);
   const voiceReply = ref<AiVoiceReplySnapshot | null>(null);
   const generation = ref<AiGeneration | null>(null);
   const logs = ref<readonly AiLogEntry[]>([]);
+  /** Operator-defined model ids, kept across restarts (PRD 9.13). */
+  const customModels = ref<readonly string[]>([]);
+  const modelOptions = computed(() => mergeModelOptions(customModels.value));
   const pendingOperations = ref<ReadonlySet<string>>(new Set());
   const error = ref<DesktopError | null>(null);
   const operationErrors = ref<Readonly<Record<string, DesktopError>>>({});
 
-  function errorFor(...keys: string[]): DesktopError | null {
-    return Object.entries(operationErrors.value).find(([operation]) =>
+  /** Loads the operator's own model ids from the local key/value store. */
+  async function loadCustomModels(): Promise<void> {
+    try {
+      const stored = await invokeDesktop('config_get', {
+        key: CUSTOM_MODELS_KEY,
+        scope: 'global'
+      });
+      const parsed: unknown = stored.value ? JSON.parse(stored.value) : [];
+      customModels.value = normalizeCustomModels(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      // A missing or unreadable entry simply means "no custom models yet".
+      customModels.value = [];
+    }
+  }
+
+  /** Adds a model id the presets do not cover and persists the list. */
+  async function addCustomModel(value: string): Promise<void> {
+    const next = normalizeCustomModels([...customModels.value, value]);
+    if (next.length === customModels.value.length) return;
+    customModels.value = next;
+    await invokeDesktop('config_set', {
+      key: CUSTOM_MODELS_KEY,
+      scope: 'global',
+      value: JSON.stringify(next)
+    });
+  }
+
+  function errorFor(...keys: string[]): DesktopError | null {    return Object.entries(operationErrors.value).find(([operation]) =>
       keys.some(key => operation === key || operation.startsWith(`${key}:`))
     )?.[1] ?? null;
   }
@@ -300,6 +333,10 @@ export const useAIStore = defineStore('ai', () => {
     voiceReply,
     generation,
     logs,
+    customModels,
+    modelOptions,
+    loadCustomModels,
+    addCustomModel,
     pendingOperations,
     error,
     errorFor,

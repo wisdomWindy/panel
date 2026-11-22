@@ -237,7 +237,9 @@
         "reasoningEffort": "Reasoning effort",
         "maxTokens": "Max tokens",
         "timeout": "Timeout (seconds)",
-        "enabled": "Profile enabled"
+        "enabled": "Profile enabled",
+        "modelPlaceholder": "Pick or type a model id",
+        "addModel": "Add model"
       }
     },
     "context": {

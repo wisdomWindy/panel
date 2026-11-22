@@ -93,7 +93,8 @@ const legend = computed(() => [
   { tone: 'governor', label: t('liveData.tags.governor'), note: t('danmakuPanel.legend.governor') },
   { tone: 'admiral', label: t('liveData.tags.admiral'), note: t('danmakuPanel.legend.admiral') },
   { tone: 'captain', label: t('liveData.tags.captain'), note: t('danmakuPanel.legend.captain') },
-  { tone: 'vip', label: t('liveData.tags.vip'), note: t('danmakuPanel.legend.vip') },
+  // `vip` (老爷) is omitted on purpose: the long-link protocol carries no such
+  // field, so the badge could never appear and the legend would be misleading.
   { tone: 'plain', label: t('liveData.tags.ordinary'), note: t('danmakuPanel.legend.ordinary') }
 ]);
 

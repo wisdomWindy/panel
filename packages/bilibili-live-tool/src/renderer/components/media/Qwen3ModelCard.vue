@@ -37,14 +37,23 @@ const modelStatusLabel = computed(() => {
 });
 
 async function downloadModel(): Promise<void> {
+  if (requesting.value || modelDownloading.value) return;
+  requesting.value = true;
   try {
+    // Starting the service first keeps the button useful before the app is
+    // ready; the progress bar then reports the real download percentage.
+    if (!modelServiceAvailable.value) await startService(false);
+    if (!modelServiceAvailable.value) return;
     await media.downloadQwen3Model(primaryModel.value?.modelId ?? null);
     ElMessage.success(t('tts.qwen3Model.started'));
   } catch (error) {
     ElMessage.error(normalizeDesktopError(error).message ?? t('tts.qwen3Model.failed'));
+  } finally {
+    requesting.value = false;
   }
 }
 
+const requesting = ref(false);
 const starting = ref(false);
 
 /** Boots the bundled local service so the operator never opens a terminal. */
@@ -89,21 +98,35 @@ onMounted(async () => {
       <button
         type="button"
         class="app-btn-primary h-8 px-3 text-sm"
-        :disabled="modelDownloading || !modelServiceAvailable"
+        :disabled="modelDownloading || requesting || starting"
         @click="downloadModel"
       >
         {{
-          modelInstalled ? t('tts.qwen3Model.redownload') : t('tts.qwen3Model.download')
+          modelDownloading
+            ? modelProgress === null
+              ? t('tts.qwen3Model.downloading')
+              : t('tts.qwen3Model.downloadingPercent', { percent: modelProgress })
+            : requesting || starting
+              ? t('tts.qwen3Model.preparing')
+              : modelInstalled
+                ? t('tts.qwen3Model.redownload')
+                : t('tts.qwen3Model.download')
         }}
       </button>
     </div>
     <el-progress
-      v-if="modelDownloading"
+      v-if="modelDownloading || requesting"
       class="mt-3"
       :percentage="modelProgress ?? 0"
       :indeterminate="modelProgress === null"
       :stroke-width="10"
     />
+    <p
+      v-if="modelDownloading && modelProgress === null"
+      class="app-muted mt-1 mb-0 text-xs"
+    >
+      {{ t('tts.qwen3Model.progressHint') }}
+    </p>
     <p v-if="modelError" class="mt-2 mb-0 text-sm" style="color: var(--app-red)" role="alert">
       {{ modelError }}
     </p>

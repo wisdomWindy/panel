@@ -925,7 +925,9 @@
       "startService": "Start local speech service",
       "serviceStarting": "Starting…",
       "serviceStarted": "Local speech service is running",
-      "serviceStartFailed": "The local speech service could not start"
+      "serviceStartFailed": "The local speech service could not start",
+      "preparing": "Preparing…",
+      "progressHint": "The model is about 4.5 GB; keep this page open while it downloads."
     }
   },
   "captainEffect": {

@@ -333,6 +333,8 @@ export function adaptTtsStatus(value: unknown): TtsStatus {
   return ttsStatus(value);
 }
 
+const QWEN3_PIP_MIRRORS = ['tsinghua', 'aliyun', 'official'] as const;
+
 const QWEN3_LANGUAGES = [
   'Auto',
   'Chinese',
@@ -359,7 +361,12 @@ function qwen3Config(value: unknown): Qwen3TtsConfig {
     timeoutMs: integer(source.timeoutMs, 'qwen3TtsConfig.timeoutMs'),
     fallbackToSystem: boolean(source.fallbackToSystem, 'qwen3TtsConfig.fallbackToSystem'),
     aiVoiceId: nullableString(source.aiVoiceId, 'qwen3TtsConfig.aiVoiceId'),
-    aiInstruct: nullableString(source.aiInstruct, 'qwen3TtsConfig.aiInstruct')
+    aiInstruct: nullableString(source.aiInstruct, 'qwen3TtsConfig.aiInstruct'),
+    // Older payloads predate the field; the domain default is the mirror.
+    pipMirror:
+      source.pipMirror === undefined || source.pipMirror === null
+        ? 'tsinghua'
+        : enumeration(source.pipMirror, QWEN3_PIP_MIRRORS, 'qwen3TtsConfig.pipMirror')
   });
 }
 

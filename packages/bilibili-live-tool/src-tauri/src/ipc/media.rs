@@ -614,6 +614,11 @@ fn qwen3_config(config: crate::domain::media::Qwen3TtsConfig) -> Qwen3TtsConfigD
         fallback_to_system: config.fallback_to_system,
         ai_voice_id: config.ai_voice_id,
         ai_instruct: config.ai_instruct,
+        pip_mirror: match config.pip_mirror {
+            crate::domain::media::PipMirror::Tsinghua => PipMirrorDto::Tsinghua,
+            crate::domain::media::PipMirror::Aliyun => PipMirrorDto::Aliyun,
+            crate::domain::media::PipMirror::Official => PipMirrorDto::Official,
+        },
     }
 }
 
@@ -628,6 +633,11 @@ fn qwen3_config_from_dto(config: Qwen3TtsConfigDto) -> crate::domain::media::Qwe
         fallback_to_system: config.fallback_to_system,
         ai_voice_id: config.ai_voice_id,
         ai_instruct: config.ai_instruct,
+        pip_mirror: match config.pip_mirror {
+            PipMirrorDto::Tsinghua => crate::domain::media::PipMirror::Tsinghua,
+            PipMirrorDto::Aliyun => crate::domain::media::PipMirror::Aliyun,
+            PipMirrorDto::Official => crate::domain::media::PipMirror::Official,
+        },
     }
 }
 
@@ -1630,8 +1640,10 @@ pub async fn tts_qwen3_prepare_environment(
         .ok_or_else(|| DesktopError::from(unavailable_environment()))?
         .clone();
     let handle = app.clone();
+    let mirror = state.qwen3_tts().config().pip_mirror.index_url();
     let status = environment
-        .prepare(move |stage, message| {
+        .prepare(
+            mirror,move |stage, message| {
             use tauri::Emitter;
             let _ = handle.emit(
                 crate::infrastructure::media::ENVIRONMENT_PROGRESS_EVENT,

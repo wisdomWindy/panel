@@ -46,6 +46,8 @@ const templateErrors = reactive<Record<keyof TtsConfig['templates'], string | nu
   captain: null
 });
 
+const QWEN3_MIRROR_OPTIONS: readonly Qwen3PipMirror[] = ['tsinghua', 'aliyun', 'official'];
+
 const QWEN3_LANGUAGE_OPTIONS: readonly Qwen3Language[] = [
   'Auto',
   'Chinese',
@@ -68,7 +70,8 @@ const qwen3Draft = reactive<Qwen3TtsConfig>({
   timeoutMs: 8000,
   fallbackToSystem: true,
   aiVoiceId: null,
-  aiInstruct: null
+  aiInstruct: null,
+  pipMirror: 'tsinghua'
 });
 const qwen3Dirty = computed(() =>
   store.qwen3 ? JSON.stringify(qwen3Draft) !== JSON.stringify(store.qwen3.config) : false
@@ -590,6 +593,19 @@ onMounted(async () => {
                 :max="60000"
                 :step="500"
               />
+            </el-form-item>
+            <el-form-item :label="t('tts.qwen3.pipMirror')">
+              <el-select v-model="qwen3Draft.pipMirror" class="w-full">
+                <el-option
+                  v-for="mirror in QWEN3_MIRROR_OPTIONS"
+                  :key="mirror"
+                  :label="t(`tts.qwen3.mirrors.${mirror}`)"
+                  :value="mirror"
+                />
+              </el-select>
+              <p class="app-faint m-0 mt-1 w-full text-xs">
+                {{ t('tts.qwen3.pipMirrorHint') }}
+              </p>
             </el-form-item>
             <el-form-item class="lg:col-span-2" :label="t('tts.qwen3.instruct')">
               <el-input v-model="qwen3Draft.instruct" type="textarea" :rows="2" />

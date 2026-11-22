@@ -138,7 +138,10 @@ export interface Qwen3TtsConfig {
   fallbackToSystem: boolean;
   aiVoiceId: string | null;
   aiInstruct: string | null;
+  pipMirror: Qwen3PipMirror;
 }
+
+export type Qwen3PipMirror = 'tsinghua' | 'aliyun' | 'official';
 export interface Qwen3TtsHealth {
   ready: boolean;
   engine: string;

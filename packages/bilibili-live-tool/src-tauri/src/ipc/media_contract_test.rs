@@ -41,7 +41,8 @@ fn qwen3_tts_config_round_trips_through_the_media_dto() {
         "timeoutMs": 8000,
         "fallbackToSystem": true,
         "aiVoiceId": "Vivian",
-        "aiInstruct": null
+        "aiInstruct": null,
+        "pipMirror": "aliyun"
     }))
     .unwrap();
 
@@ -49,11 +50,13 @@ fn qwen3_tts_config_round_trips_through_the_media_dto() {
     assert_eq!(dto.voice_id.as_deref(), Some("Serena"));
     assert_eq!(dto.ai_voice_id.as_deref(), Some("Vivian"));
     assert!(dto.ai_instruct.is_none());
+    assert_eq!(dto.pip_mirror, super::dto::PipMirrorDto::Aliyun);
 
     let value = serde_json::to_value(&dto).unwrap();
     assert_eq!(value["baseUrl"], "http://127.0.0.1:8020");
     assert_eq!(value["fallbackToSystem"], true);
     assert_eq!(value["aiVoiceId"], "Vivian");
+    assert_eq!(value["pipMirror"], "aliyun");
 }
 
 #[test]

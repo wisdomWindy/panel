@@ -281,6 +281,9 @@ pub struct Qwen3TtsConfig {
     /// Instruction override for the AI voice-reply path; `None` reuses `instruct`.
     #[serde(default)]
     pub ai_instruct: Option<String>,
+    /// Where pip downloads the runtime dependencies from.
+    #[serde(default)]
+    pub pip_mirror: PipMirror,
 }
 
 impl Default for Qwen3TtsConfig {
@@ -295,6 +298,7 @@ impl Default for Qwen3TtsConfig {
             fallback_to_system: true,
             ai_voice_id: None,
             ai_instruct: None,
+            pip_mirror: PipMirror::default(),
         }
     }
 }
@@ -373,4 +377,48 @@ pub struct RecordingConfig {
     pub waterline_bytes: u64,
     pub ffmpeg_source: FfmpegSource,
     pub shortcut: String,
+}
+
+/// Package index used when installing the speech runtime.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PipMirror {
+    /// Tsinghua University mirror: fast inside mainland China.
+    #[default]
+    Tsinghua,
+    Aliyun,
+    /// Upstream PyPI, for operators outside mainland China or with a proxy.
+    Official,
+}
+
+impl PipMirror {
+    /// `None` means "use pip's own default index".
+    pub const fn index_url(self) -> Option<&'static str> {
+        match self {
+            Self::Tsinghua => Some("https://pypi.tuna.tsinghua.edu.cn/simple"),
+            Self::Aliyun => Some("https://mirrors.aliyun.com/pypi/simple/"),
+            Self::Official => None,
+        }
+    }
+}
+#[cfg(test)]
+mod pip_mirror_tests {
+    use crate::domain::media::PipMirror;
+
+    #[test]
+    fn defaults_to_the_tsinghua_mirror() {
+        assert_eq!(PipMirror::default(), PipMirror::Tsinghua);
+        assert_eq!(
+            PipMirror::Tsinghua.index_url(),
+            Some("https://pypi.tuna.tsinghua.edu.cn/simple")
+        );
+    }
+
+    #[test]
+    fn official_means_pip_default_index() {
+        assert!(PipMirror::Official.index_url().is_none());
+        assert!(PipMirror::Aliyun
+            .index_url()
+            .is_some_and(|url| url.contains("aliyun")));
+    }
 }

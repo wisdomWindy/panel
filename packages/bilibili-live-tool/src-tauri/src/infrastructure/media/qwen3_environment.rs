@@ -89,6 +89,7 @@ impl Qwen3Environment {
     /// `progress` receives `(stage, message)` pairs so the caller can stream them.
     pub async fn prepare(
         &self,
+        index_url: Option<&str>,
         progress: impl Fn(&str, &str) + Send + 'static,
     ) -> Result<EnvironmentStatus, MediaIoError> {
         if self.status().ready {
@@ -148,21 +149,20 @@ impl Qwen3Environment {
         })?;
         progress("deps", "正在安装语音运行依赖（torch 等，首次约 2–3 GB）…");
         let log = self.log_file("deps.log");
-        run(
-            &venv_python,
-            &[
-                "-m",
-                "pip",
-                "install",
-                "--disable-pip-version-check",
-                "-r",
-                &requirements.display().to_string(),
-            ],
-            &self.root,
-            log,
-            INSTALL_TIMEOUT_SECONDS,
-        )
-        .await?;
+        let requirements_path = requirements.display().to_string();
+        let mut arguments = vec![
+            "-m",
+            "pip",
+            "install",
+            "--disable-pip-version-check",
+            "-r",
+            requirements_path.as_str(),
+        ];
+        if let Some(index_url) = index_url {
+            arguments.push("--index-url");
+            arguments.push(index_url);
+        }
+        run(&venv_python, &arguments, &self.root, log, INSTALL_TIMEOUT_SECONDS).await?;
 
         progress("verify", "正在校验运行环境…");
         match probe_modules(&venv_python) {

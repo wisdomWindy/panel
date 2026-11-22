@@ -856,7 +856,14 @@
       "saveSuccess": "Qwen3-TTS settings saved",
       "testSuccess": "Qwen3-TTS sample played",
       "probe": "Probe service",
-      "voice": "Broadcast voice"
+      "voice": "Broadcast voice",
+      "pipMirror": "Package source",
+      "pipMirrorHint": "Used when installing the runtime dependencies for the first time",
+      "mirrors": {
+        "tsinghua": "Tsinghua mirror",
+        "aliyun": "Aliyun mirror",
+        "official": "Official PyPI (no mirror)"
+      }
     },
     "voice": "Voice",
     "rate": "Rate",

@@ -811,6 +811,15 @@ pub struct Qwen3TtsConfigDto {
     pub fallback_to_system: bool,
     pub ai_voice_id: Option<String>,
     pub ai_instruct: Option<String>,
+    pub pip_mirror: PipMirrorDto,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PipMirrorDto {
+    Tsinghua,
+    Aliyun,
+    Official,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

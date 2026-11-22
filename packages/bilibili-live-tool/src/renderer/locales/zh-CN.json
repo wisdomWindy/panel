@@ -856,7 +856,14 @@
       "saveSuccess": "Qwen3-TTS 配置已保存",
       "testSuccess": "Qwen3-TTS 试听已播放",
       "probe": "检测服务",
-      "voice": "播报音色"
+      "voice": "播报音色",
+      "pipMirror": "依赖下载源",
+      "pipMirrorHint": "首次安装依赖时使用；国内建议保留镜像，加速下载",
+      "mirrors": {
+        "tsinghua": "清华大学镜像",
+        "aliyun": "阿里云镜像",
+        "official": "官方源（不使用镜像）"
+      }
     },
     "voice": "音色",
     "rate": "语速",

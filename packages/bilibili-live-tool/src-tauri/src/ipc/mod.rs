@@ -14,6 +14,8 @@ mod media_contract_test;
 #[cfg(test)]
 mod path_whitelist_contract_test;
 #[cfg(test)]
+mod permission_coverage_test;
+#[cfg(test)]
 mod member_contract_test;
 #[cfg(test)]
 mod release_contract_test;

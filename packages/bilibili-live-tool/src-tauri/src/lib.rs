@@ -331,6 +331,95 @@ impl AppState {
         // PRD 9.11: when 语音播报 is already enabled, the local speech service
         // must come up by itself; the operator never starts a process.
         let speech_enabled = tts.config().await.is_enabled;
+        // PRD 9.11: when 语音播报 is already enabled, the whole speech stack --
+        // runtime dependencies, the local service and the weights -- comes up
+        // without any interaction.
+        let speech_enabled = tts.config().await.is_enabled;
+        let qwen3_log_directory = app
+            .path()
+            .app_log_dir()
+            .unwrap_or_else(|_| std::env::temp_dir().join("biliLiveHelper/logs"));
+        let qwen3_environment = Arc::new(Qwen3Environment::for_current_app(
+            environment_root(&app),
+            qwen3_log_directory.clone(),
+        ));
+        let qwen3_venv_python = if cfg!(windows) {
+            environment_root(&app)
+                .join("venv")
+                .join("Scripts")
+                .join("python.exe")
+        } else {
+            environment_root(&app)
+                .join("venv")
+                .join("bin")
+                .join("python")
+        };
+        let qwen3_launcher = Arc::new(
+            Qwen3ServiceLauncher::for_current_app(qwen3_log_directory)
+                .with_managed_venv_python(qwen3_venv_python),
+        );
+        if speech_enabled {
+            let starter = qwen3_launcher.clone();
+            let runtime = qwen3_environment.clone();
+            let service = qwen3_tts.clone();
+            tauri::async_runtime::spawn(async move {
+                if !runtime.status().ready {
+                    let mirror = service.config().pip_mirror.index_url();
+                    log::info!("speech runtime missing; installing it automatically");
+                    if let Err(error) = runtime
+                        .prepare(mirror, |stage, message| {
+                            log::info!("speech runtime [{stage}]: {message}");
+                        })
+                        .await
+                    {
+                        log::warn!(
+                            "speech runtime install failed: {} {}",
+                            error.code,
+                            error.message
+                        );
+                        return;
+                    }
+                }
+                let config = service.config();
+                let base_url = config.base_url.clone();
+                let port = crate::infrastructure::media::port_from_base_url(&base_url);
+                match starter.ensure_running(&base_url, port).await {
+                    Ok(status) => {
+                        log::info!(
+                            "qwen3 service auto-started: started={} url={}",
+                            status.started,
+                            status.base_url
+                        );
+                        if status.base_url != config.base_url {
+                            let mut updated = config.clone();
+                            updated.base_url = status.base_url;
+                            let _ = service.save_config(updated).await;
+                        }
+                    }
+                    Err(error) => {
+                        log::warn!(
+                            "qwen3 service auto-start failed: {} {}",
+                            error.code,
+                            error.message
+                        );
+                        return;
+                    }
+                }
+                if let Ok(catalog) = service.model_catalog().await {
+                    let target = catalog
+                        .models
+                        .iter()
+                        .find(|model| model.is_default)
+                        .or_else(|| catalog.models.first());
+                    if let Some(model) = target {
+                        if !model.is_installed {
+                            log::info!("downloading speech model {}", model.model_id);
+                            let _ = service.start_model_download(Some(&model.model_id)).await;
+                        }
+                    }
+                }
+            });
+        }
         let media = MediaState::new(effects, gifts, tts, recording)
             .with_recording_clients(
                 Arc::new(BilibiliPlayUrlResolver::new()),
@@ -343,54 +432,8 @@ impl AppState {
             // start-recording never depends on a folder dialog.
             .with_default_recording_directory(default_recording_directory(&app))
             .with_managed_ffmpeg_directory(managed_ffmpeg_directory(&app))
-            .with_qwen3_service_launcher({
-                let log_directory = app
-                    .path()
-                    .app_log_dir()
-                    .unwrap_or_else(|_| std::env::temp_dir().join("biliLiveHelper/logs"));
-                let venv_python = if cfg!(windows) {
-                    environment_root(&app)
-                        .join("venv")
-                        .join("Scripts")
-                        .join("python.exe")
-                } else {
-                    environment_root(&app)
-                        .join("venv")
-                        .join("bin")
-                        .join("python")
-                };
-                let launcher = Arc::new(
-                    Qwen3ServiceLauncher::for_current_app(log_directory)
-                        .with_managed_venv_python(venv_python),
-                );
-                if speech_enabled {
-                    let config = qwen3_tts.config();
-                    let base_url = config.base_url.clone();
-                    let starter = launcher.clone();
-                    tauri::async_runtime::spawn(async move {
-                        let port = crate::infrastructure::media::port_from_base_url(&base_url);
-                        match starter.ensure_running(&base_url, port).await {
-                            Ok(status) => log::info!(
-                                "qwen3 service auto-started: started={} url={}",
-                                status.started,
-                                status.base_url
-                            ),
-                            Err(error) => log::warn!(
-                                "qwen3 service auto-start failed: {} {}",
-                                error.code,
-                                error.message
-                            ),
-                        }
-                    });
-                }
-                launcher
-            })
-            .with_qwen3_environment(Arc::new(Qwen3Environment::for_current_app(
-                environment_root(&app),
-                app.path()
-                    .app_log_dir()
-                    .unwrap_or_else(|_| std::env::temp_dir().join("biliLiveHelper/logs")),
-            )));
+            .with_qwen3_service_launcher(qwen3_launcher)
+            .with_qwen3_environment(qwen3_environment);
         let media = if let Some(pool) = pool.clone() {
             media.with_services(MediaServices {
                 repository: Arc::new(SqliteMediaRepository::new(pool)),

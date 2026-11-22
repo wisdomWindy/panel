@@ -74,7 +74,7 @@ onMounted(() => {
           {{ t('tts.qwen3Model.description') }}
         </p>
       </div>
-      <span class="app-badge" :class="modelInstalled ? 'app-badge--captain' : 'app-badge--plain'">
+      <span v-if="modelServiceAvailable" class="app-badge" :class="modelInstalled ? 'app-badge--captain' : 'app-badge--plain'">
         {{ modelStatusLabel }}
       </span>
       <button
@@ -112,11 +112,5 @@ onMounted(() => {
     <p v-if="modelError" class="mt-2 mb-0 text-sm" style="color: var(--app-red)" role="alert">
       {{ modelError }}
     </p>
-    <!-- No start button: enabling 语音播报 owns the service lifecycle (PRD 9.11). -->
-    <div v-else-if="!modelServiceAvailable" class="mt-2">
-      <p class="m-0 text-sm" style="color: var(--app-gold)">
-        {{ t('tts.qwen3Model.serviceDown') }}
-      </p>
-    </div>
   </section>
 </template>

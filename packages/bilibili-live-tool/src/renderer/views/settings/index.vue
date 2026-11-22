@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { Brush, Files, InfoFilled, Lock, Location, Refresh } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useReleaseStore } from '@/stores/release';
+import { mergeLicenses } from '@/modules/shell/third-party-notices';
 import {
   detectHostPlatform,
   isFullyVerifiedPlatform
@@ -23,6 +24,8 @@ const hostPlatform = detectHostPlatform(
   typeof navigator === 'undefined' ? '' : navigator.userAgent
 );
 const platformIsVerified = isFullyVerifiedPlatform(hostPlatform);
+// Built-in credits keep the About page useful even without release metadata.
+const licenses = computed(() => mergeLicenses(release.about?.licenses ?? []));
 const categories = [
   { id: 'config' as const, icon: Files },
   { id: 'language' as const, icon: Location },
@@ -148,18 +151,13 @@ async function handleCheckUpdate(): Promise<void> {
             <h4 class="app-text m-0 mb-3 text-sm font-semibold">
               {{ t('settings.aboutInfo.licenses') }}
             </h4>
-            <el-table
-              v-if="release.about?.licenses.length"
-              :data="release.about.licenses"
-              class="w-full"
-              size="small"
-            >
+            <el-table :data="licenses" class="w-full" size="small">
               <el-table-column :label="t('settings.aboutInfo.component')">
                 <template #default="{ row }">
                   <span class="app-text">{{ row.name }}</span>
                 </template>
               </el-table-column>
-              <el-table-column :label="t('settings.aboutInfo.license')">
+              <el-table-column :label="t('settings.aboutInfo.license')" width="180">
                 <template #default="{ row }">
                   <span class="app-muted">{{ row.license }}</span>
                 </template>
@@ -170,8 +168,8 @@ async function handleCheckUpdate(): Promise<void> {
                 </template>
               </el-table-column>
             </el-table>
-            <p v-else class="app-faint m-0 text-sm">
-              {{ t('settings.aboutInfo.unavailable') }}
+            <p class="app-muted mt-3 mb-0 text-sm">
+              {{ t('settings.aboutInfo.modelNotice') }}
             </p>
           </div>
         </section>

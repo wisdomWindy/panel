@@ -514,7 +514,8 @@
         "linux": "Linux",
         "unknown": "Unknown"
       },
-      "platformUnverified": "This platform is not fully verified: recording, local audio devices and the tray icon may be unavailable. The Windows build is the reference."
+      "platformUnverified": "This platform is not fully verified: recording, local audio devices and the tray icon may be unavailable. The Windows build is the reference.",
+      "modelNotice": "Model weights are not bundled; the operator downloads them and follows their original licences. Qwen3-TTS is Apache-2.0, FFmpeg is LGPL-2.1-or-later."
     },
     "feedback": {
       "saved": "Settings saved",

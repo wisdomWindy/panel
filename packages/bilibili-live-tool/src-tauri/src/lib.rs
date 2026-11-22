@@ -111,6 +111,58 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
+/// PRD 13 tray entry point. Returns an error instead of aborting startup so a
+/// missing icon or menu cannot turn into a crash on launch.
+fn install_tray(app: &tauri::App) -> tauri::Result<()> {
+    let show_label = match tauri::async_runtime::block_on(
+        app.state::<AppState>().shell().locale(),
+    ) {
+        crate::domain::shell::LocalePreferences {
+            locale: crate::domain::shell::LocaleCode::EnUs,
+            ..
+        } => "Show window",
+        _ => "显示主窗口",
+    };
+    let quit_label = if show_label == "Show window" {
+        "Quit"
+    } else {
+        "退出"
+    };
+    let show_item =
+        tauri::menu::MenuItem::with_id(app, "tray-show", show_label, true, None::<&str>)?;
+    let quit_item =
+        tauri::menu::MenuItem::with_id(app, "tray-quit", quit_label, true, None::<&str>)?;
+    let menu = tauri::menu::Menu::with_items(app, &[&show_item, &quit_item])?;
+    let mut tray = tauri::tray::TrayIconBuilder::with_id("main-tray")
+        .tooltip("biliLiveHelper")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "tray-show" => show_main_window(app),
+            "tray-quit" => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let tauri::tray::TrayIconEvent::Click {
+                button: tauri::tray::MouseButton::Left,
+                button_state: tauri::tray::MouseButtonState::Up,
+                ..
+            } = event
+            {
+                show_main_window(tray.app_handle());
+            }
+        });
+    if let Some(icon) = app.default_window_icon() {
+        tray = tray.icon(icon.clone());
+    } else {
+        return Err(tauri::Error::AssetNotFound(
+            "default window icon is missing".to_owned(),
+        ));
+    }
+    tray.build(app)?;
+    Ok(())
+}
+
 pub struct AppState {
     application: ApplicationState,
     paths: PathState,
@@ -118,7 +170,7 @@ pub struct AppState {
     media: Arc<MediaState>,
     qwen3_tts: Arc<Qwen3TtsService>,
     ranking_presenter: Arc<RankingPresenter>,
-    data_maintenance: Arc<crate::application::data_maintenance::DataMaintenance>,
+    data_maintenance: Option<Arc<crate::application::data_maintenance::DataMaintenance>>,
     shell: Arc<ApplicationShellState>,
     release: Arc<ReleaseState>,
     ai: Option<Arc<AiState>>,
@@ -148,14 +200,14 @@ impl AppState {
                 |_| Arc::new(UnavailableSystemMetrics) as Arc<dyn SystemMetricsPort>,
                 |metrics| Arc::new(metrics) as Arc<dyn SystemMetricsPort>,
             );
-        let data_maintenance = Arc::new(
-            crate::application::data_maintenance::DataMaintenance::new(
-                database
-                    .pool()
-                    .expect("database is initialised before data maintenance"),
+        // A degraded database bootstrap must not take the whole app down: the
+        // data-maintenance features simply report themselves unavailable.
+        let data_maintenance = pool.clone().map(|pool| {
+            Arc::new(crate::application::data_maintenance::DataMaintenance::new(
+                pool,
                 Some(config_directory.join("cache")),
-            ),
-        );
+            ))
+        });
         let shell = Arc::new(
             ApplicationShellState::initialize(
                 shell_repository,
@@ -436,8 +488,8 @@ impl AppState {
 
     pub(crate) fn data_maintenance(
         &self,
-    ) -> &Arc<crate::application::data_maintenance::DataMaintenance> {
-        &self.data_maintenance
+    ) -> Option<&Arc<crate::application::data_maintenance::DataMaintenance>> {
+        self.data_maintenance.as_ref()
     }
 
     pub(crate) fn release(&self) -> &Arc<ReleaseState> {
@@ -461,8 +513,46 @@ impl AppState {
     }
 }
 
+/// Startup crashes happen before the log plugin exists, so a plain panic hook
+/// appends to a fixed file the user can send us. Without it an instant exit
+/// leaves no evidence at all.
+fn install_startup_crash_reporter() {
+    std::panic::set_hook(Box::new(|info| {
+        let location = info
+            .location()
+            .map(|value| format!("{}:{}", value.file(), value.line()))
+            .unwrap_or_else(|| "unknown".to_owned());
+        let payload = info
+            .payload()
+            .downcast_ref::<&str>()
+            .map(|value| (*value).to_owned())
+            .or_else(|| {
+                info.payload()
+                    .downcast_ref::<String>()
+                    .map(|value| value.clone())
+            })
+            .unwrap_or_else(|| "unknown panic".to_owned());
+        let directory = std::env::var_os("LOCALAPPDATA")
+            .map(std::path::PathBuf::from)
+            .map(|root| root.join("com.bilibili.live-tool"))
+            .unwrap_or_else(std::env::temp_dir);
+        let _ = std::fs::create_dir_all(&directory);
+        let line = format!("panic at {location}: {payload}\n");
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(directory.join("startup-crash.log"))
+        {
+            use std::io::Write;
+            let _ = file.write_all(line.as_bytes());
+        }
+        eprintln!("{line}");
+    }));
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    install_startup_crash_reporter();
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
@@ -489,8 +579,9 @@ pub fn run() {
         })
         .setup(|app| {
             // PRD 12.3: runtime logs roll over by size and are pruned by age
-            // below, in release builds as well as dev builds.
-            app.handle().plugin(
+            // below, in release builds as well as dev builds. A logging failure
+            // must never keep the window from opening.
+            let logging = app.handle().plugin(
                 tauri_plugin_log::Builder::default()
                     .level(log::LevelFilter::Info)
                     .max_file_size(5 * 1024 * 1024)
@@ -502,7 +593,10 @@ pub fn run() {
                         tauri_plugin_log::TargetKind::Stdout,
                     ))
                     .build(),
-            )?;
+            );
+            if let Err(error) = logging {
+                eprintln!("file logging is unavailable: {error}");
+            }
             let log_directory = app.path().app_log_dir().ok();
 
             let database_path =
@@ -511,8 +605,9 @@ pub fn run() {
                 tauri::async_runtime::block_on(AppState::new(app.handle().clone(), database_path));
             app.manage(state);
             // PRD 12.3: purge expired logs and stats locally on a schedule.
-            let maintenance = Arc::clone(app.state::<AppState>().data_maintenance());
+            let maintenance = app.state::<AppState>().data_maintenance().map(Arc::clone);
             let log_directory = log_directory.clone();
+            if let Some(maintenance) = maintenance {
             tauri::async_runtime::spawn(async move {
                 loop {
                     match maintenance.load_policy().await {
@@ -535,44 +630,13 @@ pub fn run() {
                     tokio::time::sleep(std::time::Duration::from_secs(6 * 60 * 60)).await;
                 }
             });
-            // PRD 13: the support matrix claims tray support, so provide it.
-            let show_label = match tauri::async_runtime::block_on(
-                app.state::<AppState>().shell().locale(),
-            ) {
-                crate::domain::shell::LocalePreferences { locale: crate::domain::shell::LocaleCode::EnUs, .. } => "Show window",
-                _ => "显示主窗口",
-            };
-            let quit_label = if show_label == "Show window" {
-                "Quit"
-            } else {
-                "退出"
-            };
-            let show_item = tauri::menu::MenuItem::with_id(app, "tray-show", show_label, true, None::<&str>)?;
-            let quit_item = tauri::menu::MenuItem::with_id(app, "tray-quit", quit_label, true, None::<&str>)?;
-            let menu = tauri::menu::Menu::with_items(app, &[&show_item, &quit_item])?;
-            let mut tray = tauri::tray::TrayIconBuilder::with_id("main-tray")
-                .tooltip("biliLiveHelper")
-                .menu(&menu)
-                .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "tray-show" => show_main_window(app),
-                    "tray-quit" => app.exit(0),
-                    _ => {}
-                })
-                .on_tray_icon_event(|tray, event| {
-                    if let tauri::tray::TrayIconEvent::Click {
-                        button: tauri::tray::MouseButton::Left,
-                        button_state: tauri::tray::MouseButtonState::Up,
-                        ..
-                    } = event
-                    {
-                        show_main_window(tray.app_handle());
-                    }
-                });
-            if let Some(icon) = app.default_window_icon() {
-                tray = tray.icon(icon.clone());
             }
-            tray.build(app)?;
+            // PRD 13: the support matrix claims tray support, so provide it.
+            // Anything failing here (missing shell, icon, menu) must degrade to
+            // "no tray" instead of aborting startup.
+            if let Err(error) = install_tray(app) {
+                log::warn!("tray icon is unavailable: {error}");
+            }
             Ok(())
         });
 

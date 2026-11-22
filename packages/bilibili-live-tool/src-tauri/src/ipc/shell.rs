@@ -31,6 +31,7 @@ pub async fn data_retention_get(
 ) -> Result<RetentionPolicy, DesktopError> {
     state
         .data_maintenance()
+        .ok_or_else(maintenance_unavailable)?
         .load_policy()
         .await
         .map_err(Into::into)
@@ -50,6 +51,7 @@ pub async fn data_retention_save(
     }
     state
         .data_maintenance()
+        .ok_or_else(maintenance_unavailable)?
         .save_policy(request.policy)
         .await
         .map_err(Into::into)
@@ -62,6 +64,7 @@ pub async fn data_clear(
 ) -> Result<ClearReport, DesktopError> {
     state
         .data_maintenance()
+        .ok_or_else(maintenance_unavailable)?
         .clear(request.scope)
         .await
         .map_err(Into::into)
@@ -373,4 +376,12 @@ mod tests {
             serde_json::json!({ "memoryBytes": 1, "cpuPercent": null, "observedAt": 2 })
         );
     }
+}
+
+fn maintenance_unavailable() -> DesktopError {
+    DesktopError::new(
+        "STORAGE_MAINTENANCE_FAILED",
+        "Local data maintenance is unavailable",
+        true,
+    )
 }

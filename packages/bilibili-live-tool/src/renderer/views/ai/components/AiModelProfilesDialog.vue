@@ -26,6 +26,7 @@ const emit = defineEmits<{
   setDefault: [profileId: AiModelProfileId];
   test: [profileId: AiModelProfileId];
   addModel: [value: string];
+  refreshModels: [payload: { baseUrl: string; apiKey: string | null }];
 }>();
 
 const { t } = useI18n();
@@ -56,6 +57,16 @@ watch(
     if (!visible) editorVisible.value = false;
   }
 );
+
+/** Asks the provider for its live model list using the form values. */
+function refreshModels(): void {
+  const baseUrl = draft.baseUrl.trim();
+  if (!baseUrl) return;
+  emit('refreshModels', {
+    baseUrl,
+    apiKey: draft.apiKeyReplacement.trim() || null
+  });
+}
 
 /** Keeps an id the presets do not cover and makes it selectable right away. */
 function addModel(): void {
@@ -270,6 +281,13 @@ function providerLabel(kind: AiProviderKind): string {
               @click="addModel"
             >
               {{ t('ai.models.editor.addModel') }}
+            </button>
+            <button
+              type="button"
+              class="app-chip h-9 shrink-0 px-3 text-sm"
+              @click="refreshModels"
+            >
+              {{ t('ai.models.editor.refreshModels') }}
             </button>
           </div>
         </el-form-item>

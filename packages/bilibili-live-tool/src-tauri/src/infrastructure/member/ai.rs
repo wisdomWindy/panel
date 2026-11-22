@@ -647,3 +647,128 @@ fn windows_speak(
         result
     }
 }
+
+/// Reads the model ids a provider advertises so the operator can pick one
+/// instead of typing it from memory. Supports the OpenAI shape (`data[].id`),
+/// Ollama (`models[].name`) and a bare string array.
+pub async fn fetch_model_catalog(
+    base_url: &str,
+    api_key: Option<&str>,
+) -> Result<Vec<String>, MemberServiceError> {
+    let endpoint = models_url(base_url)?;
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|_| MemberServiceError::unavailable("AI_MODEL_LIST_UNAVAILABLE"))?;
+    let mut request = client.get(endpoint);
+    if let Some(api_key) = api_key.filter(|value| !value.trim().is_empty()) {
+        request = request.bearer_auth(api_key.trim());
+    }
+    let response = request
+        .send()
+        .await
+        .map_err(|_| MemberServiceError::unavailable("AI_MODEL_LIST_UNAVAILABLE"))?;
+    if !response.status().is_success() {
+        return Err(MemberServiceError::unavailable("AI_MODEL_LIST_UNAVAILABLE"));
+    }
+    let payload: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|_| MemberServiceError::invalid("AI_MODEL_LIST_INVALID"))?;
+    Ok(collect_model_ids(&payload))
+}
+
+fn models_url(base_url: &str) -> Result<reqwest::Url, MemberServiceError> {
+    let trimmed = base_url.trim().trim_end_matches('/');
+    let trimmed = trimmed.strip_suffix("/chat/completions").unwrap_or(trimmed);
+    let endpoint = if trimmed.ends_with("/v1") {
+        format!("{trimmed}/models")
+    } else {
+        format!("{trimmed}/v1/models")
+    };
+    let url = reqwest::Url::parse(&endpoint)
+        .map_err(|_| MemberServiceError::invalid("AI_MODEL_PROFILE_INVALID"))?;
+    if matches!(url.scheme(), "http" | "https") {
+        Ok(url)
+    } else {
+        Err(MemberServiceError::invalid("AI_MODEL_PROFILE_INVALID"))
+    }
+}
+
+fn collect_model_ids(payload: &serde_json::Value) -> Vec<String> {
+    let mut ids: Vec<String> = Vec::new();
+    let mut push = |value: Option<&serde_json::Value>| {
+        if let Some(id) = value.and_then(serde_json::Value::as_str) {
+            let trimmed = id.trim();
+            if !trimmed.is_empty() && !ids.iter().any(|existing| existing == trimmed) {
+                ids.push(trimmed.to_owned());
+            }
+        }
+    };
+    if let Some(entries) = payload.get("data").and_then(serde_json::Value::as_array) {
+        for entry in entries {
+            push(entry.get("id"));
+        }
+    }
+    if let Some(entries) = payload.get("models").and_then(serde_json::Value::as_array) {
+        for entry in entries {
+            push(entry.get("id").or_else(|| entry.get("name")));
+        }
+    }
+    if let Some(entries) = payload.as_array() {
+        for entry in entries {
+            push(Some(entry));
+        }
+    }
+    ids.sort();
+    ids
+}
+
+#[cfg(test)]
+mod model_catalog_tests {
+    use super::collect_model_ids;
+
+    #[test]
+    fn reads_the_openai_shape() {
+        let payload = serde_json::json!({ "data": [{ "id": "gpt-4o" }, { "id": "deepseek-chat" }] });
+        assert_eq!(collect_model_ids(&payload), vec!["deepseek-chat", "gpt-4o"]);
+    }
+
+    #[test]
+    fn reads_the_ollama_shape_and_plain_arrays() {
+        let ollama = serde_json::json!({ "models": [{ "name": "qwen2.5:7b" }] });
+        assert_eq!(collect_model_ids(&ollama), vec!["qwen2.5:7b"]);
+        let plain = serde_json::json!(["b", "a", "b"]);
+        assert_eq!(collect_model_ids(&plain), vec!["a", "b"]);
+    }
+
+    #[test]
+    fn ignores_empty_entries() {
+        let payload = serde_json::json!({ "data": [{ "id": "  " }, { "id": "m" }] });
+        assert_eq!(collect_model_ids(&payload), vec!["m"]);
+    }
+}
+
+#[tokio::test]
+async fn reads_a_catalog_from_a_live_provider() {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    std::thread::spawn(move || {
+        if let Ok((mut stream, _)) = listener.accept() {
+            let mut buffer = [0u8; 2048];
+            let _ = stream.read(&mut buffer);
+            let body = r#"{"data":[{"id":"gpt-4o"},{"id":"deepseek-chat"}]}"#;
+            let response = format!(
+                "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            let _ = stream.write_all(response.as_bytes());
+        }
+    });
+
+    let models = super::fetch_model_catalog(&format!("http://{address}"), Some("key"))
+        .await
+        .expect("catalog should load");
+    assert_eq!(models, vec!["deepseek-chat".to_owned(), "gpt-4o".to_owned()]);
+}

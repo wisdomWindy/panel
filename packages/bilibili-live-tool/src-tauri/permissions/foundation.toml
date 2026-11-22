@@ -35,6 +35,7 @@ commands.allow = [
   "ai_model_profile_delete",
   "ai_model_set_default",
   "ai_model_test",
+  "ai_models_list",
   "ai_voice_reply_get",
   "ai_voice_reply_set_enabled",
   "ai_voice_reply_update_rules",

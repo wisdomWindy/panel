@@ -162,6 +162,7 @@ export const AI_COMMAND_NAMES = [
   'ai_model_profile_delete',
   'ai_model_set_default',
   'ai_model_test',
+  'ai_models_list',
   'ai_voice_reply_get',
   'ai_voice_reply_set_enabled',
   'ai_voice_reply_update_rules',
@@ -183,6 +184,7 @@ export interface AiCommandRequestMap {
   ai_model_profile_save: AiModelProfileSaveRequest;
   ai_model_profile_delete: { profileId: AiModelProfileId };
   ai_model_set_default: { profileId: AiModelProfileId };
+  ai_models_list: { baseUrl: string; apiKey: string | null };
   ai_model_test: { profileId: AiModelProfileId };
   ai_voice_reply_get: undefined;
   ai_voice_reply_set_enabled: {
@@ -214,6 +216,7 @@ export interface AiCommandResultMap {
   ai_model_profile_save: AiModelProfile;
   ai_model_profile_delete: { deleted: boolean };
   ai_model_set_default: readonly AiModelProfile[];
+  ai_models_list: readonly string[];
   ai_model_test: AiModelProfile;
   ai_voice_reply_get: AiVoiceReplySnapshot;
   ai_voice_reply_set_enabled: AiVoiceReplySnapshot;

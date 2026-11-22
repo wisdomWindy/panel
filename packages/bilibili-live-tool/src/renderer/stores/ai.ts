@@ -42,7 +42,11 @@ export const useAIStore = defineStore('ai', () => {
   const logs = ref<readonly AiLogEntry[]>([]);
   /** Operator-defined model ids, kept across restarts (PRD 9.13). */
   const customModels = ref<readonly string[]>([]);
-  const modelOptions = computed(() => mergeModelOptions(customModels.value));
+  /** Ids the configured provider advertised on the last refresh. */
+  const providerModels = ref<readonly string[]>([]);
+  const modelOptions = computed(() =>
+    mergeModelOptions(customModels.value, providerModels.value)
+  );
   const pendingOperations = ref<ReadonlySet<string>>(new Set());
   const error = ref<DesktopError | null>(null);
   const operationErrors = ref<Readonly<Record<string, DesktopError>>>({});
@@ -59,6 +63,16 @@ export const useAIStore = defineStore('ai', () => {
     } catch {
       // A missing or unreadable entry simply means "no custom models yet".
       customModels.value = [];
+    }
+  }
+
+  /** Asks the provider which models it serves; failure keeps the last list. */
+  async function fetchProviderModels(baseUrl: string, apiKey: string | null): Promise<void> {
+    try {
+      providerModels.value = await invokeDesktop('ai_models_list', { baseUrl, apiKey });
+    } catch (error) {
+      providerModels.value = [];
+      throw error;
     }
   }
 
@@ -334,6 +348,8 @@ export const useAIStore = defineStore('ai', () => {
     generation,
     logs,
     customModels,
+    providerModels,
+    fetchProviderModels,
     modelOptions,
     loadCustomModels,
     addCustomModel,

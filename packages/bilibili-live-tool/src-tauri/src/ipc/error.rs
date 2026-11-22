@@ -218,6 +218,8 @@ impl From<MemberServiceError> for DesktopError {
             "AI_MODEL_API_KEY_REQUIRED" => "请填写模型 API Key",
             "AI_MODEL_API_KEY_INVALID" => "模型 API Key 无效",
             "AI_MODEL_PROFILE_NOT_FOUND" => "模型档案不存在，请刷新后重试",
+            "AI_MODEL_LIST_UNAVAILABLE" => "无法获取该服务商的模型列表，请检查地址与 API Key",
+            "AI_MODEL_LIST_INVALID" => "服务商返回的模型列表无法解析",
             "AUDIO_ROUTE_UNCONFIRMED" => "请先确认音频路由",
             "AUDIO_DEVICE_INVALID" | "AUDIO_DEVICE_MISSING" => {
                 "音频输出设备不可用，请重新选择"

@@ -239,7 +239,10 @@
         "timeout": "Timeout (seconds)",
         "enabled": "Profile enabled",
         "modelPlaceholder": "Pick or type a model id",
-        "addModel": "Add model"
+        "addModel": "Add model",
+        "refreshModels": "Refresh models",
+        "modelsRefreshed": "Model list refreshed",
+        "modelsFailed": "Could not fetch the model list"
       }
     },
     "context": {

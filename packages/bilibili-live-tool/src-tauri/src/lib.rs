@@ -80,7 +80,7 @@ use ipc::media::{
 };
 use ipc::member::{
     ai_config_get, ai_config_save, ai_generate, ai_log_query, ai_model_profile_delete,
-    ai_model_profile_list, ai_model_profile_save, ai_model_set_default, ai_model_test,
+    ai_model_profile_list, ai_model_profile_save, ai_model_set_default, ai_model_test, ai_models_list,
     ai_regenerate, ai_tts_clear_queue, ai_tts_list_output_devices, ai_tts_pause,
     ai_tts_set_output_device, ai_tts_skip, ai_tts_test, ai_voice_reply_get,
     ai_voice_reply_set_enabled, ai_voice_reply_update_rules, TauriMemberEventSink,
@@ -733,6 +733,7 @@ pub fn run() {
         ai_model_profile_save,
         ai_model_profile_delete,
         ai_model_set_default,
+        ai_models_list,
         ai_model_test,
         ai_voice_reply_get,
         ai_voice_reply_set_enabled,
@@ -838,6 +839,7 @@ pub fn run() {
         ai_model_profile_save,
         ai_model_profile_delete,
         ai_model_set_default,
+        ai_models_list,
         ai_model_test,
         ai_voice_reply_get,
         ai_voice_reply_set_enabled,

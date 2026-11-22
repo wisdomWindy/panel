@@ -141,6 +141,16 @@ function handleAddModel(value: string): void {
   void store.addCustomModel(value);
 }
 
+/** Pulls the live model list from the configured provider. */
+async function handleRefreshModels(payload: { baseUrl: string; apiKey: string | null }): Promise<void> {
+  try {
+    await store.fetchProviderModels(payload.baseUrl, payload.apiKey);
+    ElMessage.success(t('ai.models.editor.modelsRefreshed'));
+  } catch (error) {
+    ElMessage.error(normalizeDesktopError(error).message ?? t('ai.models.editor.modelsFailed'));
+  }
+}
+
 onMounted(() => {
   void store.bootstrap().catch(() => undefined);
   void store.loadCustomModels();
@@ -299,6 +309,7 @@ onMounted(() => {
       @set-default="setDefaultProfile"
       @test="testProfile"
       @add-model="handleAddModel"
+      @refresh-models="handleRefreshModels"
     />
   </div>
 </template>

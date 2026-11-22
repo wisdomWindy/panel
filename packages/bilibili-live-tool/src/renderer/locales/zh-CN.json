@@ -239,7 +239,10 @@
         "timeout": "超时（秒）",
         "enabled": "启用档案",
         "modelPlaceholder": "选择或输入模型名",
-        "addModel": "添加模型"
+        "addModel": "添加模型",
+        "refreshModels": "刷新模型列表",
+        "modelsRefreshed": "已刷新模型列表",
+        "modelsFailed": "无法获取模型列表"
       }
     },
     "context": {

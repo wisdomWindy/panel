@@ -317,6 +317,15 @@ pub struct AiProfileIdRequestDto {
     pub profile_id: String,
 }
 
+/// Asks a provider which models it advertises, so the editor can offer a list.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AiModelsListRequestDto {
+    pub base_url: String,
+    #[serde(default)]
+    pub api_key: Option<String>,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum AiTriggerScopeDto {
@@ -894,6 +903,16 @@ pub async fn ai_model_set_default(
         .into_iter()
         .map(ai_model_profile_dto)
         .collect())
+}
+
+#[tauri::command]
+pub async fn ai_models_list(request: AiModelsListRequestDto) -> Result<Vec<String>, DesktopError> {
+    crate::infrastructure::member::fetch_model_catalog(
+        &request.base_url,
+        request.api_key.as_deref(),
+    )
+    .await
+    .map_err(Into::into)
 }
 
 #[tauri::command]

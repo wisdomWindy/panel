@@ -11,14 +11,15 @@ describe('member desktop contract', () => {
   });
 
   it('keeps the shared AI command surface separate from membership', () => {
-    expect(AI_COMMAND_NAMES).toHaveLength(19);
+    expect(AI_COMMAND_NAMES).toHaveLength(20);
     expect(AI_COMMAND_NAMES[0]).toBe('ai_config_get');
     expect(AI_COMMAND_NAMES.at(-1)).toBe('ai_log_query');
     for (const command of [
       'ai_model_profile_save',
       'ai_voice_reply_set_enabled',
       'ai_tts_set_output_device',
-      'ai_tts_clear_queue'
+      'ai_tts_clear_queue',
+      'ai_models_list'
     ]) {
       expect(AI_COMMAND_NAMES).toContain(command);
     }

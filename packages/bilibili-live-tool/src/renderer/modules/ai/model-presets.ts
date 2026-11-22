@@ -34,11 +34,20 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
   { value: 'spark-lite', label: '星火 Lite', vendor: '讯飞' }
 ];
 
-/** Custom ids first (the operator chose them), then the built-in presets. */
-export function mergeModelOptions(custom: readonly string[]): ModelPreset[] {
+/** Custom ids first, then whatever the provider advertises, then the presets. */
+export function mergeModelOptions(
+  custom: readonly string[],
+  providerModels: readonly string[] = []
+): ModelPreset[] {
   const seen = new Set<string>();
   const options: ModelPreset[] = [];
   for (const value of custom) {
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    options.push({ value: trimmed, label: trimmed, vendor: '' });
+  }
+  for (const value of providerModels) {
     const trimmed = value.trim();
     if (!trimmed || seen.has(trimmed)) continue;
     seen.add(trimmed);

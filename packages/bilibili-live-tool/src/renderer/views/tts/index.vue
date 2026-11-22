@@ -18,7 +18,7 @@ const draft = reactive<TtsConfig>({
   rate: 1,
   volume: 0.8,
   eventKinds: ['danmu', 'gift', 'captain', 'entry'],
-  identityKinds: ['admin', 'captain', 'vip', 'ordinary'],
+  identityKinds: ['admin', 'captain', 'ordinary'],
   templates: {
     danmu: '{用户}说：{内容}',
     gift: '感谢{用户}赠送的{礼物}{数量}个',
@@ -35,7 +35,8 @@ const eventOptions = computed<readonly { label: string; value: TtsEventKind }[]>
 const identityOptions = computed<readonly { label: string; value: TtsIdentityKind }[]>(() => [
   { label: t('tts.identities.admin'), value: 'admin' },
   { label: t('tts.identities.captain'), value: 'captain' },
-  { label: t('tts.identities.vip'), value: 'vip' },
+  // `vip` (老爷) is never reported by the long-link protocol, so it would be a
+  // filter that can never match; it stays out of the UI for that reason.
   { label: t('tts.identities.ordinary'), value: 'ordinary' }
 ]);
 const templateErrors = reactive<Record<keyof TtsConfig['templates'], string | null>>({
@@ -226,7 +227,7 @@ async function handleReset(): Promise<void> {
       rate: 1,
       volume: 0.8,
       eventKinds: ['danmu', 'gift', 'captain', 'entry'],
-      identityKinds: ['admin', 'captain', 'vip', 'ordinary'],
+      identityKinds: ['admin', 'captain', 'ordinary'],
       templates: {
         danmu: '{用户}说：{内容}',
         gift: '感谢{用户}赠送的{礼物}{数量}个',

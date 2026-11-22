@@ -844,7 +844,7 @@
       "baseUrlHint": "The local service defaults to http://127.0.0.1:8020",
       "language": "Language",
       "instruct": "Voice instruction",
-      "instructHint": "Describe tone and pace in natural language, e.g. warm and slightly slower",
+      "instructHint": "Describe the voice in natural language; the service designs a voice from it in voice_design mode",
       "timeout": "Timeout (ms)",
       "fallback": "Fall back to the system voice on failure",
       "aiVoice": "AI reply voice",
@@ -855,7 +855,8 @@
       "disabled": "Qwen3-TTS is disabled",
       "saveSuccess": "Qwen3-TTS settings saved",
       "testSuccess": "Qwen3-TTS sample played",
-      "probe": "Probe service"
+      "probe": "Probe service",
+      "voice": "Broadcast voice"
     },
     "voice": "Voice",
     "rate": "Rate",

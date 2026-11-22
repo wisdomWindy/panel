@@ -8,6 +8,7 @@ import Qwen3ModelCard from '@/components/media/Qwen3ModelCard.vue';
 import { validateTtsTemplate, validateTtsTemplates } from '@/modules/media/validation';
 import { useMediaTtsStore } from '@/stores/media/tts';
 import { resolvePreferredVoiceId } from './voice-selection';
+import { mergeVoiceOptions } from '@/modules/media/qwen3-voices';
 
 const store = useMediaTtsStore();
 const { t } = useI18n();
@@ -73,7 +74,9 @@ const qwen3Dirty = computed(() =>
   store.qwen3 ? JSON.stringify(qwen3Draft) !== JSON.stringify(store.qwen3.config) : false
 );
 const qwen3Health = computed(() => store.qwen3?.health ?? null);
-const qwen3VoiceIds = computed(() => store.qwen3?.voiceIds ?? []);
+// The service reports its speakers when reachable; the upstream CustomVoice
+// table is compiled in so the select is never empty (PRD 9.11).
+const qwen3VoiceOptions = computed(() => mergeVoiceOptions(store.qwen3?.voiceIds ?? []));
 const qwen3SavePending = computed(() => store.pendingOperations.has('qwen3Save'));
 const qwen3TestPending = computed(() => store.pendingOperations.has('qwen3Test'));
 const qwen3ProbePending = ref(false);
@@ -493,13 +496,37 @@ onMounted(async () => {
                 />
               </el-select>
             </el-form-item>
-            <el-form-item :label="t('tts.qwen3.aiVoice')">
-              <el-select v-model="qwen3Draft.aiVoiceId" class="w-full" clearable>
+            <el-form-item :label="t('tts.qwen3.voice')">
+              <el-select
+                v-model="qwen3Draft.voiceId"
+                class="w-full"
+                clearable
+                filterable
+                allow-create
+                default-first-option
+              >
                 <el-option
-                  v-for="voiceId in qwen3VoiceIds"
-                  :key="voiceId"
-                  :label="voiceId"
-                  :value="voiceId"
+                  v-for="voice in qwen3VoiceOptions"
+                  :key="voice.value"
+                  :label="voice.label"
+                  :value="voice.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item :label="t('tts.qwen3.aiVoice')">
+              <el-select
+                v-model="qwen3Draft.aiVoiceId"
+                class="w-full"
+                clearable
+                filterable
+                allow-create
+                default-first-option
+              >
+                <el-option
+                  v-for="voice in qwen3VoiceOptions"
+                  :key="voice.value"
+                  :label="voice.label"
+                  :value="voice.value"
                 />
               </el-select>
               <p class="app-faint m-0 mt-1 w-full text-xs">

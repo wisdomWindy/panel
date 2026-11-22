@@ -935,7 +935,8 @@
       "serviceStarted": "Local speech service is running",
       "serviceStartFailed": "The local speech service could not start",
       "preparing": "Preparing…",
-      "progressHint": "The model is about 4.5 GB; keep this page open while it downloads."
+      "progressHint": "The model is about 4.5 GB; keep this page open while it downloads.",
+      "enableFirst": "Enable 语音播报 to install the speech runtime automatically"
     },
     "environment": {
       "starting": "Preparing the speech runtime…",

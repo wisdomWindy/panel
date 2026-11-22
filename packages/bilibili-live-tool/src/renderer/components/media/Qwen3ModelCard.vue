@@ -40,10 +40,11 @@ async function downloadModel(): Promise<void> {
   if (requesting.value || modelDownloading.value) return;
   requesting.value = true;
   try {
-    // Starting the service first keeps the button useful before the app is
-    // ready; the progress bar then reports the real download percentage.
-    if (!modelServiceAvailable.value) await startService(false);
-    if (!modelServiceAvailable.value) return;
+    // The service is started by enabling 语音播报, not by visiting this page.
+    if (!modelServiceAvailable.value) {
+      ElMessage.warning(t('tts.qwen3Model.enableFirst'));
+      return;
+    }
     await media.downloadQwen3Model(primaryModel.value?.modelId ?? null);
     ElMessage.success(t('tts.qwen3Model.started'));
   } catch (error) {
@@ -54,30 +55,11 @@ async function downloadModel(): Promise<void> {
 }
 
 const requesting = ref(false);
-const starting = ref(false);
 
-/** Boots the bundled local service so the operator never opens a terminal. */
-async function startService(announce = true): Promise<void> {
-  if (starting.value) return;
-  starting.value = true;
-  try {
-    await media.startQwen3Service();
-    // The catalog is served by the same process, so refresh it once it is up.
-    await media.loadQwen3Models().catch(() => undefined);
-    if (announce) ElMessage.success(t('tts.qwen3Model.serviceStarted'));
-  } catch (error) {
-    if (announce) {
-      ElMessage.error(normalizeDesktopError(error).message ?? t('tts.qwen3Model.serviceStartFailed'));
-    }
-  } finally {
-    starting.value = false;
-  }
-}
-
-onMounted(async () => {
-  await media.loadQwen3Models().catch(() => undefined);
-  // Transparent start-up: try once, stay quiet if it cannot work on this machine.
-  if (!modelServiceAvailable.value) void startService(false);
+onMounted(() => {
+  // Read-only on purpose: opening the page must not start the service, install
+  // dependencies or download anything; only enabling 语音播报 does that.
+  void media.loadQwen3Models().catch(() => undefined);
 });
 </script>
 
@@ -98,7 +80,7 @@ onMounted(async () => {
       <button
         type="button"
         class="app-btn-primary h-8 px-3 text-sm"
-        :disabled="modelDownloading || requesting || starting"
+        :disabled="modelDownloading || requesting"
         @click="downloadModel"
       >
         {{
@@ -106,9 +88,9 @@ onMounted(async () => {
             ? modelProgress === null
               ? t('tts.qwen3Model.downloading')
               : t('tts.qwen3Model.downloadingPercent', { percent: modelProgress })
-            : requesting || starting
-              ? t('tts.qwen3Model.preparing')
-              : modelInstalled
+            : requesting
+                ? t('tts.qwen3Model.preparing')
+                : modelInstalled
                 ? t('tts.qwen3Model.redownload')
                 : t('tts.qwen3Model.download')
         }}
@@ -133,7 +115,7 @@ onMounted(async () => {
     <!-- No start button: enabling 语音播报 owns the service lifecycle (PRD 9.11). -->
     <div v-else-if="!modelServiceAvailable" class="mt-2">
       <p class="m-0 text-sm" style="color: var(--app-gold)">
-        {{ starting ? t('tts.qwen3Model.serviceStarting') : t('tts.qwen3Model.serviceDown') }}
+        {{ t('tts.qwen3Model.serviceDown') }}
       </p>
     </div>
   </section>

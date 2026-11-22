@@ -935,7 +935,8 @@
       "serviceStarted": "本地语音服务已启动",
       "serviceStartFailed": "本地语音服务启动失败",
       "preparing": "正在准备…",
-      "progressHint": "模型较大（约 4.5 GB），下载耗时取决于网络，请保持页面打开。"
+      "progressHint": "模型较大（约 4.5 GB），下载耗时取决于网络，请保持页面打开。",
+      "enableFirst": "启用「语音播报」后会自动安装语音运行环境"
     },
     "environment": {
       "starting": "正在准备语音运行环境…",

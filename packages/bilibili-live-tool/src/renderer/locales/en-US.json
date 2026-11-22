@@ -704,7 +704,8 @@
       "deleteFailed": "Delete failed",
       "highlightExported": "Highlight clip exported",
       "exportFailed": "Export failed",
-      "highlightDeleted": "Highlight deleted"
+      "highlightDeleted": "Highlight deleted",
+      "directorySaved": "Recording folder saved"
     },
     "dialogs": {
       "renamePrompt": "Enter a new file name",

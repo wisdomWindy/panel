@@ -704,7 +704,8 @@
       "deleteFailed": "删除失败",
       "highlightExported": "高光片段已导出",
       "exportFailed": "导出失败",
-      "highlightDeleted": "高光已删除"
+      "highlightDeleted": "高光已删除",
+      "directorySaved": "存储路径已保存"
     },
     "dialogs": {
       "renamePrompt": "输入新文件名",

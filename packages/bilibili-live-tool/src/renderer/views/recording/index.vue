@@ -176,6 +176,21 @@ async function handleMark(): Promise<void> {
   }
 }
 
+/** Inline picker: grants the folder and persists it without opening the dialog. */
+async function pickDirectoryInline(): Promise<void> {
+  const current = config.value;
+  if (!current) return;
+  try {
+    const directory = await store.selectDirectory();
+    await store.saveConfig({ ...current, directory });
+    ElMessage.success(t('recording.messages.directorySaved'));
+  } catch (error) {
+    const value = error as { code?: string; message?: string };
+    if (value.code !== 'SYS_DIALOG_CANCELLED')
+      ElMessage.error(value.message ?? t('recording.messages.directoryFailed'));
+  }
+}
+
 async function selectDirectory(): Promise<void> {
   if (!settingsDraft.value) return;
   try {
@@ -459,11 +474,22 @@ onMounted(async () => {
           <dl class="m-0 mt-3 grid grid-cols-1 gap-2.5 text-sm">
             <div class="flex min-w-0 items-center justify-between gap-3">
               <dt class="app-muted shrink-0">{{ t('recording.settings.directory') }}</dt>
-              <dd
-                class="app-text m-0 min-w-0 truncate text-right"
-                :title="config.directory?.displayPath ?? ''"
-              >
-                {{ config.directory?.displayPath ?? t('common.notSelected') }}
+              <dd class="m-0 flex min-w-0 items-center gap-2">
+                <span
+                  class="app-text min-w-0 truncate text-right"
+                  :title="config.directory?.displayPath ?? ''"
+                >
+                  {{ config.directory?.displayPath ?? t('common.notSelected') }}
+                </span>
+                <!-- PRD 9.12: the folder must be pickable without opening the dialog. -->
+                <button
+                  type="button"
+                  class="app-chip h-7 shrink-0 px-2 text-xs"
+                  :disabled="store.pendingOperations.has('selectDirectory')"
+                  @click="pickDirectoryInline"
+                >
+                  {{ t('recording.settings.selectDirectory') }}
+                </button>
               </dd>
             </div>
             <div class="flex items-center justify-between gap-3">

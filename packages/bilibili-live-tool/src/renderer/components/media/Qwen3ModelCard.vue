@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { normalizeDesktopError } from '@/platform/desktop';
@@ -45,8 +45,30 @@ async function downloadModel(): Promise<void> {
   }
 }
 
-onMounted(() => {
-  void media.loadQwen3Models().catch(() => undefined);
+const starting = ref(false);
+
+/** Boots the bundled local service so the operator never opens a terminal. */
+async function startService(announce = true): Promise<void> {
+  if (starting.value) return;
+  starting.value = true;
+  try {
+    await media.startQwen3Service();
+    // The catalog is served by the same process, so refresh it once it is up.
+    await media.loadQwen3Models().catch(() => undefined);
+    if (announce) ElMessage.success(t('tts.qwen3Model.serviceStarted'));
+  } catch (error) {
+    if (announce) {
+      ElMessage.error(normalizeDesktopError(error).message ?? t('tts.qwen3Model.serviceStartFailed'));
+    }
+  } finally {
+    starting.value = false;
+  }
+}
+
+onMounted(async () => {
+  await media.loadQwen3Models().catch(() => undefined);
+  // Transparent start-up: try once, stay quiet if it cannot work on this machine.
+  if (!modelServiceAvailable.value) void startService(false);
 });
 </script>
 
@@ -85,8 +107,18 @@ onMounted(() => {
     <p v-if="modelError" class="mt-2 mb-0 text-sm" style="color: var(--app-red)" role="alert">
       {{ modelError }}
     </p>
-    <p v-else-if="!modelServiceAvailable" class="mt-2 mb-0 text-sm" style="color: var(--app-gold)">
-      {{ t('tts.qwen3Model.serviceDown') }}
-    </p>
+    <div v-else-if="!modelServiceAvailable" class="mt-2 flex flex-wrap items-center gap-3">
+      <p class="m-0 text-sm" style="color: var(--app-gold)">
+        {{ t('tts.qwen3Model.serviceDown') }}
+      </p>
+      <button
+        type="button"
+        class="app-chip h-7 px-2 text-xs"
+        :disabled="starting"
+        @click="startService()"
+      >
+        {{ starting ? t('tts.qwen3Model.serviceStarting') : t('tts.qwen3Model.startService') }}
+      </button>
+    </div>
   </section>
 </template>

@@ -1581,3 +1581,28 @@ pub async fn ffmpeg_install(state: State<'_, AppState>) -> Result<String, Deskto
         .map_err(DesktopError::from)?;
     Ok(path.display().to_string())
 }
+
+#[tauri::command]
+pub async fn tts_qwen3_start(
+    state: State<'_, AppState>,
+) -> Result<Qwen3TtsSnapshotDto, DesktopError> {
+    let service = state.qwen3_tts();
+    let config = service.config();
+    let base_url = config.base_url.clone();
+    if let Some(launcher) = state.media().qwen3_service_launcher() {
+        let status = launcher
+            .ensure_running(
+                &base_url,
+                crate::infrastructure::media::port_from_base_url(&base_url),
+            )
+            .await?;
+        // The OS may reserve the configured port; keep the config pointing at
+        // whatever actually serves so later calls hit the right endpoint.
+        if status.base_url != base_url {
+            let mut updated = config.clone();
+            updated.base_url = status.base_url;
+            service.save_config(updated).await?;
+        }
+    }
+    Ok(qwen3_snapshot(service).await)
+}

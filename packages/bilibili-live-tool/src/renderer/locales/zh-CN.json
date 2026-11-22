@@ -920,8 +920,12 @@
       "ready": "已下载",
       "notDownloaded": "未下载",
       "failed": "下载失败",
-      "serviceDown": "本地语音服务未启动：请先启动 services/qwen3-tts/server.py，然后刷新本页。",
-      "serviceDownShort": "语音服务未启动"
+      "serviceDown": "本地语音服务未运行，可自动启动或点击下方按钮手动启动。",
+      "serviceDownShort": "语音服务未启动",
+      "startService": "启动本地语音服务",
+      "serviceStarting": "正在启动…",
+      "serviceStarted": "本地语音服务已启动",
+      "serviceStartFailed": "本地语音服务启动失败"
     }
   },
   "captainEffect": {
@@ -1290,6 +1294,9 @@
     "SYS_DIALOG_CANCELLED": "已取消选择",
     "RECORD_FFMPEG_DOWNLOAD_FAILED": "FFmpeg 安装包下载失败，请检查网络后重试",
     "RECORD_FFMPEG_INSTALL_FAILED": "FFmpeg 安装失败，请检查磁盘空间与权限后重试",
-    "RECORD_FFMPEG_UNSUPPORTED": "当前平台请通过系统包管理器安装 FFmpeg"
+    "RECORD_FFMPEG_UNSUPPORTED": "当前平台请通过系统包管理器安装 FFmpeg",
+    "TTS_SERVICE_SCRIPT_MISSING": "未找到本地语音服务脚本，请重新安装应用",
+    "TTS_SERVICE_PYTHON_MISSING": "未检测到可用的 Python 3，请安装后重试",
+    "TTS_SERVICE_START_FAILED": "本地语音服务启动失败，请查看日志后重试"
   }
 }

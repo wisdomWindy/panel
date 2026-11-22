@@ -45,7 +45,7 @@ use infrastructure::{
         UnavailableLiveRepository,
     },
     media::{
-        AppFfmpegLocator, BilibiliPlayUrlResolver, GiftSoundFileStore, LocalFfmpegProcessPort,
+        AppFfmpegLocator, BilibiliPlayUrlResolver, Qwen3ServiceLauncher, GiftSoundFileStore, LocalFfmpegProcessPort,
         PreviewRegistry, Qwen3TtsService, Qwen3TtsSpeechEngine, RodioAudioOutput,
         SqliteMediaRepository, SystemSpeechEngine, TauriEffectWindowPort, TauriHotkeyPort,
         TauriNotificationPort, UnavailableSpeechEngine,
@@ -75,6 +75,7 @@ use ipc::media::{
     recording_preview, recording_rename, recording_save_config, recording_set_ffmpeg_source,
     recording_start, recording_status, recording_stop, sound_preview, tts_clear, tts_get,
     tts_pause, tts_qwen3_download_model, tts_qwen3_get, tts_qwen3_models, tts_qwen3_save,
+    tts_qwen3_start,
     tts_qwen3_test, tts_save, tts_set_enabled, tts_test,
     TauriMediaEventSink,
 };
@@ -336,7 +337,12 @@ impl AppState {
             // PRD 9.12: recordings land in `<install or data dir>/download` so
             // start-recording never depends on a folder dialog.
             .with_default_recording_directory(default_recording_directory(&app))
-            .with_managed_ffmpeg_directory(managed_ffmpeg_directory(&app));
+            .with_managed_ffmpeg_directory(managed_ffmpeg_directory(&app))
+            .with_qwen3_service_launcher(Arc::new(Qwen3ServiceLauncher::for_current_app(
+                app.path()
+                    .app_log_dir()
+                    .unwrap_or_else(|_| std::env::temp_dir().join("biliLiveHelper/logs")),
+            )));
         let media = if let Some(pool) = pool.clone() {
             media.with_services(MediaServices {
                 repository: Arc::new(SqliteMediaRepository::new(pool)),
@@ -771,6 +777,7 @@ pub fn run() {
         tts_qwen3_save,
         tts_qwen3_test,
         tts_qwen3_models,
+        tts_qwen3_start,
         tts_qwen3_download_model,
         ffmpeg_install,
         recording_get_config,
@@ -904,6 +911,7 @@ pub fn run() {
         tts_qwen3_save,
         tts_qwen3_test,
         tts_qwen3_models,
+        tts_qwen3_start,
         tts_qwen3_download_model,
         ffmpeg_install,
         recording_get_config,

@@ -173,6 +173,13 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
     }, 2000);
   }
 
+  /** Starts the local service when it is not answering yet (PRD 9.11). */
+  async function startQwen3Service(): Promise<Qwen3TtsSnapshot> {
+    const adapted = adaptQwen3TtsSnapshot(await invokeDesktop('tts_qwen3_start', undefined));
+    qwen3.value = adapted;
+    return adapted;
+  }
+
   async function loadQwen3Models(): Promise<Qwen3ModelCatalog> {
     const adapted = adaptQwen3ModelCatalog(await invokeDesktop('tts_qwen3_models', undefined));
     qwen3Catalog.value = adapted;
@@ -203,5 +210,5 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
     stopModelPolling();
   }
 
-  return { snapshot, qwen3, qwen3Catalog, pending, pendingOperations, error, load, refresh, save, setEnabled, test, pause, clear, replaceStatus, loadQwen3, saveQwen3, testQwen3, loadQwen3Models, downloadQwen3Model, stopModelPolling, dispose };
+  return { snapshot, qwen3, qwen3Catalog, pending, pendingOperations, error, load, refresh, save, setEnabled, test, pause, clear, replaceStatus, loadQwen3, saveQwen3, testQwen3, loadQwen3Models, downloadQwen3Model, startQwen3Service, stopModelPolling, dispose };
 });

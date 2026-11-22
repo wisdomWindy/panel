@@ -920,8 +920,12 @@
       "ready": "Downloaded",
       "notDownloaded": "Not downloaded",
       "failed": "Download failed",
-      "serviceDown": "The local speech service is not running: start services/qwen3-tts/server.py, then refresh this page.",
-      "serviceDownShort": "Speech service offline"
+      "serviceDown": "The local speech service is not running; it starts automatically, or use the button below.",
+      "serviceDownShort": "Speech service offline",
+      "startService": "Start local speech service",
+      "serviceStarting": "Starting…",
+      "serviceStarted": "Local speech service is running",
+      "serviceStartFailed": "The local speech service could not start"
     }
   },
   "captainEffect": {
@@ -1290,6 +1294,9 @@
     "SYS_DIALOG_CANCELLED": "Selection cancelled",
     "RECORD_FFMPEG_DOWNLOAD_FAILED": "The FFmpeg installer could not be downloaded; check the network and retry",
     "RECORD_FFMPEG_INSTALL_FAILED": "FFmpeg installation failed; check free disk space and permissions",
-    "RECORD_FFMPEG_UNSUPPORTED": "Install FFmpeg with your system package manager on this platform"
+    "RECORD_FFMPEG_UNSUPPORTED": "Install FFmpeg with your system package manager on this platform",
+    "TTS_SERVICE_SCRIPT_MISSING": "The local speech service script is missing; reinstall the app",
+    "TTS_SERVICE_PYTHON_MISSING": "No usable Python 3 was found; install it and retry",
+    "TTS_SERVICE_START_FAILED": "The local speech service failed to start; check the logs"
   }
 }

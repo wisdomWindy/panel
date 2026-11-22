@@ -243,7 +243,7 @@ export const MEDIA_COMMAND_NAMES = [
   'recording_preview', 'recording_rename', 'recording_delete',
   'highlight_list', 'highlight_mark', 'highlight_preview', 'highlight_export', 'highlight_delete',
   'tts_qwen3_get', 'tts_qwen3_save', 'tts_qwen3_test',
-  'tts_qwen3_models', 'tts_qwen3_download_model'
+  'tts_qwen3_models', 'tts_qwen3_start', 'tts_qwen3_download_model'
 ] as const;
 export const MEDIA_EVENT_NAMES = [
   'captain_effect_trigger', 'gift_alert_trigger', 'gift_notify_updated',
@@ -279,6 +279,7 @@ export interface MediaCommandRequestMap {
   tts_qwen3_save: { config: Qwen3TtsConfig };
   tts_qwen3_test: undefined;
   tts_qwen3_models: undefined;
+  tts_qwen3_start: undefined;
   tts_qwen3_download_model: { model: string | null };
   recording_get_config: undefined;
   recording_save_config: { config: RecordingConfig };
@@ -323,6 +324,7 @@ export interface MediaCommandResultMap {
   tts_qwen3_save: Qwen3TtsSnapshot;
   tts_qwen3_test: Qwen3TtsSnapshot;
   tts_qwen3_models: Qwen3ModelCatalog;
+  tts_qwen3_start: Qwen3TtsSnapshot;
   tts_qwen3_download_model: Qwen3DownloadState;
   recording_get_config: RecordingConfig;
   recording_save_config: RecordingConfig;

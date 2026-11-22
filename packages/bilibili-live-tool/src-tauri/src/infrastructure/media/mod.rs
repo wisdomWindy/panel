@@ -7,6 +7,7 @@ mod hotkey;
 mod notification;
 mod play_url;
 mod preview;
+mod qwen3_environment;
 mod qwen3_service;
 mod qwen_tts;
 mod repository;
@@ -30,6 +31,7 @@ pub use files::{
 pub use hotkey::{TauriHotkeyPort, UnavailableHotkeyPort};
 pub use notification::{TauriNotificationPort, UnavailableNotificationPort};
 pub use preview::PreviewRegistry;
+pub use qwen3_environment::{EnvironmentStatus, Qwen3Environment, ENVIRONMENT_PROGRESS_EVENT};
 pub use qwen3_service::{port_from_base_url, Qwen3ServiceLauncher, ServiceStatus};
 pub use qwen_tts::{
     compose_instruct, Qwen3DownloadState, Qwen3DownloadStatus, Qwen3ModelCatalog, Qwen3ModelEntry,

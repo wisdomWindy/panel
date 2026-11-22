@@ -2,6 +2,7 @@ import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import {
   invokeDesktop,
+  listenDesktop,
   normalizeDesktopError,
   type DesktopError,
   type Qwen3DownloadState,
@@ -10,11 +11,13 @@ import {
   type Qwen3TtsSnapshot,
   type TtsConfig,
   type TtsSnapshot,
-  type TtsStatus
+  type TtsStatus,
+  type Qwen3EnvironmentStatus
 } from '@/platform/desktop';
 import {
   adaptQwen3DownloadState,
   adaptQwen3ModelCatalog,
+  adaptEnvironmentStatus,
   adaptQwen3TtsSnapshot,
   adaptTtsSnapshot,
   adaptTtsStatus
@@ -23,6 +26,8 @@ import {
 export const useMediaTtsStore = defineStore('media-tts', () => {
   const snapshot = ref<TtsSnapshot | null>(null);
   const qwen3 = ref<Qwen3TtsSnapshot | null>(null);
+  const environment = ref<Qwen3EnvironmentStatus | null>(null);
+  const environmentProgress = ref<{ stage: string; message: string } | null>(null);
   const qwen3Catalog = ref<Qwen3ModelCatalog | null>(null);
   const pending = ref(false);
   const pendingOperations = ref<ReadonlySet<string>>(new Set());
@@ -174,6 +179,43 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
   }
 
   /** Starts the local service when it is not answering yet (PRD 9.11). */
+  /** Prepares the Python virtualenv and runtime dependencies (PRD 9.11). */
+  async function prepareEnvironment(): Promise<Qwen3EnvironmentStatus> {
+    return runOperation('qwen3Environment', async () => {
+      environmentProgress.value = { stage: 'start', message: '正在准备语音运行环境…' };
+      try {
+        const status = adaptEnvironmentStatus(
+          await invokeDesktop('tts_qwen3_prepare_environment', undefined)
+        );
+        environment.value = status;
+        return status;
+      } finally {
+        environmentProgress.value = null;
+      }
+    });
+  }
+
+  async function loadEnvironmentStatus(): Promise<Qwen3EnvironmentStatus> {
+    const status = adaptEnvironmentStatus(
+      await invokeDesktop('tts_qwen3_environment_status', undefined)
+    );
+    environment.value = status;
+    return status;
+  }
+
+  /** Keeps the dialog text in sync with the preparation stages. */
+  function listenEnvironmentProgress(): Promise<() => void> {
+    return listenDesktop('tts_environment_progress', payload => {
+      const value = payload as { stage?: unknown; message?: unknown } | null;
+      if (typeof value?.message === 'string') {
+        environmentProgress.value = {
+          stage: typeof value.stage === 'string' ? value.stage : 'progress',
+          message: value.message
+        };
+      }
+    });
+  }
+
   async function startQwen3Service(): Promise<Qwen3TtsSnapshot> {
     const adapted = adaptQwen3TtsSnapshot(await invokeDesktop('tts_qwen3_start', undefined));
     qwen3.value = adapted;
@@ -210,5 +252,5 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
     stopModelPolling();
   }
 
-  return { snapshot, qwen3, qwen3Catalog, pending, pendingOperations, error, load, refresh, save, setEnabled, test, pause, clear, replaceStatus, loadQwen3, saveQwen3, testQwen3, loadQwen3Models, downloadQwen3Model, startQwen3Service, stopModelPolling, dispose };
+  return { snapshot, qwen3, qwen3Catalog, pending, pendingOperations, error, load, refresh, save, setEnabled, test, pause, clear, replaceStatus, loadQwen3, saveQwen3, testQwen3, loadQwen3Models, downloadQwen3Model, startQwen3Service, environment, environmentProgress, prepareEnvironment, loadEnvironmentStatus, listenEnvironmentProgress, stopModelPolling, dispose };
 });

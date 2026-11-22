@@ -15,6 +15,8 @@ import type {
   RecordingSummary,
   Qwen3TtsConfig,
   Qwen3TtsHealth,
+  Qwen3EnvironmentStatus,
+
   Qwen3TtsSnapshot,
   Qwen3DownloadState,
   Qwen3ModelCatalog,
@@ -369,6 +371,15 @@ function qwen3Health(value: unknown): Qwen3TtsHealth {
     model: string(source.model, 'qwen3TtsHealth.model'),
     sampleRate: integer(source.sampleRate, 'qwen3TtsHealth.sampleRate'),
     error: nullableString(source.error, 'qwen3TtsHealth.error')
+  });
+}
+
+export function adaptEnvironmentStatus(value: unknown): Qwen3EnvironmentStatus {
+  const source = record(value, 'qwen3EnvironmentStatus');
+  return frozen({
+    ready: boolean(source.ready, 'qwen3EnvironmentStatus.ready'),
+    venvPython: nullableString(source.venvPython, 'qwen3EnvironmentStatus.venvPython'),
+    detail: emptyableString(source.detail, 'qwen3EnvironmentStatus.detail')
   });
 }
 

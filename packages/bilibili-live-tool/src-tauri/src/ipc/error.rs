@@ -156,6 +156,7 @@ impl From<MediaIoError> for DesktopError {
             "RECORD_STREAM_UNAVAILABLE" => "无法获取直播流地址，请稍后重试",
             "RECORD_DIRECTORY_REQUIRED" => "请先在录制设置中授权保存目录",
             "RECORD_DIRECTORY_UNAVAILABLE" => "录制目录不可写，请更换保存位置",
+            "TTS_ENVIRONMENT_INCOMPLETE" => "语音运行环境准备失败，请检查网络与磁盘空间后重试",
             "RECORD_FFMPEG_DOWNLOAD_FAILED" => "FFmpeg 安装包下载失败，请检查网络后重试",
             "RECORD_FFMPEG_INSTALL_FAILED" => "FFmpeg 安装失败，请检查磁盘空间与权限后重试",
             "RECORD_FFMPEG_UNSUPPORTED" => "当前平台请通过系统包管理器安装 FFmpeg",

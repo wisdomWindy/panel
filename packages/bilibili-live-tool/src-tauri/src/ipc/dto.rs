@@ -194,6 +194,8 @@ pub const MEDIA_COMMAND_NAMES: &[&str] = &[
     "tts_qwen3_save",
     "tts_qwen3_test",
     "tts_qwen3_models",
+    "tts_qwen3_environment_status",
+    "tts_qwen3_prepare_environment",
     "tts_qwen3_start",
     "tts_qwen3_download_model",
 ];

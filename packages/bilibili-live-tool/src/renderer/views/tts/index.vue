@@ -181,16 +181,35 @@ async function handleEnabled(value: boolean): Promise<void> {
   }
 }
 
-/** Best-effort service start; failures surface through the model card status. */
+/** One-stop preparation: runtime environment -> service -> model weights. */
 async function ensureQwen3Service(): Promise<void> {
+  const stopListening = await store.listenEnvironmentProgress().catch(() => null);
+  prepVisible.value = true;
   try {
+    const status = await store.loadEnvironmentStatus();
+    if (!status.ready) await store.prepareEnvironment();
     await store.startQwen3Service();
-    await store.loadQwen3Models().catch(() => undefined);
+    const catalog = await store.loadQwen3Models();
     await store.loadQwen3().catch(() => undefined);
-  } catch {
-    // The card shows the reason; enabling 播报 must still succeed.
+    const target = catalog.models.find(model => model.isDefault) ?? catalog.models[0];
+    if (target && !target.isInstalled) {
+      await store.downloadQwen3Model(target.modelId);
+    }
+    ElMessage.success(t('tts.environment.ready'));
+  } catch (error) {
+    ElMessage.error(
+      (error as { message?: string }).message ?? t('tts.environment.failed')
+    );
+  } finally {
+    prepVisible.value = false;
+    stopListening?.();
   }
 }
+
+const prepVisible = ref(false);
+const prepMessage = computed(
+  () => store.environmentProgress?.message ?? t('tts.environment.starting')
+);
 
 async function handleSave(): Promise<void> {
   if (!validateDraft()) return;
@@ -293,6 +312,22 @@ onMounted(async () => {
 </script>
 
 <template>
+  <el-dialog
+    v-model="prepVisible"
+    :close-on-click-modal="false"
+    :show-close="false"
+    width="min(460px, calc(100vw - 32px))"
+  >
+    <div class="flex flex-col gap-3">
+      <p class="app-text m-0 text-sm font-semibold">{{ t('tts.environment.starting') }}</p>
+      <p class="app-muted m-0 text-sm">{{ prepMessage }}</p>
+      <el-progress :percentage="100" indeterminate :stroke-width="8" :show-text="false" />
+      <p class="app-faint m-0 text-xs">
+        首次启用需要下载运行依赖与模型（约 6–7 GB），仅需一次。
+      </p>
+    </div>
+  </el-dialog>
+
   <section class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
     <header class="flex flex-wrap items-center gap-3">
       <div class="min-w-0">

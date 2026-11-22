@@ -929,6 +929,11 @@
       "serviceStartFailed": "The local speech service could not start",
       "preparing": "Preparing…",
       "progressHint": "The model is about 4.5 GB; keep this page open while it downloads."
+    },
+    "environment": {
+      "starting": "Preparing the speech runtime…",
+      "ready": "Speech runtime ready and service started",
+      "failed": "Preparing the speech runtime failed"
     }
   },
   "captainEffect": {

@@ -20,6 +20,8 @@ pub struct Qwen3ServiceLauncher {
     script: Option<PathBuf>,
     python: Option<PathBuf>,
     log_directory: PathBuf,
+    /// Python from the app-managed virtualenv, when it exists.
+    managed_venv_python: Option<PathBuf>,
 }
 
 impl Qwen3ServiceLauncher {
@@ -28,14 +30,26 @@ impl Qwen3ServiceLauncher {
             script: locate_script(),
             python: locate_python(),
             log_directory,
+            managed_venv_python: None,
         }
     }
 
-    pub fn with_paths(script: Option<PathBuf>, python: Option<PathBuf>, log_directory: PathBuf) -> Self {
+    /// Prefers the managed virtualenv once it has been prepared.
+    pub fn with_managed_venv_python(mut self, python: PathBuf) -> Self {
+        self.managed_venv_python = Some(python);
+        self
+    }
+
+    pub fn with_paths(
+        script: Option<PathBuf>,
+        python: Option<PathBuf>,
+        log_directory: PathBuf,
+    ) -> Self {
         Self {
             script,
             python,
             log_directory,
+            managed_venv_python: None,
         }
     }
 
@@ -67,7 +81,12 @@ impl Qwen3ServiceLauncher {
                 false,
             )
         })?;
-        let python = self.python.as_deref().ok_or_else(|| {
+        let python = self
+            .managed_venv_python
+            .as_deref()
+            .filter(|path| path.is_file())
+            .or(self.python.as_deref())
+            .ok_or_else(|| {
             MediaIoError::coded(
                 "TTS_SERVICE_PYTHON_MISSING",
                 "未检测到可用的 Python 3，请安装 Python 后重试",
@@ -188,7 +207,7 @@ async fn health_ok(base_url: &str) -> bool {
 
 /// `server.py` shipped beside the executable, as a bundled resource, in the app
 /// data directory, or in the development checkout.
-fn locate_script() -> Option<PathBuf> {
+pub(crate) fn locate_script() -> Option<PathBuf> {
     if let Some(override_path) = std::env::var_os("QWEN3_TTS_SERVER") {
         let path = PathBuf::from(override_path);
         if path.is_file() {
@@ -217,7 +236,7 @@ fn locate_script() -> Option<PathBuf> {
     candidates.into_iter().find(|candidate| candidate.is_file())
 }
 
-fn locate_python() -> Option<PathBuf> {
+pub(crate) fn locate_python() -> Option<PathBuf> {
     if let Some(override_path) = std::env::var_os("QWEN3_TTS_PYTHON") {
         let path = PathBuf::from(override_path);
         if path.is_file() {

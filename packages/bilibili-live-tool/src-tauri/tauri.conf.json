@@ -41,7 +41,8 @@
       "nsis"
     ],
     "resources": {
-      "../../../services/qwen3-tts/server.py": "services/qwen3-tts/server.py"
+      "../../../services/qwen3-tts/server.py": "services/qwen3-tts/server.py",
+      "../../../services/qwen3-tts/requirements.txt": "services/qwen3-tts/requirements.txt"
     },
     "icon": [
       "icons/32x32.png",

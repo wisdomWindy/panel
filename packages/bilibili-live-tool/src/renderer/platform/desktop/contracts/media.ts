@@ -146,6 +146,12 @@ export interface Qwen3TtsHealth {
   sampleRate: number;
   error: string | null;
 }
+export interface Qwen3EnvironmentStatus {
+  readonly ready: boolean;
+  readonly venvPython: string | null;
+  readonly detail: string;
+}
+
 export interface Qwen3TtsSnapshot {
   config: Qwen3TtsConfig;
   health: Qwen3TtsHealth | null;
@@ -243,7 +249,11 @@ export const MEDIA_COMMAND_NAMES = [
   'recording_preview', 'recording_rename', 'recording_delete',
   'highlight_list', 'highlight_mark', 'highlight_preview', 'highlight_export', 'highlight_delete',
   'tts_qwen3_get', 'tts_qwen3_save', 'tts_qwen3_test',
-  'tts_qwen3_models', 'tts_qwen3_start', 'tts_qwen3_download_model'
+  'tts_qwen3_models',
+  'tts_qwen3_environment_status',
+  'tts_qwen3_prepare_environment',
+  'tts_qwen3_start',
+  'tts_qwen3_download_model'
 ] as const;
 export const MEDIA_EVENT_NAMES = [
   'captain_effect_trigger', 'gift_alert_trigger', 'gift_notify_updated',
@@ -279,6 +289,8 @@ export interface MediaCommandRequestMap {
   tts_qwen3_save: { config: Qwen3TtsConfig };
   tts_qwen3_test: undefined;
   tts_qwen3_models: undefined;
+  tts_qwen3_environment_status: undefined;
+  tts_qwen3_prepare_environment: undefined;
   tts_qwen3_start: undefined;
   tts_qwen3_download_model: { model: string | null };
   recording_get_config: undefined;
@@ -324,6 +336,8 @@ export interface MediaCommandResultMap {
   tts_qwen3_save: Qwen3TtsSnapshot;
   tts_qwen3_test: Qwen3TtsSnapshot;
   tts_qwen3_models: Qwen3ModelCatalog;
+  tts_qwen3_environment_status: Qwen3EnvironmentStatus;
+  tts_qwen3_prepare_environment: Qwen3EnvironmentStatus;
   tts_qwen3_start: Qwen3TtsSnapshot;
   tts_qwen3_download_model: Qwen3DownloadState;
   recording_get_config: RecordingConfig;
@@ -352,4 +366,5 @@ export interface MediaEventPayloadMap {
   recording_status_changed: RecordingStatus;
   recording_completed: RecordingSummary;
   highlight_created: HighlightSummary;
+  tts_environment_progress: { stage: string; message: string };
 }

@@ -45,7 +45,7 @@ use infrastructure::{
         UnavailableLiveRepository,
     },
     media::{
-        AppFfmpegLocator, BilibiliPlayUrlResolver, Qwen3ServiceLauncher, GiftSoundFileStore, LocalFfmpegProcessPort,
+        AppFfmpegLocator, BilibiliPlayUrlResolver, Qwen3Environment, Qwen3ServiceLauncher, GiftSoundFileStore, LocalFfmpegProcessPort,
         PreviewRegistry, Qwen3TtsService, Qwen3TtsSpeechEngine, RodioAudioOutput,
         SqliteMediaRepository, SystemSpeechEngine, TauriEffectWindowPort, TauriHotkeyPort,
         TauriNotificationPort, UnavailableSpeechEngine,
@@ -75,6 +75,8 @@ use ipc::media::{
     recording_preview, recording_rename, recording_save_config, recording_set_ffmpeg_source,
     recording_start, recording_status, recording_stop, sound_preview, tts_clear, tts_get,
     tts_pause, tts_qwen3_download_model, tts_qwen3_get, tts_qwen3_models, tts_qwen3_save,
+    tts_qwen3_environment_status,
+    tts_qwen3_prepare_environment,
     tts_qwen3_start,
     tts_qwen3_test, tts_save, tts_set_enabled, tts_test,
     TauriMediaEventSink,
@@ -346,7 +348,21 @@ impl AppState {
                     .path()
                     .app_log_dir()
                     .unwrap_or_else(|_| std::env::temp_dir().join("biliLiveHelper/logs"));
-                let launcher = Arc::new(Qwen3ServiceLauncher::for_current_app(log_directory));
+                let venv_python = if cfg!(windows) {
+                    environment_root(&app)
+                        .join("venv")
+                        .join("Scripts")
+                        .join("python.exe")
+                } else {
+                    environment_root(&app)
+                        .join("venv")
+                        .join("bin")
+                        .join("python")
+                };
+                let launcher = Arc::new(
+                    Qwen3ServiceLauncher::for_current_app(log_directory)
+                        .with_managed_venv_python(venv_python),
+                );
                 if speech_enabled {
                     let config = qwen3_tts.config();
                     let base_url = config.base_url.clone();
@@ -368,7 +384,13 @@ impl AppState {
                     });
                 }
                 launcher
-            });
+            })
+            .with_qwen3_environment(Arc::new(Qwen3Environment::for_current_app(
+                environment_root(&app),
+                app.path()
+                    .app_log_dir()
+                    .unwrap_or_else(|_| std::env::temp_dir().join("biliLiveHelper/logs")),
+            )));
         let media = if let Some(pool) = pool.clone() {
             media.with_services(MediaServices {
                 repository: Arc::new(SqliteMediaRepository::new(pool)),
@@ -803,6 +825,8 @@ pub fn run() {
         tts_qwen3_save,
         tts_qwen3_test,
         tts_qwen3_models,
+        tts_qwen3_environment_status,
+        tts_qwen3_prepare_environment,
         tts_qwen3_start,
         tts_qwen3_download_model,
         ffmpeg_install,
@@ -937,6 +961,8 @@ pub fn run() {
         tts_qwen3_save,
         tts_qwen3_test,
         tts_qwen3_models,
+        tts_qwen3_environment_status,
+        tts_qwen3_prepare_environment,
         tts_qwen3_start,
         tts_qwen3_download_model,
         ffmpeg_install,
@@ -960,4 +986,13 @@ pub fn run() {
     builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Virtualenv and pip logs live in the app data directory, never in the
+/// install directory, so an upgrade cannot delete them.
+fn environment_root(app: &tauri::AppHandle) -> std::path::PathBuf {
+    app.path()
+        .app_data_dir()
+        .map(|data| data.join("qwen3-tts"))
+        .unwrap_or_else(|_| std::env::temp_dir().join("biliLiveHelper/qwen3-tts"))
 }

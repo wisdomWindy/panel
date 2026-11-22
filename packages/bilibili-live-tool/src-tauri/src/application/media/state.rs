@@ -240,6 +240,7 @@ pub struct MediaState {
     /// Directory holding the FFmpeg the app installed on the operator's behalf.
     managed_ffmpeg_directory: Option<PathBuf>,
     qwen3_service_launcher: Option<Arc<crate::infrastructure::media::Qwen3ServiceLauncher>>,
+    qwen3_environment: Option<Arc<crate::infrastructure::media::Qwen3Environment>>,
 }
 
 impl MediaState {
@@ -264,6 +265,7 @@ impl MediaState {
             default_recording_directory: None,
             managed_ffmpeg_directory: None,
             qwen3_service_launcher: None,
+            qwen3_environment: None,
         }
     }
 
@@ -296,6 +298,18 @@ impl MediaState {
     ) -> Self {
         self.qwen3_service_launcher = Some(launcher);
         self
+    }
+
+    pub fn with_qwen3_environment(
+        mut self,
+        environment: Arc<crate::infrastructure::media::Qwen3Environment>,
+    ) -> Self {
+        self.qwen3_environment = Some(environment);
+        self
+    }
+
+    pub fn qwen3_environment(&self) -> Option<&Arc<crate::infrastructure::media::Qwen3Environment>> {
+        self.qwen3_environment.as_ref()
     }
 
     pub fn qwen3_service_launcher(

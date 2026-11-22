@@ -1606,3 +1606,46 @@ pub async fn tts_qwen3_start(
     }
     Ok(qwen3_snapshot(service).await)
 }
+
+#[tauri::command]
+pub async fn tts_qwen3_environment_status(
+    state: State<'_, AppState>,
+) -> Result<crate::infrastructure::media::EnvironmentStatus, DesktopError> {
+    let environment = state
+        .media()
+        .qwen3_environment()
+        .ok_or_else(|| DesktopError::from(unavailable_environment()))?
+        .clone();
+    Ok(environment.status())
+}
+
+#[tauri::command]
+pub async fn tts_qwen3_prepare_environment(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<crate::infrastructure::media::EnvironmentStatus, DesktopError> {
+    let environment = state
+        .media()
+        .qwen3_environment()
+        .ok_or_else(|| DesktopError::from(unavailable_environment()))?
+        .clone();
+    let handle = app.clone();
+    let status = environment
+        .prepare(move |stage, message| {
+            use tauri::Emitter;
+            let _ = handle.emit(
+                crate::infrastructure::media::ENVIRONMENT_PROGRESS_EVENT,
+                serde_json::json!({ "stage": stage, "message": message }),
+            );
+        })
+        .await?;
+    Ok(status)
+}
+
+fn unavailable_environment() -> crate::application::media::MediaIoError {
+    crate::application::media::MediaIoError::coded(
+        "TTS_ENVIRONMENT_INCOMPLETE",
+        "语音运行环境不可用，请重启应用后重试",
+        true,
+    )
+}

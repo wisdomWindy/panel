@@ -5,6 +5,7 @@ import { Loading, RefreshLeft, VideoPlay } from '@element-plus/icons-vue';
 import type { Qwen3Language, Qwen3TtsConfig, TtsConfig, TtsEventKind, TtsIdentityKind } from '@/platform/desktop';
 import TtsQueuePanel from '@/components/media/TtsQueuePanel.vue';
 import SpeechPrepareDialog from '@/components/media/SpeechPrepareDialog.vue';
+import { retriesSpeechInstall } from '@/modules/media/speech-retry';
 import { validateTtsTemplate, validateTtsTemplates } from '@/modules/media/validation';
 import { useMediaTtsStore } from '@/stores/media/tts';
 import { resolvePreferredVoiceId } from './voice-selection';
@@ -195,6 +196,19 @@ async function ensureQwen3Service(): Promise<void> {
   }
 }
 
+/** Retrying an install or service failure must re-run the whole preparation. */
+/**
+ * Retrying a speech failure must re-run the whole preparation so the progress
+ * panel comes back; only unrelated errors fall back to a plain refresh.
+ */
+async function handleRetry(): Promise<void> {
+  if (draft.isEnabled || retriesSpeechInstall(store.error?.code)) {
+    await ensureQwen3Service();
+    return;
+  }
+  await store.refresh();
+}
+
 async function handleSave(): Promise<void> {
   if (!validateDraft()) return;
   try {
@@ -331,7 +345,7 @@ onMounted(async () => {
       :title="store.error.message"
       show-icon
     >
-      <el-button size="small" @click="store.refresh()">
+      <el-button size="small" @click="handleRetry">
         {{ t('common.retry') }}
       </el-button>
     </el-alert>

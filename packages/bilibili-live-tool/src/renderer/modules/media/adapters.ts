@@ -374,6 +374,10 @@ function qwen3Health(value: unknown): Qwen3TtsHealth {
   const source = record(value, 'qwen3TtsHealth');
   return frozen({
     ready: boolean(source.ready, 'qwen3TtsHealth.ready'),
+    // Older payloads predate the field; treat them as ready.
+    status: source.status === undefined || source.status === null
+      ? 'ready'
+      : emptyableString(source.status, 'qwen3TtsHealth.status'),
     engine: string(source.engine, 'qwen3TtsHealth.engine'),
     model: string(source.model, 'qwen3TtsHealth.model'),
     sampleRate: integer(source.sampleRate, 'qwen3TtsHealth.sampleRate'),

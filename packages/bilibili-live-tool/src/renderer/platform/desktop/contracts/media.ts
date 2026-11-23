@@ -144,6 +144,8 @@ export interface Qwen3TtsConfig {
 export type Qwen3PipMirror = 'tsinghua' | 'aliyun' | 'official';
 export interface Qwen3TtsHealth {
   ready: boolean;
+  /** `loading` while the model weights are still warming up. */
+  status: string;
   engine: string;
   model: string;
   sampleRate: number;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Loading, RefreshLeft, VideoPlay } from '@element-plus/icons-vue';
 import type { Qwen3Language, Qwen3TtsConfig, TtsConfig, TtsEventKind, TtsIdentityKind } from '@/platform/desktop';
@@ -81,6 +81,37 @@ const qwen3Health = computed(() => store.qwen3?.health ?? null);
 // The service reports its speakers when reachable; the upstream CustomVoice
 // table is compiled in so the select is never empty (PRD 9.11).
 const qwen3VoiceOptions = computed(() => mergeVoiceOptions(store.qwen3?.voiceIds ?? []));
+/** Codes that only mean "the model is still warming up", not a failure. */
+const WARMUP_CODES: readonly string[] = ['TTS_TIMEOUT', 'TTS_MODEL_LOADING', 'qwen3_tts_unreachable'];
+
+const qwen3IsWarmingUp = computed(() => {
+  const health = store.qwen3?.health;
+  return !!health && (health.status === 'loading' || (!health.ready && health.error === null));
+});
+
+const errorIsWarmup = computed(() => {
+  if (!store.error) return false;
+  return WARMUP_CODES.includes(store.error.code) || qwen3IsWarmingUp.value;
+});
+
+let warmupTimer: ReturnType<typeof setInterval> | null = null;
+
+/** Polls the snapshot while the model loads so the notice clears by itself. */
+function watchWarmup(): void {
+  if (warmupTimer) return;
+  warmupTimer = setInterval(() => {
+    if (!qwen3IsWarmingUp.value) {
+      if (warmupTimer) {
+        clearInterval(warmupTimer);
+        warmupTimer = null;
+      }
+      if (store.error && WARMUP_CODES.includes(store.error.code)) store.error = null;
+      return;
+    }
+    void store.loadQwen3().catch(() => undefined);
+  }, 4000);
+}
+
 const qwen3SavePending = computed(() => store.pendingOperations.has('qwen3Save'));
 const qwen3TestPending = computed(() => store.pendingOperations.has('qwen3Test'));
 const qwen3ProbePending = ref(false);
@@ -308,6 +339,7 @@ onMounted(async () => {
   }
   // Entering this page is the only place where the runtime is installed and
   // started, so a stored "enabled" flag works without touching start-up.
+  watchWarmup();
   const status = await store.loadEnvironmentStatus().catch(() => null);
   if (draft.isEnabled) {
     if (!status?.ready) {
@@ -352,7 +384,7 @@ onMounted(async () => {
     </header>
 
     <el-alert
-      v-if="store.error"
+      v-if="store.error && !errorIsWarmup"
       type="error"
       :closable="false"
       :title="store.error.message"
@@ -362,6 +394,15 @@ onMounted(async () => {
         {{ t('common.retry') }}
       </el-button>
     </el-alert>
+
+    <!-- The first model load takes minutes; that is not a failure to report. -->
+    <el-alert
+      v-else-if="store.error && errorIsWarmup"
+      type="info"
+      :closable="false"
+      :title="t('tts.environment.modelWarming')"
+      show-icon
+    />
 
     <!-- The model belongs to the speech feature, next to its engine settings. -->
     

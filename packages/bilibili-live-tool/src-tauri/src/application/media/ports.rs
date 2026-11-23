@@ -233,6 +233,9 @@ pub struct SynthesisVoice {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SynthesisHealth {
     pub ready: bool,
+    /// `loading` while the model weights are still being loaded, `ready` once
+    /// synthesis can actually start, `degraded` when the engine failed.
+    pub status: String,
     pub engine: String,
     pub model: String,
     pub sample_rate: u32,

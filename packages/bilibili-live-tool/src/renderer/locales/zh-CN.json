@@ -943,7 +943,8 @@
                                     "ready":  "语音运行环境已就绪，服务已启动",
                                     "failed":  "语音环境准备失败",
                                     "sizeHint":  "首次启用需要下载运行依赖与模型（约 6–7 GB），仅需一次。",
-                                    "elapsed":  "已用时 {seconds} 秒"
+                                    "elapsed":  "已用时 {seconds} 秒",
+                                    "modelWarming":  "模型加载中，请稍候…（首次加载通常需要几分钟）"
                                 }
             },
     "captainEffect":  {

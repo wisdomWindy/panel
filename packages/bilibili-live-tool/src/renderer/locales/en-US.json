@@ -751,7 +751,8 @@
                                            "openSettings":  "Open recording settings",
                                            "installNow":  "Install now"
                                        },
-                      "settingsLocked":  "Recording is running. Settings are locked until you stop the recording."
+                      "settingsLocked":  "Recording is running. Settings are locked until you stop the recording.",
+                      "previewUnavailable":  "Stop the recording before previewing it."
                   },
     "liveData":  {
                      "range":  {

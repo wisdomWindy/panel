@@ -751,7 +751,8 @@
                                            "openSettings":  "打开录制设置",
                                            "installNow":  "一键安装"
                                        },
-                      "settingsLocked":  "录制进行中，设置已锁定；停止录制后即可修改"
+                      "settingsLocked":  "录制进行中，设置已锁定；停止录制后即可修改",
+                      "previewUnavailable":  "录制进行中，停止录制后才能预览"
                   },
     "liveData":  {
                      "range":  {

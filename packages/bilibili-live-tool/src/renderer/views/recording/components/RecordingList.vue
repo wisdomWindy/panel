@@ -95,13 +95,13 @@ function statusBadgeStyle(status: RecordingSummary['status']): Record<string, st
       <el-table-column :label="t('common.actions')" width="250" fixed="right">
         <template #default="{ row }">
           <div class="flex flex-wrap items-center gap-1">
-            <el-tooltip :content="t('recording.preview')">
+            <el-tooltip :content="row.status === 'recording' ? t('recording.previewUnavailable') : t('recording.preview')">
               <button
                 type="button"
                 class="app-chip h-7 px-2.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                 :aria-label="t('recording.preview')"
                 :aria-busy="isPending('previewRecording', row.id)"
-                :disabled="isPending('previewRecording', row.id)"
+                :disabled="isPending('previewRecording', row.id) || row.status === 'recording'"
                 @click="emit('preview', row)"
               >
                 <el-icon v-if="isPending('previewRecording', row.id)" class="is-loading">

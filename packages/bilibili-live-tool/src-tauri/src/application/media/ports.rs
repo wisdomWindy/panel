@@ -426,6 +426,8 @@ pub struct PreviewRead {
     pub bytes: Vec<u8>,
     pub total_size: u64,
     pub range: ByteRange,
+    /// MIME type so the webview hands the bytes to a media element.
+    pub content_type: &'static str,
 }
 
 #[async_trait::async_trait]

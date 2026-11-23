@@ -82,7 +82,7 @@ fn preview_response(read: crate::application::media::PreviewRead) -> Response<Ve
     Response::builder()
         .status(StatusCode::PARTIAL_CONTENT)
         .header(header::ACCEPT_RANGES, "bytes")
-        .header(header::CONTENT_TYPE, "application/octet-stream")
+        .header(header::CONTENT_TYPE, read.content_type)
         .header(header::CONTENT_LENGTH, read.bytes.len().to_string())
         .header(
             header::CONTENT_RANGE,
@@ -1581,9 +1581,11 @@ mod tests {
                 start: 2,
                 end_inclusive: 4,
             },
+            content_type: "video/mp4",
         });
         assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
         assert_eq!(response.headers()[header::CONTENT_RANGE], "bytes 2-4/10");
+        assert_eq!(response.headers()[header::CONTENT_TYPE], "video/mp4");
         assert_eq!(response.body(), &[1, 2, 3]);
     }
 }

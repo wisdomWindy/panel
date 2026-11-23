@@ -111,7 +111,13 @@ impl PreviewPort for PreviewRegistry {
         }
         sessions.insert(token.clone(), entry);
         Ok(PreviewSession {
-            url: format!("media-preview://localhost/{token}"),
+            // Windows serves custom schemes through `http://<scheme>.localhost`,
+            // and WebView2 refuses the bare scheme for media elements.
+            url: if cfg!(target_os = "windows") {
+                format!("http://media-preview.localhost/{token}")
+            } else {
+                format!("media-preview://localhost/{token}")
+            },
             token,
             expires_at,
         })
@@ -125,7 +131,8 @@ impl PreviewPort for PreviewRegistry {
         now_ms: i64,
     ) -> Result<PreviewRead, MediaIoError> {
         let entry = self.get_entry(token, owner, now_ms)?;
-        let mut file = tokio::fs::File::open(entry.file)
+        let content_type = content_type_for(&entry.file);
+        let mut file = tokio::fs::File::open(&entry.file)
             .await
             .map_err(|_| MediaIoError::unavailable("preview file is unavailable"))?;
         let total_size = file
@@ -163,6 +170,7 @@ impl PreviewPort for PreviewRegistry {
             bytes,
             total_size,
             range,
+            content_type,
         })
     }
 
@@ -180,5 +188,26 @@ impl PreviewPort for PreviewRegistry {
             ));
         }
         Ok(sessions.remove(token).is_some())
+    }
+}
+
+/// The webview refuses to play `application/octet-stream`, so the range
+/// responses carry a real media type derived from the file extension.
+fn content_type_for(path: &std::path::Path) -> &'static str {
+    match path
+        .extension()
+        .and_then(std::ffi::OsStr::to_str)
+        .map(str::to_ascii_lowercase)
+        .as_deref()
+    {
+        Some("mp4") | Some("m4v") => "video/mp4",
+        Some("webm") => "video/webm",
+        Some("mkv") => "video/x-matroska",
+        Some("mov") => "video/quicktime",
+        Some("mp3") => "audio/mpeg",
+        Some("wav") => "audio/wav",
+        Some("m4a") => "audio/mp4",
+        Some("flac") => "audio/flac",
+        _ => "application/octet-stream",
     }
 }

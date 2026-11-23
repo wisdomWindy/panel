@@ -80,8 +80,8 @@ jobs:
             if ! gh release view "$TAG" >/dev/null 2>&1; then
               gh release create "$TAG" \
                 --draft \
-                --title "biliLiveHelper $CHANNEL v$VERSION" \
-                --notes "biliLiveHelper v$VERSION for Windows x64, macOS Apple Silicon, and macOS Intel."
+                --title "liver $CHANNEL v$VERSION" \
+                --notes "liver v$VERSION for Windows x64, macOS Apple Silicon, and macOS Intel."
             fi
           done
 
@@ -161,11 +161,11 @@ jobs:
         with:
           projectPath: ${{ env.APP_PATH }}
           tagName: ${{ matrix.channel }}-v__VERSION__
-          releaseName: "biliLiveHelper ${{ matrix.channel }} v__VERSION__"
-          releaseBody: "biliLiveHelper v__VERSION__ for Windows x64, macOS Apple Silicon, and macOS Intel."
+          releaseName: "liver ${{ matrix.channel }} v__VERSION__"
+          releaseBody: "liver v__VERSION__ for Windows x64, macOS Apple Silicon, and macOS Intel."
           releaseDraft: true
           prerelease: false
-          releaseAssetNamePattern: biliLiveHelper_[version]_${{ matrix.target.asset_platform }}[ext]
+          releaseAssetNamePattern: liver_[version]_${{ matrix.target.asset_platform }}[ext]
           args: --config src-tauri/tauri.release.${{ matrix.channel }}.conf.json ${{ matrix.target.args }}
 
   publish:

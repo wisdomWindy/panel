@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "biliLiveHelper",
+  "productName": "liver",
   "build": {
     "beforeBuildCommand": "pnpm build:web:free",
     "features": ["free"]

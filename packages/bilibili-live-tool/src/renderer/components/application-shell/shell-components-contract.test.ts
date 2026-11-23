@@ -113,8 +113,8 @@ describe('application shell component contract', () => {
     expect(JSON.parse(tauriConfig).app.windows[0].title).toBe('liver');
     // The bundle name stays biliLiveHelper so installers, update assets and the
     // updater endpoint keep working for existing installations.
-    expect(JSON.parse(tauriConfig).productName).toBe('biliLiveHelper');
-    expect(JSON.parse(freeConfig).productName).toBe('biliLiveHelper');
+    expect(JSON.parse(tauriConfig).productName).toBe('liver');
+    expect(JSON.parse(freeConfig).productName).toBe('liver');
   });
 
   it('keeps permissions out of templates and renders normalized status values', () => {

@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "biliLiveHelper 会员版",
+  "productName": "liver 会员版",
   "build": {
     "beforeBuildCommand": "pnpm build:web:member",
     "features": ["member"]

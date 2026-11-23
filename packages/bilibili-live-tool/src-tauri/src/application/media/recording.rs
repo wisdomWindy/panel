@@ -32,6 +32,7 @@ struct RecordingRuntimeState {
     state: RecordingState,
     room_id: Option<String>,
     started_at: Option<Instant>,
+    output_path: Option<std::path::PathBuf>,
     process: Option<Box<dyn RecorderProcess>>,
     disk_remaining_bytes: Option<u64>,
     danmaku_timestamps: VecDeque<i64>,
@@ -57,6 +58,7 @@ impl RecordingRuntime {
                 state: RecordingState::Idle,
                 room_id: None,
                 started_at: None,
+                output_path: None,
                 process: None,
                 disk_remaining_bytes: None,
                 danmaku_timestamps: VecDeque::new(),
@@ -147,6 +149,7 @@ impl RecordingRuntime {
                     state.state = RecordingState::Recording;
                     state.room_id = Some(room_id);
                     state.started_at = Some(Instant::now());
+                    state.output_path = launch_output_path(&launch);
                     state.process = Some(process);
                     state.danmaku_timestamps.clear();
                     state.highlights.clear();
@@ -310,6 +313,31 @@ impl RecordingRuntime {
         Ok(())
     }
 
+    /// Size of the file the recorder is writing right now.
+    pub async fn output_size_bytes(&self) -> u64 {
+        let path = self.state.lock().await.output_path.clone();
+        path.and_then(|path| std::fs::metadata(path).ok())
+            .map_or(0, |metadata| metadata.len())
+    }
+
+    /// Free space on the volume that receives the recording.
+    pub async fn disk_free_bytes(&self) -> Option<u64> {
+        let output_directory = {
+            let state = self.state.lock().await;
+            state
+                .output_path
+                .as_ref()
+                .and_then(|path| path.parent().map(std::path::Path::to_path_buf))
+        };
+        if let Some(directory) = output_directory {
+            return free_bytes_for(&directory);
+        }
+        let display = self.config.read().await.directory.clone();
+        display
+            .map(|grant| std::path::PathBuf::from(grant.display_path))
+            .filter(|path| path.is_absolute())
+            .and_then(|path| free_bytes_for(&path))
+    }
     pub async fn snapshot(&self) -> RecordingRuntimeSnapshot {
         let state = self.state.lock().await;
         RecordingRuntimeSnapshot {
@@ -334,4 +362,25 @@ fn elapsed_seconds(state: &RecordingRuntimeState) -> u64 {
     state
         .started_at
         .map_or(0, |started_at| started_at.elapsed().as_secs())
+}
+
+/// The recorder writes to the last positional argument (ffmpeg output path).
+fn launch_output_path(launch: &RecorderLaunch) -> Option<std::path::PathBuf> {
+    launch
+        .arguments
+        .iter()
+        .rev()
+        .find(|argument| !argument.starts_with('-') && !argument.starts_with('/') && !argument.contains('='))
+        .map(std::path::PathBuf::from)
+}
+
+/// Free bytes on the volume that contains `directory`.
+pub fn free_bytes_for(directory: &std::path::Path) -> Option<u64> {
+    let disks = sysinfo::Disks::new_with_refreshed_list();
+    disks
+        .list()
+        .iter()
+        .filter(|disk| directory.starts_with(disk.mount_point()))
+        .max_by_key(|disk| disk.mount_point().as_os_str().len())
+        .map(sysinfo::Disk::available_space)
 }

@@ -49,7 +49,7 @@ tauri-plugin-global-shortcut = "2.3.2"
 tauri-plugin-notification = "2.4.0"
 tauri-plugin-updater = "2.11.0"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "migrate", "macros"] }
-sysinfo = { version = "0.30.13", default-features = false }
+sysinfo = "0.30.13"
 sys-locale = "0.3.2"
 thiserror = "2"
 tokio = { version = "1", features = ["fs", "io-util", "macros", "process", "rt-multi-thread", "sync", "time", "test-util"] }

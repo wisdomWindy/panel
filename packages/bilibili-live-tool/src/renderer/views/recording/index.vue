@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Loading, Setting, Star, VideoCamera, VideoPause } from '@element-plus/icons-vue';
 import type {
@@ -92,9 +92,12 @@ const remainingText = computed(() => {
 const quotaText = computed(() => formatBytes(config.value?.quotaBytes ?? 0));
 // The backend reports free volume space instead of quota consumption, so the
 // quota gauge is derived from the sizes of the listed recording files.
-const storedBytes = computed(() =>
-  store.recordings.reduce((total, recording) => total + recording.sizeBytes, 0)
-);
+const storedBytes = computed(() => {
+  const finished = store.recordings.reduce((total, recording) => total + recording.sizeBytes, 0);
+  // The active recording is still being written, so its size comes from the
+  // live status instead of the listed (not yet finalised) row.
+  return finished + (status.value?.fileSizeBytes ?? 0);
+});
 const quotaPercent = computed(() => {
   const quota = config.value?.quotaBytes ?? 0;
   if (quota <= 0) return 0;
@@ -405,6 +408,36 @@ onMounted(async () => {
     // The stable error region below owns retry feedback.
   }
 });
+
+/**
+ * The backend only pushes status on transitions, so a running recording would
+ * otherwise show a frozen 00:00:00 and 0 B. Poll once per second while active.
+ */
+let statusTimer: ReturnType<typeof setInterval> | null = null;
+
+function stopStatusPolling(): void {
+  if (statusTimer !== null) {
+    clearInterval(statusTimer);
+    statusTimer = null;
+  }
+}
+
+function startStatusPolling(): void {
+  if (statusTimer !== null) return;
+  statusTimer = setInterval(() => {
+    if (!isActive.value) {
+      stopStatusPolling();
+      return;
+    }
+    void store.refreshStatus().catch(() => undefined);
+  }, 1000);
+}
+
+watch(isActive, active => (active ? startStatusPolling() : stopStatusPolling()), {
+  immediate: true
+});
+
+onUnmounted(stopStatusPolling);
 </script>
 
 <template>

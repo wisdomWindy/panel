@@ -17,6 +17,9 @@ pub struct LocalFfmpegProcessPort;
 
 pub struct LocalFfmpegProcess {
     child: Option<Child>,
+    /// Set when the runtime asked the recorder to stop; the resulting exit
+    /// status is expected and must not be reported as a failure.
+    stop_requested: bool,
     stdout: Option<JoinHandle<Result<String, std::io::Error>>>,
     stderr: Option<JoinHandle<Result<String, std::io::Error>>>,
 }
@@ -58,6 +61,7 @@ impl RecorderProcessPort for LocalFfmpegProcessPort {
             .map(|stream| tokio::spawn(capture(stream)));
         Ok(Box::new(LocalFfmpegProcess {
             child: Some(child),
+            stop_requested: false,
             stdout,
             stderr,
         }))
@@ -95,6 +99,9 @@ impl RecorderProcess for LocalFfmpegProcess {
     }
 
     async fn stop(&mut self) -> Result<(), MediaIoError> {
+        // Stopping is requested by the runtime, so the non-zero exit that
+        // TerminateProcess produces must not be reported as a failure later.
+        self.stop_requested = true;
         let child = self
             .child
             .as_mut()
@@ -112,7 +119,8 @@ impl RecorderProcess for LocalFfmpegProcess {
         Ok(())
     }
 
-    async fn wait(&mut self) -> Result<RecorderExit, MediaIoError> {        let mut child = self
+    async fn wait(&mut self) -> Result<RecorderExit, MediaIoError> {
+        let mut child = self
             .child
             .take()
             .ok_or_else(|| MediaIoError::invalid("recorder process already completed"))?;
@@ -122,8 +130,9 @@ impl RecorderProcess for LocalFfmpegProcess {
             .map_err(|_| MediaIoError::operation("recorder wait failed", true))?;
         let stdout = join_capture(self.stdout.take()).await?;
         let stderr = join_capture(self.stderr.take()).await?;
+        let success = status.success() || self.stop_requested;
         Ok(RecorderExit {
-            success: status.success(),
+            success,
             code: status.code(),
             stdout,
             stderr,

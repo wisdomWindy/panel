@@ -901,6 +901,33 @@ impl MediaState {
         candidate
     }
 
+    /// A recording row is left in `Recording` when the previous run ended
+    /// without a clean stop (crash, kill). Mark those rows as partial so the
+    /// list stops claiming a recording is still running.
+    pub async fn recover_interrupted_recordings(&self) -> Result<(), MediaIoError> {
+        let services = self.services()?;
+        let interrupted: Vec<_> = services
+            .repository
+            .list_recordings()
+            .await?
+            .into_iter()
+            .filter(|recording| {
+                recording.status == crate::application::media::RecordingItemState::Recording
+            })
+            .collect();
+        for mut recording in interrupted {
+            recording.ended_at = Some(Self::now_millis());
+            recording.size_bytes = services
+                .files
+                .file_size(&recording.file_path)
+                .await
+                .unwrap_or(0);
+            recording.status = crate::application::media::RecordingItemState::Partial;
+            let _ = services.repository.update_recording(&recording).await?;
+        }
+        Ok(())
+    }
+
     pub async fn stop_recording(&self) -> Result<(), MediaIoError> {
         let before = self.recording.snapshot().await;
         let active = match before.room_id.as_deref() {

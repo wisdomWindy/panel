@@ -670,6 +670,16 @@ pub fn run() {
             let state =
                 tauri::async_runtime::block_on(AppState::new(app.handle().clone(), database_path));
             app.manage(state);
+            // A recording row left in `recording` by an abnormal exit would keep
+            // claiming that a recording is running; settle it on start-up.
+            {
+                let media = Arc::clone(app.state::<AppState>().media());
+                tauri::async_runtime::spawn(async move {
+                    if let Err(error) = media.recover_interrupted_recordings().await {
+                        log::warn!("could not settle interrupted recordings: {}", error.message);
+                    }
+                });
+            }
             // PRD 12.3: purge expired logs and stats locally on a schedule.
             let maintenance = app.state::<AppState>().data_maintenance().map(Arc::clone);
             let log_directory = log_directory.clone();

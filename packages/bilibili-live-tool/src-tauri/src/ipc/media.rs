@@ -200,9 +200,12 @@ impl MediaEventSink for TauriMediaEventSink {
         &self,
         snapshot: &crate::application::media::RecordingRuntimeSnapshot,
     ) -> Result<(), MediaIoError> {
+        // Transition events do not measure the file: the page polls the status
+        // command once per second while a recording runs, which fills in the
+        // live size and free-space values.
         self.emit_main(
             "recording_status_changed",
-            recording_status_dto(snapshot.clone()),
+            recording_status_dto(snapshot.clone(), 0, None),
         )
     }
 
@@ -694,8 +697,14 @@ pub async fn recording_set_ffmpeg_source(
 pub async fn recording_status(
     state: State<'_, AppState>,
 ) -> Result<RecordingStatusDto, DesktopError> {
+    let recording = state.media().recording();
+    let snapshot = recording.snapshot().await;
+    let file_size_bytes = recording.output_size_bytes().await;
+    let disk_remaining_bytes = recording.disk_free_bytes().await;
     Ok(recording_status_dto(
-        state.media().recording().snapshot().await,
+        snapshot,
+        file_size_bytes,
+        disk_remaining_bytes,
     ))
 }
 
@@ -1266,14 +1275,18 @@ fn recording_from_dto(config: RecordingConfigDto) -> RecordingConfig {
 
 fn recording_status_dto(
     status: crate::application::media::RecordingRuntimeSnapshot,
+    file_size_bytes: u64,
+    disk_remaining_bytes: Option<u64>,
 ) -> RecordingStatusDto {
     RecordingStatusDto {
         state: recording_state(status.state),
         session_id: None,
         room_id: status.room_id,
         elapsed_seconds: status.elapsed_seconds,
-        file_size_bytes: 0,
-        disk_remaining_bytes: status.disk_remaining_bytes.unwrap_or(0),
+        file_size_bytes,
+        disk_remaining_bytes: disk_remaining_bytes
+            .or(status.disk_remaining_bytes)
+            .unwrap_or(0),
         highlight_count: status.highlights.len().try_into().unwrap_or(u32::MAX),
         last_error_code: status.failure_code.map(str::to_owned),
     }

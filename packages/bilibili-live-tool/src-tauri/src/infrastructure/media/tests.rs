@@ -494,7 +494,9 @@ async fn local_process_adapter_stops_and_reaps_a_long_running_child() {
 
     process.stop().await.unwrap();
     let exit = process.wait().await.unwrap();
-    assert!(!exit.success);
+    // A stop requested by the runtime terminates the child; that is the normal
+    // path, so it must not be reported as a failed recording.
+    assert!(exit.success);
 }
 
 /// Live end-to-end proof: real platform API + the exact argument vector the

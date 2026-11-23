@@ -110,6 +110,16 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     return read(true);
   }
 
+  /**
+   * Status-only refresh, used once per second while a recording runs so the
+   * elapsed time, file size and remaining space stay live.
+   */
+  function refreshStatus(): Promise<void> {
+    return runOperation('status', async () => {
+      replaceStatus(await invokeDesktop('recording_status', undefined));
+    });
+  }
+
   function saveConfig(value: RecordingConfig): Promise<RecordingConfig> {
     return runOperation('saveConfig', async () => {
       const adapted = adaptRecordingConfig(await invokeDesktop('recording_save_config', { config: value }));
@@ -281,6 +291,7 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     error,
     load,
     refresh,
+    refreshStatus,
     saveConfig,
     selectDirectory,
     discardDirectorySelection,

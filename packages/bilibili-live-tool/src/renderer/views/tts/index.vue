@@ -306,6 +306,19 @@ onMounted(async () => {
   } catch {
     // An unreachable speech service must not block the broadcast settings.
   }
+  // Entering this page is the only place where the runtime is installed and
+  // started, so a stored "enabled" flag works without touching start-up.
+  const status = await store.loadEnvironmentStatus().catch(() => null);
+  if (draft.isEnabled) {
+    if (!status?.ready) {
+      await ensureQwen3Service();
+    } else {
+      void store
+        .startQwen3Service()
+        .then(() => store.loadQwen3Models().catch(() => undefined))
+        .catch(() => undefined);
+    }
+  }
 });
 </script>
 

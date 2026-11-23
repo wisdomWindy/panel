@@ -328,10 +328,8 @@ impl AppState {
         {
             log::warn!("recording hotkey is degraded: {error}");
         }
-        // PRD 9.11: when 语音播报 is already enabled, the whole speech stack --
-        // runtime dependencies, the local service and the weights -- comes up
-        // without any interaction.
-        let speech_enabled = tts.config().await.is_enabled;
+        // PRD 9.11: the speech runtime is only installed and started when the
+        // operator opens the 语音播报 page, never at start-up.
         let qwen3_log_directory = app
             .path()
             .app_log_dir()
@@ -355,83 +353,6 @@ impl AppState {
             Qwen3ServiceLauncher::for_current_app(qwen3_log_directory)
                 .with_managed_venv_python(qwen3_venv_python),
         );
-        if speech_enabled {
-            let starter = qwen3_launcher.clone();
-            let runtime = qwen3_environment.clone();
-            let service = qwen3_tts.clone();
-            let emitter = app.clone();
-            tauri::async_runtime::spawn(async move {
-                if !runtime.status().ready {
-                    let mirror = service.config().pip_mirror.index_url();
-                    log::info!("speech runtime missing; installing it automatically");
-                    crate::infrastructure::media::emit_environment_progress(
-                        &emitter,
-                        "start",
-                        "正在检查语音运行环境…",
-                    );
-                    let reporter = emitter.clone();
-                    if let Err(error) = runtime
-                        .prepare(mirror, move |stage, message| {
-                            log::info!("speech runtime [{stage}]: {message}");
-                            crate::infrastructure::media::emit_environment_progress(
-                                &reporter, stage, message,
-                            );
-                        })
-                        .await
-                    {
-                        log::warn!(
-                            "speech runtime install failed: {} {}",
-                            error.code,
-                            error.message
-                        );
-                        crate::infrastructure::media::emit_environment_progress(
-                            &emitter,
-                            "failed",
-                            &error.message,
-                        );
-                        return;
-                    }
-                }
-                let config = service.config();
-                let base_url = config.base_url.clone();
-                let port = crate::infrastructure::media::port_from_base_url(&base_url);
-                match starter.ensure_running(&base_url, port).await {
-                    Ok(status) => {
-                        log::info!(
-                            "qwen3 service auto-started: started={} url={}",
-                            status.started,
-                            status.base_url
-                        );
-                        if status.base_url != config.base_url {
-                            let mut updated = config.clone();
-                            updated.base_url = status.base_url;
-                            let _ = service.save_config(updated).await;
-                        }
-                    }
-                    Err(error) => {
-                        log::warn!(
-                            "qwen3 service auto-start failed: {} {}",
-                            error.code,
-                            error.message
-                        );
-                        return;
-                    }
-                }
-                if let Ok(catalog) = service.model_catalog().await {
-                    let target = catalog
-                        .models
-                        .iter()
-                        .find(|model| model.is_default)
-                        .or_else(|| catalog.models.first());
-                    if let Some(model) = target {
-                        if !model.is_installed {
-                            log::info!("downloading speech model {}", model.model_id);
-                            let _ = service.start_model_download(Some(&model.model_id)).await;
-                        }
-                    }
-                }
-            });
-        }
         let media = MediaState::new(effects, gifts, tts, recording)
             .with_recording_clients(
                 Arc::new(BilibiliPlayUrlResolver::new()),

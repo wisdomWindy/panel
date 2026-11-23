@@ -109,6 +109,16 @@ describe('interaction media page contracts', () => {
     );
   });
 
+  it('opens the recording settings while recording instead of silently ignoring the click', () => {
+    const recording = source('src/renderer/views/recording/index.vue');
+    const dialog = source('src/renderer/views/recording/components/RecordingSettingsDialog.vue');
+    // The button must stay clickable; the dialog explains why it is read-only.
+    expect(recording).toContain(':locked="isActive"');
+    expect(recording).not.toContain(':disabled="isActive"\n              @click="openSettings"');
+    expect(dialog).toContain('locked?: boolean');
+    expect(dialog).toContain("t('recording.settingsLocked')");
+    expect(dialog).toContain('pointer-events-none opacity-60');
+  });
   it('recovers the active effect after registering one listener and keeps a complete canvas lifecycle', () => {
     const root = source('src/renderer/views/captain-effect/EffectWindowRoot.vue');
     const surface = source('src/renderer/components/media/CaptainEffectSurface.vue');

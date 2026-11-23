@@ -750,7 +750,8 @@
                                            "body":  "Recording needs FFmpeg. Install it and try again, or pick an installed FFmpeg in the recording settings.",
                                            "openSettings":  "Open recording settings",
                                            "installNow":  "Install now"
-                                       }
+                                       },
+                      "settingsLocked":  "Recording is running. Settings are locked until you stop the recording."
                   },
     "liveData":  {
                      "range":  {

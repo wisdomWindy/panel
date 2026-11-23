@@ -570,8 +570,7 @@ onMounted(async () => {
           <div class="mt-4 flex flex-wrap items-center gap-2">
             <button
               type="button"
-              class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="isActive"
+              class="app-chip"
               @click="openSettings"
             >
               <el-icon><Setting /></el-icon>
@@ -634,6 +633,7 @@ onMounted(async () => {
       :path-pending="store.pendingOperations.has('selectDirectory')"
       :ffmpeg-pending="store.pendingOperations.has('setFfmpegSource')"
       :install-pending="store.pendingOperations.has('installFfmpeg')"
+      :locked="isActive"
       @update:visible="handleSettingsVisibility"
       @select-directory="selectDirectory"
       @set-ffmpeg-source="setFfmpegSource"

@@ -750,7 +750,8 @@
                                            "body":  "录制需要 FFmpeg。请安装 FFmpeg 后重试，或在录制设置中选择本机已安装的 FFmpeg 文件。",
                                            "openSettings":  "打开录制设置",
                                            "installNow":  "一键安装"
-                                       }
+                                       },
+                      "settingsLocked":  "录制进行中，设置已锁定；停止录制后即可修改"
                   },
     "liveData":  {
                      "range":  {

@@ -12,6 +12,8 @@ const props = defineProps<{
   pathPending?: boolean;
   ffmpegPending?: boolean;
   installPending?: boolean;
+  /** Recording is running: the settings can be inspected but not changed. */
+  locked?: boolean;
 }>();
 const { t } = useI18n();
 
@@ -48,7 +50,18 @@ function close(): void {
     <template #header>
       <h3 class="app-text m-0 text-base font-semibold">{{ t('recording.settings.title') }}</h3>
     </template>
-    <div class="max-h-[calc(100vh-190px)] overflow-y-auto pr-2">
+    <el-alert
+      v-if="locked"
+      type="info"
+      :closable="false"
+      show-icon
+      class="mb-3"
+      :title="t('recording.settingsLocked')"
+    />
+    <div
+      class="max-h-[calc(100vh-190px)] overflow-y-auto pr-2"
+      :class="locked ? 'pointer-events-none opacity-60' : ''"
+    >
       <el-form label-position="top" @submit.prevent="emit('save')">
         <h4 class="app-text m-0 text-sm font-semibold">{{ t('recording.settings.encoding') }}</h4>
         <div class="mt-3 grid grid-cols-1 gap-x-5 md:grid-cols-2">
@@ -226,7 +239,7 @@ function close(): void {
         <button
           type="button"
           class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="pending"
+          :disabled="pending || locked"
           @click="emit('save')"
         >
           <el-icon v-if="pending" class="is-loading"><Loading /></el-icon>

@@ -1,31 +1,31 @@
 {
-  "version": "0.4.19",
-  "notes": "liver v0.4.19 for Windows x64, macOS Apple Silicon, and macOS Intel.",
-  "pub_date": "2026-11-23T11:35:34.900Z",
+  "version": "0.4.20",
+  "notes": "liver v0.4.20 for Windows x64, macOS Apple Silicon, and macOS Intel.",
+  "pub_date": "2026-11-23T13:47:15.730Z",
   "platforms": {
-    "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWlHRGViU0E2ZmJvSDNjaTRMdjBMaU9LQ05nM1JOTUFrMFpVSDhtR1hGSHJaa3VqSUlIYkRQOW9PbTQrTzErQ3FlNlUwZ200VnVlRXNuS3BWTG5Kd0F3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDMyOTgwCWZpbGU6bGl2ZXJfMC40LjE5X3g2NC1zZXR1cC5leGUKSDA4M1RpMzZvVjJUZDNvdDhUUjlkY3QvN3g1VDM3b2llTmtUZENIMnNva1oveHNXTVpUTklTQmZ0d1BzVjZCdEhUTzhNMmpDNUxYdWdUYlFJN3JhQ2c9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.19/liver_0.4.19_Windows_x64-setup.exe"
-    },
-    "windows-x86_64-nsis": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWlHRGViU0E2ZmJvSDNjaTRMdjBMaU9LQ05nM1JOTUFrMFpVSDhtR1hGSHJaa3VqSUlIYkRQOW9PbTQrTzErQ3FlNlUwZ200VnVlRXNuS3BWTG5Kd0F3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDMyOTgwCWZpbGU6bGl2ZXJfMC40LjE5X3g2NC1zZXR1cC5leGUKSDA4M1RpMzZvVjJUZDNvdDhUUjlkY3QvN3g1VDM3b2llTmtUZENIMnNva1oveHNXTVpUTklTQmZ0d1BzVjZCdEhUTzhNMmpDNUxYdWdUYlFJN3JhQ2c9PQo=",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.19/liver_0.4.19_Windows_x64-setup.exe"
-    },
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXZjSEpzWW9aRnpEcU5TQ0VHSGNPU3YxYlB6WmdqRm54YysxdHR3aHUvSlk4aW1SWnRjWFNpVHlOSEF1S3VkVExCdlQ4K3R6cmxnLzFuNlVYSmk1R3d3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDMzMDMzCWZpbGU6bGl2ZXIuYXBwLnRhci5negppUStybXloWklnc0ZWUFVaQk8rVHdWVWFBb1FBM3BkQzJXTGRaQS9DMG84OXFvNVdYMWJkcnpudk44R09xTW5OSVQ0SWhiODFnc0ZvRDB1WkxZQTNBQT09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.19/liver_0.4.19_macOS_AppleSilicon.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW0xUmd6TE1sVVVJR0VLZ3EyQnNYdjZFYzZBNWR0cVdnWnk0cjJ4bklpem1TRUtDVzh0VkFBSUxCOUZBT3ZHbHQ2SUIrZzc3d1RJUkd1emE3N0hzekFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDQxMDYyCWZpbGU6bGl2ZXIuYXBwLnRhci5negpMOHZqYVhrMTdZVVA0eGZjN0R5bnJuWjVaTHJQSGwraEZKZDBTVUtuL0FvREgwRG80L1YybXd1K0NFN2F0eTR5Ti94WFV0MS85N1BZd1RvN1pwVWlDUT09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.20/liver_0.4.20_macOS_AppleSilicon.app.tar.gz"
     },
     "darwin-aarch64-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXZjSEpzWW9aRnpEcU5TQ0VHSGNPU3YxYlB6WmdqRm54YysxdHR3aHUvSlk4aW1SWnRjWFNpVHlOSEF1S3VkVExCdlQ4K3R6cmxnLzFuNlVYSmk1R3d3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDMzMDMzCWZpbGU6bGl2ZXIuYXBwLnRhci5negppUStybXloWklnc0ZWUFVaQk8rVHdWVWFBb1FBM3BkQzJXTGRaQS9DMG84OXFvNVdYMWJkcnpudk44R09xTW5OSVQ0SWhiODFnc0ZvRDB1WkxZQTNBQT09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.19/liver_0.4.19_macOS_AppleSilicon.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dW0xUmd6TE1sVVVJR0VLZ3EyQnNYdjZFYzZBNWR0cVdnWnk0cjJ4bklpem1TRUtDVzh0VkFBSUxCOUZBT3ZHbHQ2SUIrZzc3d1RJUkd1emE3N0hzekFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDQxMDYyCWZpbGU6bGl2ZXIuYXBwLnRhci5negpMOHZqYVhrMTdZVVA0eGZjN0R5bnJuWjVaTHJQSGwraEZKZDBTVUtuL0FvREgwRG80L1YybXd1K0NFN2F0eTR5Ti94WFV0MS85N1BZd1RvN1pwVWlDUT09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.20/liver_0.4.20_macOS_AppleSilicon.app.tar.gz"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWl3S0hhMzlLTTdQc2ZKTjhqVEF6SDloL0NIRTI0RnBpWWlJZTlvTkFnUm5VekVqWFdieUgzcEo5bkU3Zmo4Mit1eiswN2lZUEZGQ1Z6cWFHUWhidFF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDQxNTM1CWZpbGU6bGl2ZXJfMC40LjIwX3g2NC1zZXR1cC5leGUKcTJzT0o5R2RZRzB1ZVl3VFBudTBqSTREakVxRjZHd3VCL2cycTFGdUwwRmdyczRpSnh6Q1p5MFRSNXVVUzZvTnJXWFJaUVBWOXpXM2ZVMXJOUkNmRGc9PQo=",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.20/liver_0.4.20_Windows_x64-setup.exe"
+    },
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dWl3S0hhMzlLTTdQc2ZKTjhqVEF6SDloL0NIRTI0RnBpWWlJZTlvTkFnUm5VekVqWFdieUgzcEo5bkU3Zmo4Mit1eiswN2lZUEZGQ1Z6cWFHUWhidFF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDQxNTM1CWZpbGU6bGl2ZXJfMC40LjIwX3g2NC1zZXR1cC5leGUKcTJzT0o5R2RZRzB1ZVl3VFBudTBqSTREakVxRjZHd3VCL2cycTFGdUwwRmdyczRpSnh6Q1p5MFRSNXVVUzZvTnJXWFJaUVBWOXpXM2ZVMXJOUkNmRGc9PQo=",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.20/liver_0.4.20_Windows_x64-setup.exe"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXVvK1hINEhZUTlabExqcGMzUk1Bd2NqdEhSbGdoaWNkQitETEE2dlJnWkdvOUdJYUoxVCt2REU2dmQrMUJIODlneDF6SEZtMzRsOStFSEJmS05ETkFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDMzNzIyCWZpbGU6bGl2ZXIuYXBwLnRhci5nego0ejBROTZic1RiSDRtdGovRWJ5ejg1Q3NueklRaHkrMWVpaFdqNElHRmdxQ2p6RGlvTytNbjlENHd3L1NVSDQ2M1JNRlJIRnlKQWNnQ0ZIVjh6SThBUT09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.19/liver_0.4.19_macOS_Intel.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXF3aEh6M1RWcHZBRTdLUExzaDlJT1dUZVRQY1h1WFdrL3VOcUtvRXdCL05WdjZXeWdiU1NzOThwR241TkY1Y0tndSsxMS9ndmFFVTd0ZUJrZng4Y3dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDQxNjI5CWZpbGU6bGl2ZXIuYXBwLnRhci5negp6QWV6MFpmZlJNRmpDS1YzTVNhYkQ5SG9yWEc1dDdWOTZ1eUF5RGZIZ3MyaUZPV1EwdmtqQm4ycjdrVU9aNWZEMytmS1dIcGdrQ0tBakl2ZUE4bnFEUT09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.20/liver_0.4.20_macOS_Intel.app.tar.gz"
     },
     "darwin-x86_64-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXVvK1hINEhZUTlabExqcGMzUk1Bd2NqdEhSbGdoaWNkQitETEE2dlJnWkdvOUdJYUoxVCt2REU2dmQrMUJIODlneDF6SEZtMzRsOStFSEJmS05ETkFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDMzNzIyCWZpbGU6bGl2ZXIuYXBwLnRhci5nego0ejBROTZic1RiSDRtdGovRWJ5ejg1Q3NueklRaHkrMWVpaFdqNElHRmdxQ2p6RGlvTytNbjlENHd3L1NVSDQ2M1JNRlJIRnlKQWNnQ0ZIVjh6SThBUT09Cg==",
-      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.19/liver_0.4.19_macOS_Intel.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTV2w4TFdiamI2dXF3aEh6M1RWcHZBRTdLUExzaDlJT1dUZVRQY1h1WFdrL3VOcUtvRXdCL05WdjZXeWdiU1NzOThwR241TkY1Y0tndSsxMS9ndmFFVTd0ZUJrZng4Y3dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDQxNjI5CWZpbGU6bGl2ZXIuYXBwLnRhci5negp6QWV6MFpmZlJNRmpDS1YzTVNhYkQ5SG9yWEc1dDdWOTZ1eUF5RGZIZ3MyaUZPV1EwdmtqQm4ycjdrVU9aNWZEMytmS1dIcGdrQ0tBakl2ZUE4bnFEUT09Cg==",
+      "url": "https://github.com/wisdomWindy/panel/releases/download/free-v0.4.20/liver_0.4.20_macOS_Intel.app.tar.gz"
     }
   },
   "rolloutPercent": 100,

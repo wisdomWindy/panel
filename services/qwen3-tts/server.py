@@ -289,6 +289,7 @@ class Qwen3TtsEngine:
             except ImportError:
                 print("flash_attn is not installed; using sdpa attention", file=sys.stderr, flush=True)
                 attn = "sdpa"
+        self.device = device
         kwargs: dict[str, Any] = {"device_map": device, "dtype": dtype}
         if attn:
             kwargs["attn_implementation"] = attn
@@ -758,6 +759,7 @@ class Handler(BaseHTTPRequestHandler):
             "status": state.status,
             "ready": state.ready,
             "engine": state.engine.name,
+            "device": getattr(state.engine, "device", None),
             "model": state.engine.model,
             "sample_rate": state.engine.sample_rate,
             "languages": list(SUPPORTED_LANGUAGES),

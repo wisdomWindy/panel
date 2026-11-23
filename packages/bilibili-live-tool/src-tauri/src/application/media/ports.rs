@@ -236,6 +236,8 @@ pub struct SynthesisHealth {
     /// `loading` while the model weights are still being loaded, `ready` once
     /// synthesis can actually start, `degraded` when the engine failed.
     pub status: String,
+    /// Engine device (`cuda`, `cpu`, ...) when the backend reports one.
+    pub device: Option<String>,
     pub engine: String,
     pub model: String,
     pub sample_rate: u32,

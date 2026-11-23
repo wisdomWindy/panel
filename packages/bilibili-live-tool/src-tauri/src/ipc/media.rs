@@ -594,6 +594,8 @@ async fn qwen3_snapshot(service: &Qwen3TtsService) -> Qwen3TtsSnapshotDto {
         config: qwen3_config(config),
         health: health.map(|health| Qwen3TtsHealthDto {
             ready: health.ready,
+            status: health.status,
+            device: health.device,
             engine: health.engine,
             model: health.model,
             sample_rate: health.sample_rate,

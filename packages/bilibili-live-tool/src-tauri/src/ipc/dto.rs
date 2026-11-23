@@ -826,6 +826,8 @@ pub enum PipMirrorDto {
 #[serde(rename_all = "camelCase")]
 pub struct Qwen3TtsHealthDto {
     pub ready: bool,
+    pub status: String,
+    pub device: Option<String>,
     pub engine: String,
     pub model: String,
     pub sample_rate: u32,

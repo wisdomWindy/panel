@@ -113,6 +113,9 @@ function watchWarmup(): void {
 }
 
 const qwen3SavePending = computed(() => store.pendingOperations.has('qwen3Save'));
+
+/** True when the local service reports CPU synthesis. */
+const qwen3RunsOnCpu = computed(() => store.qwen3?.health?.device === 'cpu');
 const qwen3TestPending = computed(() => store.pendingOperations.has('qwen3Test'));
 const qwen3ProbePending = ref(false);
 
@@ -603,7 +606,18 @@ onMounted(async () => {
           </p>
           <div class="mt-4 grid grid-cols-1 gap-x-6 lg:grid-cols-2">
             <el-form-item :label="t('tts.qwen3.enable')">
-              <el-switch v-model="qwen3Draft.isEnabled" />
+              <div class="flex w-full flex-col gap-1">
+                <el-switch v-model="qwen3Draft.isEnabled" />
+                <!-- CPU synthesis is roughly half a second per character, which
+                     matters for live traffic; say so instead of surprising them. -->
+                <p
+                  v-if="qwen3Draft.isEnabled && qwen3RunsOnCpu"
+                  class="app-faint m-0 text-xs"
+                  style="color: var(--app-gold)"
+                >
+                  {{ t('tts.qwen3.cpuHint') }}
+                </p>
+              </div>
             </el-form-item>
             <el-form-item :label="t('tts.qwen3.fallback')">
               <el-switch v-model="qwen3Draft.fallbackToSystem" />

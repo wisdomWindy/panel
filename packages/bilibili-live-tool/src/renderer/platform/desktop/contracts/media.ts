@@ -146,6 +146,8 @@ export interface Qwen3TtsHealth {
   ready: boolean;
   /** `loading` while the model weights are still warming up. */
   status: string;
+  /** `cpu` or `cuda` once the engine reports it. */
+  device: string | null;
   engine: string;
   model: string;
   sampleRate: number;

@@ -378,6 +378,7 @@ function qwen3Health(value: unknown): Qwen3TtsHealth {
     status: source.status === undefined || source.status === null
       ? 'ready'
       : emptyableString(source.status, 'qwen3TtsHealth.status'),
+    device: nullableString(source.device, 'qwen3TtsHealth.device'),
     engine: string(source.engine, 'qwen3TtsHealth.engine'),
     model: string(source.model, 'qwen3TtsHealth.model'),
     sampleRate: integer(source.sampleRate, 'qwen3TtsHealth.sampleRate'),

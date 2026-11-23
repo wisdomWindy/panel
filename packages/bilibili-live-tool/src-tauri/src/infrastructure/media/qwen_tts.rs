@@ -281,6 +281,8 @@ struct HealthPayload {
     #[serde(default)]
     status: String,
     #[serde(default)]
+    device: Option<String>,
+    #[serde(default)]
     engine: String,
     #[serde(default)]
     model: String,
@@ -434,6 +436,7 @@ impl SpeechSynthesisPort for Qwen3TtsService {
         Ok(SynthesisHealth {
             ready: payload.ready,
             status: payload.status,
+            device: payload.device,
             engine: payload.engine,
             model: payload.model,
             sample_rate: payload.sample_rate,

@@ -20,13 +20,29 @@
 
 ## 下载
 
-当前公开版本为 [`biliLiverHelper free v0.2.0`](https://github.com/wisdomWindy/panel/releases/tag/free-v0.2.0)：
+当前版本为 [`liver free v0.4.17`](https://github.com/wisdomWindy/panel/releases/tag/free-v0.4.17)，历史版本见 [Releases](https://github.com/wisdomWindy/panel/releases)。
 
-- Windows x64：[`biliLiverHelper_0.2.0_Windows_x64-setup.exe`](https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_Windows_x64-setup.exe)
-- macOS Intel：[`biliLiverHelper_0.2.0_macOS_Intel.dmg`](https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_macOS_Intel.dmg)（macOS 10.15 或更高版本）
-- macOS Apple Silicon：[`biliLiverHelper_0.2.0_macOS_AppleSilicon.dmg`](https://github.com/wisdomWindy/panel/releases/download/free-v0.2.0/biliLiverHelper_0.2.0_macOS_AppleSilicon.dmg)（macOS 10.15 或更高版本）
+- Windows x64：[`liver_0.4.17_Windows_x64-setup.exe`](https://github.com/wisdomWindy/panel/releases/download/free-v0.4.17/liver_0.4.17_Windows_x64-setup.exe)
+- macOS Intel：[`liver_0.4.17_macOS_Intel.dmg`](https://github.com/wisdomWindy/panel/releases/download/free-v0.4.17/liver_0.4.17_macOS_Intel.dmg)（macOS 10.15 或更高版本）
+- macOS Apple Silicon：[`liver_0.4.17_macOS_AppleSilicon.dmg`](https://github.com/wisdomWindy/panel/releases/download/free-v0.4.17/liver_0.4.17_macOS_AppleSilicon.dmg)（macOS 10.15 或更高版本）
 
-安装包统一使用 `biliLiverHelper_<version>_<platform>.<extension>` 命名。Windows 安装包未进行 Authenticode 签名，macOS 磁盘映像未进行 Apple Developer 签名或公证；仅在确认文件来自本仓库后跳过操作系统警告。
+安装包统一使用 `liver_<version>_<platform>.<extension>` 命名。Windows 安装包未进行 Authenticode 签名，macOS 磁盘映像未进行 Apple Developer 签名或公证；仅在确认文件来自本仓库后跳过操作系统警告。
+
+从 0.4.16 及更早版本升级：程序已更名为 `liver`，会安装到独立目录；配置、语音运行环境与已下载模型都会保留（应用标识未变），升级后请手动卸载旧的 `biliLiveHelper` 并删除其快捷方式。
+
+## 哔哩哔哩开放平台凭据
+
+直播数据依赖哔哩哔哩开放平台凭据，**仓库中不包含任何密钥**。凭据在构建时通过环境变量注入，运行时也可用同名环境变量覆盖：
+
+| 变量 | 说明 |
+| --- | --- |
+| `BILI_OPEN_APP_ID` | 开放平台 App ID |
+| `BILI_OPEN_ACCESS_KEY_ID` | Access Key ID |
+| `BILI_OPEN_ACCESS_KEY_SECRET` | Access Key Secret |
+
+- 本地开发：构建前设置上述变量，或直接以运行时环境变量启动应用。
+- CI 发布：在仓库 Settings → Secrets and variables → Actions 中配置同名 secrets，`release-tauri.yml` 会在构建阶段注入。
+- 未配置时应用会明确返回 `SYS_OPEN_LIVE_CREDENTIALS_MISSING`，不会静默失败。
 
 ## 技术栈
 

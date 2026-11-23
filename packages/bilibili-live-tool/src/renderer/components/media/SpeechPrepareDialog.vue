@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ElMessage } from 'element-plus';
 import { useMediaTtsStore } from '@/stores/media/tts';
 
 /**
@@ -20,7 +21,12 @@ const message = computed(
 const elapsed = ref(0);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-watch(visible, active => {
+watch(visible, (active, wasActive) => {
+  // A finished preparation that closed the panel deserves a confirmation: the
+  // operator only saw an indeterminate bar for minutes.
+  if (!active && wasActive && media.environment.ready) {
+    ElMessage.success(t('tts.environment.ready'));
+  }
   if (active && timer === null) {
     elapsed.value = 0;
     timer = setInterval(() => {

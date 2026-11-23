@@ -158,6 +158,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_SIGNING_IDENTITY: "-"
+          # 哔哩哔哩开放平台凭据 are injected at build time and never committed.
+          BILI_OPEN_APP_ID: ${{ secrets.BILI_OPEN_APP_ID }}
+          BILI_OPEN_ACCESS_KEY_ID: ${{ secrets.BILI_OPEN_ACCESS_KEY_ID }}
+          BILI_OPEN_ACCESS_KEY_SECRET: ${{ secrets.BILI_OPEN_ACCESS_KEY_SECRET }}
         with:
           projectPath: ${{ env.APP_PATH }}
           tagName: ${{ matrix.channel }}-v__VERSION__

@@ -240,6 +240,15 @@ async function handleRetry(): Promise<void> {
   await store.refresh();
 }
 
+async function handleSaveAll(): Promise<void> {
+  try {
+    if (qwen3Dirty.value) await store.saveQwen3(qwen3Payload()).then(snapshot => applyQwen3Config(snapshot.config));
+    await handleSave();
+  } catch {
+    // handleQwen3Save and handleSave already report their own failures.
+  }
+}
+
 async function handleSave(): Promise<void> {
   if (!validateDraft()) return;
   try {
@@ -415,7 +424,33 @@ onMounted(async () => {
     />
 
     <template v-else-if="store.snapshot">
-      <el-form class="flex flex-col gap-4" label-position="top" @submit.prevent="handleSave">
+      <el-form class="flex flex-col gap-4" label-position="top" @submit.prevent="handleSaveAll">
+        <!-- One action bar for the whole page: probe, test, reset and save. -->
+        <div class="app-card flex flex-wrap items-center justify-end gap-2 p-3">
+          <el-button :loading="qwen3ProbePending" @click="handleQwen3Probe">
+            {{ t('tts.qwen3.probe') }}
+          </el-button>
+          <el-button
+            :loading="qwen3TestPending"
+            :disabled="!qwen3Draft.isEnabled"
+            @click="handleQwen3Test"
+          >
+            {{ t('common.test') }}
+          </el-button>
+          <el-button :icon="RefreshLeft" :disabled="savePending" @click="handleReset">
+            {{ t('common.resetDefaults') }}
+          </el-button>
+          <button
+            type="submit"
+            class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="savePending || qwen3SavePending || !(isDirty || qwen3Dirty)"
+          >
+            <el-icon v-if="savePending || qwen3SavePending" class="is-loading">
+              <Loading />
+            </el-icon>
+            {{ t('common.save') }}
+          </button>
+        </div>
         <section class="app-card p-4" aria-labelledby="tts-voice-title">
           <h3 id="tts-voice-title" class="app-text m-0 text-base font-semibold">
             {{ t('tts.sections.voice') }}
@@ -651,61 +686,8 @@ onMounted(async () => {
               </p>
             </el-form-item>
           </div>
-          <div class="mt-2 flex flex-wrap justify-end gap-2">
-            <el-button :loading="qwen3ProbePending" @click="handleQwen3Probe">
-              {{ t('tts.qwen3.probe') }}
-            </el-button>
-            <el-button
-              :loading="qwen3TestPending"
-              :disabled="!qwen3Draft.isEnabled"
-              @click="handleQwen3Test"
-            >
-              {{ t('common.test') }}
-            </el-button>
-            <button
-              type="button"
-              class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-              :disabled="!qwen3Dirty || qwen3SavePending"
-              @click="handleQwen3Save"
-            >
-              <el-icon v-if="qwen3SavePending" class="is-loading">
-                <Loading />
-              </el-icon>
-              {{ t('common.save') }}
-            </button>
-          </div>
         </section>
 
-        <section class="app-card p-4" aria-labelledby="tts-actions-title">
-          <h3 id="tts-actions-title" class="app-text m-0 text-base font-semibold">
-            {{ t('tts.sections.actions') }}
-          </h3>
-          <p class="app-muted mt-1 mb-0 text-sm">
-            {{ t('tts.sections.actionsHint') }}
-          </p>
-          <div class="mt-4 flex flex-wrap justify-end gap-2">
-            <el-button :icon="RefreshLeft" :disabled="savePending" @click="handleReset">
-              {{ t('common.resetDefaults') }}
-            </el-button>
-            <el-button
-              :icon="VideoPlay"
-              :loading="store.pendingOperations.has('test')"
-              @click="handleTest"
-            >
-              {{ t('common.test') }}
-            </el-button>
-            <button
-              type="submit"
-              class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-              :disabled="savePending || !isDirty"
-            >
-              <el-icon v-if="savePending" class="is-loading">
-                <Loading />
-              </el-icon>
-              {{ t('common.save') }}
-            </button>
-          </div>
-        </section>
       </el-form>
 
       <div class="app-card p-4">

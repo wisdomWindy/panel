@@ -295,13 +295,12 @@ function handleSettingsVisibility(visible: boolean): void {
   }
 }
 
-async function showRecordingPreview(recording: RecordingSummary): Promise<void> {
+async function openRecordingFolder(recording: RecordingSummary): Promise<void> {
   try {
-    preview.value = await store.previewRecording(recording.id);
-    previewTitle.value = recording.fileName;
+    await store.openRecordingFolder(recording.id);
   } catch (error) {
     ElMessage.error(
-      (error as { message?: string }).message ?? t('recording.messages.previewFailed')
+      (error as { message?: string }).message ?? t('recording.messages.folderFailed')
     );
   }
 }
@@ -641,7 +640,7 @@ onUnmounted(stopStatusPolling);
           :recordings="store.recordings"
           :loading="store.pending"
           :pending-operations="store.pendingOperations"
-          @preview="showRecordingPreview"
+          @open-folder="openRecordingFolder"
           @rename="renameRecording"
           @delete="deleteRecording"
         />

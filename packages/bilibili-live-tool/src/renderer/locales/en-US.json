@@ -633,7 +633,6 @@
                       "fileName":  "File Name",
                       "recordingTime":  "Recording Time",
                       "play":  "Play",
-                      "openFolder":  "Open Folder",
                       "download":  "Download",
                       "noRecordings":  "No recordings",
                       "noHighlights":  "No highlights",
@@ -702,7 +701,8 @@
                                        "highlightDeleted":  "Highlight deleted",
                                        "directorySaved":  "Recording folder saved",
                                        "ffmpegInstalled":  "FFmpeg installed",
-                                       "ffmpegInstallFailed":  "FFmpeg installation failed"
+                                       "ffmpegInstallFailed":  "FFmpeg installation failed",
+                                       "folderFailed":  "Could not open the folder, please retry."
                                    },
                       "dialogs":  {
                                       "renamePrompt":  "Enter a new file name",
@@ -752,7 +752,7 @@
                                            "installNow":  "Install now"
                                        },
                       "settingsLocked":  "Recording is running. Settings are locked until you stop the recording.",
-                      "previewUnavailable":  "Stop the recording before previewing it."
+                      "openFolder":  "Open Folder"
                   },
     "liveData":  {
                      "range":  {

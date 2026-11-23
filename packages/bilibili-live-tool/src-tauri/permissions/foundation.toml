@@ -84,6 +84,7 @@ commands.allow = [
   "recording_stop",
   "recording_list",
   "recording_preview",
+  "recording_open_folder",
   "recording_rename",
   "recording_delete",
   "highlight_list",

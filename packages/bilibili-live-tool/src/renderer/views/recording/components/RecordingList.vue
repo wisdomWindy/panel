@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { Delete, Edit, Loading, VideoPlay } from '@element-plus/icons-vue';
+import { Delete, Edit, FolderOpened, Loading } from '@element-plus/icons-vue';
 import type { RecordingId, RecordingSummary } from '@/platform/desktop';
 import { formatBytes, formatClockTime, formatDuration } from '@/modules/media/formatters';
 
@@ -11,7 +11,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  preview: [recording: RecordingSummary];
+  openFolder: [recording: RecordingSummary];
   rename: [recording: RecordingSummary];
   delete: [recording: RecordingSummary];
 }>();
@@ -95,20 +95,23 @@ function statusBadgeStyle(status: RecordingSummary['status']): Record<string, st
       <el-table-column :label="t('common.actions')" width="250" fixed="right">
         <template #default="{ row }">
           <div class="flex flex-wrap items-center gap-1">
-            <el-tooltip :content="row.status === 'recording' ? t('recording.previewUnavailable') : t('recording.preview')">
+            <el-tooltip :content="t('recording.openFolder')">
               <button
                 type="button"
                 class="app-chip h-7 px-2.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-                :aria-label="t('recording.preview')"
-                :aria-busy="isPending('previewRecording', row.id)"
-                :disabled="isPending('previewRecording', row.id) || row.status === 'recording'"
-                @click="emit('preview', row)"
+                :aria-label="t('recording.openFolder')"
+                :aria-busy="isPending(`openRecordingFolder:${row.id}`, row.id)"
+                :disabled="isPending(`openRecordingFolder:${row.id}`, row.id)"
+                @click="emit('openFolder', row)"
               >
-                <el-icon v-if="isPending('previewRecording', row.id)" class="is-loading">
+                <el-icon
+                  v-if="isPending(`openRecordingFolder:${row.id}`, row.id)"
+                  class="is-loading"
+                >
                   <Loading />
                 </el-icon>
-                <el-icon v-else><VideoPlay /></el-icon>
-                {{ t('recording.preview') }}
+                <el-icon v-else><FolderOpened /></el-icon>
+                {{ t('recording.openFolder') }}
               </button>
             </el-tooltip>
             <el-tooltip :content="t('recording.rename')">

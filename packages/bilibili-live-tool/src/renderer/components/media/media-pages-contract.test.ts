@@ -104,9 +104,12 @@ describe('interaction media page contracts', () => {
     expect(recording).toContain('app-metric');
     expect(recording).toContain("t('recording.recordingStatus')");
     expect(recording).toContain('RecordingSettingsDialog');
+    // 打开文件夹 is an approved surface now: it opens the recording folder through
+    // its own IPC command, not through an Electron-era shell API.
     expect(`${recording}\n${recordingList}\n${highlightList}`).not.toMatch(
-      /pauseRecording|resumeRecording|openRecordingFolder|electronAPI|createElement\('a'\)|\.download\s*=/
+      /pauseRecording|resumeRecording|electronAPI|createElement\('a'\)|\.download\s*=/
     );
+    expect(recording).toContain('openRecordingFolder');
   });
 
   it('opens the recording settings while recording instead of silently ignoring the click', () => {

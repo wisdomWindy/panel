@@ -633,7 +633,6 @@
                       "fileName":  "文件名",
                       "recordingTime":  "录制时间",
                       "play":  "播放",
-                      "openFolder":  "打开目录",
                       "download":  "下载",
                       "noRecordings":  "暂无录制文件",
                       "noHighlights":  "暂无高光标记",
@@ -702,7 +701,8 @@
                                        "highlightDeleted":  "高光已删除",
                                        "directorySaved":  "存储路径已保存",
                                        "ffmpegInstalled":  "FFmpeg 安装完成",
-                                       "ffmpegInstallFailed":  "FFmpeg 安装失败"
+                                       "ffmpegInstallFailed":  "FFmpeg 安装失败",
+                                       "folderFailed":  "打开文件夹失败，请重试"
                                    },
                       "dialogs":  {
                                       "renamePrompt":  "输入新文件名",
@@ -752,7 +752,7 @@
                                            "installNow":  "一键安装"
                                        },
                       "settingsLocked":  "录制进行中，设置已锁定；停止录制后即可修改",
-                      "previewUnavailable":  "录制进行中，停止录制后才能预览"
+                      "openFolder":  "打开文件夹"
                   },
     "liveData":  {
                      "range":  {

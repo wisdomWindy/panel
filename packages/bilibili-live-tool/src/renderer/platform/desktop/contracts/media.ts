@@ -253,7 +253,7 @@ export const MEDIA_COMMAND_NAMES = [
   'recording_save_config',
   'recording_set_ffmpeg_source',
   'recording_status', 'recording_start', 'recording_stop', 'recording_list',
-  'recording_preview', 'recording_rename', 'recording_delete',
+  'recording_preview', 'recording_open_folder', 'recording_rename', 'recording_delete',
   'highlight_list', 'highlight_mark', 'highlight_preview', 'highlight_export', 'highlight_delete',
   'tts_qwen3_get', 'tts_qwen3_save', 'tts_qwen3_test',
   'tts_qwen3_models',
@@ -309,6 +309,7 @@ export interface MediaCommandRequestMap {
   recording_stop: undefined;
   recording_list: undefined;
   recording_preview: { recordingId: RecordingId };
+  recording_open_folder: { recordingId: RecordingId };
   recording_rename: { recordingId: RecordingId; fileNameStem: string };
   recording_delete: { recordingId: RecordingId };
   highlight_list: undefined;
@@ -356,6 +357,7 @@ export interface MediaCommandResultMap {
   recording_stop: RecordingStatus;
   recording_list: readonly RecordingSummary[];
   recording_preview: PreviewSession;
+  recording_open_folder: { opened: boolean };
   recording_rename: RecordingSummary;
   recording_delete: { deleted: boolean };
   highlight_list: readonly HighlightSummary[];

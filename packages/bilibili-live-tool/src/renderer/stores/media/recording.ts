@@ -202,8 +202,10 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     });
   }
 
-  function previewRecording(recordingId: RecordingId): Promise<PreviewSession> {
-    return runOperation(`previewRecording:${recordingId}`, () => invokeDesktop('recording_preview', { recordingId }));
+  function openRecordingFolder(recordingId: RecordingId): Promise<{ opened: boolean }> {
+    return runOperation(`openRecordingFolder:${recordingId}`, () =>
+      invokeDesktop('recording_open_folder', { recordingId })
+    );
   }
 
   function previewHighlight(highlightId: HighlightId): Promise<PreviewSession> {
@@ -300,7 +302,7 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     start,
     stop,
     markHighlight,
-    previewRecording,
+    openRecordingFolder,
     previewHighlight,
     renameRecording,
     deleteRecording,

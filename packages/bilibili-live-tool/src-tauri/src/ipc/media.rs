@@ -758,6 +758,33 @@ pub async fn recording_preview(
 }
 
 #[tauri::command]
+pub async fn recording_open_folder(
+    state: State<'_, AppState>,
+    request: RecordingIdRequestDto,
+) -> Result<serde_json::Value, DesktopError> {
+    let id = positive_id(&request.recording_id, "recording")?;
+    let recording = state
+        .media()
+        .list_recordings()
+        .await?
+        .into_iter()
+        .find(|recording| recording.id == id)
+        .ok_or_else(|| DesktopError::from(MediaIoError::invalid("recording does not exist")))?;
+    let folder = recording
+        .file_path
+        .parent()
+        .map(std::path::Path::to_path_buf)
+        .ok_or_else(|| {
+            DesktopError::from(MediaIoError::invalid("recording folder is unavailable"))
+        })?;
+    use crate::application::shell::DirectoryOpenerPort;
+    crate::infrastructure::shell::NativeDirectoryOpener
+        .open(&folder)
+        .map_err(DesktopError::from)?;
+    Ok(serde_json::json!({ "opened": true }))
+}
+
+#[tauri::command]
 pub async fn recording_rename(
     state: State<'_, AppState>,
     request: RecordingRenameRequestDto,

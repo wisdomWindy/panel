@@ -4,8 +4,13 @@ import test from 'node:test';
 
 const workflowUrl = new URL('../../../.github/workflows/release-tauri.yml', import.meta.url);
 
+/** Windows checkouts carry CRLF; the contracts below match on LF. */
+async function readWorkflow() {
+  return (await readFile(workflowUrl, 'utf8')).replace(/\r\n/g, '\n');
+}
+
 test('release build matrix contains only Windows x64 and both macOS architectures', async () => {
-  const workflow = await readFile(workflowUrl, 'utf8');
+  const workflow = await readWorkflow();
   const matrix = workflow.match(/\n  build:\n[\s\S]*?\n    runs-on:/)?.[0];
 
   assert.ok(matrix, 'release build matrix is present');
@@ -26,7 +31,7 @@ test('release build matrix contains only Windows x64 and both macOS architecture
 });
 
 test('release workflow publishes only the free channel', async () => {
-  const workflow = await readFile(workflowUrl, 'utf8');
+  const workflow = await readWorkflow();
   const matrix = workflow.match(/\n  build:\n[\s\S]*?\n    runs-on:/)?.[0];
 
   assert.ok(matrix, 'release build matrix is present');

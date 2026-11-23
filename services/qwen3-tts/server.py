@@ -39,6 +39,9 @@ import time
 import traceback
 import wave
 from http import HTTPStatus
+
+# Fail fast when the Hub is blocked instead of retrying for minutes.
+os.environ.setdefault("HF_HUB_ETAG_TIMEOUT", "8")
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Protocol
@@ -118,6 +121,61 @@ MODEL_CATALOG: tuple[dict[str, Any], ...] = (
     },
 )
 
+
+
+_HUB_NETWORK_MARKERS = (
+    "couldn't connect",
+    "connection",
+    "connectionerror",
+    "max retries",
+    "timed out",
+    "timeout",
+    "offline",
+    "huggingface.co",
+    "name or service not known",
+    "temporary failure in name resolution",
+    "ssl",
+)
+
+
+def _is_hub_network_error(exc: BaseException) -> bool:
+    """True when a load failure looks like "the Hub is unreachable"."""
+    text = f"{type(exc).__name__}: {exc}".lower()
+    return any(marker in text for marker in _HUB_NETWORK_MARKERS)
+
+
+def _host_reachable(host: str, port: int = 443, timeout: float = 2.0) -> bool:
+    """Fast reachability probe.
+
+    HuggingFace retries each file five times before failing, which costs minutes
+    on a blocked network; probing first keeps the fallback decision quick.
+    """
+    import socket  # noqa: PLC0415 - only needed here
+
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def _prefer_modelscope() -> bool:
+    """True when the mirror should be used without trying HuggingFace first.
+
+    ModelScope is the checkpoint publisher's own mirror and stays reachable from
+    mainland networks, while a TCP probe of huggingface.co is not trustworthy
+    there (the connection often succeeds and the file download still fails).
+    HuggingFace is therefore opt-in via ``QWEN3_TTS_HUB=hf``.
+    """
+    hub = os.environ.get("QWEN3_TTS_HUB", "modelscope").strip().lower()
+    return hub != "hf"
+
+
+def _modelscope_cache_root() -> Path:
+    override = os.environ.get("QWEN3_TTS_MODELSCOPE_CACHE")
+    if override:
+        return Path(override)
+    return Path(os.environ.get("LOCALAPPDATA", Path.home())) / "biliLiveHelper" / "qwen3-tts-models"
 
 
 class SynthesisError(Exception):
@@ -215,17 +273,71 @@ class Qwen3TtsEngine:
         import torch  # noqa: PLC0415 - optional heavy dependency
         from qwen_tts import Qwen3TTSModel  # noqa: PLC0415
 
+        # Respect the machine instead of the flags: CPU-only boxes must not ask for
+        # cuda, and flash-attn is an optional compile-from-source extra.
+        device = self._device
+        if device.startswith("cuda") and not torch.cuda.is_available():
+            print(f"cuda is unavailable; loading {self.model} on cpu", file=sys.stderr, flush=True)
+            device = "cpu"
         dtype = {"bfloat16": torch.bfloat16, "float16": torch.float16, "float32": torch.float32}[self._dtype]
-        kwargs: dict[str, Any] = {"device_map": self._device, "dtype": dtype}
-        if self._attn:
-            kwargs["attn_implementation"] = self._attn
-        self._model = Qwen3TTSModel.from_pretrained(self.model, **kwargs)
+        if device == "cpu" and self._dtype in ("bfloat16", "float16"):
+            dtype = torch.float32
+        attn = self._attn
+        if attn == "flash_attention_2":
+            try:
+                import flash_attn  # noqa: F401,PLC0415 - optional speed-up
+            except ImportError:
+                print("flash_attn is not installed; using sdpa attention", file=sys.stderr, flush=True)
+                attn = "sdpa"
+        kwargs: dict[str, Any] = {"device_map": device, "dtype": dtype}
+        if attn:
+            kwargs["attn_implementation"] = attn
+        self._model = self._from_pretrained(Qwen3TTSModel, self.model, kwargs)
         # Probe the tokenizer sample rate without paying for a full synthesis.
         probe = getattr(self._model, "sample_rate", None)
         if isinstance(probe, int) and probe > 0:
             self._sample_rate = probe
         elif hasattr(self._model, "processor") and getattr(self._model.processor, "sampling_rate", None):
             self._sample_rate = int(self._model.processor.sampling_rate)
+
+    def _from_pretrained(self, model_class: Any, model_id: str, kwargs: dict[str, Any]) -> Any:
+        """Loads the checkpoint, falling back to ModelScope when the Hub is blocked.
+
+        HuggingFace is unreachable from mainland networks, which used to leave the
+        service degraded with a raw OSError. ``QWEN3_TTS_HUB`` selects the source:
+        ``auto`` (default) tries HuggingFace then ModelScope, ``modelscope`` goes
+        straight to the mirror, ``hf`` keeps the old behaviour.
+        """
+        hub = os.environ.get("QWEN3_TTS_HUB", "auto").strip().lower()
+        if _prefer_modelscope():
+            print("huggingface not reachable; loading through modelscope", file=sys.stderr, flush=True)
+            return model_class.from_pretrained(self._modelscope_snapshot(model_id), **kwargs)
+        try:
+            return model_class.from_pretrained(model_id, **kwargs)
+        except Exception as exc:  # noqa: BLE001 - network failures surface as many types
+            if hub == "hf" or not _is_hub_network_error(exc):
+                raise
+            print(
+                f"huggingface is unreachable ({type(exc).__name__}); retrying through modelscope",
+                file=sys.stderr,
+                flush=True,
+            )
+            return model_class.from_pretrained(self._modelscope_snapshot(model_id), **kwargs)
+
+    def _modelscope_snapshot(self, model_id: str) -> str:
+        try:
+            from modelscope import snapshot_download  # noqa: PLC0415
+        except ImportError as exc:  # pragma: no cover - depends on the environment
+            raise SynthesisError(
+                "tts_download_unavailable",
+                "无法连接 HuggingFace，且未安装 modelscope 镜像下载器；请执行 pip install modelscope 后重试",
+                503,
+                True,
+            ) from exc
+        cache = os.path.join(_modelscope_cache_root(), model_id.replace("/", "--"))
+        os.makedirs(cache, exist_ok=True)
+        print(f"downloading {model_id} from modelscope into {cache}", file=sys.stderr, flush=True)
+        return str(snapshot_download(model_id, cache_dir=cache))
 
     def voices(self) -> list[dict[str, str]]:
         if self.task == "custom_voice" and self._model is not None:
@@ -291,12 +403,13 @@ class HubModelDownloader:
 
     # -- backend ----------------------------------------------------------
     def _hub(self) -> Any:
-        try:
-            from huggingface_hub import HfApi, snapshot_download  # noqa: PLC0415
+        if not _prefer_modelscope():
+            try:
+                from huggingface_hub import HfApi, snapshot_download  # noqa: PLC0415
 
-            return "hf", HfApi, snapshot_download
-        except ImportError:
-            pass
+                return "hf", HfApi, snapshot_download
+            except ImportError:
+                pass
         try:
             from modelscope import snapshot_download  # noqa: PLC0415
             from modelscope.hub.api import HubApi  # noqa: PLC0415
@@ -676,7 +789,11 @@ def load_model_async(state: ServiceState, engine: Qwen3TtsEngine) -> None:
         except Exception as exc:  # pragma: no cover - environment dependent
             state.ready = False
             state.status = "degraded"
-            state.error = f"{type(exc).__name__}: {exc}"
+            state.error = (
+                "无法连接模型下载源（HuggingFace/ModelScope），请检查网络后重试"
+                if _is_hub_network_error(exc)
+                else f"{type(exc).__name__}: {exc}"
+            )
             traceback.print_exc()
 
     threading.Thread(target=run, name="qwen3-tts-loader", daemon=True).start()

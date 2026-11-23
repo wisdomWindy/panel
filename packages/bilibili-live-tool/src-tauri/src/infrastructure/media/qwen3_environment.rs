@@ -17,7 +17,7 @@ const INSTALL_TIMEOUT_SECONDS: u64 = 3600;
 pub const ENVIRONMENT_PROGRESS_EVENT: &str = "tts_environment_progress";
 
 /// Packages the service imports at runtime (see services/qwen3-tts/requirements.txt).
-const REQUIRED_MODULES: &str = "torch, huggingface_hub, qwen_tts, soundfile, numpy";
+const REQUIRED_MODULES: &str = "torch, huggingface_hub, qwen_tts, soundfile, numpy, modelscope";
 
 pub struct Qwen3Environment {
     root: PathBuf,

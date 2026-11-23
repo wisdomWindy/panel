@@ -1,11 +1,14 @@
 use crate::application::live_data::LiveRuntimeError;
 
-/// Build-time defaults, injected by the release workflow from repository secrets.
+/// Embedded 哔哩哔哩开放平台 credentials so a plain build works out of the box.
 ///
-/// The literal values intentionally do not live in the repository: they are
-/// supplied through `BILI_OPEN_*` environment variables when the binary is
-/// built, and can be overridden at run time with the same variables (handy for
-/// local development or a rotated key without rebuilding).
+/// A build-time `BILI_OPEN_*` value (CI secret) wins over these, and a run-time
+/// environment variable wins over both, so a rotated key can be used without
+/// editing this file.
+const EMBEDDED_APP_ID: &str = "1716751199246";
+const EMBEDDED_ACCESS_KEY_ID: &str = "92yCCLAhXtGfRzWKMgSXruqN";
+const EMBEDDED_ACCESS_KEY_SECRET: &str = "9lIaEErbeC62RJ1ApCNrx47ao3v0wd";
+
 const BUILD_APP_ID: Option<&str> = option_env!("BILI_OPEN_APP_ID");
 const BUILD_ACCESS_KEY_ID: Option<&str> = option_env!("BILI_OPEN_ACCESS_KEY_ID");
 const BUILD_ACCESS_KEY_SECRET: Option<&str> = option_env!("BILI_OPEN_ACCESS_KEY_SECRET");
@@ -17,20 +20,22 @@ pub struct OpenLiveConfig {
     access_key_secret: String,
 }
 
-fn resolve(name: &str, build_time: Option<&str>) -> String {
-    match std::env::var(name) {
-        Ok(value) if !value.trim().is_empty() => value,
-        _ => build_time.unwrap_or_default().to_owned(),
+fn resolve(name: &str, build_time: Option<&str>, embedded: &str) -> String {
+    if let Ok(value) = std::env::var(name) {
+        if !value.trim().is_empty() {
+            return value;
+        }
     }
+    build_time.unwrap_or(embedded).to_owned()
 }
 
 impl OpenLiveConfig {
     /// Credentials for the 哔哩哔哩开放平台: run-time environment wins over the
     /// values compiled in at build time.
     pub fn embedded() -> Result<Self, LiveRuntimeError> {
-        let app_id = resolve("BILI_OPEN_APP_ID", BUILD_APP_ID);
-        let access_key_id = resolve("BILI_OPEN_ACCESS_KEY_ID", BUILD_ACCESS_KEY_ID);
-        let access_key_secret = resolve("BILI_OPEN_ACCESS_KEY_SECRET", BUILD_ACCESS_KEY_SECRET);
+        let app_id = resolve("BILI_OPEN_APP_ID", BUILD_APP_ID, EMBEDDED_APP_ID);
+        let access_key_id = resolve("BILI_OPEN_ACCESS_KEY_ID", BUILD_ACCESS_KEY_ID, EMBEDDED_ACCESS_KEY_ID);
+        let access_key_secret = resolve("BILI_OPEN_ACCESS_KEY_SECRET", BUILD_ACCESS_KEY_SECRET, EMBEDDED_ACCESS_KEY_SECRET);
         Self::from_values(&app_id, &access_key_id, &access_key_secret)
     }
 
@@ -105,5 +110,13 @@ mod tests {
     fn an_empty_app_id_is_rejected() {
         let error = OpenLiveConfig::from_values("", "key", "secret").expect_err("empty app id");
         assert_eq!(error.code, "SYS_OPEN_LIVE_CREDENTIALS_MISSING");
+    }
+
+    #[test]
+    fn the_embedded_credentials_are_usable() {
+        let config = OpenLiveConfig::embedded().expect("embedded credentials");
+        assert_eq!(config.app_id, 1_716_751_199_246);
+        assert!(!config.access_key_id.is_empty());
+        assert!(!config.access_key_secret().is_empty());
     }
 }

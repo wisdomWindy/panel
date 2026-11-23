@@ -35,6 +35,15 @@ const generationError = computed(() => {
   return store.errorFor('generate')?.message ?? store.generation?.errorCode ?? null;
 });
 
+/** Runs one AI reply through the same pipeline a live event uses. */
+async function generateTestReply(): Promise<void> {
+  try {
+    await store.generate(t('ai.result.testPrompt'), [t('ai.result.testContext')]);
+  } catch {
+    // The stable error region shows the failure.
+  }
+}
+
 async function copyResult(): Promise<void> {
   if (!result.value) return;
   try {
@@ -260,15 +269,26 @@ onMounted(() => {
             {{ t('ai.result.localOnly') }}
           </p>
         </div>
-        <button
-          type="button"
-          class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="!result"
-          @click="copyResult"
-        >
-          <el-icon><CopyDocument /></el-icon>
-          {{ t('ai.result.copy') }}
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Generation only fires on live events otherwise, which makes the
+               AI → TTS path impossible to check without a broadcast. -->
+          <el-button
+            :loading="store.pendingOperations.has('generate')"
+            :disabled="!store.voiceReply?.defaultProfileId"
+            @click="generateTestReply"
+          >
+            {{ t('ai.result.generateTest') }}
+          </el-button>
+          <button
+            type="button"
+            class="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="!result"
+            @click="copyResult"
+          >
+            <el-icon><CopyDocument /></el-icon>
+            {{ t('ai.result.copy') }}
+          </button>
+        </div>
       </div>
 
       <el-alert

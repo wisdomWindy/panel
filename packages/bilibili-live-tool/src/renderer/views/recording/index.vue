@@ -577,13 +577,6 @@ onMounted(async () => {
               <el-icon><Setting /></el-icon>
               {{ t('recording.settingsButton') }}
             </button>
-            <span
-              v-if="config.ffmpegSource === 'bundled'"
-              class="text-xs"
-              style="color: var(--app-gold)"
-            >
-              {{ t('recording.settings.bundledUnavailable') }}
-            </span>
           </div>
         </section>
       </div>

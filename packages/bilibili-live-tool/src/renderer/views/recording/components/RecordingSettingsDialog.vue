@@ -196,14 +196,7 @@ function close(): void {
               {{ installPending ? t('recording.settings.installing') : t('recording.settings.installFfmpeg') }}
             </button>
             <span
-              v-if="config.ffmpegSource === 'bundled'"
-              class="mt-1 block text-xs"
-              style="color: var(--app-gold)"
-            >
-              {{ t('recording.settings.bundledUnavailable') }}
-            </span>
-            <span
-              v-else-if="config.ffmpegSource === 'system'"
+              v-if="config.ffmpegSource === 'system'"
               class="app-muted mt-1 block text-xs"
             >
               {{ t('recording.settings.systemHint') }}

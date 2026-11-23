@@ -699,12 +699,16 @@ impl MediaState {
 
     pub async fn delete_highlight(&self, id: i64) -> Result<bool, MediaIoError> {
         let services = self.services()?;
-        let highlight = self
+        let Some(highlight) = self
             .list_highlights()
             .await?
             .into_iter()
             .find(|highlight| highlight.id == id)
-            .ok_or_else(|| MediaIoError::invalid("highlight does not exist"))?;
+        else {
+            // Already deleted (double click, or removed elsewhere) — treat the
+            // operation as done instead of raising a configuration error.
+            return Ok(false);
+        };
         let staged = match highlight.file_path {
             Some(path) => services.files.stage_delete(&[path]).await?,
             None => Vec::new(),

@@ -217,10 +217,9 @@ impl crate::application::media::MediaFilePort for GiftSoundFileStore {
         let mut staged = Vec::with_capacity(paths.len());
         for path in paths {
             if !path.is_file() {
-                self.restore_staged(&staged).await?;
-                return Err(crate::application::media::MediaIoError::invalid(
-                    "media file does not exist",
-                ));
+                // The file is already gone (removed from the folder, or a clip
+                // that never got written); deleting the row must still work.
+                continue;
             }
             let target = sibling_path(path, "delete").map_err(|_| {
                 crate::application::media::MediaIoError::operation(

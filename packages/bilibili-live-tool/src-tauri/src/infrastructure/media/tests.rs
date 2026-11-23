@@ -341,6 +341,22 @@ async fn media_file_port_stages_restores_moves_and_exports_owned_files() {
 }
 
 #[tokio::test]
+async fn media_file_port_tolerates_deleting_a_file_that_is_already_gone() {
+    let directory = tempfile::tempdir().unwrap();
+    let grants = Arc::new(PathGrantStore::new());
+    let store = GiftSoundFileStore::new(grants);
+    let missing = directory.path().join("already-deleted.mp4");
+
+    // Deleting a row whose file vanished (removed from the folder, or a clip that
+    // never got written) must not fail; the caller still removes the record.
+    let staged = store
+        .stage_delete(std::slice::from_ref(&missing))
+        .await
+        .expect("a missing file is not an error");
+    assert!(staged.is_empty());
+}
+
+#[tokio::test]
 async fn unavailable_adapters_report_stable_non_success_states() {
     let audio = UnavailableAudioOutput;
     let audio_error = audio

@@ -96,7 +96,7 @@ describe('application shell component contract', () => {
     expect(navigation).toContain('<div v-if="isGroupActive(item, activeRoute)" class="app-nav-sub">');
   });
 
-  it('uses the biliLiveHelper product name across the desktop and renderer surfaces', () => {
+  it('uses the liver product name on screen and keeps the bundle identity stable', () => {
     const rootHtml = source('../../../../index.html');
     const router = source('../../router/index.ts');
     const app = source('../../App.vue');
@@ -105,13 +105,15 @@ describe('application shell component contract', () => {
     const tauriConfig = source('../../../../src-tauri/tauri.conf.json');
     const freeConfig = source('../../../../src-tauri/tauri.free.conf.json');
 
-    expect(rootHtml).toContain('<title>biliLiveHelper</title>');
+    expect(rootHtml).toContain('<title>liver</title>');
     expect(router).toContain('meta: { titleKey: \'dashboard.title\' }');
-    expect(app).toContain('`${t(String(titleKey))} - biliLiveHelper`');
-    expect(JSON.parse(zhLocale).shell.productName).toBe('biliLiveHelper');
-    expect(JSON.parse(enLocale).shell.productName).toBe('biliLiveHelper');
+    expect(app).toContain('`${t(String(titleKey))} - liver`');
+    expect(JSON.parse(zhLocale).shell.productName).toBe('liver');
+    expect(JSON.parse(enLocale).shell.productName).toBe('liver');
+    expect(JSON.parse(tauriConfig).app.windows[0].title).toBe('liver');
+    // The bundle name stays biliLiveHelper so installers, update assets and the
+    // updater endpoint keep working for existing installations.
     expect(JSON.parse(tauriConfig).productName).toBe('biliLiveHelper');
-    expect(JSON.parse(tauriConfig).app.windows[0].title).toBe('biliLiveHelper');
     expect(JSON.parse(freeConfig).productName).toBe('biliLiveHelper');
   });
 

@@ -89,7 +89,7 @@ watch(
 watch(
   [() => route.meta.titleKey, locale],
   ([titleKey]) => {
-    document.title = titleKey ? `${t(String(titleKey))} - biliLiveHelper` : 'biliLiveHelper';
+    document.title = titleKey ? `${t(String(titleKey))} - liver` : 'liver';
   },
   { immediate: true }
 );

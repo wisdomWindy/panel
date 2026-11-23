@@ -1,6 +1,6 @@
 {
     "app":  {
-                "title":  "biliLiveHelper"
+                "title":  "liver"
             },
     "nav":  {
                 "dashboard":  "仪表盘",
@@ -353,7 +353,7 @@
                        "onlineCount":  "在线人数"
                    },
     "shell":  {
-                  "productName":  "biliLiveHelper",
+                  "productName":  "liver",
                   "toolbar":  {
                                   "roomPlaceholder":  "输入主播身份码",
                                   "connect":  "连接",

@@ -138,7 +138,7 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
         tauri::menu::MenuItem::with_id(app, "tray-quit", quit_label, true, None::<&str>)?;
     let menu = tauri::menu::Menu::with_items(app, &[&show_item, &quit_item])?;
     let mut tray = tauri::tray::TrayIconBuilder::with_id("main-tray")
-        .tooltip("biliLiveHelper")
+        .tooltip("liver")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {

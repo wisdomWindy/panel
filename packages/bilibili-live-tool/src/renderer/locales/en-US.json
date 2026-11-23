@@ -1,6 +1,6 @@
 {
     "app":  {
-                "title":  "biliLiveHelper"
+                "title":  "liver"
             },
     "nav":  {
                 "dashboard":  "Dashboard",
@@ -353,7 +353,7 @@
                        "onlineCount":  "Online viewers"
                    },
     "shell":  {
-                  "productName":  "biliLiveHelper",
+                  "productName":  "liver",
                   "toolbar":  {
                                   "roomPlaceholder":  "Enter broadcaster identity code",
                                   "connect":  "Connect",

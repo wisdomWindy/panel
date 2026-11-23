@@ -92,7 +92,7 @@ describe('CSP-safe i18n runtime', () => {
         messages: { 'en-US': enUS }
       });
 
-      expect(i18n.global.t('shell.productName')).toBe('biliLiveHelper');
+      expect(i18n.global.t('shell.productName')).toBe('liver');
       expect(i18n.global.t('dashboard.giftMessage', { giftName: 'Super Chat', count: 2 })).toBe(
         'Sent Super Chat x2'
       );

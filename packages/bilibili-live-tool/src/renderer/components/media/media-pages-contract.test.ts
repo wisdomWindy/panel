@@ -112,6 +112,16 @@ describe('interaction media page contracts', () => {
     expect(recording).toContain('openRecordingFolder');
   });
 
+  it('lets one click start another concurrent recording task', () => {
+    const recording = source('src/renderer/views/recording/index.vue');
+    // The primary action always adds a task; stopping lives on each task row.
+    expect(recording).toContain("t('recording.startRecording')");
+    expect(recording).toContain('handleStopAll');
+    expect(recording).toContain('stopOneTask');
+    expect(recording).toContain('markTask');
+    expect(recording).toContain("t('recording.tasks')");
+    expect(recording).toContain('taskStateText');
+  });
   it('opens the recording settings while recording instead of silently ignoring the click', () => {
     const recording = source('src/renderer/views/recording/index.vue');
     const dialog = source('src/renderer/views/recording/components/RecordingSettingsDialog.vue');

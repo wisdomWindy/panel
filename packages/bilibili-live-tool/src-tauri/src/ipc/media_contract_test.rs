@@ -211,6 +211,7 @@ fn serializes_explicit_media_units_and_null_absence() {
         disk_remaining_bytes: 5 * 1024 * 1024 * 1024,
         highlight_count: 0,
         last_error_code: None,
+        tasks: Vec::new(),
     };
 
     assert_eq!(serde_json::to_value(config).unwrap()["durationSeconds"], 5);
@@ -224,7 +225,8 @@ fn serializes_explicit_media_units_and_null_absence() {
             "fileSizeBytes": 0,
             "diskRemainingBytes": 5_u64 * 1024 * 1024 * 1024,
             "highlightCount": 0,
-            "lastErrorCode": null
+            "lastErrorCode": null,
+            "tasks": []
         })
     );
 }

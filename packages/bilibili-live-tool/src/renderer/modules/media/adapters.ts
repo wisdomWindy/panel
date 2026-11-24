@@ -498,6 +498,7 @@ export function adaptRecordingStatus(value: unknown): RecordingStatus {
   const source = record(value, 'recordingStatus');
   const roomId = nullableString(source.roomId, 'recordingStatus.roomId');
   if (roomId !== null && !/^\d{1,20}$/.test(roomId)) fail('recordingStatus.roomId');
+  const tasks = Array.isArray(source.tasks) ? source.tasks : [];
   return frozen({
     state: enumeration(source.state, ['idle', 'starting', 'recording', 'stopping', 'finalizing', 'error'], 'recordingStatus.state'),
     sessionId: nullableString(source.sessionId, 'recordingStatus.sessionId'),
@@ -506,7 +507,25 @@ export function adaptRecordingStatus(value: unknown): RecordingStatus {
     fileSizeBytes: integer(source.fileSizeBytes, 'recordingStatus.fileSizeBytes'),
     diskRemainingBytes: integer(source.diskRemainingBytes, 'recordingStatus.diskRemainingBytes'),
     highlightCount: integer(source.highlightCount, 'recordingStatus.highlightCount'),
-    lastErrorCode: nullableString(source.lastErrorCode, 'recordingStatus.lastErrorCode')
+    lastErrorCode: nullableString(source.lastErrorCode, 'recordingStatus.lastErrorCode'),
+    tasks: frozen(
+      tasks.map((value, index) => {
+        const task = record(value, `recordingStatus.tasks[${index}]`);
+        const taskRoomId = nullableString(task.roomId, `recordingStatus.tasks[${index}].roomId`);
+        return frozen({
+          id: integer(task.id, `recordingStatus.tasks[${index}].id`),
+          roomId: taskRoomId as RecordingStatus['roomId'],
+          state: enumeration(
+            task.state,
+            ['idle', 'starting', 'recording', 'stopping', 'finalizing', 'error'],
+            `recordingStatus.tasks[${index}].state`
+          ),
+          elapsedSeconds: integer(task.elapsedSeconds, `recordingStatus.tasks[${index}].elapsedSeconds`),
+          fileSizeBytes: integer(task.fileSizeBytes, `recordingStatus.tasks[${index}].fileSizeBytes`),
+          lastErrorCode: nullableString(task.lastErrorCode, `recordingStatus.tasks[${index}].lastErrorCode`)
+        });
+      })
+    )
   });
 }
 

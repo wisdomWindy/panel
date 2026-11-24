@@ -220,6 +220,16 @@ export interface RecordingStatus {
   diskRemainingBytes: number;
   highlightCount: number;
   lastErrorCode: string | null;
+  /** One entry per concurrent recording; the primary task is id 1. */
+  tasks: readonly RecordingTask[];
+}
+export interface RecordingTask {
+  id: number;
+  roomId: RoomId | null;
+  state: RecordingState;
+  elapsedSeconds: number;
+  fileSizeBytes: number;
+  lastErrorCode: string | null;
 }
 export interface RecordingSummary {
   id: RecordingId;
@@ -260,7 +270,8 @@ export const MEDIA_COMMAND_NAMES = [
   'tts_qwen3_environment_status',
   'tts_qwen3_prepare_environment',
   'tts_qwen3_start',
-  'tts_qwen3_download_model'
+  'tts_qwen3_download_model',
+  'recording_stop_task', 'recording_mark_highlight_task'
 ] as const;
 export const MEDIA_EVENT_NAMES = [
   'captain_effect_trigger', 'gift_alert_trigger', 'gift_notify_updated',
@@ -307,6 +318,8 @@ export interface MediaCommandRequestMap {
   recording_status: undefined;
   recording_start: { roomId: RoomId };
   recording_stop: undefined;
+  recording_stop_task: { taskId: number };
+  recording_mark_highlight_task: { taskId: number };
   recording_list: undefined;
   recording_preview: { recordingId: RecordingId };
   recording_open_folder: { recordingId: RecordingId };
@@ -355,6 +368,8 @@ export interface MediaCommandResultMap {
   recording_status: RecordingStatus;
   recording_start: RecordingStatus;
   recording_stop: RecordingStatus;
+  recording_stop_task: RecordingStatus;
+  recording_mark_highlight_task: HighlightSummary;
   recording_list: readonly RecordingSummary[];
   recording_preview: PreviewSession;
   recording_open_folder: { opened: boolean };

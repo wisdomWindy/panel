@@ -14,7 +14,10 @@ use crate::domain::{
         AudienceIdentity, CaptainAction, CaptainLevel, IdentityTag, LiveEvent, LiveEventBase,
         RoomId, UserUid,
     },
-    media::{MediaSoundBinding, RecordingState, TtsIdentityKind, TtsSelectedEngine},
+    media::{
+        FfmpegSource, MediaSoundBinding, RecordingQuality, RecordingState, TtsIdentityKind,
+        TtsSelectedEngine,
+    },
 };
 
 struct FinishedPlayback;
@@ -785,6 +788,33 @@ fn launch() -> RecorderLaunch {
 }
 
 #[tokio::test]
+async fn forked_runtimes_record_their_own_room_and_end_independently() {
+    let stops = Arc::new(AtomicUsize::new(0));
+    let waits = Arc::new(AtomicUsize::new(0));
+    let port = Arc::new(RetryingRecorderPort {
+        attempts: AtomicUsize::new(0),
+        fail_before: 0,
+        stops: stops.clone(),
+        waits: waits.clone(),
+    });
+    let primary = RecordingRuntime::new(default_recording_config(), port);
+    let parallel = primary.fork().await;
+    primary.start("1001", launch()).await.unwrap();
+    parallel.start("1002", launch()).await.unwrap();
+
+    assert_eq!(primary.snapshot().await.room_id.as_deref(), Some("1001"));
+    assert_eq!(parallel.snapshot().await.room_id.as_deref(), Some("1002"));
+
+    // The host stopped broadcasting on the second room: that session ends
+    // without touching the first one and without reporting a failure.
+    parallel.end_naturally().await;
+    assert_eq!(parallel.snapshot().await.state, RecordingState::Idle);
+    assert_eq!(parallel.snapshot().await.failure_code, None);
+    assert_eq!(primary.snapshot().await.state, RecordingState::Recording);
+
+    primary.shutdown().await;
+}
+#[tokio::test]
 async fn reconnect_primitives_detect_a_drop_and_keep_the_session_recordable() {
     let runtime = RecordingRuntime::new(default_recording_config(), Arc::new(ExitedRecorderPort));
     runtime.start("1", launch()).await.unwrap();
@@ -810,4 +840,55 @@ async fn reconnect_is_refused_once_the_session_is_no_longer_recording() {
     runtime.fail("RECORD_STREAM_LOST").await;
 
     assert!(runtime.replace_process(launch()).await.is_err());
+}
+
+struct FfmpegLocatorStub;
+
+impl FfmpegLocator for FfmpegLocatorStub {
+    fn locate(
+        &self,
+        _: FfmpegSource,
+        _: Option<&std::path::Path>,
+    ) -> Result<PathBuf, MediaIoError> {
+        Ok(PathBuf::from("ffmpeg.exe"))
+    }
+}
+
+/// The platform answers "this room is not live any more".
+struct OfflineResolver;
+
+#[async_trait::async_trait]
+impl PlayUrlResolver for OfflineResolver {
+    async fn resolve(
+        &self,
+        _: &str,
+        _: RecordingQuality,
+    ) -> Result<ResolvedStream, MediaIoError> {
+        Err(MediaIoError::coded("ROOM_OFFLINE", "room offline", false))
+    }
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_host_going_offline_ends_the_recording_without_an_error() {
+    let config = default_recording_config();
+    let runtime = RecordingRuntime::new(config.clone(), Arc::new(ExitedRecorderPort));
+    runtime.start("1001", launch()).await.unwrap();
+    let watchdog = RecordingReconnectWatchdog {
+        recording: runtime.clone(),
+        play_url: Arc::new(OfflineResolver),
+        ffmpeg: Arc::new(FfmpegLocatorStub),
+        granted_executable: None,
+        ffmpeg_source: FfmpegSource::Bundled,
+        room_id: "1001".to_owned(),
+        directory: PathBuf::from("."),
+        quality: config.quality,
+        format: config.format,
+    };
+    let handle = tokio::spawn(watchdog.run());
+    // The paused clock advances through the 2 s liveness ticks instantly.
+    tokio::time::sleep(std::time::Duration::from_secs(12)).await;
+    let snapshot = runtime.snapshot().await;
+    assert_eq!(snapshot.state, RecordingState::Idle);
+    assert_eq!(snapshot.failure_code, None);
+    handle.abort();
 }

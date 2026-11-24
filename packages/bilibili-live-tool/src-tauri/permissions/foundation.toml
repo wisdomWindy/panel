@@ -82,6 +82,8 @@ commands.allow = [
   "recording_status",
   "recording_start",
   "recording_stop",
+  "recording_stop_task",
+  "recording_mark_highlight_task",
   "recording_list",
   "recording_preview",
   "recording_open_folder",

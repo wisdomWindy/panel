@@ -194,10 +194,31 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     return commitStatus('stop', () => invokeDesktop('recording_stop', undefined));
   }
 
+  /** Stops one concurrent recording task (id 1 is the primary one). */
+  function stopTask(taskId: number): Promise<RecordingStatus> {
+    return commitStatus('stop', () =>
+      invokeDesktop('recording_stop_task', { taskId })
+    );
+  }
+
   function markHighlight(): Promise<HighlightSummary> {
     return runOperation('markHighlight', async () => {
       const adapted = adaptHighlightSummary(await invokeDesktop('highlight_mark', undefined));
       highlights.value = Object.freeze([adapted, ...highlights.value.filter(item => item.id !== adapted.id)]);
+      return adapted;
+    });
+  }
+
+  /** Marks a highlight on one concurrent recording task. */
+  function markHighlightTask(taskId: number): Promise<HighlightSummary> {
+    return runOperation('markHighlight', async () => {
+      const adapted = adaptHighlightSummary(
+        await invokeDesktop('recording_mark_highlight_task', { taskId })
+      );
+      highlights.value = Object.freeze([
+        adapted,
+        ...highlights.value.filter(item => item.id !== adapted.id)
+      ]);
       return adapted;
     });
   }
@@ -301,7 +322,9 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     setFfmpegSource,
     start,
     stop,
+    stopTask,
     markHighlight,
+    markHighlightTask,
     openRecordingFolder,
     previewHighlight,
     renameRecording,

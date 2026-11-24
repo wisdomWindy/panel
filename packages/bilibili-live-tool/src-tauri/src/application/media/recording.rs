@@ -350,6 +350,70 @@ impl RecordingRuntime {
         }
     }
 
+    /// An independent runtime that can host a second concurrent recording.
+    ///
+    /// Each runtime owns exactly one recorder process, so a parallel room gets
+    /// its own state machine, watchdogs and highlight window without touching
+    /// the primary session.
+    pub async fn fork(&self) -> Arc<Self> {
+        let config = self.config.read().await.clone();
+        Arc::new(Self {
+            config: RwLock::new(config),
+            process_port: self.process_port.clone(),
+            operation: Mutex::new(()),
+            state: Mutex::new(RecordingRuntimeState {
+                state: RecordingState::Idle,
+                room_id: None,
+                started_at: None,
+                output_path: None,
+                process: None,
+                disk_remaining_bytes: None,
+                danmaku_timestamps: VecDeque::new(),
+                highlights: Vec::new(),
+                last_automatic_highlight_at: None,
+                failure_code: None,
+            }),
+            hotkey: Mutex::new(None),
+        })
+    }
+
+    /// Ends the session because the stream itself finished (the host stopped
+    /// broadcasting). That is a normal end, not a failure: clear the state
+    /// machine and leave `failure_code` empty.
+    pub async fn end_naturally(&self) {
+        let _operation = self.operation.lock().await;
+        let taken = {
+            let mut state = self.state.lock().await;
+            state.state = RecordingState::Finalizing;
+            state.process.take()
+        };
+        if let Some(mut process) = taken {
+            let _ = process.stop().await;
+            let _ = process.wait().await;
+        }
+        let mut state = self.state.lock().await;
+        state.state = RecordingState::Idle;
+        state.failure_code = None;
+        state.started_at = None;
+        state.room_id = None;
+        state.output_path = None;
+        state.danmaku_timestamps.clear();
+        state.highlights.clear();
+    }
+
+    /// Drops the session bookkeeping after the caller stored the outcome.
+    pub async fn reset(&self) {
+        let mut state = self.state.lock().await;
+        state.state = RecordingState::Idle;
+        state.room_id = None;
+        state.started_at = None;
+        state.output_path = None;
+        state.process = None;
+        state.failure_code = None;
+        state.danmaku_timestamps.clear();
+        state.highlights.clear();
+        state.last_automatic_highlight_at = None;
+    }
     pub async fn shutdown(&self) {
         if let Some(mut registration) = self.hotkey.lock().await.take() {
             let _ = registration.unregister();

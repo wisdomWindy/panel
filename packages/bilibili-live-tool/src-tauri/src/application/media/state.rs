@@ -5,7 +5,10 @@ pub const APP_DOWNLOAD_GRANT_ID: &str = "app-download";
 use std::{
     collections::{HashSet, VecDeque},
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -74,14 +77,26 @@ impl RecordingReconnectWatchdog {
             }
             attempts += 1;
             if attempts > RECORDING_MAX_RECONNECTS {
-                log::warn!("recording stream lost after {attempts} attempts");
-                self.recording.fail("RECORD_STREAM_LOST").await;
+                // Before calling it a failure, ask whether the host simply
+                // stopped broadcasting: 下播 is a normal end, not an error.
+                if self.stream_offline().await {
+                    log::info!("recording ended because the room went offline");
+                    self.recording.end_naturally().await;
+                } else {
+                    log::warn!("recording stream lost after {attempts} attempts");
+                    self.recording.fail("RECORD_STREAM_LOST").await;
+                }
                 return;
             }
             match self.restart(attempts).await {
                 Ok(()) => log::info!("recording stream reconnected (attempt {attempts})"),
                 Err(error) => {
                     log::warn!("recording reconnect {attempts} failed: {}", error.code);
+                    if error.code == "ROOM_OFFLINE" || self.stream_offline().await {
+                        log::info!("recording ended because the room went offline");
+                        self.recording.end_naturally().await;
+                        return;
+                    }
                     if attempts >= RECORDING_MAX_RECONNECTS {
                         self.recording.fail("RECORD_STREAM_LOST").await;
                         return;
@@ -89,6 +104,14 @@ impl RecordingReconnectWatchdog {
                 }
             }
         }
+    }
+
+    /// True when the platform says the room is not live any more.
+    async fn stream_offline(&self) -> bool {
+        matches!(
+            self.play_url.resolve(&self.room_id, self.quality).await,
+            Err(error) if error.code == "ROOM_OFFLINE"
+        )
     }
 
     /// Restart the recorder into a continuation file. Segments stay playable
@@ -137,12 +160,38 @@ struct EventHistory {
     order: VecDeque<String>,
 }
 
+#[derive(Clone)]
 pub struct MediaServices {
     pub repository: Arc<dyn MediaRepository>,
     pub files: Arc<dyn MediaFilePort>,
     pub preview: Arc<dyn PreviewPort>,
     pub grants: Arc<dyn PathGrantPort>,
     pub audio: Arc<dyn AudioOutputPort>,
+}
+
+/// One concurrent recording the operator started, besides the primary runtime.
+struct ExtraRecordingTask {
+    id: u64,
+    runtime: Arc<RecordingRuntime>,
+    record_id: i64,
+    room_id: String,
+}
+
+/// Bookkeeping for the recording owned by the primary runtime.
+#[derive(Clone)]
+struct PrimaryRecordingTask {
+    room_id: String,
+}
+
+/// A single recording task as the UI sees it.
+#[derive(Clone, Debug)]
+pub struct RecordingTaskSnapshot {
+    pub id: u64,
+    pub room_id: Option<String>,
+    pub state: crate::domain::media::RecordingState,
+    pub elapsed_seconds: u64,
+    pub file_size_bytes: u64,
+    pub failure_code: Option<&'static str>,
 }
 
 pub trait MediaEventSink: Send + Sync {
@@ -241,6 +290,10 @@ pub struct MediaState {
     managed_ffmpeg_directory: Option<PathBuf>,
     qwen3_service_launcher: Option<Arc<crate::infrastructure::media::Qwen3ServiceLauncher>>,
     qwen3_environment: Option<Arc<crate::infrastructure::media::Qwen3Environment>>,
+    /// Parallel recordings; the primary runtime above owns task id 1.
+    extra_recordings: Mutex<Vec<ExtraRecordingTask>>,
+    primary_recording: Mutex<Option<PrimaryRecordingTask>>,
+    next_recording_task_id: AtomicU64,
 }
 
 impl MediaState {
@@ -266,6 +319,9 @@ impl MediaState {
             managed_ffmpeg_directory: None,
             qwen3_service_launcher: None,
             qwen3_environment: None,
+            extra_recordings: Mutex::new(Vec::new()),
+            primary_recording: Mutex::new(None),
+            next_recording_task_id: AtomicU64::new(2),
         }
     }
 
@@ -374,6 +430,41 @@ impl MediaState {
                 log::warn!("automatic highlight is degraded: {}", error.code);
             }
         }
+        // Parallel recordings keep their own danmaku heat window.
+        let parallel: Vec<(Arc<RecordingRuntime>, i64)> = self
+            .extra_recordings
+            .lock()
+            .await
+            .iter()
+            .map(|task| (task.runtime.clone(), task.record_id))
+            .collect();
+        for (runtime, record_id) in parallel {
+            let Some(marker) = runtime.consume_event(event).await else {
+                continue;
+            };
+            let persisted = async {
+                let services = self.services()?;
+                let recording = services
+                    .repository
+                    .list_recordings()
+                    .await?
+                    .into_iter()
+                    .find(|recording| recording.id == record_id)
+                    .ok_or_else(|| {
+                        MediaIoError::unavailable("parallel recording record is unavailable")
+                    })?;
+                self.persist_highlight(
+                    recording,
+                    marker,
+                    crate::application::media::HighlightTriggerType::DanmakuSurge,
+                )
+                .await
+            }
+            .await;
+            if let Err(error) = persisted {
+                log::warn!("automatic highlight is degraded: {}", error.code);
+            }
+        }
         match event {
             LiveEvent::Captain { .. } => {
                 if let Err(error) = self
@@ -418,6 +509,17 @@ impl MediaState {
         self.effects.shutdown().await;
         self.gifts.shutdown().await;
         self.tts.shutdown().await;
+        let extra_runtimes: Vec<Arc<RecordingRuntime>> = self
+            .extra_recordings
+            .lock()
+            .await
+            .iter()
+            .map(|task| task.runtime.clone())
+            .collect();
+        for runtime in extra_runtimes {
+            runtime.shutdown().await;
+        }
+        self.extra_recordings.lock().await.clear();
         self.recording.shutdown().await;
         let mut previews = self.preview_playbacks.lock().await;
         for playback in previews.drain(..) {
@@ -863,26 +965,58 @@ impl MediaState {
             arguments,
             working_directory: Some(directory.clone()),
         };
-        match self.recording.start(room_id.to_owned(), launch).await {
+
+        // Several rooms can record at once: the first start owns the primary
+        // runtime (auto-record and the global hotkey use it), every additional
+        // start forks an independent runtime with its own recorder process.
+        let reuse_primary = {
+            let state = self.recording.snapshot().await.state;
+            matches!(
+                state,
+                crate::domain::media::RecordingState::Idle
+                    | crate::domain::media::RecordingState::Error
+            ) && self.primary_recording.lock().await.is_none()
+                && self.extra_recordings.lock().await.is_empty()
+        };
+        let (task_id, runtime) = if reuse_primary {
+            *self.primary_recording.lock().await = Some(PrimaryRecordingTask {
+                room_id: room_id.to_owned(),
+            });
+            (1, self.recording.clone())
+        } else {
+            let runtime = self.recording.fork().await;
+            let task_id = self.next_recording_task_id.fetch_add(1, Ordering::Relaxed);
+            self.extra_recordings
+                .lock()
+                .await
+                .push(ExtraRecordingTask {
+                    id: task_id,
+                    runtime: runtime.clone(),
+                    record_id: record.id,
+                    room_id: room_id.to_owned(),
+                });
+            (task_id, runtime)
+        };
+        let config_for_task = config.clone();
+        let record_id = record.id;
+        match runtime.start(room_id.to_owned(), launch).await {
             Ok(()) => {
                 let _ = self
                     .event_sink
                     .publish_recording(&self.recording.snapshot().await);
-                let watchdog = RecordingReconnectWatchdog {
-                    recording: self.recording.clone(),
-                    play_url: self.play_url.clone(),
-                    ffmpeg: self.ffmpeg.clone(),
-                    granted_executable: granted_executable.clone(),
-                    ffmpeg_source: config.ffmpeg_source,
-                    room_id: room_id.to_owned(),
+                self.spawn_recording_watchdog(
+                    runtime.clone(),
+                    room_id.to_owned(),
                     directory,
-                    quality: config.quality,
-                    format,
-                };
-                tokio::spawn(watchdog.run());
+                    granted_executable,
+                    config_for_task,
+                );
+                self.spawn_recording_supervisor(runtime, record_id);
+                let _ = task_id;
                 Ok(())
             }
             Err(error) => {
+                self.drop_recording_task(task_id).await;
                 record.status = crate::application::media::RecordingItemState::Failed;
                 record.ended_at = Some(Self::now_millis());
                 let _ = services.repository.update_recording(&record).await;
@@ -892,6 +1026,140 @@ impl MediaState {
                 Err(error)
             }
         }
+    }
+
+    /// Forgets the bookkeeping of a task that never started.
+    async fn drop_recording_task(&self, task_id: u64) {
+        if task_id == 1 {
+            *self.primary_recording.lock().await = None;
+        } else {
+            self.extra_recordings
+                .lock()
+                .await
+                .retain(|task| task.id != task_id);
+        }
+    }
+
+    fn spawn_recording_watchdog(
+        &self,
+        runtime: Arc<RecordingRuntime>,
+        room_id: String,
+        directory: PathBuf,
+        granted_executable: Option<PathBuf>,
+        config: RecordingConfig,
+    ) {
+        let watchdog = RecordingReconnectWatchdog {
+            recording: runtime,
+            play_url: self.play_url.clone(),
+            ffmpeg: self.ffmpeg.clone(),
+            granted_executable,
+            ffmpeg_source: config.ffmpeg_source,
+            room_id,
+            directory,
+            quality: config.quality,
+            format: config.format,
+        };
+        tokio::spawn(watchdog.run());
+    }
+
+    /// Watches one task and stores its outcome when the recorder reaches a
+    /// terminal state on its own (host stopped broadcasting, unrecoverable
+    /// failure), so the list never keeps a finished task as still recording.
+    fn spawn_recording_supervisor(&self, runtime: Arc<RecordingRuntime>, record_id: i64) {
+        let Some(services) = self.services.clone() else {
+            return;
+        };
+        let sink = self.event_sink.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+                let snapshot = runtime.snapshot().await;
+                let outcome = match snapshot.state {
+                    crate::domain::media::RecordingState::Idle => {
+                        Some(crate::application::media::RecordingItemState::Completed)
+                    }
+                    crate::domain::media::RecordingState::Error => {
+                        Some(crate::application::media::RecordingItemState::Partial)
+                    }
+                    _ => None,
+                };
+                let Some(status) = outcome else {
+                    continue;
+                };
+                if let Ok(records) = services.repository.list_recordings().await {
+                    if let Some(mut record) =
+                        records.into_iter().find(|record| record.id == record_id)
+                    {
+                        if record.status == crate::application::media::RecordingItemState::Recording
+                        {
+                            record.ended_at = Some(MediaState::now_millis());
+                            let ended = record.ended_at.unwrap_or(record.started_at);
+                            record.duration_seconds =
+                                (ended.saturating_sub(record.started_at) / 1000) as u64;
+                            record.size_bytes =
+                                services.files.file_size(&record.file_path).await.unwrap_or(0);
+                            record.status = status;
+                            if services.repository.update_recording(&record).await.is_ok() {
+                                let _ = sink.publish_recording_completed(&record);
+                            }
+                        }
+                    }
+                }
+                runtime.reset().await;
+                break;
+            }
+        });
+    }
+
+    /// Every recording the operator started, newest last.
+    pub async fn recording_tasks(&self) -> Vec<RecordingTaskSnapshot> {
+        let mut tasks = Vec::new();
+        let primary = self.primary_recording.lock().await.clone();
+        if let Some(primary) = primary {
+            let snapshot = self.recording.snapshot().await;
+            if matches!(snapshot.state, crate::domain::media::RecordingState::Idle) {
+                *self.primary_recording.lock().await = None;
+            } else {
+                tasks.push(RecordingTaskSnapshot {
+                    id: 1,
+                    room_id: Some(primary.room_id),
+                    state: snapshot.state,
+                    elapsed_seconds: snapshot.elapsed_seconds,
+                    file_size_bytes: self.recording.output_size_bytes().await,
+                    failure_code: snapshot.failure_code,
+                });
+            }
+        }
+        let extras: Vec<(u64, Arc<RecordingRuntime>, String)> = self
+            .extra_recordings
+            .lock()
+            .await
+            .iter()
+            .map(|task| (task.id, task.runtime.clone(), task.room_id.clone()))
+            .collect();
+        let mut finished = Vec::new();
+        for (id, runtime, room_id) in extras {
+            let snapshot = runtime.snapshot().await;
+            if matches!(snapshot.state, crate::domain::media::RecordingState::Idle) {
+                finished.push(id);
+                continue;
+            }
+            tasks.push(RecordingTaskSnapshot {
+                id,
+                room_id: Some(room_id),
+                state: snapshot.state,
+                elapsed_seconds: snapshot.elapsed_seconds,
+                file_size_bytes: runtime.output_size_bytes().await,
+                failure_code: snapshot.failure_code,
+            });
+        }
+        if !finished.is_empty() {
+            self.extra_recordings
+                .lock()
+                .await
+                .retain(|task| !finished.contains(&task.id));
+        }
+        tasks
     }
 
     fn unique_recording_path(directory: &Path, room_id: &str, format: RecordingFormat) -> PathBuf {        let extension = crate::domain::media::file_extension(format);
@@ -932,7 +1200,137 @@ impl MediaState {
         Ok(())
     }
 
+    /// Stops every running recording (the primary task and any parallel ones).
     pub async fn stop_recording(&self) -> Result<(), MediaIoError> {
+        let primary = self.stop_primary_recording().await;
+        let extra_ids: Vec<u64> = self
+            .extra_recordings
+            .lock()
+            .await
+            .iter()
+            .map(|task| task.id)
+            .collect();
+        let mut first_error = primary.err();
+        for task_id in extra_ids {
+            if let Err(error) = self.stop_recording_task(task_id).await {
+                if first_error.is_none() {
+                    first_error = Some(error);
+                }
+            }
+        }
+        match first_error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
+    }
+
+    /// Stops one task by id (1 = the primary runtime).
+    pub async fn stop_recording_task(&self, task_id: u64) -> Result<(), MediaIoError> {
+        if task_id == 1 {
+            return self.stop_primary_recording().await;
+        }
+        let target = self
+            .extra_recordings
+            .lock()
+            .await
+            .iter()
+            .find(|task| task.id == task_id)
+            .map(|task| (task.runtime.clone(), task.record_id));
+        let Some((runtime, record_id)) = target else {
+            return Err(MediaIoError::invalid("recording task does not exist"));
+        };
+        let result = runtime.stop().await;
+        let status = if result.is_ok() {
+            crate::application::media::RecordingItemState::Completed
+        } else {
+            crate::application::media::RecordingItemState::Partial
+        };
+        self.finalize_recording_record(record_id, status).await;
+        runtime.reset().await;
+        self.extra_recordings
+            .lock()
+            .await
+            .retain(|task| task.id != task_id);
+        let _ = self
+            .event_sink
+            .publish_recording(&self.recording.snapshot().await);
+        result
+    }
+
+    /// Marks a highlight on one task (1 = the primary runtime).
+    pub async fn mark_highlight_for_task(
+        &self,
+        task_id: u64,
+    ) -> Result<crate::application::media::HighlightRecord, MediaIoError> {
+        if task_id == 1 {
+            return self.mark_highlight().await;
+        }
+        let target = self
+            .extra_recordings
+            .lock()
+            .await
+            .iter()
+            .find(|task| task.id == task_id)
+            .map(|task| (task.runtime.clone(), task.record_id));
+        let Some((runtime, record_id)) = target else {
+            return Err(MediaIoError::invalid("recording task does not exist"));
+        };
+        let marker = runtime.mark_highlight().await?;
+        let record = self
+            .services()?
+            .repository
+            .list_recordings()
+            .await?
+            .into_iter()
+            .find(|recording| recording.id == record_id)
+            .ok_or_else(|| MediaIoError::unavailable("recording record is unavailable"))?;
+        self.persist_highlight(
+            record,
+            marker,
+            crate::application::media::HighlightTriggerType::Manual,
+        )
+        .await
+    }
+
+    /// Stores the outcome of a finished task, leaving already-finalised rows
+    /// alone so a manual stop followed by the supervisor cannot double-write.
+    async fn finalize_recording_record(
+        &self,
+        record_id: i64,
+        status: crate::application::media::RecordingItemState,
+    ) {
+        let Ok(services) = self.services() else {
+            return;
+        };
+        let Ok(records) = services.repository.list_recordings().await else {
+            return;
+        };
+        let Some(mut record) = records.into_iter().find(|record| record.id == record_id) else {
+            return;
+        };
+        if record.status != crate::application::media::RecordingItemState::Recording {
+            return;
+        }
+        record.ended_at = Some(Self::now_millis());
+        let ended = record.ended_at.unwrap_or(record.started_at);
+        record.duration_seconds = (ended.saturating_sub(record.started_at) / 1000) as u64;
+        record.size_bytes = services
+            .files
+            .file_size(&record.file_path)
+            .await
+            .unwrap_or(0);
+        record.status = status;
+        if services
+            .repository
+            .update_recording(&record)
+            .await
+            .unwrap_or(false)
+        {
+            let _ = self.event_sink.publish_recording_completed(&record);
+        }
+    }
+
+    async fn stop_primary_recording(&self) -> Result<(), MediaIoError> {
         let before = self.recording.snapshot().await;
         let active = match before.room_id.as_deref() {
             Some(room_id) => self
@@ -972,6 +1370,7 @@ impl MediaState {
             }
             self.event_sink.publish_recording_completed(&recording)?;
         }
+        *self.primary_recording.lock().await = None;
         self.event_sink
             .publish_recording(&self.recording.snapshot().await)
     }

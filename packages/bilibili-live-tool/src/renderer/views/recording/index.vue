@@ -30,6 +30,13 @@ const primaryButton = ref<HTMLButtonElement | null>(null);
 const config = computed(() => store.config);
 const status = computed(() => store.status);
 const isActive = computed(() => status.value?.state === 'recording');
+/** Every concurrent recording; the operator can watch several rooms at once. */
+const tasks = computed(() => status.value?.tasks ?? []);
+const hasActiveTasks = computed(() =>
+  tasks.value.some(task =>
+    ['starting', 'recording', 'stopping', 'finalizing'].includes(task.state)
+  )
+);
 const isTransitioning = computed(() =>
   ['starting', 'stopping', 'finalizing'].includes(status.value?.state ?? '')
 );
@@ -54,21 +61,29 @@ const startDisabledReason = computed(() => {
   return null;
 });
 const primaryText = computed(() =>
-  isActive.value
-    ? t('recording.stopRecording')
-    : status.value?.state === 'error'
-      ? t('recording.retryRecording')
-      : t('recording.startRecording')
+  status.value?.state === 'error' && !hasActiveTasks.value
+    ? t('recording.retryRecording')
+    : t('recording.startRecording')
 );
 const primaryPending = computed(
-  () => store.pendingOperations.has(isActive.value ? 'stop' : 'start') || isTransitioning.value
+  () => store.pendingOperations.has('start') || isTransitioning.value
 );
+const stopAllPending = computed(() => store.pendingOperations.has('stop'));
 const markPending = computed(() => store.pendingOperations.has('markHighlight'));
 const primaryDisabled = computed(
-  () => primaryPending.value || (!isActive.value && !!startDisabledReason.value)
+  () => primaryPending.value || !!startDisabledReason.value
 );
 
-const stateText = computed(() => (status.value ? t(`recording.${status.value.state}`) : ''));
+const stateText = computed(() => {
+  if (!status.value) return '';
+  if (tasks.value.length > 1) return `${t('recording.recording')} ×${tasks.value.length}`;
+  return t(`recording.${status.value.state}`);
+});
+
+/** Localized label for one task's state. */
+function taskStateText(state: string): string {
+  return t(`recording.${state}`);
+}
 const stateDotClass = computed(() => {
   switch (status.value?.state) {
     case 'recording':
@@ -159,12 +174,6 @@ function openSettings(): void {
 
 async function handlePrimary(): Promise<void> {
   try {
-    if (isActive.value) {
-      await store.stop();
-      await store.refresh();
-      ElMessage.success(t('recording.messages.stopped'));
-      return;
-    }
     if (startDisabledReason.value || !targetRoomId.value) return;
     await store.start(targetRoomId.value);
     ElMessage.success(t('recording.messages.started'));
@@ -222,6 +231,18 @@ async function installFfmpeg(): Promise<void> {
   }
 }
 
+async function handleStopAll(): Promise<void> {
+  try {
+    await store.stop();
+    await store.refresh();
+    ElMessage.success(t('recording.messages.stopped'));
+  } catch (error) {
+    const value = error as { code?: string; message?: string };
+    ElMessage.error(
+      describeError(value.code, value.message ?? t('recording.messages.operationFailed'))
+    );
+  }
+}
 async function handleMark(): Promise<void> {
   try {
     await store.markHighlight();
@@ -234,6 +255,37 @@ async function handleMark(): Promise<void> {
   }
 }
 
+/** Localized text for a backend error code (unknown codes stay readable). */
+function describeCode(code: string | null | undefined): string {
+  if (!code) return '';
+  const key = errorKey(code);
+  return key ? t(key) : code;
+}
+
+async function stopOneTask(taskId: number): Promise<void> {
+  try {
+    await store.stopTask(taskId);
+    ElMessage.success(t('recording.messages.stopped'));
+  } catch (error) {
+    const value = error as { code?: string; message?: string };
+    ElMessage.error(
+      describeError(value.code, value.message ?? t('recording.messages.operationFailed'))
+    );
+  }
+}
+
+async function markTask(taskId: number): Promise<void> {
+  try {
+    await store.markHighlightTask(taskId);
+    activeTab.value = 'highlights';
+    ElMessage.success(t('recording.messages.highlightMarked'));
+  } catch (error) {
+    const value = error as { code?: string; message?: string };
+    ElMessage.error(
+      describeError(value.code, value.message ?? t('recording.messages.markFailed'))
+    );
+  }
+}
 /** Inline picker: grants the folder and persists it without opening the dialog. */
 async function pickDirectoryInline(): Promise<void> {
   const current = config.value;
@@ -518,20 +570,28 @@ onUnmounted(stopStatusPolling);
                   ref="primaryButton"
                   type="button"
                   class="app-btn-primary inline-flex h-9 items-center gap-1.5 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                  :style="isActive ? { background: 'var(--app-red)' } : undefined"
                   :aria-busy="primaryPending"
                   :disabled="primaryDisabled"
                   @click="handlePrimary"
                 >
                   <el-icon v-if="primaryPending" class="is-loading"><Loading /></el-icon>
-                  <el-icon v-else>
-                    <VideoPause v-if="isActive" />
-                    <VideoCamera v-else />
-                  </el-icon>
+                  <el-icon v-else><VideoCamera /></el-icon>
                   {{ primaryText }}
                 </button>
               </span>
             </el-tooltip>
+            <button
+              v-if="hasActiveTasks"
+              type="button"
+              class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+              :aria-busy="stopAllPending"
+              :disabled="stopAllPending"
+              @click="handleStopAll"
+            >
+              <el-icon v-if="stopAllPending" class="is-loading"><Loading /></el-icon>
+              <el-icon v-else><VideoPause /></el-icon>
+              {{ t('recording.stopAll') }}
+            </button>
             <button
               type="button"
               class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
@@ -552,7 +612,7 @@ onUnmounted(stopStatusPolling);
             {{ startDisabledReason }}
           </p>
           <p v-if="status.lastErrorCode" class="mt-2 mb-0 text-xs" style="color: var(--app-red)">
-            {{ t('recording.lastError') }}: {{ status.lastErrorCode }}
+            {{ t('recording.lastError') }}: {{ describeCode(status.lastErrorCode) }}
           </p>
         </section>
 
@@ -618,6 +678,55 @@ onUnmounted(stopStatusPolling);
           <p class="app-metric-value mt-1.5 mb-0">{{ card.value }}</p>
         </article>
       </div>
+
+      <!-- Each 开始录制 adds one task; every task records its own room. -->
+      <section v-if="tasks.length" class="app-card p-4">
+        <h3 class="app-text m-0 text-base font-semibold">
+          {{ t('recording.tasks') }}
+          <span class="app-faint tabular-nums">{{ tasks.length }}</span>
+        </h3>
+        <div class="mt-3 flex flex-col gap-2">
+          <div
+            v-for="task in tasks"
+            :key="task.id"
+            class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg px-3 py-2"
+            style="background: var(--app-panel-2)"
+          >
+            <span class="app-text text-sm font-semibold tabular-nums">
+              {{ t('recording.room') }} {{ task.roomId ?? '--' }}
+            </span>
+            <span class="app-muted text-xs">{{ taskStateText(task.state) }}</span>
+            <span class="app-muted text-xs tabular-nums">
+              {{ formatDuration(task.elapsedSeconds) }}
+            </span>
+            <span class="app-muted text-xs tabular-nums">
+              {{ formatBytes(task.fileSizeBytes) }}
+            </span>
+            <span v-if="task.lastErrorCode" class="text-xs" style="color: var(--app-red)">
+              {{ describeCode(task.lastErrorCode) }}
+            </span>
+            <div class="ml-auto flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="task.state !== 'recording' || markPending"
+                @click="markTask(task.id)"
+              >
+                <el-icon><Star /></el-icon>
+                {{ t('recording.manualMark') }}
+              </button>
+              <button
+                type="button"
+                class="app-chip disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="!['starting', 'recording'].includes(task.state) || primaryPending"
+                @click="stopOneTask(task.id)"
+              >
+                {{ t('recording.stopTask') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section class="app-card p-4">
         <div class="flex flex-wrap items-center gap-1.5">

@@ -205,7 +205,7 @@ impl MediaEventSink for TauriMediaEventSink {
         // live size and free-space values.
         self.emit_main(
             "recording_status_changed",
-            recording_status_dto(snapshot.clone(), 0, None),
+            recording_status_dto(snapshot.clone(), 0, None, Vec::new()),
         )
     }
 
@@ -697,15 +697,39 @@ pub async fn recording_set_ffmpeg_source(
 pub async fn recording_status(
     state: State<'_, AppState>,
 ) -> Result<RecordingStatusDto, DesktopError> {
-    let recording = state.media().recording();
+    let media = state.media();
+    let recording = media.recording();
     let snapshot = recording.snapshot().await;
     let file_size_bytes = recording.output_size_bytes().await;
     let disk_remaining_bytes = recording.disk_free_bytes().await;
+    let tasks = media.recording_tasks().await;
     Ok(recording_status_dto(
         snapshot,
         file_size_bytes,
         disk_remaining_bytes,
+        tasks,
     ))
+}
+
+#[tauri::command]
+pub async fn recording_stop_task(
+    state: State<'_, AppState>,
+    request: RecordingTaskRequestDto,
+) -> Result<RecordingStatusDto, DesktopError> {
+    state.media().stop_recording_task(request.task_id).await?;
+    recording_status(state).await
+}
+
+#[tauri::command]
+pub async fn recording_mark_highlight_task(
+    state: State<'_, AppState>,
+    request: RecordingTaskRequestDto,
+) -> Result<HighlightSummaryDto, DesktopError> {
+    let highlight = state
+        .media()
+        .mark_highlight_for_task(request.task_id)
+        .await?;
+    Ok(highlight_summary(highlight))
 }
 
 #[tauri::command]
@@ -1304,6 +1328,7 @@ fn recording_status_dto(
     status: crate::application::media::RecordingRuntimeSnapshot,
     file_size_bytes: u64,
     disk_remaining_bytes: Option<u64>,
+    tasks: Vec<crate::application::media::RecordingTaskSnapshot>,
 ) -> RecordingStatusDto {
     RecordingStatusDto {
         state: recording_state(status.state),
@@ -1316,6 +1341,17 @@ fn recording_status_dto(
             .unwrap_or(0),
         highlight_count: status.highlights.len().try_into().unwrap_or(u32::MAX),
         last_error_code: status.failure_code.map(str::to_owned),
+        tasks: tasks
+            .into_iter()
+            .map(|task| RecordingTaskDto {
+                id: task.id,
+                room_id: task.room_id,
+                state: recording_state(task.state),
+                elapsed_seconds: task.elapsed_seconds,
+                file_size_bytes: task.file_size_bytes,
+                last_error_code: task.failure_code.map(str::to_owned),
+            })
+            .collect(),
     }
 }
 

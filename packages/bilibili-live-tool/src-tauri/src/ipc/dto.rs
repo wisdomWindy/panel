@@ -571,6 +571,19 @@ pub struct RecordingStatusDto {
     pub disk_remaining_bytes: u64,
     pub highlight_count: u32,
     pub last_error_code: Option<String>,
+    /// One entry per concurrent recording; the primary task is id 1.
+    pub tasks: Vec<RecordingTaskDto>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordingTaskDto {
+    pub id: u64,
+    pub room_id: Option<String>,
+    pub state: RecordingStateDto,
+    pub elapsed_seconds: u64,
+    pub file_size_bytes: u64,
+    pub last_error_code: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -916,6 +929,13 @@ pub struct RecordingStartRequestDto {
 #[serde(rename_all = "camelCase")]
 pub struct RecordingIdRequestDto {
     pub recording_id: String,
+}
+
+/// Identifies one concurrent recording task (1 = the primary runtime).
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordingTaskRequestDto {
+    pub task_id: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]

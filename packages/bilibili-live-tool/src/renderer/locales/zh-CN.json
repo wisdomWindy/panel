@@ -757,7 +757,13 @@
     "tasks": "录制任务",
     "room": "房间",
     "stopTask": "停止该任务",
-    "stopAll": "全部停止"
+    "stopAll": "全部停止",
+    "cleanup": "清理冗余文件",
+    "cleanupTitle": "清理冗余文件",
+    "cleanupBody": "将删除：文件已丢失或为空的录制记录、它们关联的高光、以及录制目录里的空文件。正在录制的内容和其他文件不会受影响。",
+    "cleanupConfirm": "开始清理",
+    "cleanupNone": "没有需要清理的冗余文件",
+    "cleanupDone": "已清理 {records} 条记录、{files} 个文件，释放 {size}"
   },
   "liveData": {
     "range": {

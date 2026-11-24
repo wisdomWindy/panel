@@ -384,3 +384,73 @@ fn is_windows_reserved_name(value: &str) -> bool {
                 matches!(suffix, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")
             })
 }
+
+/// True when a file name looks like one the recorder wrote:
+/// `<room>-<stamp>.<ext>` or a continuation segment `<room>-<stamp>-partN.<ext>`.
+///
+/// Cleanup relies on this to never touch a video the operator put in the folder.
+pub fn is_app_recording_file(file_name: &str) -> bool {
+    let Some((stem, extension)) = file_name.rsplit_once('.') else {
+        return false;
+    };
+    if !matches!(
+        extension.to_ascii_lowercase().as_str(),
+        "mp4" | "flv" | "mkv" | "ts"
+    ) {
+        return false;
+    }
+    let mut parts = stem.split('-');
+    let Some(room) = parts.next() else {
+        return false;
+    };
+    if room.is_empty() || !room.chars().all(|character| character.is_ascii_digit()) {
+        return false;
+    }
+    let Some(stamp) = parts.next() else {
+        return false;
+    };
+    if stamp.is_empty() || !stamp.chars().all(|character| character.is_ascii_digit()) {
+        return false;
+    }
+    match parts.next() {
+        None => true,
+        Some(segment) => segment
+            .strip_prefix("part")
+            .is_some_and(|index| !index.is_empty() && index.chars().all(|c| c.is_ascii_digit())),
+    }
+}
+
+#[cfg(test)]
+mod cleanup_file_tests {
+    use super::is_app_recording_file;
+
+    #[test]
+    fn recognises_files_the_recorder_wrote() {
+        for name in [
+            "1869218529-1795428633962.mp4",
+            "27183290-1795497559043.mp4",
+            "6-1795497585364-part2.mp4",
+            "6-1795497585364-part12.flv",
+            "1-2.mkv",
+            "1-2.ts",
+        ] {
+            assert!(is_app_recording_file(name), "{name} should be recognised");
+        }
+    }
+
+    #[test]
+    fn leaves_operator_files_alone() {
+        for name in [
+            "my-video.mp4",
+            "会议录像.mp4",
+            "room-abc.mp4",
+            "1869218529.mp4",
+            "1869218529-1795-part.mp4",
+            "1869218529-1795.part2.mp4",
+            "1869218529-1795.mp4.txt",
+            "1869218529-1795.avi",
+        ] {
+            assert!(!is_app_recording_file(name), "{name} must be ignored");
+        }
+    }
+}

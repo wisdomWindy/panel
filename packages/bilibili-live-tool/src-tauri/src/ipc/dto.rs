@@ -931,6 +931,15 @@ pub struct RecordingIdRequestDto {
     pub recording_id: String,
 }
 
+/// Result of an in-app cleanup of redundant media leftovers.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaCleanupReportDto {
+    pub removed_records: u32,
+    pub removed_highlights: u32,
+    pub removed_files: u32,
+    pub freed_bytes: u64,
+}
 /// Identifies one concurrent recording task (1 = the primary runtime).
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]

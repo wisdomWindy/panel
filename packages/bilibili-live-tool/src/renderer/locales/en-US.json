@@ -757,7 +757,13 @@
     "tasks": "Recording tasks",
     "room": "Room",
     "stopTask": "Stop task",
-    "stopAll": "Stop all"
+    "stopAll": "Stop all",
+    "cleanup": "Clean up files",
+    "cleanupTitle": "Clean up redundant files",
+    "cleanupBody": "Removes recording records whose file is missing or empty, their highlights, and empty files in the recording folder. Running recordings and other files are untouched.",
+    "cleanupConfirm": "Clean up",
+    "cleanupNone": "Nothing redundant to clean up",
+    "cleanupDone": "Removed {records} records and {files} files, freed {size}"
   },
   "liveData": {
     "range": {

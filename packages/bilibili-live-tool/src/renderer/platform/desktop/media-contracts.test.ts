@@ -12,14 +12,14 @@ import {
 
 describe('interaction media desktop contracts', () => {
   it('keeps the approved media surface closed', () => {
-    expect(MEDIA_COMMAND_NAMES).toHaveLength(47);
+    expect(MEDIA_COMMAND_NAMES).toHaveLength(48);
     expect(MEDIA_COMMAND_NAMES[0]).toBe('captain_effect_get');
     expect(MEDIA_COMMAND_NAMES[1]).toBe('captain_effect_current');
     expect(MEDIA_COMMAND_NAMES[20]).toBe('ffmpeg_install');
     expect(MEDIA_COMMAND_NAMES[36]).toBe('highlight_delete');
     expect(MEDIA_COMMAND_NAMES[41]).toBe('tts_qwen3_environment_status');
     expect(MEDIA_COMMAND_NAMES[43]).toBe('tts_qwen3_start');
-    expect(MEDIA_COMMAND_NAMES.at(-1)).toBe('recording_mark_highlight_task');
+    expect(MEDIA_COMMAND_NAMES.at(-1)).toBe('media_cleanup');
     expect(MEDIA_COMMAND_NAMES.filter(name => name.startsWith('tts_qwen3_'))).toEqual([
       'tts_qwen3_get',
       'tts_qwen3_save',

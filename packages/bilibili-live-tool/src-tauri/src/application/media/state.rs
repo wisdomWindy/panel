@@ -183,6 +183,15 @@ struct PrimaryRecordingTask {
     room_id: String,
 }
 
+/// What an in-app cleanup removed.
+#[derive(Clone, Debug, Default)]
+pub struct MediaCleanupReport {
+    pub removed_records: u32,
+    pub removed_highlights: u32,
+    pub removed_files: u32,
+    pub freed_bytes: u64,
+}
+
 /// A single recording task as the UI sees it.
 #[derive(Clone, Debug)]
 pub struct RecordingTaskSnapshot {
@@ -1199,6 +1208,108 @@ impl MediaState {
         }
         Ok(())
     }
+
+    /// Removes leftovers the user cannot act on: records whose file is gone or
+    /// empty, their highlights and zero-byte files in the recording folder.
+    ///
+    /// Continuation segments (`-partN`) and anything the database still
+    /// references are untouched, so a cleanup can never lose playable footage.
+    pub async fn cleanup_leftovers(&self) -> Result<MediaCleanupReport, MediaIoError> {
+        let mut report = MediaCleanupReport::default();
+        let services = self.services()?;
+        let tasks = self.recording_tasks().await;
+        let active_rooms: HashSet<String> = tasks
+            .into_iter()
+            .filter_map(|task| task.room_id)
+            .collect();
+        let recordings = services.repository.list_recordings().await?;
+        let mut referenced: HashSet<PathBuf> = HashSet::new();
+        for recording in recordings {
+            referenced.insert(recording.file_path.clone());
+            if recording.status == crate::application::media::RecordingItemState::Recording {
+                continue;
+            }
+            if active_rooms.contains(&recording.room_id) {
+                continue;
+            }
+            let size = tokio::fs::metadata(&recording.file_path)
+                .await
+                .map(|metadata| metadata.len())
+                .unwrap_or(0);
+            if size > 0 {
+                continue;
+            }
+            let mut doomed = Vec::new();
+            let mut freed = 0u64;
+            if size == 0 && recording.file_path.exists() {
+                doomed.push(recording.file_path.clone());
+            }
+            for highlight in services.repository.list_highlights(recording.id).await? {
+                if let Some(clip) = highlight.file_path {
+                    if let Ok(metadata) = tokio::fs::metadata(&clip).await {
+                        freed += metadata.len();
+                        doomed.push(clip);
+                    }
+                }
+                report.removed_highlights += 1;
+            }
+            if !doomed.is_empty() {
+                let staged = services.files.stage_delete(&doomed).await?;
+                if services.repository.delete_recording(recording.id).await? {
+                    services.files.finalize_staged(&staged).await?;
+                    report.removed_records += 1;
+                    report.removed_files += doomed.len() as u32;
+                    report.freed_bytes += freed;
+                } else {
+                    services.files.restore_staged(&staged).await?;
+                }
+            } else if services.repository.delete_recording(recording.id).await? {
+                report.removed_records += 1;
+            }
+        }
+
+        // Zero-byte files the app wrote but never finished.
+        if let Ok(directory) = self.recording_directory().await {
+            let mut empties = Vec::new();
+            if let Ok(mut entries) = tokio::fs::read_dir(&directory).await {
+                while let Ok(Some(entry)) = entries.next_entry().await {
+                    let path = entry.path();
+                    let name = path
+                        .file_name()
+                        .map(|name| name.to_string_lossy().into_owned())
+                        .unwrap_or_default();
+                    if !crate::domain::media::is_app_recording_file(&name) {
+                        continue;
+                    }
+                    let size = entry.metadata().await.map(|metadata| metadata.len()).unwrap_or(1);
+                    if size == 0 {
+                        empties.push(path);
+                    }
+                }
+            }
+            if !empties.is_empty() {
+                let staged = services.files.stage_delete(&empties).await?;
+                services.files.finalize_staged(&staged).await?;
+                report.removed_files += empties.len() as u32;
+            }
+        }
+        Ok(report)
+    }
+
+    /// Directory that receives recordings: the granted folder or the app's own
+    /// `download` directory.
+    async fn recording_directory(&self) -> Result<PathBuf, MediaIoError> {
+        let config = self.recording.config().await;
+        if let Some(grant) = config.directory.as_ref() {
+            if grant.grant_id != APP_DOWNLOAD_GRANT_ID {
+                return self.resolve_grant(&grant.grant_id, PathPurpose::RecordingDirectory);
+            }
+        }
+        self.default_recording_directory
+            .clone()
+            .ok_or_else(|| MediaIoError::coded("RECORD_DIRECTORY_REQUIRED", "请先选择保存目录", false))
+    }
+
 
     /// Stops every running recording (the primary task and any parallel ones).
     pub async fn stop_recording(&self) -> Result<(), MediaIoError> {

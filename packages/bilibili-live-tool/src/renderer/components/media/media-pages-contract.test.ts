@@ -112,6 +112,13 @@ describe('interaction media page contracts', () => {
     expect(recording).toContain('openRecordingFolder');
   });
 
+  it('offers an in-app cleanup of redundant recording leftovers', () => {
+    const recording = source('src/renderer/views/recording/index.vue');
+    const store = source('src/renderer/stores/media/recording.ts');
+    expect(recording).toContain('handleCleanup');
+    expect(recording).toContain("t('recording.cleanup')");
+    expect(store).toContain('cleanupLeftovers');
+  });
   it('lets one click start another concurrent recording task', () => {
     const recording = source('src/renderer/views/recording/index.vue');
     // The primary action always adds a task; stopping lives on each task row.

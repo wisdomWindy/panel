@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Loading, Setting, Star, VideoCamera, VideoPause } from '@element-plus/icons-vue';
+import { Delete, Loading, Setting, Star, VideoCamera, VideoPause } from '@element-plus/icons-vue';
 import type {
   HighlightSummary,
   PreviewSession,
@@ -283,6 +283,40 @@ async function markTask(taskId: number): Promise<void> {
     const value = error as { code?: string; message?: string };
     ElMessage.error(
       describeError(value.code, value.message ?? t('recording.messages.markFailed'))
+    );
+  }
+}
+const cleanupPending = computed(() => store.pendingOperations.has('cleanup'));
+
+/** Removes records/files the operator cannot use any more. */
+async function handleCleanup(): Promise<void> {
+  try {
+    await ElMessageBox.confirm(t('recording.cleanupBody'), t('recording.cleanupTitle'), {
+      type: 'warning',
+      confirmButtonText: t('recording.cleanupConfirm'),
+      cancelButtonText: t('common.cancel')
+    });
+  } catch {
+    return;
+  }
+  try {
+    const report = await store.cleanupLeftovers();
+    const removed = report.removedRecords + report.removedFiles + report.removedHighlights;
+    if (removed === 0) {
+      ElMessage.success(t('recording.cleanupNone'));
+      return;
+    }
+    ElMessage.success(
+      t('recording.cleanupDone', {
+        records: report.removedRecords,
+        files: report.removedFiles,
+        size: formatBytes(report.freedBytes)
+      })
+    );
+  } catch (error) {
+    const value = error as { code?: string; message?: string };
+    ElMessage.error(
+      describeError(value.code, value.message ?? t('recording.messages.operationFailed'))
     );
   }
 }
@@ -741,6 +775,17 @@ onUnmounted(stopStatusPolling);
           >
             {{ tab.label }}
             <span class="app-faint tabular-nums">{{ tab.count }}</span>
+          </button>
+          <button
+            type="button"
+            class="app-chip ml-auto disabled:cursor-not-allowed disabled:opacity-50"
+            :aria-busy="cleanupPending"
+            :disabled="cleanupPending"
+            @click="handleCleanup"
+          >
+            <el-icon v-if="cleanupPending" class="is-loading"><Loading /></el-icon>
+            <el-icon v-else><Delete /></el-icon>
+            {{ t('recording.cleanup') }}
           </button>
         </div>
         <RecordingList

@@ -809,6 +809,19 @@ pub async fn recording_open_folder(
 }
 
 #[tauri::command]
+pub async fn media_cleanup(
+    state: State<'_, AppState>,
+) -> Result<MediaCleanupReportDto, DesktopError> {
+    let report = state.media().cleanup_leftovers().await?;
+    Ok(MediaCleanupReportDto {
+        removed_records: report.removed_records,
+        removed_highlights: report.removed_highlights,
+        removed_files: report.removed_files,
+        freed_bytes: report.freed_bytes,
+    })
+}
+
+#[tauri::command]
 pub async fn recording_rename(
     state: State<'_, AppState>,
     request: RecordingRenameRequestDto,

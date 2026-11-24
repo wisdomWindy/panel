@@ -223,6 +223,19 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     });
   }
 
+  /** Removes records whose file is gone and zero-byte leftovers. */
+  async function cleanupLeftovers(): Promise<{
+    removedRecords: number;
+    removedHighlights: number;
+    removedFiles: number;
+    freedBytes: number;
+  }> {
+    return runOperation('cleanup', async () => {
+      const report = await invokeDesktop('media_cleanup', undefined);
+      await refresh();
+      return report;
+    });
+  }
   function openRecordingFolder(recordingId: RecordingId): Promise<{ opened: boolean }> {
     return runOperation(`openRecordingFolder:${recordingId}`, () =>
       invokeDesktop('recording_open_folder', { recordingId })
@@ -326,6 +339,7 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     markHighlight,
     markHighlightTask,
     openRecordingFolder,
+    cleanupLeftovers,
     previewHighlight,
     renameRecording,
     deleteRecording,

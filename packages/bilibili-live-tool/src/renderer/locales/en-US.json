@@ -866,9 +866,7 @@
       "instruct": "Voice instruction",
       "instructHint": "Describe the voice in natural language; the service designs a voice from it in voice_design mode",
       "timeout": "Timeout (ms)",
-      "fallback": "Fall back to the system voice on failure",
-      "aiVoice": "AI reply voice",
-      "aiVoiceHint": "Leave empty to reuse the broadcast voice",
+      "fallback": "Fall back to the system voice on failure",
       "ready": "Service ready: {model}",
       "loading": "Model loading…",
       "unreachable": "Cannot reach the Qwen3-TTS service",
@@ -876,7 +874,6 @@
       "saveSuccess": "Qwen3-TTS settings saved",
       "testSuccess": "Qwen3-TTS sample played",
       "probe": "Probe service",
-      "preview": "Play sample",
       "pipMirror": "Package source",
       "pipMirrorHint": "Used when installing the runtime dependencies for the first time",
       "mirrors": {
@@ -884,7 +881,7 @@
         "aliyun": "Aliyun mirror",
         "official": "Official PyPI (no mirror)"
       },
-      "cpuHint": "No GPU detected: local synthesis takes about 0.5 s per character. Enable it for a few event kinds only, or keep the system voice."
+      "cpuHint": "Synthesising on CPU: about 0.5 s per character, so enable it for a few event kinds only. On a machine with an NVIDIA GPU, re-preparing the speech runtime enables GPU acceleration."
     },
     "voice": "Voice",
     "rate": "Rate",
@@ -923,6 +920,7 @@
     "messages": {
       "invalidTemplate": "Invalid broadcast template",
       "saveSuccess": "Voice broadcast settings saved",
+      "testSuccess": "Test playback finished",
       "testFailed": "Voice test failed",
       "resetSuccess": "Default voice broadcast settings restored",
       "resetFailed": "Could not restore default voice broadcast settings",

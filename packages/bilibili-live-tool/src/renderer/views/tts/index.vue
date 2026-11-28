@@ -9,7 +9,6 @@ import { retriesSpeechInstall } from '@/modules/media/speech-retry';
 import { validateTtsTemplate, validateTtsTemplates } from '@/modules/media/validation';
 import { useMediaTtsStore } from '@/stores/media/tts';
 import { resolvePreferredVoiceId } from './voice-selection';
-import { mergeVoiceOptions } from '@/modules/media/qwen3-voices';
 
 const store = useMediaTtsStore();
 const { t } = useI18n();
@@ -78,9 +77,6 @@ const qwen3Dirty = computed(() =>
   store.qwen3 ? JSON.stringify(qwen3Draft) !== JSON.stringify(store.qwen3.config) : false
 );
 const qwen3Health = computed(() => store.qwen3?.health ?? null);
-// The service reports its speakers when reachable; the upstream CustomVoice
-// table is compiled in so the select is never empty (PRD 9.11).
-const qwen3VoiceOptions = computed(() => mergeVoiceOptions(store.qwen3?.voiceIds ?? []));
 /** Codes that only mean "the model is still warming up", not a failure. */
 const WARMUP_CODES: readonly string[] = ['TTS_TIMEOUT', 'TTS_MODEL_LOADING', 'qwen3_tts_unreachable'];
 
@@ -124,7 +120,6 @@ const qwen3SavePending = computed(() => store.pendingOperations.has('qwen3Save')
 
 /** True when the local service reports CPU synthesis. */
 const qwen3RunsOnCpu = computed(() => store.qwen3?.health?.device === 'cpu');
-const qwen3TestPending = computed(() => store.pendingOperations.has('qwen3Test'));
 const qwen3ProbePending = ref(false);
 
 function applyQwen3Config(config: Qwen3TtsConfig): void {
@@ -136,7 +131,9 @@ function qwen3Payload(): Qwen3TtsConfig {
     ...qwen3Draft,
     instruct: qwen3Draft.instruct.trim(),
     aiInstruct: qwen3Draft.aiInstruct?.trim() ? qwen3Draft.aiInstruct.trim() : null,
-    aiVoiceId: qwen3Draft.aiVoiceId || null,
+    // AI replies always follow the broadcast voice; a stored override is what
+    // used to let the two drift apart, so it is never written back.
+    aiVoiceId: null,
     voiceId: qwen3Draft.voiceId || null
   };
 }
@@ -150,16 +147,6 @@ async function handleQwen3Probe(): Promise<void> {
     ElMessage.error((error as { message?: string }).message ?? t('tts.qwen3.unreachable'));
   } finally {
     qwen3ProbePending.value = false;
-  }
-}
-
-async function handleQwen3Test(): Promise<void> {
-  try {
-    if (qwen3Dirty.value) await store.saveQwen3(qwen3Payload());
-    await store.testQwen3();
-    ElMessage.success(t('tts.qwen3.testSuccess'));
-  } catch (error) {
-    ElMessage.error((error as { message?: string }).message ?? t('tts.messages.testFailed'));
   }
 }
 
@@ -211,12 +198,14 @@ async function handleEnabled(value: boolean): Promise<void> {
   }
 }
 
-/** One-stop preparation: runtime environment -> service -> model weights. */
-/** One-stop preparation shared with the AI page; owned by the TTS store. */
+/**
+ * One-stop preparation is shared with the AI page and owned by the TTS store.
+ * The completion toast belongs to SpeechPrepareDialog, which watches the same
+ * run; announcing it here as well stacked duplicate messages.
+ */
 async function ensureQwen3Service(): Promise<void> {
   try {
     await store.ensureSpeechReady();
-    ElMessage.success(t('tts.environment.ready'));
   } catch (error) {
     ElMessage.error((error as { message?: string }).message ?? t('tts.environment.failed'));
   }
@@ -263,7 +252,14 @@ async function handleSave(): Promise<void> {
 async function handleTest(): Promise<void> {
   if (!validateDraft()) return;
   try {
+    // A dirty Qwen3 config would otherwise be played with the previous settings.
+    if (draft.selectedEngine === 'cloud' && qwen3Dirty.value) {
+      await store
+        .saveQwen3(qwen3Payload())
+        .then(snapshot => applyQwen3Config(snapshot.config));
+    }
     await store.test({ ...draft, templates: { ...draft.templates } });
+    ElMessage.success(t('tts.messages.testSuccess'));
   } catch (error) {
     ElMessage.error((error as { message?: string }).message ?? t('tts.messages.testFailed'));
   }
@@ -350,7 +346,17 @@ onMounted(async () => {
   }
   try {
     const qwen3 = await store.loadQwen3();
-    if (qwen3) applyQwen3Config(qwen3.config);
+    if (qwen3) {
+      applyQwen3Config(qwen3.config);
+      // AI replies follow the broadcast voice now; a stored override from an
+      // earlier version would keep them apart, so clear it once.
+      if (qwen3.config.aiVoiceId !== null) {
+        await store
+          .saveQwen3(qwen3Payload())
+          .then(saved => applyQwen3Config(saved.config))
+          .catch(() => undefined);
+      }
+    }
   } catch {
     // An unreachable speech service must not block the broadcast settings.
   }
@@ -432,13 +438,6 @@ onMounted(async () => {
         <div class="app-card flex flex-wrap items-center justify-end gap-2 p-3">
           <el-button :loading="qwen3ProbePending" @click="handleQwen3Probe">
             {{ t('tts.qwen3.probe') }}
-          </el-button>
-          <el-button
-            :loading="qwen3TestPending"
-            :disabled="!qwen3Draft.isEnabled"
-            @click="handleQwen3Test"
-          >
-            {{ t('tts.qwen3.preview') }}
           </el-button>
           <el-button
             :icon="VideoPlay"
@@ -577,26 +576,6 @@ onMounted(async () => {
                     :value="language"
                   />
                 </el-select>
-              </el-form-item>
-              <el-form-item :label="t('tts.qwen3.aiVoice')">
-                <el-select
-                  v-model="qwen3Draft.aiVoiceId"
-                  class="w-full"
-                  clearable
-                  filterable
-                  allow-create
-                  default-first-option
-                >
-                  <el-option
-                    v-for="voice in qwen3VoiceOptions"
-                    :key="voice.value"
-                    :label="voice.label"
-                    :value="voice.value"
-                  />
-                </el-select>
-                <p class="app-faint m-0 mt-1 w-full text-xs">
-                  {{ t('tts.qwen3.aiVoiceHint') }}
-                </p>
               </el-form-item>
               <el-form-item :label="t('tts.qwen3.timeout')">
                 <el-input-number

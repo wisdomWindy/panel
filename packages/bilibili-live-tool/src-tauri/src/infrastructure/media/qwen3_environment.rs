@@ -16,6 +16,10 @@ use crate::application::media::MediaIoError;
 const INSTALL_TIMEOUT_SECONDS: u64 = 3600;
 pub const ENVIRONMENT_PROGRESS_EVENT: &str = "tts_environment_progress";
 
+/// CUDA-enabled torch wheels. The pip mirror only carries the CPU build on
+/// Windows, so GPU machines need this index to get a CUDA build at all.
+const CUDA_TORCH_INDEX: &str = "https://download.pytorch.org/whl/cu124";
+
 /// Packages the service imports at runtime (see services/qwen3-tts/requirements.txt).
 const REQUIRED_MODULES: &str = "torch, huggingface_hub, qwen_tts, soundfile, numpy, modelscope";
 
@@ -93,6 +97,9 @@ impl Qwen3Environment {
         progress: impl Fn(&str, &str) + Send + 'static,
     ) -> Result<EnvironmentStatus, MediaIoError> {
         if self.status().ready {
+            // A ready environment can still be CPU-only: the pip mirror serves
+            // CPU torch on Windows, so the machine's GPU would never be used.
+            self.repair_cuda_torch(&progress).await;
             progress("ready", "运行环境已就绪");
             return Ok(self.status());
         }
@@ -164,6 +171,10 @@ impl Qwen3Environment {
         }
         run(&venv_python, &arguments, &self.root, log, INSTALL_TIMEOUT_SECONDS).await?;
 
+        // Requirements pulled torch from the mirror, which is the CPU build on
+        // Windows; upgrade it before the environment is declared ready.
+        self.repair_cuda_torch(&progress).await;
+
         progress("verify", "正在校验运行环境…");
         match probe_modules(&venv_python) {
             Ok(()) => {
@@ -178,8 +189,60 @@ impl Qwen3Environment {
         }
     }
 
-    fn log_file(&self, name: &str) -> std::fs::File {
-        let _ = std::fs::create_dir_all(&self.log_directory);
+    /// Installs CUDA-enabled torch when the machine has an NVIDIA GPU but the
+    /// virtualenv only holds the CPU build. Best effort: a failure keeps the
+    /// working CPU environment instead of breaking speech entirely.
+    async fn repair_cuda_torch(&self, progress: &impl Fn(&str, &str)) -> bool {
+        if !nvidia_gpu_present() {
+            return false;
+        }
+        let Some(venv_python) = self.venv_python_path() else {
+            return false;
+        };
+        if !venv_python.is_file() || torch_has_cuda(&venv_python).await {
+            return false;
+        }
+        progress(
+            "gpu",
+            "检测到 NVIDIA 显卡，正在安装 GPU 版 PyTorch（约 2.5 GB，首次较慢）…",
+        );
+        let log = self.log_file("pip-gpu.log");
+        let result = run(
+            &venv_python,
+            &[
+                "-m",
+                "pip",
+                "install",
+                "--disable-pip-version-check",
+                "--upgrade",
+                "--force-reinstall",
+                "--no-deps",
+                "--index-url",
+                CUDA_TORCH_INDEX,
+                "torch",
+                "torchaudio",
+            ],
+            &self.root,
+            log,
+            INSTALL_TIMEOUT_SECONDS,
+        )
+        .await;
+        match result {
+            Ok(()) => {
+                log::info!("installed CUDA-enabled torch from {CUDA_TORCH_INDEX}");
+                true
+            }
+            Err(error) => {
+                log::warn!(
+                    "cuda torch install failed, keeping the cpu build: {}",
+                    error.code
+                );
+                false
+            }
+        }
+    }
+
+    fn log_file(&self, name: &str) -> std::fs::File {        let _ = std::fs::create_dir_all(&self.log_directory);
         std::fs::File::create(self.log_directory.join(name)).unwrap_or_else(|_| {
             std::fs::File::open(std::env::temp_dir()).unwrap_or_else(|_| {
                 // `/dev/null` equivalent; a closed file is good enough here.
@@ -196,6 +259,40 @@ fn unavailable() -> MediaIoError {
         "无法创建语音运行环境，请检查磁盘空间与权限",
         true,
     )
+}
+
+/// True when the NVIDIA driver reports at least one adapter.
+fn nvidia_gpu_present() -> bool {
+    let output = crate::infrastructure::process::quiet("nvidia-smi")
+        .arg("-L")
+        .output();
+    match output {
+        Ok(output) if output.status.success() => {
+            nvidia_gpu_listed(&String::from_utf8_lossy(&output.stdout))
+        }
+        _ => false,
+    }
+}
+
+/// `nvidia-smi -L` prints one `GPU 0: NVIDIA GeForce RTX ...` line per adapter.
+fn nvidia_gpu_listed(stdout: &str) -> bool {
+    stdout
+        .lines()
+        .any(|line| line.trim_start().starts_with("GPU "))
+}
+
+/// Whether the virtualenv's torch was built with CUDA support.
+async fn torch_has_cuda(venv_python: &std::path::Path) -> bool {
+    let output = crate::infrastructure::process::quiet_tokio(venv_python)
+        .args(["-c", "import torch;print(1 if torch.version.cuda else 0)"])
+        .output()
+        .await;
+    match output {
+        Ok(output) if output.status.success() => {
+            String::from_utf8_lossy(&output.stdout).trim() == "1"
+        }
+        _ => false,
+    }
 }
 
 /// Runs a Python tool, appending its output to `log`, and maps failures to a
@@ -287,7 +384,23 @@ fn locate_requirements() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use super::Qwen3Environment;
+    use super::{nvidia_gpu_listed, Qwen3Environment};
+
+    #[test]
+    fn nvidia_smi_output_is_recognised_only_when_an_adapter_is_listed() {
+        assert!(nvidia_gpu_listed(
+            "GPU 0: NVIDIA GeForce RTX 4070 (UUID: GPU-1234)\n"
+        ));
+        assert!(nvidia_gpu_listed(
+            "GPU 0: NVIDIA GeForce RTX 3060 (UUID: GPU-a)\nGPU 1: NVIDIA GeForce RTX 3060 (UUID: GPU-b)\n"
+        ));
+        // A driver that answers but exposes no adapter must not trigger the
+        // multi-gigabyte CUDA download.
+        assert!(!nvidia_gpu_listed(""));
+        assert!(!nvidia_gpu_listed(
+            "NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver."
+        ));
+    }
 
     #[test]
     fn reports_missing_environment_before_anything_is_installed() {

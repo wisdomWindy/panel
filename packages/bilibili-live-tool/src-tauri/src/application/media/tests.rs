@@ -176,6 +176,32 @@ impl SpeechEnginePort for RecordingSpeech {
     }
 }
 
+/// Fails with a specific engine error, like a real remote engine would.
+struct FailingSpeech {
+    code: &'static str,
+}
+
+impl FailingSpeech {
+    fn new(code: &'static str) -> Self {
+        Self { code }
+    }
+}
+
+#[async_trait::async_trait]
+impl SpeechEnginePort for FailingSpeech {
+    async fn voices(&self) -> Result<Vec<SpeechVoice>, MediaIoError> {
+        Ok(Vec::new())
+    }
+
+    async fn speak(&self, _: SpeechRequest) -> Result<(), MediaIoError> {
+        Err(MediaIoError::coded(self.code, "engine failed", true))
+    }
+
+    async fn stop(&self) -> Result<(), MediaIoError> {
+        Ok(())
+    }
+}
+
 struct FakeRecorderProcess {
     stops: Arc<AtomicUsize>,
     waits: Arc<AtomicUsize>,
@@ -891,4 +917,21 @@ async fn a_host_going_offline_ends_the_recording_without_an_error() {
     assert_eq!(snapshot.state, RecordingState::Idle);
     assert_eq!(snapshot.failure_code, None);
     handle.abort();
+}
+
+#[tokio::test]
+async fn a_failed_test_keeps_the_engine_error_instead_of_the_placeholder() {
+    // The last candidate is the placeholder engine, which only reports the
+    // generic RECORD_UNAVAILABLE; the operator needs the real reason instead.
+    let system = Arc::new(RecordingSpeech::new(true));
+    let cloud = Arc::new(FailingSpeech::new("qwen3_tts_unreachable"));
+    let local = Arc::new(RecordingSpeech::new(true));
+    let mut config = default_tts_config();
+    config.is_enabled = true;
+    config.selected_engine = TtsSelectedEngine::Cloud;
+    let runtime = TtsRuntime::start(config.clone(), system, cloud, local).await;
+
+    let error = runtime.test(&config, "你好".into()).await.unwrap_err();
+
+    assert_eq!(error.code, "qwen3_tts_unreachable");
 }

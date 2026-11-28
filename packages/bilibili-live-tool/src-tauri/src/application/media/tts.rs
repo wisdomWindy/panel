@@ -199,11 +199,19 @@ impl TtsRuntime {
             // fallback saved us. Live playback keeps the wider chain below.
             TtsSelectedEngine::Cloud => vec![&self.cloud, &self.local_fallback],
         };
-        let mut last_error = None;
+        // The last candidate is a placeholder that only reports a generic
+        // "unavailable"; keep the error that explains why the selected engine
+        // failed, otherwise every failure reads the same.
+        let mut last_error: Option<crate::application::media::MediaIoError> = None;
         for engine in candidates {
             match engine.speak(request.clone()).await {
                 Ok(()) => return Ok(()),
-                Err(error) => last_error = Some(error),
+                Err(error) => {
+                    let generic = error.code == "RECORD_UNAVAILABLE";
+                    if last_error.is_none() || !generic {
+                        last_error = Some(error);
+                    }
+                }
             }
         }
         Err(last_error.unwrap_or_else(|| {

@@ -20,12 +20,19 @@ const message = computed(
 /** Elapsed seconds keep the panel informative while pip works silently. */
 const elapsed = ref(0);
 let timer: ReturnType<typeof setInterval> | null = null;
+let lastNotifiedAt = 0;
 
 watch(visible, (active, wasActive) => {
   // A finished preparation that closed the panel deserves a confirmation: the
-  // operator only saw an indeterminate bar for minutes.
+  // operator only saw an indeterminate bar for minutes. This is the *only*
+  // place that announces it — the pages used to toast as well, which stacked
+  // one message per completion.
   if (!active && wasActive && media.environment.ready) {
-    ElMessage.success(t('tts.environment.ready'));
+    const now = Date.now();
+    if (now - lastNotifiedAt > 3000) {
+      lastNotifiedAt = now;
+      ElMessage.success(t('tts.environment.ready'));
+    }
   }
   if (active && timer === null) {
     elapsed.value = 0;

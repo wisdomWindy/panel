@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
-import { invokeDesktop, type TtsSnapshot, type TtsStatus } from '@/platform/desktop';
+import {
+  invokeDesktop,
+  listenDesktop,
+  type TtsSnapshot,
+  type TtsStatus
+} from '@/platform/desktop';
 import { useMediaTtsStore } from './tts';
 
 vi.mock('@/platform/desktop', async () => {
   const actual = await vi.importActual<typeof import('@/platform/desktop')>('@/platform/desktop');
-  return { ...actual, invokeDesktop: vi.fn() };
+  return { ...actual, invokeDesktop: vi.fn(), listenDesktop: vi.fn() };
 });
 
 const status = (state: TtsStatus['state'] = 'idle'): TtsStatus => ({
@@ -25,6 +30,7 @@ describe('media TTS store', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.mocked(invokeDesktop).mockReset();
+    vi.mocked(listenDesktop).mockReset();
   });
 
   it('deduplicates the same operation and commits one status response', async () => {
@@ -52,5 +58,23 @@ describe('media TTS store', () => {
     await pending;
     expect(store.snapshot).toBeNull();
     expect(store.pending).toBe(false);
+  });
+
+  it('subscribes to environment progress once, not once per preparation run', async () => {
+    const stop = vi.fn();
+    vi.mocked(listenDesktop).mockResolvedValue(stop as never);
+    const store = useMediaTtsStore();
+
+    // The shell attaches at start-up and every preparation run used to attach
+    // again; stacked listeners each flipped `preparing`, which produced one
+    // "语音服务已就绪" toast per listener.
+    await store.attachEnvironmentEvents();
+    await store.attachEnvironmentEvents();
+    await store.listenEnvironmentProgress();
+
+    expect(listenDesktop).toHaveBeenCalledTimes(1);
+
+    store.dispose();
+    expect(stop).toHaveBeenCalledTimes(1);
   });
 });

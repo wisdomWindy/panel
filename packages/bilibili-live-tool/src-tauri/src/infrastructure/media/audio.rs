@@ -102,14 +102,34 @@ fn run_audio(
     ready: mpsc::SyncSender<Result<(), MediaIoError>>,
 ) {
     let setup = (|| {
-        let file = File::open(request.source)
-            .map_err(|_| MediaIoError::unavailable("audio source is unavailable"))?;
+        let file = File::open(request.source).map_err(|error| {
+            log::warn!("audio source could not be opened: {error}");
+            MediaIoError::coded(
+                "SYS_AUDIO_SOURCE_UNAVAILABLE",
+                format!("audio source is unavailable: {error}"),
+                true,
+            )
+        })?;
         let decoder = Decoder::new(BufReader::new(file))
             .map_err(|_| MediaIoError::invalid("audio source is not valid MP3/WAV"))?;
-        let (stream, handle) = OutputStream::try_default()
-            .map_err(|_| MediaIoError::unavailable("audio output is unavailable"))?;
-        let sink = Sink::try_new(&handle)
-            .map_err(|_| MediaIoError::unavailable("audio output is unavailable"))?;
+        let (stream, handle) = OutputStream::try_default().map_err(|error| {
+            // The generic "local feature unavailable" text used to hide this;
+            // keep the reason in the log and in the error message.
+            log::warn!("audio output could not be opened: {error}");
+            MediaIoError::coded(
+                "SYS_AUDIO_OUTPUT_UNAVAILABLE",
+                format!("audio output is unavailable: {error}"),
+                true,
+            )
+        })?;
+        let sink = Sink::try_new(&handle).map_err(|error| {
+            log::warn!("audio sink could not be created: {error}");
+            MediaIoError::coded(
+                "SYS_AUDIO_OUTPUT_UNAVAILABLE",
+                format!("audio output is unavailable: {error}"),
+                true,
+            )
+        })?;
         Ok::<_, MediaIoError>((stream, sink, decoder))
     })();
     let (_stream, sink, decoder) = match setup {
@@ -141,10 +161,22 @@ fn run_alert(
     ready: mpsc::SyncSender<Result<(), MediaIoError>>,
 ) {
     let setup = (|| {
-        let (stream, handle) = OutputStream::try_default()
-            .map_err(|_| MediaIoError::unavailable("audio output is unavailable"))?;
-        let sink = Sink::try_new(&handle)
-            .map_err(|_| MediaIoError::unavailable("audio output is unavailable"))?;
+        let (stream, handle) = OutputStream::try_default().map_err(|error| {
+            log::warn!("audio output could not be opened: {error}");
+            MediaIoError::coded(
+                "SYS_AUDIO_OUTPUT_UNAVAILABLE",
+                format!("audio output is unavailable: {error}"),
+                true,
+            )
+        })?;
+        let sink = Sink::try_new(&handle).map_err(|error| {
+            log::warn!("audio sink could not be created: {error}");
+            MediaIoError::coded(
+                "SYS_AUDIO_OUTPUT_UNAVAILABLE",
+                format!("audio output is unavailable: {error}"),
+                true,
+            )
+        })?;
         Ok::<_, MediaIoError>((stream, sink))
     })();
     let (_stream, sink) = match setup {
@@ -204,7 +236,9 @@ impl AudioOutputPort for UnavailableAudioOutput {
 
 #[cfg(test)]
 mod tests {
-    use super::alert_tone_sequence;
+    use super::{alert_tone_sequence, RodioAudioOutput};
+    use crate::application::media::AudioOutputPort;
+    use std::time::Duration;
 
     #[test]
     fn built_in_gift_alert_is_a_short_ascending_four_note_cue() {
@@ -212,5 +246,20 @@ mod tests {
         assert_eq!(notes.len(), 4);
         assert!(notes.windows(2).all(|pair| pair[0].0 < pair[1].0));
         assert!(notes.iter().map(|(_, millis)| millis).sum::<u64>() <= 600);
+    }
+
+    /// `cargo test --lib opens_the_default_audio_output -- --ignored`
+    ///
+    /// This is the exact step that makes 测试播报 fail on a machine without a
+    /// usable default output; running it locally reports the cpal reason.
+    #[tokio::test]
+    #[ignore = "requires a working audio output device"]
+    async fn opens_the_default_audio_output() {
+        let playback = RodioAudioOutput
+            .play_alert(0.02)
+            .await
+            .expect("default audio output should open");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        playback.stop();
     }
 }

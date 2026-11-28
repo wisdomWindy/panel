@@ -44,4 +44,24 @@ describe('media recording store', () => {
     await store.discardDirectorySelection();
     expect(invokeDesktop).toHaveBeenNthCalledWith(2, 'path_revoke', { grantId: 'directory-grant' });
   });
+
+  it('re-reads the status after deleting a file so its size stops counting', async () => {
+    vi.mocked(invokeDesktop)
+      .mockResolvedValueOnce(undefined as never)
+      .mockResolvedValueOnce({
+        state: 'idle', sessionId: null, roomId: null, elapsedSeconds: 0,
+        fileSizeBytes: 0, diskRemainingBytes: 10, highlightCount: 0, lastErrorCode: null
+      } as never);
+    const store = useMediaRecordingStore();
+    store.replaceStatus({
+      state: 'idle', sessionId: null, roomId: null, elapsedSeconds: 0,
+      fileSizeBytes: 2_800_000, diskRemainingBytes: 10, highlightCount: 0, lastErrorCode: null
+    });
+
+    await store.deleteRecording(1 as never);
+
+    expect(invokeDesktop).toHaveBeenNthCalledWith(1, 'recording_delete', { recordingId: 1 });
+    expect(invokeDesktop).toHaveBeenNthCalledWith(2, 'recording_status', undefined);
+    expect(store.status?.fileSizeBytes).toBe(0);
+  });
 });

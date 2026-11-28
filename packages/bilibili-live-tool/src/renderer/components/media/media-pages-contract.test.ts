@@ -127,6 +127,10 @@ describe('interaction media page contracts', () => {
     // System-only controls are hidden for the Qwen3 engine.
     expect(tts).toMatch(/v-if="draft\.selectedEngine === 'system'"/);
     expect(tts).toMatch(/t\('tts\.rate'\)/);
+    // AI replies follow the broadcast voice: there is no second voice picker
+    // and the payload never writes a stale override back.
+    expect(tts).not.toContain('tts.qwen3.aiVoice');
+    expect(tts).toContain('aiVoiceId: null');
   });
 
   it('offers an in-app cleanup of redundant recording leftovers', () => {

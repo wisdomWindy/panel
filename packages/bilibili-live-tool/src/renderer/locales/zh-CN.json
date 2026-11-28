@@ -866,9 +866,7 @@
       "instruct": "音色指令",
       "instructHint": "用自然语言描述音色与语气；服务以 voice_design 模式运行时据此设计专属音色",
       "timeout": "超时（毫秒）",
-      "fallback": "失败时回退系统语音",
-      "aiVoice": "AI 回复音色",
-      "aiVoiceHint": "留空则沿用播报音色",
+      "fallback": "失败时回退系统语音",
       "ready": "服务就绪：{model}",
       "loading": "模型加载中…",
       "unreachable": "无法连接 Qwen3-TTS 服务",
@@ -876,7 +874,6 @@
       "saveSuccess": "Qwen3-TTS 配置已保存",
       "testSuccess": "Qwen3-TTS 试听已播放",
       "probe": "检测服务",
-      "preview": "试听",
       "pipMirror": "依赖下载源",
       "pipMirrorHint": "首次安装依赖时使用；国内建议保留镜像，加速下载",
       "mirrors": {
@@ -884,7 +881,7 @@
         "aliyun": "阿里云镜像",
         "official": "官方源（不使用镜像）"
       },
-      "cpuHint": "未检测到可用 GPU：本地合成约 0.5 秒/字，10 字约需 5 秒。建议只对少量事件启用，或保持系统语音。"
+      "cpuHint": "当前使用 CPU 合成：约 0.5 秒/字，10 字约需 5 秒，建议只对少量事件启用。若本机有 NVIDIA 显卡，重新准备语音运行环境即可启用 GPU 加速。"
     },
     "voice": "音色",
     "rate": "语速",
@@ -923,6 +920,7 @@
     "messages": {
       "invalidTemplate": "播报模板无效",
       "saveSuccess": "语音播报配置已保存",
+      "testSuccess": "测试播报已播放",
       "testFailed": "测试失败",
       "resetSuccess": "已恢复默认播报配置",
       "resetFailed": "重置失败",

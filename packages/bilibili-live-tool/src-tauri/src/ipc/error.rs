@@ -138,6 +138,8 @@ impl From<MediaIoError> for DesktopError {
             "SYS_PERMISSION_DENIED" => "文件授权已失效，请重新选择",
             "RECORD_CONFLICT" => "当前状态不允许此操作",
             "RECORD_UNAVAILABLE" => "所需的本地功能当前不可用",
+            "SYS_AUDIO_OUTPUT_UNAVAILABLE" => "打开音频输出设备失败：请确认系统有可用的扬声器输出，且未被其他程序独占",
+            "SYS_AUDIO_SOURCE_UNAVAILABLE" => "临时音频文件无法读取，请重试",
             "RECORD_OPERATION_FAILED" => "本地媒体操作失败，请稍后重试",
             "qwen3_tts_disabled" => "Qwen3-TTS 语音服务尚未启用",
             "qwen3_tts_unreachable" => "无法连接 Qwen3-TTS 语音服务，请确认服务已启动",

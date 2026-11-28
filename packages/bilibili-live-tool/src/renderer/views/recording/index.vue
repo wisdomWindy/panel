@@ -99,7 +99,18 @@ const stateDotClass = computed(() => {
 });
 
 const elapsedText = computed(() => formatDuration(status.value?.elapsedSeconds ?? 0));
-const fileSizeText = computed(() => formatBytes(status.value?.fileSizeBytes ?? 0));
+/**
+ * Only a running task writes bytes. The runtime keeps the last session's size
+ * after it ends, so counting it while idle makes the gauge (and 大小) stick at
+ * the size of a file the operator already deleted.
+ */
+const isSessionActive = computed(() =>
+  ['starting', 'recording', 'stopping', 'finalizing'].includes(status.value?.state ?? 'idle')
+);
+const sessionSizeBytes = computed(() =>
+  isSessionActive.value ? (status.value?.fileSizeBytes ?? 0) : 0
+);
+const fileSizeText = computed(() => formatBytes(sessionSizeBytes.value));
 const remainingText = computed(() => {
   const remaining = status.value?.diskRemainingBytes ?? 0;
   return remaining > 0 ? formatBytes(remaining) : '--';
@@ -111,7 +122,7 @@ const storedBytes = computed(() => {
   const finished = store.recordings.reduce((total, recording) => total + recording.sizeBytes, 0);
   // The active recording is still being written, so its size comes from the
   // live status instead of the listed (not yet finalised) row.
-  return finished + (status.value?.fileSizeBytes ?? 0);
+  return finished + sessionSizeBytes.value;
 });
 const quotaPercent = computed(() => {
   const quota = config.value?.quotaBytes ?? 0;

@@ -213,10 +213,14 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
   async function ensureSpeechReady(): Promise<Qwen3EnvironmentStatus | null> {
     if (preparing.value) return environment.value;
     preparing.value = true;
-    const stopListening = await listenEnvironmentProgress().catch(() => null);
     try {
-      const status = await loadEnvironmentStatus();
-      if (!status.ready) await prepareEnvironment();
+      // The shell subscribes once; every run reuses that subscription instead of
+      // stacking listeners that would each flip `preparing` on the same event.
+      await listenEnvironmentProgress().catch(() => null);
+      // `prepare` is idempotent: it returns immediately on a ready environment
+      // but still upgrades a CPU-only torch build when the machine has an
+      // NVIDIA GPU, which is how an existing install picks that fix up.
+      await prepareEnvironment();
       await startQwen3Service();
       const catalog = await loadQwen3Models();
       await loadQwen3().catch(() => undefined);
@@ -227,7 +231,6 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
       return environment.value;
     } finally {
       preparing.value = false;
-      stopListening?.();
     }
   }
 
@@ -242,8 +245,14 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
 
   const TERMINAL_STAGES = new Set(['ready', 'failed', 'idle']);
 
+  // One subscription for the whole session: subscribing per preparation run
+  // stacked listeners, and each of them flipped `preparing` on every event.
+  let environmentListener: Promise<() => void> | null = null;
+  let environmentListenerStop: (() => void) | null = null;
+
   function listenEnvironmentProgress(): Promise<() => void> {
-    return listenDesktop('tts_environment_progress', payload => {
+    if (environmentListener) return environmentListener;
+    environmentListener = listenDesktop('tts_environment_progress', payload => {
       const value = payload as { stage?: unknown; message?: unknown } | null;
       const stage = typeof value?.stage === 'string' ? value.stage : 'progress';
       if (TERMINAL_STAGES.has(stage)) {
@@ -256,7 +265,11 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
         stage,
         message: typeof value?.message === 'string' ? value.message : ''
       };
+    }).then(stop => {
+      environmentListenerStop = stop;
+      return stop;
     });
+    return environmentListener;
   }
   async function startQwen3Service(): Promise<Qwen3TtsSnapshot> {
     const adapted = adaptQwen3TtsSnapshot(await invokeDesktop('tts_qwen3_start', undefined));
@@ -292,6 +305,9 @@ export const useMediaTtsStore = defineStore('media-tts', () => {
     pending.value = false;
     pendingOperations.value = new Set();
     stopModelPolling();
+    environmentListenerStop?.();
+    environmentListenerStop = null;
+    environmentListener = null;
   }
 
   return { snapshot, qwen3, qwen3Catalog, pending, pendingOperations, error, load, refresh, save, setEnabled, test, pause, clear, replaceStatus, loadQwen3, saveQwen3, testQwen3, loadQwen3Models, downloadQwen3Model, startQwen3Service, ensureSpeechReady, attachEnvironmentEvents, preparing, environment, environmentProgress, prepareEnvironment, loadEnvironmentStatus, listenEnvironmentProgress, stopModelPolling, dispose };

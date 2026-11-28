@@ -260,6 +260,9 @@ export const useMediaRecordingStore = defineStore('media-recording', () => {
     return runOperation(`deleteRecording:${recordingId}`, async () => {
       await invokeDesktop('recording_delete', { recordingId });
       recordings.value = Object.freeze(recordings.value.filter(item => item.id !== recordingId));
+      // Deleting the file frees space and clears the session size; the backend
+      // owns both numbers, so ask it again instead of leaving them stale.
+      await refreshStatus();
     });
   }
 

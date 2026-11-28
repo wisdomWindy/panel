@@ -146,7 +146,8 @@ describe('application shell contracts', () => {
         roomName: null,
         onlineCount: 1234,
         reconnectAttempt: 0,
-        lastErrorCode: null
+        lastErrorCode: null,
+        isLive: true
       },
       acceptedDanmakuCount: 8,
       recordingState: 'recording',

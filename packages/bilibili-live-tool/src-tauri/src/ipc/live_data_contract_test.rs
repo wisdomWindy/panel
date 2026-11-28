@@ -49,6 +49,7 @@ fn serializes_room_and_range_contracts_in_camel_case() {
         online_count: Some(42),
         reconnect_attempt: 2,
         last_error_code: Some("NET_TRANSPORT_UNAVAILABLE".into()),
+        is_live: Some(true),
     };
 
     assert_eq!(
@@ -59,7 +60,8 @@ fn serializes_room_and_range_contracts_in_camel_case() {
             "roomName": null,
             "onlineCount": 42,
             "reconnectAttempt": 2,
-            "lastErrorCode": "NET_TRANSPORT_UNAVAILABLE"
+            "lastErrorCode": "NET_TRANSPORT_UNAVAILABLE",
+            "isLive": true
         })
     );
     assert_eq!(

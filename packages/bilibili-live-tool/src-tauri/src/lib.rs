@@ -448,7 +448,10 @@ impl AppState {
             }
         };
         let live_data = LiveDataState::new(transport, repository, event_sink)
-            .with_files(Arc::new(GrantedLiveFileStore::new(grants)));
+            .with_files(Arc::new(GrantedLiveFileStore::new(grants)))
+            .with_probe(Arc::new(
+                crate::infrastructure::live_data::BilibiliLiveStatusProbe,
+            ));
         #[cfg(all(feature = "free", not(feature = "member")))]
         let live_data = {
             let mut consumers = vec![media.clone() as Arc<dyn AcceptedLiveEventConsumer>];

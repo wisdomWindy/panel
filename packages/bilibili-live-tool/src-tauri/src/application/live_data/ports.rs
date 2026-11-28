@@ -101,6 +101,26 @@ impl RoomTransport for FailedRoomTransport {
     }
 }
 
+/// One-shot lookup of the room's broadcasting state.
+///
+/// The long connection only pushes transitions, so attaching mid-stream leaves
+/// the state unknown; the state asks this once after connecting.
+#[async_trait::async_trait]
+pub trait LiveStatusProbe: Send + Sync {
+    /// `None` when the probe could not determine the state.
+    async fn probe(&self, room_id: &str) -> Option<bool>;
+}
+
+/// Used by tests and by builds without a configured probe: never guesses.
+pub struct NoopLiveStatusProbe;
+
+#[async_trait::async_trait]
+impl LiveStatusProbe for NoopLiveStatusProbe {
+    async fn probe(&self, _: &str) -> Option<bool> {
+        None
+    }
+}
+
 #[async_trait::async_trait]
 pub trait LiveRepository: Send + Sync {
     async fn load_sensitive(&self) -> Result<Vec<SensitiveRule>, LiveRuntimeError>;

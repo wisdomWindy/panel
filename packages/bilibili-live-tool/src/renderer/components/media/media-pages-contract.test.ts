@@ -112,6 +112,23 @@ describe('interaction media page contracts', () => {
     expect(recording).toContain('openRecordingFolder');
   });
 
+  it('keeps one engine selector that reveals that engine settings in place', () => {
+    const tts = source('src/renderer/views/tts/index.vue');
+
+    // Both engines are choices of the same dropdown...
+    expect(tts).toMatch(/t\('tts\.systemEngine'\)/);
+    expect(tts).toMatch(/t\('tts\.cloudEngine'\)/);
+    expect(tts).toContain('handleEngineChange');
+    // ...and the Qwen3 options live in that card instead of a second panel.
+    expect(tts).not.toContain('tts-qwen3-title');
+    expect(tts).toMatch(/v-if="draft\.selectedEngine === 'cloud'"/);
+    expect(tts).toMatch(/t\('tts\.qwen3\.language'\)/);
+    expect(tts).toMatch(/t\('tts\.qwen3\.instruct'\)/);
+    // System-only controls are hidden for the Qwen3 engine.
+    expect(tts).toMatch(/v-if="draft\.selectedEngine === 'system'"/);
+    expect(tts).toMatch(/t\('tts\.rate'\)/);
+  });
+
   it('offers an in-app cleanup of redundant recording leftovers', () => {
     const recording = source('src/renderer/views/recording/index.vue');
     const store = source('src/renderer/stores/media/recording.ts');

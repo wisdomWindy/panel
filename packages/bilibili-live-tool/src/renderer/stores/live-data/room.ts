@@ -15,7 +15,8 @@ const emptyRoom = (): RoomSnapshot => ({
   roomName: null,
   onlineCount: null,
   reconnectAttempt: 0,
-  lastErrorCode: null
+  lastErrorCode: null,
+  isLive: null
 });
 
 export const useLiveRoomStore = defineStore('live-room', () => {
@@ -35,14 +36,21 @@ export const useLiveRoomStore = defineStore('live-room', () => {
     roomId: RoomId | null;
     attempt: number;
     errorCode: string | null;
+    roomName: string | null;
+    onlineCount: number | null;
+    isLive: boolean | null;
   }): void {
+    // The event carries the whole room state: the connection completes
+    // asynchronously, so this is the only place the page learns the anchor
+    // name and the broadcast state.
     snapshot.value = {
-      ...snapshot.value,
       status: value.status,
       roomId: value.roomId,
+      roomName: value.roomName,
+      onlineCount: value.onlineCount,
       reconnectAttempt: value.attempt,
       lastErrorCode: value.errorCode,
-      ...(value.roomId === snapshot.value.roomId ? {} : { roomName: null, onlineCount: null })
+      isLive: value.isLive
     };
   }
 

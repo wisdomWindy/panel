@@ -319,3 +319,76 @@ async fn backs_off_five_then_ten_then_thirty_seconds_and_never_gives_up() {
         ConnectionStatus::Disconnected
     );
 }
+
+fn session_base(event_id: &str) -> LiveEventBase {
+    LiveEventBase {
+        event_id: event_id.into(),
+        room_id: crate::domain::live_data::RoomId::parse("100").unwrap(),
+        occurred_at: 1_000,
+        audience: normalize_identity(AudienceIdentityInput {
+            user_uid: "1".into(),
+            username: "user-1".into(),
+            user_level: None,
+            medal_name: None,
+            medal_level: None,
+            is_admin: false,
+            captain_level: None,
+            is_vip: false,
+        })
+        .unwrap(),
+    }
+}
+
+async fn await_live(state: &LiveDataState, expected: Option<bool>) {
+    tokio::time::timeout(Duration::from_secs(1), async {
+        loop {
+            if state.room_snapshot().await.is_live == expected {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(1)).await;
+        }
+    })
+    .await
+    .expect("live state did not settle");
+}
+
+#[tokio::test]
+async fn session_boundaries_drive_the_live_badge() {
+    let (sender, receiver) = mpsc::channel(4);
+    let state = Arc::new(LiveDataState::new(
+        Arc::new(FakeTransport {
+            receiver: StdMutex::new(Some(receiver)),
+        }),
+        Arc::new(FakeRepository::default()),
+        Arc::new(RecordingSink::default()),
+    ));
+    state.load_safety().await.unwrap();
+    state.connect_room("100").await.unwrap();
+    tokio::task::yield_now().await;
+
+    // Being connected says nothing about broadcasting: the long connection
+    // outlives 下播 on purpose, so the badge must not read the status.
+    assert_eq!(state.room_snapshot().await.is_live, None);
+
+    sender
+        .send(LiveEvent::SessionStarted {
+            base: session_base("live-start"),
+        })
+        .await
+        .unwrap();
+    await_live(&state, Some(true)).await;
+
+    sender
+        .send(LiveEvent::SessionEnded {
+            base: session_base("live-end"),
+        })
+        .await
+        .unwrap();
+    await_live(&state, Some(false)).await;
+
+    // The connection itself stays up while the room is offline.
+    assert_eq!(
+        state.room_snapshot().await.status,
+        ConnectionStatus::Connected
+    );
+}

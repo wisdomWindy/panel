@@ -1,4 +1,4 @@
-﻿import type { EventId, GiftId, PathGrantId, RoomId, UserUid } from './base';
+import type { EventId, GiftId, PathGrantId, RoomId, UserUid } from './base';
 
 export type ConnectionStatus =
   | 'disconnected'
@@ -88,6 +88,8 @@ export interface RoomSnapshot {
   onlineCount: number | null;
   reconnectAttempt: number;
   lastErrorCode: string | null;
+  /** `null` until the platform reports whether the room is broadcasting. */
+  isLive: boolean | null;
 }
 
 export type SensitiveWordCategory = 'illegal' | 'advertising' | 'personal_attack' | 'custom';
@@ -284,6 +286,9 @@ export interface LiveDataEventPayloadMap {
     roomId: RoomId | null;
     attempt: number;
     errorCode: string | null;
+    roomName: string | null;
+    onlineCount: number | null;
+    isLive: boolean | null;
   };
   danmu_received: DanmuEvent;
   gift_received: GiftEvent;

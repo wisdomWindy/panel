@@ -114,6 +114,9 @@ impl LiveEventSink for TauriLiveEventSink {
                 room_id: snapshot.room_id.as_ref().map(|id| id.as_str().to_owned()),
                 attempt: snapshot.reconnect_attempt,
                 error_code: snapshot.last_error_code.clone(),
+                room_name: snapshot.room_name.clone(),
+                online_count: snapshot.online_count,
+                is_live: snapshot.is_live,
             },
         )
     }
@@ -613,6 +616,7 @@ fn room_snapshot(snapshot: RoomSnapshot) -> RoomSnapshotDto {
         online_count: snapshot.online_count,
         reconnect_attempt: snapshot.reconnect_attempt,
         last_error_code: snapshot.last_error_code,
+        is_live: snapshot.is_live,
     }
 }
 

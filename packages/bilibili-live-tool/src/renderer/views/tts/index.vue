@@ -166,10 +166,6 @@ async function handleQwen3Test(): Promise<void> {
 const availableVoices = computed(
   () => store.snapshot?.voices.filter(voice => voice.engine === draft.selectedEngine) ?? []
 );
-const engineUnavailable = computed(
-  () =>
-    draft.selectedEngine === 'cloud' && !availableVoices.value.some(voice => voice.isAvailable)
-);
 const isDirty = computed(() =>
   store.snapshot ? JSON.stringify(draft) !== JSON.stringify(store.snapshot.config) : false
 );
@@ -284,6 +280,19 @@ function handleEngineChange(): void {
     current,
     store.snapshot?.voices ?? []
   );
+  if (draft.selectedEngine === 'cloud') {
+    // Picking the engine is the intent; the switch only mirrors it. The chosen
+    // voice doubles as the Qwen3 default, which AI replies inherit when they
+    // have no voice of their own.
+    qwen3Draft.isEnabled = true;
+    qwen3Draft.voiceId = draft.selectedVoiceId || null;
+  }
+}
+
+/** Keeps the Qwen3 default voice aligned with the engine's voice select. */
+function handleVoiceChange(value: string | null): void {
+  if (draft.selectedEngine !== 'cloud') return;
+  qwen3Draft.voiceId = value || null;
 }
 
 async function handleReset(): Promise<void> {
@@ -453,33 +462,43 @@ onMounted(async () => {
           </button>
         </div>
         <section class="app-card p-4" aria-labelledby="tts-voice-title">
-          <h3 id="tts-voice-title" class="app-text m-0 text-base font-semibold">
-            {{ t('tts.sections.voice') }}
-          </h3>
-          <p class="app-muted mt-1 mb-0 text-sm">
-            {{ t('tts.sections.voiceHint') }}
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h3 id="tts-voice-title" class="app-text m-0 text-base font-semibold">
+                {{ t('tts.sections.voice') }}
+              </h3>
+              <p class="app-muted mt-1 mb-0 text-sm">
+                {{ t('tts.sections.voiceHint') }}
+              </p>
+            </div>
+            <span
+              v-if="draft.selectedEngine === 'cloud'"
+              class="app-badge shrink-0"
+              :class="qwen3Health?.ready ? 'app-badge--admin' : 'app-badge--plain'"
+              role="status"
+            >
+              {{
+                qwen3Health?.ready
+                  ? t('tts.qwen3.ready', { model: qwen3Health?.model ?? '' })
+                  : qwen3Health
+                    ? t('tts.qwen3.loading')
+                    : t('tts.qwen3.unreachable')
+              }}
+            </span>
+          </div>
+          <p
+            v-if="draft.selectedEngine === 'cloud' && qwen3Health?.error"
+            class="app-faint mt-2 mb-0 text-xs"
+            style="color: var(--app-gold)"
+          >
+            {{ qwen3Health.error }}
           </p>
           <div class="mt-4 grid grid-cols-1 gap-x-6 lg:grid-cols-2">
             <el-form-item :label="t('tts.engine')">
               <el-select v-model="draft.selectedEngine" class="w-full" @change="handleEngineChange">
                 <el-option :label="t('tts.systemEngine')" value="system" />
-                <el-option
-                  :label="t('tts.cloudEngine')"
-                  value="cloud"
-                  :disabled="
-                    !store.snapshot.voices.some(
-                      voice => voice.engine === 'cloud' && voice.isAvailable
-                    )
-                  "
-                />
+                <el-option :label="t('tts.cloudEngine')" value="cloud" />
               </el-select>
-              <p
-                v-if="engineUnavailable"
-                class="app-faint m-0 mt-1 w-full text-xs"
-                style="color: var(--app-gold)"
-              >
-                {{ t('tts.cloudUnavailable') }}
-              </p>
             </el-form-item>
             <el-form-item :label="t('tts.voice')">
               <el-select
@@ -487,6 +506,7 @@ onMounted(async () => {
                 class="w-full"
                 clearable
                 :disabled="availableVoices.length === 0"
+                @change="handleVoiceChange"
               >
                 <el-option
                   v-for="voice in availableVoices"
@@ -496,8 +516,15 @@ onMounted(async () => {
                   :disabled="!voice.isAvailable"
                 />
               </el-select>
+              <p
+                v-if="draft.selectedEngine === 'cloud' && availableVoices.length === 0"
+                class="app-faint m-0 mt-1 w-full text-xs"
+                style="color: var(--app-gold)"
+              >
+                {{ t('tts.cloudUnavailable') }}
+              </p>
             </el-form-item>
-            <el-form-item :label="t('tts.rate')">
+            <el-form-item v-if="draft.selectedEngine === 'system'" :label="t('tts.rate')">
               <el-slider
                 v-model="draft.rate"
                 :min="0.5"
@@ -516,6 +543,91 @@ onMounted(async () => {
               />
             </el-form-item>
           </div>
+
+          <!-- The engine's own settings live in the same card: one dropdown
+               decides which engine runs, and the matching options appear here. -->
+          <template v-if="draft.selectedEngine === 'cloud'">
+            <p class="app-faint mt-2 mb-0 text-xs">
+              {{ t('tts.qwen3.title') }} · {{ t('tts.sections.qwen3Hint') }}
+            </p>
+            <div class="mt-3 grid grid-cols-1 gap-x-6 lg:grid-cols-2">
+              <el-form-item :label="t('tts.qwen3.enable')">
+                <div class="flex w-full flex-col gap-1">
+                  <el-switch v-model="qwen3Draft.isEnabled" />
+                  <!-- CPU synthesis is roughly half a second per character, which
+                       matters for live traffic; say so instead of surprising them. -->
+                  <p
+                    v-if="qwen3Draft.isEnabled && qwen3RunsOnCpu"
+                    class="app-faint m-0 text-xs"
+                    style="color: var(--app-gold)"
+                  >
+                    {{ t('tts.qwen3.cpuHint') }}
+                  </p>
+                </div>
+              </el-form-item>
+              <el-form-item :label="t('tts.qwen3.fallback')">
+                <el-switch v-model="qwen3Draft.fallbackToSystem" />
+              </el-form-item>
+              <el-form-item :label="t('tts.qwen3.language')">
+                <el-select v-model="qwen3Draft.language" class="w-full">
+                  <el-option
+                    v-for="language in QWEN3_LANGUAGE_OPTIONS"
+                    :key="language"
+                    :label="language"
+                    :value="language"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item :label="t('tts.qwen3.aiVoice')">
+                <el-select
+                  v-model="qwen3Draft.aiVoiceId"
+                  class="w-full"
+                  clearable
+                  filterable
+                  allow-create
+                  default-first-option
+                >
+                  <el-option
+                    v-for="voice in qwen3VoiceOptions"
+                    :key="voice.value"
+                    :label="voice.label"
+                    :value="voice.value"
+                  />
+                </el-select>
+                <p class="app-faint m-0 mt-1 w-full text-xs">
+                  {{ t('tts.qwen3.aiVoiceHint') }}
+                </p>
+              </el-form-item>
+              <el-form-item :label="t('tts.qwen3.timeout')">
+                <el-input-number
+                  v-model="qwen3Draft.timeoutMs"
+                  class="w-full"
+                  :min="500"
+                  :max="60000"
+                  :step="500"
+                />
+              </el-form-item>
+              <el-form-item :label="t('tts.qwen3.pipMirror')">
+                <el-select v-model="qwen3Draft.pipMirror" class="w-full">
+                  <el-option
+                    v-for="mirror in QWEN3_MIRROR_OPTIONS"
+                    :key="mirror"
+                    :label="t(`tts.qwen3.mirrors.${mirror}`)"
+                    :value="mirror"
+                  />
+                </el-select>
+                <p class="app-faint m-0 mt-1 w-full text-xs">
+                  {{ t('tts.qwen3.pipMirrorHint') }}
+                </p>
+              </el-form-item>
+              <el-form-item class="lg:col-span-2" :label="t('tts.qwen3.instruct')">
+                <el-input v-model="qwen3Draft.instruct" type="textarea" :rows="2" />
+                <p class="app-faint m-0 mt-1 w-full text-xs">
+                  {{ t('tts.qwen3.instructHint') }}
+                </p>
+              </el-form-item>
+            </div>
+          </template>
         </section>
 
         <section class="app-card p-4" aria-labelledby="tts-selection-title">
@@ -567,136 +679,6 @@ onMounted(async () => {
             </el-form-item>
             <el-form-item :label="t('tts.events.captain')" :error="templateErrors.captain">
               <el-input v-model="draft.templates.captain" @blur="validateTemplate('captain')" />
-            </el-form-item>
-          </div>
-        </section>
-
-        <!-- The model belongs to the speech feature, next to its engine settings. -->
-        <section class="app-card p-4" aria-labelledby="tts-qwen3-title">
-          <div class="flex flex-wrap items-start gap-3">
-            <div class="mr-auto min-w-0">
-              <h3 id="tts-qwen3-title" class="app-text m-0 text-base font-semibold">
-                {{ t('tts.qwen3.title') }}
-              </h3>
-              <p class="app-muted mt-1 mb-0 text-sm">
-                {{ t('tts.sections.qwen3Hint') }}
-              </p>
-            </div>
-            <span
-              class="app-badge shrink-0"
-              :class="qwen3Health?.ready ? 'app-badge--admin' : 'app-badge--plain'"
-              role="status"
-            >
-              {{
-                qwen3Health?.ready
-                  ? t('tts.qwen3.ready', { model: qwen3Health?.model ?? '' })
-                  : qwen3Health
-                    ? t('tts.qwen3.loading')
-                    : t('tts.qwen3.unreachable')
-              }}
-            </span>
-          </div>
-          <p
-            v-if="qwen3Health?.error"
-            class="app-faint mt-2 mb-0 text-xs"
-            style="color: var(--app-gold)"
-          >
-            {{ qwen3Health.error }}
-          </p>
-          <div class="mt-4 grid grid-cols-1 gap-x-6 lg:grid-cols-2">
-            <el-form-item :label="t('tts.qwen3.enable')">
-              <div class="flex w-full flex-col gap-1">
-                <el-switch v-model="qwen3Draft.isEnabled" />
-                <!-- CPU synthesis is roughly half a second per character, which
-                     matters for live traffic; say so instead of surprising them. -->
-                <p
-                  v-if="qwen3Draft.isEnabled && qwen3RunsOnCpu"
-                  class="app-faint m-0 text-xs"
-                  style="color: var(--app-gold)"
-                >
-                  {{ t('tts.qwen3.cpuHint') }}
-                </p>
-              </div>
-            </el-form-item>
-            <el-form-item :label="t('tts.qwen3.fallback')">
-              <el-switch v-model="qwen3Draft.fallbackToSystem" />
-            </el-form-item>
-            <!-- 服务地址 is intentionally not editable: the app starts its own
-                 service on a free port and persists that address (PRD 9.11). -->
-            <el-form-item :label="t('tts.qwen3.language')">
-              <el-select v-model="qwen3Draft.language" class="w-full">
-                <el-option
-                  v-for="language in QWEN3_LANGUAGE_OPTIONS"
-                  :key="language"
-                  :label="language"
-                  :value="language"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item :label="t('tts.qwen3.voice')">
-              <el-select
-                v-model="qwen3Draft.voiceId"
-                class="w-full"
-                clearable
-                filterable
-                allow-create
-                default-first-option
-              >
-                <el-option
-                  v-for="voice in qwen3VoiceOptions"
-                  :key="voice.value"
-                  :label="voice.label"
-                  :value="voice.value"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item :label="t('tts.qwen3.aiVoice')">
-              <el-select
-                v-model="qwen3Draft.aiVoiceId"
-                class="w-full"
-                clearable
-                filterable
-                allow-create
-                default-first-option
-              >
-                <el-option
-                  v-for="voice in qwen3VoiceOptions"
-                  :key="voice.value"
-                  :label="voice.label"
-                  :value="voice.value"
-                />
-              </el-select>
-              <p class="app-faint m-0 mt-1 w-full text-xs">
-                {{ t('tts.qwen3.aiVoiceHint') }}
-              </p>
-            </el-form-item>
-            <el-form-item :label="t('tts.qwen3.timeout')">
-              <el-input-number
-                v-model="qwen3Draft.timeoutMs"
-                class="w-full"
-                :min="500"
-                :max="60000"
-                :step="500"
-              />
-            </el-form-item>
-            <el-form-item :label="t('tts.qwen3.pipMirror')">
-              <el-select v-model="qwen3Draft.pipMirror" class="w-full">
-                <el-option
-                  v-for="mirror in QWEN3_MIRROR_OPTIONS"
-                  :key="mirror"
-                  :label="t(`tts.qwen3.mirrors.${mirror}`)"
-                  :value="mirror"
-                />
-              </el-select>
-              <p class="app-faint m-0 mt-1 w-full text-xs">
-                {{ t('tts.qwen3.pipMirrorHint') }}
-              </p>
-            </el-form-item>
-            <el-form-item class="lg:col-span-2" :label="t('tts.qwen3.instruct')">
-              <el-input v-model="qwen3Draft.instruct" type="textarea" :rows="2" />
-              <p class="app-faint m-0 mt-1 w-full text-xs">
-                {{ t('tts.qwen3.instructHint') }}
-              </p>
             </el-form-item>
           </div>
         </section>

@@ -4,8 +4,9 @@ mod state;
 pub use ports::{
     AcceptedLiveEventConsumer, AcceptedLiveEventFanout, BlacklistImportEntry, ExportReceipt,
     FailedRoomTransport, ImportSummary, LiveEventSink, LiveFilePort, LiveRepository,
-    LiveRuntimeError, NoopAcceptedLiveEventConsumer, RoomConnection, RoomTransport,
-    SensitiveFileFormat, UnavailableLiveFilePort, UnavailableRoomTransport,
+    LiveRuntimeError, LiveStatusProbe, NoopAcceptedLiveEventConsumer, NoopLiveStatusProbe,
+    RoomConnection, RoomTransport, SensitiveFileFormat, UnavailableLiveFilePort,
+    UnavailableRoomTransport,
 };
 pub use state::{ConnectionStatus, LiveDataState, RoomSnapshot};
 

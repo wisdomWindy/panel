@@ -16,9 +16,9 @@ use crate::domain::live_data::{
 
 use super::ports::NoopAcceptedLiveEventConsumer;
 use super::ports::{
-    ExportReceipt, ImportSummary, LiveRuntimeError, RoomConnection, SensitiveFileFormat,
-    SharedAcceptedLiveEventConsumer, SharedLiveEventSink, SharedLiveFilePort, SharedLiveRepository,
-    SharedRoomTransport, UnavailableLiveFilePort,
+    ExportReceipt, ImportSummary, LiveRuntimeError, LiveStatusProbe, NoopLiveStatusProbe,
+    RoomConnection, SensitiveFileFormat, SharedAcceptedLiveEventConsumer, SharedLiveEventSink,
+    SharedLiveFilePort, SharedLiveRepository, SharedRoomTransport, UnavailableLiveFilePort,
 };
 
 /// Reconnect pacing while the room is offline: 5s, then 10s, then every 30s.
@@ -53,6 +53,10 @@ pub struct RoomSnapshot {
     pub online_count: Option<u64>,
     pub reconnect_attempt: u32,
     pub last_error_code: Option<String>,
+    /// `None` until the platform says whether the room is broadcasting: the
+    /// long connection carries transitions, and the post-connect probe fills
+    /// in the state we attached in the middle of.
+    pub is_live: Option<bool>,
 }
 
 impl Default for RoomSnapshot {
@@ -64,6 +68,7 @@ impl Default for RoomSnapshot {
             online_count: None,
             reconnect_attempt: 0,
             last_error_code: None,
+            is_live: None,
         }
     }
 }
@@ -86,6 +91,7 @@ pub struct LiveDataState {
     events: SharedLiveEventSink,
     files: SharedLiveFilePort,
     accepted_events: SharedAcceptedLiveEventConsumer,
+    probe: Arc<dyn LiveStatusProbe>,
     runtime: Mutex<LiveRuntimeState>,
     effect_lock: Mutex<()>,
 }
@@ -102,6 +108,7 @@ impl LiveDataState {
             events,
             files: Arc::new(UnavailableLiveFilePort),
             accepted_events: Arc::new(NoopAcceptedLiveEventConsumer),
+            probe: Arc::new(NoopLiveStatusProbe),
             runtime: Mutex::new(LiveRuntimeState::default()),
             effect_lock: Mutex::new(()),
         }
@@ -109,6 +116,13 @@ impl LiveDataState {
 
     pub fn with_files(mut self, files: SharedLiveFilePort) -> Self {
         self.files = files;
+        self
+    }
+
+    /// Production wires the real lookup; tests keep the no-op probe so they
+    /// never touch the network.
+    pub fn with_probe(mut self, probe: Arc<dyn LiveStatusProbe>) -> Self {
+        self.probe = probe;
         self
     }
 
@@ -510,6 +524,7 @@ impl LiveDataState {
                 online_count: None,
                 reconnect_attempt: 0,
                 last_error_code: None,
+                is_live: None,
             };
             (runtime.room.clone(), runtime.generation, receiver)
         };
@@ -563,6 +578,19 @@ impl LiveDataState {
                     if self.set_connected(generation, &connection).await.is_err() {
                         return;
                     }
+                    // The platform only announces transitions, so a session
+                    // joined mid-stream has no boundary yet: ask once.
+                    let probe_room = connection.room_id.clone();
+                    let probe_state = Arc::clone(&self);
+                    let probe_cancel = cancel.clone();
+                    tokio::spawn(async move {
+                        let room_id = probe_room.as_str().to_owned();
+                        if let Some(is_live) = probe_state.probe.probe(&room_id).await {
+                            if !*probe_cancel.borrow() {
+                                probe_state.set_initial_live(generation, is_live).await;
+                            }
+                        }
+                    });
                     if self
                         .consume_connection(generation, connection, &mut cancel)
                         .await
@@ -648,6 +676,13 @@ impl LiveDataState {
         event: LiveEvent,
     ) -> Result<(), LiveRuntimeError> {
         let _effect = self.effect_lock.lock().await;
+        // Session boundaries drive the 直播中 badge: they are room state, not
+        // content, so they are applied before the event pipeline runs.
+        match &event {
+            LiveEvent::SessionStarted { .. } => self.set_live(generation, true).await?,
+            LiveEvent::SessionEnded { .. } => self.set_live(generation, false).await?,
+            _ => {}
+        }
         let outcome = {
             let runtime = self.runtime.lock().await;
             if runtime.generation != generation {
@@ -716,6 +751,7 @@ impl LiveDataState {
                 online_count: connection.online_count,
                 reconnect_attempt: 0,
                 last_error_code: None,
+                is_live: None,
             };
             runtime.analytics = mem::take(&mut runtime.analytics)
                 .with_online_count(connection.online_count.unwrap_or(0));
@@ -741,6 +777,35 @@ impl LiveDataState {
     ) -> Result<(), LiveRuntimeError> {
         self.set_failure_state(generation, ConnectionStatus::Error, 0, error)
             .await
+    }
+
+    /// Session boundaries decide whether the room is broadcasting; the page
+    /// badge reads this, never the connection status, because the connection
+    /// outlives 下播 on purpose.
+    async fn set_live(&self, generation: u64, is_live: bool) -> Result<(), LiveRuntimeError> {
+        let snapshot = {
+            let mut runtime = self.runtime.lock().await;
+            if runtime.generation != generation || runtime.room.is_live == Some(is_live) {
+                return Ok(());
+            }
+            runtime.room.is_live = Some(is_live);
+            runtime.room.clone()
+        };
+        self.events.publish_room_status(&snapshot)
+    }
+
+    /// Seeds the state right after connecting. A session boundary that already
+    /// arrived is newer than the probe's request, so it wins.
+    async fn set_initial_live(&self, generation: u64, is_live: bool) {
+        let snapshot = {
+            let mut runtime = self.runtime.lock().await;
+            if runtime.generation != generation || runtime.room.is_live.is_some() {
+                return;
+            }
+            runtime.room.is_live = Some(is_live);
+            runtime.room.clone()
+        };
+        let _ = self.events.publish_room_status(&snapshot);
     }
 
     async fn set_failure_state(

@@ -229,6 +229,8 @@ pub struct RoomSnapshotDto {
     pub online_count: Option<u64>,
     pub reconnect_attempt: u32,
     pub last_error_code: Option<String>,
+    /// `null` while the platform has not told us yet whether the room is live.
+    pub is_live: Option<bool>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1301,6 +1303,11 @@ pub struct RoomStatusChangedDto {
     pub room_id: Option<String>,
     pub attempt: u32,
     pub error_code: Option<String>,
+    /// Carried on the event because the connection completes asynchronously:
+    /// without these the page would keep showing "未连接直播间".
+    pub room_name: Option<String>,
+    pub online_count: Option<u64>,
+    pub is_live: Option<bool>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

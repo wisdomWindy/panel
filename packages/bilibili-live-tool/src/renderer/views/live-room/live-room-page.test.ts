@@ -36,6 +36,20 @@ describe('live-room overview page contract', () => {
     expect(page).not.toMatch(/#[0-9a-fA-F]{6}/);
   });
 
+  it('derives the live badge from the broadcast state, not the connection', () => {
+    const page = source('./index.vue');
+
+    expect(page).toContain('room.snapshot.isLive');
+    expect(page).toContain("t('liveRoom.live')");
+    expect(page).toContain("t('liveRoom.offline')");
+    expect(page).toContain("t('liveRoom.detecting')");
+    // The long connection outlives the stream, so connection status must never
+    // drive the badge again.
+    expect(page).not.toContain(
+      "const isLive = computed(() => room.snapshot.status === 'connected')"
+    );
+  });
+
   it('renders every user-facing string through i18n', () => {
     const page = source('./index.vue');
 

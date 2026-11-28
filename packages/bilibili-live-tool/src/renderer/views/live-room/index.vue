@@ -13,7 +13,29 @@ const feed = useLiveFeedStore();
 const analytics = useLiveAnalyticsStore();
 
 const metrics = computed(() => analytics.statistics?.metrics ?? null);
-const isLive = computed(() => room.snapshot.status === 'connected');
+const isConnected = computed(() => room.snapshot.status === 'connected');
+/**
+ * The long connection deliberately outlives the end of a stream, so the badge
+ * must never read the connection status: it reads the broadcast state the
+ * platform reports.
+ */
+const liveBadge = computed(() => {
+  if (room.snapshot.isLive === true) {
+    return { label: t('liveRoom.live'), tone: 'app-badge--admin' };
+  }
+  if (room.snapshot.isLive === false) {
+    return { label: t('liveRoom.offline'), tone: 'app-badge--plain' };
+  }
+  return { label: t('liveRoom.detecting'), tone: 'app-badge--plain' };
+});
+const roomTitle = computed(() => {
+  const name = room.snapshot.roomName;
+  if (name) return name;
+  if (isConnected.value && room.snapshot.roomId) {
+    return t('liveRoom.untitledConnected', { roomId: room.snapshot.roomId });
+  }
+  return t('liveRoom.untitled');
+});
 
 const metricCards = computed(() => [
   {
@@ -93,18 +115,18 @@ onMounted(() => {
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div class="min-w-0">
           <h2 class="app-text m-0 truncate text-lg font-semibold">
-            {{ room.snapshot.roomName ?? t('liveRoom.untitled') }}
+            {{ roomTitle }}
           </h2>
           <p class="app-muted mt-1.5 mb-0 text-sm">
             {{ t('liveRoom.anchor') }}
-            <span class="app-text">{{ t('liveRoom.anchorUnknown') }}</span>
+            <span class="app-text">{{ room.snapshot.roomName ?? t('liveRoom.anchorUnknown') }}</span>
             <span class="mx-2 app-faint">·</span>
             {{ t('liveRoom.roomId') }}
             <span class="app-text tabular-nums">{{ room.snapshot.roomId ?? t('liveRoom.notConnected') }}</span>
           </p>
         </div>
-        <span class="app-badge" :class="isLive ? 'app-badge--admin' : 'app-badge--plain'">
-          {{ isLive ? t('liveRoom.live') : t('liveRoom.offline') }}
+        <span class="app-badge" :class="liveBadge.tone">
+          {{ liveBadge.label }}
         </span>
       </div>
       <p class="app-faint mt-2 mb-0 text-xs">

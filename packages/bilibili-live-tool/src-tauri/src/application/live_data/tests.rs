@@ -261,7 +261,7 @@ async fn pipeline_records_all_inputs_but_only_publishes_and_aggregates_accepted_
 }
 
 #[tokio::test(start_paused = true)]
-async fn retries_on_a_fixed_five_second_interval_and_stops_after_ten_attempts() {
+async fn backs_off_five_then_ten_then_thirty_seconds_and_never_gives_up() {
     let transport = Arc::new(RetryableTransport::default());
     let state = Arc::new(LiveDataState::new(
         transport.clone(),
@@ -273,6 +273,7 @@ async fn retries_on_a_fixed_five_second_interval_and_stops_after_ten_attempts() 
     tokio::task::yield_now().await;
     assert_eq!(transport.attempts.load(Ordering::SeqCst), 1);
 
+    // The first retry still fires after five seconds.
     tokio::time::advance(Duration::from_millis(4_999)).await;
     tokio::task::yield_now().await;
     assert_eq!(transport.attempts.load(Ordering::SeqCst), 1);
@@ -280,10 +281,41 @@ async fn retries_on_a_fixed_five_second_interval_and_stops_after_ten_attempts() 
     tokio::task::yield_now().await;
     assert_eq!(transport.attempts.load(Ordering::SeqCst), 2);
 
-    for _ in 0..8 {
-        tokio::time::advance(Duration::from_secs(5)).await;
+    // The second waits ten seconds.
+    tokio::time::advance(Duration::from_secs(9)).await;
+    tokio::task::yield_now().await;
+    assert_eq!(transport.attempts.load(Ordering::SeqCst), 2);
+    tokio::time::advance(Duration::from_secs(1)).await;
+    tokio::task::yield_now().await;
+    assert_eq!(transport.attempts.load(Ordering::SeqCst), 3);
+
+    // Later retries settle on the thirty second cap.
+    tokio::time::advance(Duration::from_secs(29)).await;
+    tokio::task::yield_now().await;
+    assert_eq!(transport.attempts.load(Ordering::SeqCst), 3);
+    tokio::time::advance(Duration::from_secs(1)).await;
+    tokio::task::yield_now().await;
+    assert_eq!(transport.attempts.load(Ordering::SeqCst), 4);
+
+    // Well past the old ten-attempt cut-off the session must still be waiting:
+    // an offline room may stay offline for hours before it goes live.
+    for _ in 0..40 {
+        tokio::time::advance(Duration::from_secs(30)).await;
+        tokio::task::yield_now().await;
         tokio::task::yield_now().await;
     }
-    assert_eq!(transport.attempts.load(Ordering::SeqCst), 10);
-    assert_eq!(state.room_snapshot().await.status, ConnectionStatus::Error);
+    assert!(
+        transport.attempts.load(Ordering::SeqCst) >= 40,
+        "the session must keep retrying an offline room"
+    );
+    let snapshot = state.room_snapshot().await;
+    assert_eq!(snapshot.status, ConnectionStatus::Reconnecting);
+    assert!(snapshot.reconnect_attempt > 10);
+
+    // Disconnecting still stops the loop immediately.
+    state.disconnect_room().await.unwrap();
+    assert_eq!(
+        state.room_snapshot().await.status,
+        ConnectionStatus::Disconnected
+    );
 }

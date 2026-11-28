@@ -29,3 +29,7 @@ app.asar
 
 # Temporary files
 *.tmp
+
+# Bundled FFmpeg is fetched at build time (scripts/fetch-ffmpeg.ps1)
+src-tauri/binaries/ffmpeg/*
+!src-tauri/binaries/ffmpeg/PLACEHOLDER.txt

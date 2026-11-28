@@ -122,10 +122,7 @@ describe('system settings shell contract', () => {
       'settings.categoryHints.about',
       'logs.pageHint',
       'logs.console',
-      'logs.count',
-      'update.pageHint',
-      'update.versionHistory',
-      'update.forced'
+      'logs.count'
     ]) {
       const [namespace, ...rest] = key.split('.');
       expect(namespaceKeys(zh, namespace)).toContain(`${namespace}.${rest.join('.')}`);

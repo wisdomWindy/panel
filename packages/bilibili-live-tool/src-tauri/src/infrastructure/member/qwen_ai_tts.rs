@@ -6,9 +6,10 @@
 //! SAPI through `ISpeechVoice::SpeakStream`, on the same device-routed voice.
 //!
 //! Rollback is a configuration change, not a rebuild:
-//! * `qwen3.isEnabled = false`           -> every reply uses the system voice
-//! * selecting a non `qwen3:` voice id   -> that reply uses the system voice
-//! * service failure + `fallbackToSystem` -> that reply uses the system voice
+//! * `qwen3.isEnabled = false`            -> every reply uses the system voice
+//! * the default `温柔桃子` id             -> the configured Qwen3 reply voice
+//! * selecting a real SAPI voice id        -> that reply uses the system voice
+//! * service failure + `fallbackToSystem`  -> that reply uses the system voice
 
 use std::sync::{
     atomic::{AtomicU64, Ordering},
@@ -18,6 +19,7 @@ use std::sync::{
 use crate::{
     application::member::{
         AiOutputDeviceRecord, AiSpeechOutput, AiVoiceRecord, MemberServiceError,
+        DEFAULT_AI_VOICE_ID,
     },
     application::media::{SpeechSynthesisPort, SynthesisRequest},
     infrastructure::media::Qwen3TtsService,
@@ -113,13 +115,18 @@ impl AiSpeechOutput for Qwen3TtsAiSpeechOutput {
         if text.trim().is_empty() {
             return Err(MemberServiceError::invalid("TTS_REQUEST_INVALID"));
         }
-        let Some(speaker) = voice_id.strip_prefix(QWEN3_VOICE_PREFIX) else {
-            return self.fallback.speak(text, device_id, voice_id, volume).await;
+        // `gentle-peach` is the historical default id. It is not a SAPI voice:
+        // it now means "the configured Qwen3 reply voice", so selecting 温柔桃子
+        // produces a neural voice instead of the system default.
+        let speaker = match voice_id.strip_prefix(QWEN3_VOICE_PREFIX) {
+            Some(speaker) => Some(speaker),
+            None if voice_id == DEFAULT_AI_VOICE_ID => Some(""),
+            None => return self.fallback.speak(text, device_id, voice_id, volume).await,
         };
         if !self.service.is_enabled() {
             return self.route_to_fallback(text, device_id, voice_id, volume, "TTS_DISABLED").await;
         }
-        let bytes = match self.synthesize_reply(text, Some(speaker)).await {
+        let bytes = match self.synthesize_reply(text, speaker).await {
             Ok(bytes) => bytes,
             Err(error) => {
                 return self
@@ -301,7 +308,10 @@ fn play_wav_on_device(
 mod tests {
     use super::{Qwen3TtsAiSpeechOutput, QWEN3_VOICE_PREFIX};
     use crate::{
-        application::member::{AiOutputDeviceRecord, AiSpeechOutput, AiVoiceRecord, MemberServiceError},
+        application::member::{
+            AiOutputDeviceRecord, AiSpeechOutput, AiVoiceRecord, MemberServiceError,
+            DEFAULT_AI_VOICE_ID,
+        },
         domain::media::Qwen3TtsConfig,
         infrastructure::media::Qwen3TtsService,
     };
@@ -482,6 +492,18 @@ mod tests {
     async fn a_blank_speaker_falls_back_to_the_configured_reply_voice() {
         let (output, captured) = capturing_output().await;
         output.synthesize_reply("你好", None).await.unwrap();
+        let request = captured.lock().unwrap().first().cloned().unwrap();
+        assert!(request.contains("\"voice\":\"Serena\""), "{request}");
+    }
+
+    #[tokio::test]
+    async fn the_default_voice_id_uses_the_qwen3_reply_voice() {
+        let (output, captured) = capturing_output().await;
+        // Playback on the fake device fails and falls back afterwards; what this
+        // test pins is that 温柔桃子 is synthesised by Qwen3, not routed to SAPI.
+        let _ = output
+            .speak("你好", "device-1", DEFAULT_AI_VOICE_ID, 0.8)
+            .await;
         let request = captured.lock().unwrap().first().cloned().unwrap();
         assert!(request.contains("\"voice\":\"Serena\""), "{request}");
     }

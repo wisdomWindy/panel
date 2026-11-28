@@ -11,7 +11,6 @@ export type ConnectionErrorMessageKey =
   | 'openLiveAuthFailed'
   | 'openLiveNetworkFailed'
   | 'openLiveResponseInvalid'
-  | 'reconnectFailed'
   | 'operationFailed';
 
 export interface StatusBarItem {
@@ -47,7 +46,6 @@ export function connectionErrorMessageKey(code: string | null): ConnectionErrorM
   if (['invalid_open_live_response', 'invalid_open_live_packet'].includes(code)) {
     return 'openLiveResponseInvalid';
   }
-  if (code === 'SYS_RECONNECT_FAILED') return 'reconnectFailed';
   return 'operationFailed';
 }
 

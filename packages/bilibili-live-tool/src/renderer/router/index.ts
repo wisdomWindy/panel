@@ -129,22 +129,12 @@ const routes: RouteRecordRaw[] = [
         name: 'Logs',
         component: () => import('@/views/logs/index.vue'),
         meta: { titleKey: 'logs.title' }
-      },
-      {
-        path: 'update',
-        name: 'UpdateLog',
-        component: () => import('@/views/update-log/index.vue'),
-        meta: { titleKey: 'update.title' }
       }
     ]
   },
   {
     path: '/logs',
     redirect: '/settings/logs'
-  },
-  {
-    path: '/update-log',
-    redirect: '/settings/update'
   },
   {
     path: '/tts',

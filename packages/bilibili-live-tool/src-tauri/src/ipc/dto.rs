@@ -227,7 +227,7 @@ pub struct RoomSnapshotDto {
     pub room_id: Option<String>,
     pub room_name: Option<String>,
     pub online_count: Option<u64>,
-    pub reconnect_attempt: u8,
+    pub reconnect_attempt: u32,
     pub last_error_code: Option<String>,
 }
 
@@ -1299,7 +1299,7 @@ pub struct DeleteResultDto {
 pub struct RoomStatusChangedDto {
     pub status: ConnectionStatusDto,
     pub room_id: Option<String>,
-    pub attempt: u8,
+    pub attempt: u32,
     pub error_code: Option<String>,
 }
 

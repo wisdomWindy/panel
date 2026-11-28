@@ -54,6 +54,19 @@ jobs:
           VERSION=$(node -p "require('./${APP_PATH}/src-tauri/tauri.conf.json').version")
           test "${GITHUB_REF_NAME}" = "v${VERSION}"
 
+      # An unset secret reaches the build as an empty string. The build now
+      # falls back to the credentials compiled into the crate, but say so out
+      # loud instead of silently shipping a differently-configured installer.
+      - name: Note the open platform credential source
+        env:
+          BILI_OPEN_APP_ID: ${{ secrets.BILI_OPEN_APP_ID }}
+          BILI_OPEN_ACCESS_KEY_ID: ${{ secrets.BILI_OPEN_ACCESS_KEY_ID }}
+          BILI_OPEN_ACCESS_KEY_SECRET: ${{ secrets.BILI_OPEN_ACCESS_KEY_SECRET }}
+        run: |
+          if [ -z "$BILI_OPEN_APP_ID" ] || [ -z "$BILI_OPEN_ACCESS_KEY_ID" ] || [ -z "$BILI_OPEN_ACCESS_KEY_SECRET" ]; then
+            echo "::warning::BILI_OPEN_* secrets are not set; the installer falls back to the credentials compiled into the crate."
+          fi
+
       - name: Test release contracts
         run: pnpm --dir "$APP_PATH" test:release
 
@@ -141,6 +154,14 @@ jobs:
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
+
+      # The shared LGPL build is a bundle resource, so it has to exist before
+      # packaging. macOS has no BtbN shared build; those targets keep using a
+      # system FFmpeg.
+      - name: Bundle shared FFmpeg into the installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: pwsh -NoProfile -File "$env:APP_PATH/scripts/fetch-ffmpeg.ps1"
 
       - name: Generate signed updater configuration
         shell: bash

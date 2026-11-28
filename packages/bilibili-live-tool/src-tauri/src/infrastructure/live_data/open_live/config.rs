@@ -20,13 +20,22 @@ pub struct OpenLiveConfig {
     access_key_secret: String,
 }
 
+/// Run-time value, then build-time value, then the embedded constant.
+///
+/// A *blank* value counts as absent at both levels: CI injects
+/// `BILI_OPEN_*: ${{ secrets.* }}`, which is an empty string when the secret is
+/// not configured, and an empty string must not shadow the embedded fallback or
+/// the packaged app can never connect.
 fn resolve(name: &str, build_time: Option<&str>, embedded: &str) -> String {
     if let Ok(value) = std::env::var(name) {
         if !value.trim().is_empty() {
             return value;
         }
     }
-    build_time.unwrap_or(embedded).to_owned()
+    build_time
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or(embedded)
+        .to_owned()
 }
 
 impl OpenLiveConfig {
@@ -104,6 +113,28 @@ mod tests {
         let rendered = format!("{config:?}");
         assert!(!rendered.contains("s3cr3t-value"));
         assert!(rendered.contains("REDACTED"));
+    }
+
+    #[test]
+    fn a_blank_build_time_value_falls_back_to_the_embedded_constant() {
+        // CI injects `BILI_OPEN_*: ${{ secrets.* }}`, which is an empty string
+        // when the secret is missing; that must not shadow the compiled values.
+        assert_eq!(
+            super::resolve("BILI_OPEN_TEST_BLANK", Some(""), "embedded"),
+            "embedded"
+        );
+        assert_eq!(
+            super::resolve("BILI_OPEN_TEST_BLANK", Some("   "), "embedded"),
+            "embedded"
+        );
+        assert_eq!(
+            super::resolve("BILI_OPEN_TEST_BLANK", None, "embedded"),
+            "embedded"
+        );
+        assert_eq!(
+            super::resolve("BILI_OPEN_TEST_BLANK", Some("injected"), "embedded"),
+            "injected"
+        );
     }
 
     #[test]

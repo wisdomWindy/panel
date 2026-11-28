@@ -25,6 +25,11 @@ import {
   connectionErrorMessageKey,
   normalizeRoomInput
 } from '@/modules/application-shell/view-model';
+import {
+  forgetRoomSession,
+  loadRoomSession,
+  rememberRoomSession
+} from '@/modules/live-data/session';
 import { useApplicationShellStore } from '@/stores/application-shell';
 import { useLiveFeedStore } from '@/stores/live-data/feed';
 import { useLiveRoomStore } from '@/stores/live-data/room';
@@ -49,6 +54,7 @@ const mediaRuntime = useMediaRuntime();
 const releaseRuntime = useReleaseRuntime();
 
 const roomInput = ref('');
+const rememberSession = ref(false);
 const roomError = ref<string | null>(null);
 const notificationOpen = ref(false);
 const isUpdateDialogOpen = ref(false);
@@ -80,7 +86,7 @@ watch(
         snapshot?.candidate && ['available', 'downloading', 'downloaded'].includes(snapshot.status);
     if (!isActionable) {
       isUpdateDialogOpen.value = false;
-    } else if (!route.path.startsWith('/settings/update')) {
+    } else {
       isUpdateDialogOpen.value = true;
     }
   }
@@ -107,8 +113,36 @@ async function toggleConnection(): Promise<void> {
       return;
     }
     await room.connect(normalized.value);
+    // Remembering is best-effort: a storage failure must not undo the connection.
+    if (rememberSession.value) {
+      await rememberRoomSession(normalized.value).catch(() => undefined);
+    }
   } catch {
     roomError.value = room.error?.message ?? t('shell.errors.operationFailed');
+  }
+}
+
+/** Turning the switch off drops the stored code so the next launch asks again. */
+function setRememberSession(value: boolean): void {
+  rememberSession.value = value;
+  if (!value) void forgetRoomSession().catch(() => undefined);
+}
+
+/**
+ * Connects once, stays connected: the long connection survives 下播, so a
+ * restored session keeps monitoring and the configured features (auto-record,
+ * alerts, TTS) fire again without another click.
+ */
+async function restoreSession(): Promise<void> {
+  const saved = await loadRoomSession();
+  rememberSession.value = saved.autoConnect;
+  if (saved.identityCode) roomInput.value = saved.identityCode;
+  if (!saved.autoConnect || !saved.identityCode) return;
+  if (room.snapshot.status !== 'disconnected') return;
+  try {
+    await room.connect(saved.identityCode);
+  } catch {
+    // room.error carries the cause and the toolbar tooltip shows it.
   }
 }
 
@@ -166,7 +200,7 @@ onMounted(() => {
     mediaRuntime.start(),
     releaseRuntime.start(),
     memberChannel.start()
-  ]);
+  ]).then(restoreSession);
 });
 
 onUnmounted(() => {
@@ -193,8 +227,10 @@ onUnmounted(() => {
         :is-pending="room.pending"
         :room-error="displayedRoomError"
         :notification-open="notificationOpen"
+        :remember-session="rememberSession"
         :member-toolbar-component="memberChannel.toolbarComponent"
         @update:notification-open="notificationOpen = $event"
+        @update:remember-session="setRememberSession"
         @toggle-connection="toggleConnection"
         @open-notifications="openNotifications"
         @open-settings="openSettings"
@@ -208,7 +244,7 @@ onUnmounted(() => {
       <AppShellStatusBar :items="statusItems" />
     </div>
     <UpdateAvailableDialog
-      v-if="release.update && release.update.candidate && !route.path.startsWith('/settings/update')"
+      v-if="release.update && release.update.candidate"
       v-model="isUpdateDialogOpen"
       :snapshot="release.update"
       :is-pending="isReleasePending"

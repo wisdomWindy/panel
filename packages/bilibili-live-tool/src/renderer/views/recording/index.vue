@@ -138,13 +138,10 @@ const qualityText = computed(() => {
     quality === 'original' ? 'qualityOriginal' : quality === 'high' ? 'qualityHigh' : 'qualityStandard';
   return t(`recording.settings.${qualityKey}`);
 });
-const ffmpegSourceText = computed(() =>
-  config.value?.ffmpegSource === 'local'
-    ? t('recording.settings.local')
-    : config.value?.ffmpegSource === 'system'
-      ? t('recording.settings.system')
-      : t('recording.settings.bundled')
-);
+const ffmpegSourceText = computed(() => {
+  const ffmpegSource = config.value?.ffmpegSource ?? 'bundled';
+  return t(`recording.settings.${ffmpegSource}`);
+});
 
 const tabs = computed(() => [
   { id: 'recordings' as const, label: t('recording.fileList'), count: store.recordings.length },

@@ -11,12 +11,14 @@ const props = defineProps<{
     isPending: boolean;
     roomError: string | null;
     notificationOpen: boolean;
+    rememberSession: boolean;
     memberToolbarComponent: Component | null;
   }>();
 
 const emit = defineEmits<{
     'update:modelValue': [value: string];
     'update:notificationOpen': [value: boolean];
+    'update:rememberSession': [value: boolean];
     toggleConnection: [];
     openNotifications: [];
     openSettings: [];
@@ -81,6 +83,16 @@ function setNotificationOpen(value: boolean): void {
             : t('shell.toolbar.connect')
         }}
       </button>
+      <el-tooltip :content="t('shell.toolbar.rememberSessionHint')" placement="bottom">
+        <el-checkbox
+          :model-value="rememberSession"
+          class="app-faint shrink-0 text-xs"
+          :aria-label="t('shell.toolbar.rememberSessionHint')"
+          @update:model-value="emit('update:rememberSession', Boolean($event))"
+        >
+          {{ t('shell.toolbar.rememberSession') }}
+        </el-checkbox>
+      </el-tooltip>
     </div>
 
     <div class="ml-auto flex shrink-0 items-center gap-1.5">

@@ -73,7 +73,7 @@ function integer(value: unknown, field: string, minimum = 0): number {
   return result;
 }
 
-/// Optional text: absent, null or empty all mean "unset".
+// Optional text: absent, null or empty all mean "unset".
 function emptyableString(value: unknown, field: string): string {
   if (value === undefined || value === null) return '';
   return string(value, field, true);
@@ -489,7 +489,11 @@ export function adaptRecordingConfig(value: unknown): RecordingConfig {
     highlightAfterSeconds: numberChoice(source.highlightAfterSeconds, [30], 'recordingConfig.highlightAfterSeconds'),
     quotaBytes: integer(source.quotaBytes, 'recordingConfig.quotaBytes', 1),
     waterlineBytes: integer(source.waterlineBytes, 'recordingConfig.waterlineBytes', 1),
-    ffmpegSource: enumeration(source.ffmpegSource, ['bundled', 'local'], 'recordingConfig.ffmpegSource'),
+    ffmpegSource: enumeration(
+      source.ffmpegSource,
+      ['bundled', 'system', 'installed', 'local'],
+      'recordingConfig.ffmpegSource'
+    ),
     shortcut: string(source.shortcut, 'recordingConfig.shortcut')
   });
 }

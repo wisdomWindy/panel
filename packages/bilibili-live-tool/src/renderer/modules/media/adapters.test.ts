@@ -235,4 +235,26 @@ describe('media adapters', () => {
     } as unknown as RecordingConfig;
     expect(() => adaptRecordingConfig(recording)).toThrow(MalformedMediaPayloadError);
   });
+
+  it('accepts every FFmpeg source the settings dialog can persist', () => {
+    const base = {
+      format: 'mp4',
+      quality: 'original',
+      directory: null,
+      segmentationEnabled: false,
+      segmentDurationSeconds: 1800,
+      autoRecord: false,
+      danmakuThreshold: 10,
+      highlightBeforeSeconds: 30,
+      highlightAfterSeconds: 30,
+      quotaBytes: 1,
+      waterlineBytes: 1,
+      shortcut: 'F9'
+    };
+
+    for (const ffmpegSource of ['bundled', 'system', 'installed', 'local'] as const) {
+      const adapted = adaptRecordingConfig({ ...base, ffmpegSource });
+      expect(adapted.ffmpegSource).toBe(ffmpegSource);
+    }
+  });
 });

@@ -1,0 +1,5 @@
+Shared FFmpeg binaries are fetched into this directory at build time.
+
+Run `pwsh -NoProfile -File scripts/fetch-ffmpeg.ps1` (or the release workflow step)
+before packaging; the binaries are never committed. This placeholder keeps the
+`binaries/ffmpeg/*` bundle glob matching on platforms that do not bundle FFmpeg.

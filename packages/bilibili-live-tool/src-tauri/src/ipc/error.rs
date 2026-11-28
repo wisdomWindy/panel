@@ -113,7 +113,6 @@ impl From<LiveRuntimeError> for DesktopError {
             | "open_live_auth_timeout" => "开放平台网络连接失败，请稍后重试",
             "invalid_open_live_response" | "invalid_open_live_packet" => "开放平台返回的数据无效",
             "NET_SERVICE_UNAVAILABLE" => "开放平台凭证失效，请重新配置",
-            "SYS_RECONNECT_FAILED" => "重连失败，请手动重试",
             "STORAGE_NO_EXPORT_DATA" => "暂无数据可导出",
             "STORAGE_PATH_DENIED" => "文件授权已失效，请重新选择",
             "STORAGE_PERMISSION_DENIED" => "没有文件写入权限，请更换位置",

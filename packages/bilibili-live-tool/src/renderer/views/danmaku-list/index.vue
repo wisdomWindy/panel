@@ -13,6 +13,7 @@ import { useLiveAnalyticsStore } from '@/stores/live-data/analytics';
 import { useApplicationShellStore } from '@/stores/application-shell';
 import { useLiveFeedStore } from '@/stores/live-data/feed';
 import { useLiveRoomStore } from '@/stores/live-data/room';
+import { connectionErrorMessageKey } from '@/modules/application-shell/view-model';
 import AudienceDetailDrawer from '@/components/live-data/AudienceDetailDrawer.vue';
 import AudienceIdentityView from '@/components/live-data/AudienceIdentityView.vue';
 
@@ -24,6 +25,15 @@ const shell = useApplicationShellStore();
 const room = useLiveRoomStore();
 const analytics = useLiveAnalyticsStore();
 const { t } = useI18n();
+
+/**
+ * Reconnecting never gives up any more, so an `error` status is always a
+ * permanent failure: show its real cause instead of a retry prompt.
+ */
+const roomErrorText = computed(() => {
+  const key = connectionErrorMessageKey(room.snapshot.lastErrorCode);
+  return t(`shell.errors.${key ?? 'operationFailed'}`);
+});
 const filter = ref<Filter>('all');
 const search = ref('');
 const stream = ref<HTMLElement | null>(null);
@@ -185,7 +195,7 @@ function handleBlacklisted(uid: UserUid): void {
       v-else-if="room.snapshot.status === 'error'"
       type="error"
       :closable="false"
-      :title="t('danmakuPanel.reconnectFailed')"
+      :title="roomErrorText"
       show-icon
     />
 

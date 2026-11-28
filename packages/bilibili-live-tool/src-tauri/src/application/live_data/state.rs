@@ -21,6 +21,21 @@ use super::ports::{
     SharedRoomTransport, UnavailableLiveFilePort,
 };
 
+/// Reconnect pacing while the room is offline: 5s, then 10s, then every 30s.
+///
+/// Monitoring has to outlive an offline room, so there is deliberately no
+/// give-up count: the session keeps retrying until the operator disconnects.
+const RECONNECT_BACKOFF: [Duration; 3] = [
+    Duration::from_secs(5),
+    Duration::from_secs(10),
+    Duration::from_secs(30),
+];
+
+fn reconnect_delay(attempt: u32) -> Duration {
+    let index = (attempt.saturating_sub(1) as usize).min(RECONNECT_BACKOFF.len() - 1);
+    RECONNECT_BACKOFF[index]
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ConnectionStatus {
     Disconnected,
@@ -36,7 +51,7 @@ pub struct RoomSnapshot {
     pub room_id: Option<RoomId>,
     pub room_name: Option<String>,
     pub online_count: Option<u64>,
-    pub reconnect_attempt: u8,
+    pub reconnect_attempt: u32,
     pub last_error_code: Option<String>,
 }
 
@@ -537,7 +552,7 @@ impl LiveDataState {
         generation: u64,
         mut cancel: watch::Receiver<bool>,
     ) {
-        let mut attempt = 0_u8;
+        let mut attempt = 0_u32;
         loop {
             if *cancel.borrow() || !self.is_current(generation).await {
                 return;
@@ -560,16 +575,9 @@ impl LiveDataState {
                     return;
                 }
                 Err(error) => {
-                    attempt += 1;
-                    if attempt >= 10 {
-                        let reconnect_error = LiveRuntimeError::new(
-                            "SYS_RECONNECT_FAILED",
-                            "room reconnect attempts exhausted",
-                            false,
-                        );
-                        let _ = self.set_error(generation, &reconnect_error).await;
-                        return;
-                    }
+                    // No give-up count: the room may stay offline for hours and
+                    // monitoring must still be waiting when it goes live.
+                    attempt = attempt.saturating_add(1);
                     if self
                         .set_reconnecting(generation, attempt, &error)
                         .await
@@ -580,7 +588,7 @@ impl LiveDataState {
                 }
             }
             tokio::select! {
-                _ = tokio::time::sleep(Duration::from_secs(5)) => {}
+                _ = tokio::time::sleep(reconnect_delay(attempt)) => {}
                 changed = cancel.changed() => {
                     if changed.is_err() || *cancel.borrow() {
                         return;
@@ -719,7 +727,7 @@ impl LiveDataState {
     async fn set_reconnecting(
         &self,
         generation: u64,
-        attempt: u8,
+        attempt: u32,
         error: &LiveRuntimeError,
     ) -> Result<(), LiveRuntimeError> {
         self.set_failure_state(generation, ConnectionStatus::Reconnecting, attempt, error)
@@ -739,7 +747,7 @@ impl LiveDataState {
         &self,
         generation: u64,
         status: ConnectionStatus,
-        attempt: u8,
+        attempt: u32,
         error: &LiveRuntimeError,
     ) -> Result<(), LiveRuntimeError> {
         let snapshot = {

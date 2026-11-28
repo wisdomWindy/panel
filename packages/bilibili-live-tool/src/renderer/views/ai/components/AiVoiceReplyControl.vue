@@ -52,6 +52,23 @@ const rules = reactive({
   isDuplicateFilterEnabled: true
 });
 
+/**
+ * Mirrors `DEFAULT_AI_VOICE_ID` in the Rust member module. This id is not a
+ * SAPI voice: it selects the Qwen3-TTS reply voice, and only falls back to the
+ * system voice when Qwen3-TTS is disabled or unreachable.
+ */
+const DEFAULT_AI_VOICE_ID = 'gentle-peach' as AiVoiceId;
+
+const qwen3VoiceAvailable = computed(() =>
+  (props.snapshot?.voices ?? []).some(voice => voice.voiceId.startsWith('qwen3:'))
+);
+const routeVoiceHint = computed(() => {
+  if (route.voiceId !== DEFAULT_AI_VOICE_ID) return null;
+  return qwen3VoiceAvailable.value
+    ? t('ai.voice.route.defaultUsesQwen3')
+    : t('ai.voice.route.defaultNeedsQwen3');
+});
+
 const defaultProfile = computed(() =>
   props.profiles.find(profile => profile.profileId === props.snapshot?.defaultProfileId) ?? null
 );
@@ -457,6 +474,9 @@ function queueInitial(item: AiVoiceQueueItem | null): string {
             :disabled="!voice.isAvailable"
           />
         </el-select>
+        <p v-if="routeVoiceHint" class="app-faint m-0 mt-1 w-full text-xs">
+          {{ routeVoiceHint }}
+        </p>
       </el-form-item>
       <el-form-item :label="t('ai.voice.route.volume')">
         <el-slider

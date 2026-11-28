@@ -135,6 +135,9 @@ pnpm homepage:dev
 pnpm --filter @monorepo/bilibili-live-tool build:web:free
 pnpm --filter @monorepo/bilibili-live-tool build:web:member
 
+# 打包前把共享版 FFmpeg 拉到 src-tauri/binaries/ffmpeg（不入库）
+pwsh -NoProfile -File packages/bilibili-live-tool/scripts/fetch-ffmpeg.ps1
+
 # 构建 Tauri 安装包
 pnpm --filter @monorepo/bilibili-live-tool build:free
 pnpm --filter @monorepo/bilibili-live-tool build:member
@@ -142,6 +145,8 @@ pnpm --filter @monorepo/bilibili-live-tool build:member
 # 构建官网
 pnpm homepage:build
 ```
+
+安装包会把 `src-tauri/binaries/ffmpeg` 作为资源一并分发，安装后录制即用，无需用户再下载。目前只有 Windows 随包分发：BtbN 不提供 macOS 的 LGPL shared 构建，macOS 目标仍需用户自备 FFmpeg。忘记拉取时打包不会失败，只是该安装包会退回「按需安装」路径。
 
 Tauri 安装包默认生成于：
 

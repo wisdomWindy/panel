@@ -112,6 +112,14 @@ function watchWarmup(): void {
   }, 4000);
 }
 
+/** Leaving the page must stop the poll, or it keeps hitting the IPC boundary. */
+onUnmounted(() => {
+  if (warmupTimer) {
+    clearInterval(warmupTimer);
+    warmupTimer = null;
+  }
+});
+
 const qwen3SavePending = computed(() => store.pendingOperations.has('qwen3Save'));
 
 /** True when the local service reports CPU synthesis. */
@@ -131,18 +139,6 @@ function qwen3Payload(): Qwen3TtsConfig {
     aiVoiceId: qwen3Draft.aiVoiceId || null,
     voiceId: qwen3Draft.voiceId || null
   };
-}
-
-async function handleQwen3Save(): Promise<void> {
-  try {
-    const snapshot = await store.saveQwen3(qwen3Payload());
-    applyQwen3Config(snapshot.config);
-    // The cloud voice list follows the service status, so refresh it after saving.
-    await store.refresh().catch(() => null);
-    ElMessage.success(t('tts.qwen3.saveSuccess'));
-  } catch (error) {
-    ElMessage.error((error as { message?: string }).message ?? t('common.saveFailed'));
-  }
 }
 
 async function handleQwen3Probe(): Promise<void> {
@@ -248,7 +244,7 @@ async function handleSaveAll(): Promise<void> {
     if (qwen3Dirty.value) await store.saveQwen3(qwen3Payload()).then(snapshot => applyQwen3Config(snapshot.config));
     await handleSave();
   } catch {
-    // handleQwen3Save and handleSave already report their own failures.
+    // A Qwen3 failure already lands in store.error; handleSave reports its own.
   }
 }
 
@@ -369,8 +365,6 @@ onMounted(async () => {
 <template>
   <SpeechPrepareDialog />
 
-
-
   <section class="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
     <header class="flex flex-wrap items-center gap-3">
       <div class="min-w-0">
@@ -416,9 +410,6 @@ onMounted(async () => {
       show-icon
     />
 
-    <!-- The model belongs to the speech feature, next to its engine settings. -->
-    
-
     <el-skeleton
       v-if="store.pending && !store.snapshot"
       class="app-card p-4"
@@ -438,7 +429,14 @@ onMounted(async () => {
             :disabled="!qwen3Draft.isEnabled"
             @click="handleQwen3Test"
           >
-            {{ t('common.test') }}
+            {{ t('tts.qwen3.preview') }}
+          </el-button>
+          <el-button
+            :icon="VideoPlay"
+            :loading="store.pendingOperations.has('test')"
+            @click="handleTest"
+          >
+            {{ t('tts.testBroadcast') }}
           </el-button>
           <el-button :icon="RefreshLeft" :disabled="savePending" @click="handleReset">
             {{ t('common.resetDefaults') }}
@@ -573,6 +571,7 @@ onMounted(async () => {
           </div>
         </section>
 
+        <!-- The model belongs to the speech feature, next to its engine settings. -->
         <section class="app-card p-4" aria-labelledby="tts-qwen3-title">
           <div class="flex flex-wrap items-start gap-3">
             <div class="mr-auto min-w-0">

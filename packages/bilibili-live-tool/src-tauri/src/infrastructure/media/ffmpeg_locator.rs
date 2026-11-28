@@ -1,9 +1,10 @@
 //! FFmpeg executable resolution.
 //!
-//! Two sources are supported: a bundled binary shipped next to the application,
-//! and a local binary the operator picked (which arrives as an authorized
-//! path-grant). The bundled lookup probes the usual Tauri resource layouts so a
-//! packaged build works on all three release targets.
+//! Two sources are supported: a bundled binary shipped next to the application
+//! (a single sidecar or the shared build under `binaries/ffmpeg`), and a local
+//! binary the operator picked (which arrives as an authorized path-grant). The
+//! bundled lookup probes the usual Tauri resource layouts so a packaged build
+//! works on all three release targets.
 
 use std::path::{Path, PathBuf};
 
@@ -26,17 +27,9 @@ pub struct AppFfmpegLocator {
 impl AppFfmpegLocator {
     /// Probes the directories a packaged Tauri build can place a sidecar in.
     pub fn for_current_app() -> Self {
-        let mut bundled_roots = Vec::new();
-        if let Ok(executable) = std::env::current_exe() {
-            if let Some(directory) = executable.parent() {
-                bundled_roots.push(directory.to_path_buf());
-                bundled_roots.push(directory.join("resources"));
-                bundled_roots.push(directory.join("bin"));
-                if let Some(parent) = directory.parent() {
-                    bundled_roots.push(parent.join("resources"));
-                }
-            }
-        }
+        let bundled_roots = std::env::current_exe()
+            .map(|executable| bundled_roots_for(&executable))
+            .unwrap_or_default();
         Self {
             bundled_roots,
             system_roots: default_system_roots(),
@@ -150,6 +143,32 @@ impl FfmpegLocator for AppFfmpegLocator {
     }
 }
 
+/// Directories a packaged build may use for the shared FFmpeg bundle.
+///
+/// Windows resolves the Tauri resource directory to the executable's own
+/// folder, while macOS and Linux use a `resources` directory, so both layouts
+/// are probed.
+fn bundled_roots_for(executable: &Path) -> Vec<PathBuf> {
+    let mut roots = Vec::new();
+    let Some(directory) = executable.parent() else {
+        return roots;
+    };
+    roots.push(directory.to_path_buf());
+    roots.push(directory.join("resources"));
+    roots.push(directory.join("bin"));
+    roots.push(directory.join("binaries").join("ffmpeg"));
+    roots.push(
+        directory
+            .join("resources")
+            .join("binaries")
+            .join("ffmpeg"),
+    );
+    if let Some(parent) = directory.parent() {
+        roots.push(parent.join("resources"));
+    }
+    roots
+}
+
 /// Locations the common Windows installers use; harmless elsewhere because the
 /// directories simply do not exist.
 fn default_system_roots() -> Vec<PathBuf> {
@@ -209,6 +228,20 @@ mod tests {
             locator.locate(FfmpegSource::Bundled, None).unwrap(),
             binary
         );
+    }
+
+    #[test]
+    fn finds_the_shared_ffmpeg_bundle_inside_the_resource_directory() {
+        let app = tempfile::tempdir().unwrap();
+        let resource_directory = app.path().join("binaries").join("ffmpeg");
+        std::fs::create_dir_all(&resource_directory).unwrap();
+        let binary = fake_binary(&resource_directory);
+        let locator = AppFfmpegLocator::with_roots(super::bundled_roots_for(
+            &app.path().join("liver.exe"),
+        ));
+
+        // The packaged installer drops the shared build next to the resources.
+        assert_eq!(locator.locate(FfmpegSource::Bundled, None).unwrap(), binary);
     }
 
     #[test]

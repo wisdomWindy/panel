@@ -66,3 +66,24 @@ pub enum ConfigError {
     #[error(transparent)]
     Storage(#[from] StoragePortError),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{ConfigKey, ConfigScope};
+
+    #[test]
+    fn accepts_the_remembered_room_session_keys() {
+        // The shell persists the operator's identity code and auto-connect flag
+        // under these keys; a rejected key would silently disable the feature.
+        assert!(ConfigKey::parse("live.identity").is_ok());
+        assert!(ConfigKey::parse("live.auto_connect").is_ok());
+        assert!(ConfigScope::parse("global").is_ok());
+    }
+
+    #[test]
+    fn still_rejects_sensitive_or_malformed_keys() {
+        assert!(ConfigKey::parse("live.credential").is_err());
+        assert!(ConfigKey::parse("live session").is_err());
+        assert!(ConfigScope::parse("everything").is_err());
+    }
+}
